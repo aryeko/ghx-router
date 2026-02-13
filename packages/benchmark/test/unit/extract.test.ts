@@ -20,6 +20,11 @@ describe("extractors", () => {
     expect(payload?.ok).toBe(true)
   })
 
+  it("returns null for malformed or missing JSON object", () => {
+    expect(extractFirstJsonObject("no braces here")).toBeNull()
+    expect(extractFirstJsonObject("prefix {not-json}")).toBeNull()
+  })
+
   it("validates envelope with required fields", () => {
     const valid = validateEnvelope(
       {
@@ -35,6 +40,24 @@ describe("extractors", () => {
     )
 
     expect(valid).toBe(true)
+  })
+
+  it("rejects invalid envelope shapes and data constraints", () => {
+    expect(validateEnvelope({ must_succeed: true }, null)).toBe(false)
+    expect(
+      validateEnvelope(
+        { must_succeed: true, required_fields: ["meta"] },
+        { ok: true, data: {}, error: null }
+      )
+    ).toBe(false)
+    expect(validateEnvelope({ must_succeed: true, data_type: "array" }, { ok: true, data: {} })).toBe(false)
+    expect(validateEnvelope({ must_succeed: true, data_type: "object" }, { ok: true, data: [] })).toBe(false)
+    expect(
+      validateEnvelope(
+        { must_succeed: true, required_data_fields: ["id"] },
+        { ok: true, data: [] }
+      )
+    ).toBe(false)
   })
 
   it("counts tool calls across message parts", () => {

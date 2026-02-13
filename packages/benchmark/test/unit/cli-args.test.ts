@@ -33,4 +33,14 @@ describe("parseCliArgs", () => {
     expect(parsed.repetitions).toBe(1)
     expect(parsed.scenarioFilter).toBe("issue-view-001")
   })
+
+  it("rejects unsupported commands and modes", () => {
+    expect(() => parseCliArgs(["validate"])).toThrow("Unsupported command")
+    expect(() => parseCliArgs(["run", "invalid_mode"])).toThrow("Unsupported mode")
+  })
+
+  it("rejects invalid repetitions", () => {
+    expect(() => parseCliArgs(["run", "ghx_router", "0"])).toThrow("Invalid repetitions")
+    expect(() => parseCliArgs(["run", "ghx_router", "1.5"])).toThrow("Invalid repetitions")
+  })
 })

@@ -98,4 +98,74 @@ describe("execute", () => {
       expect.objectContaining({ route: "graphql", status: "skipped", error_code: "AUTH" })
     )
   })
+
+  it("returns adapter unsupported when route handler missing", async () => {
+    const result = await execute({
+      card: baseCard,
+      params: { owner: "acme", name: "modkit" },
+      preflight: alwaysPassPreflight,
+      routes: {
+        graphql: undefined as unknown as never,
+        cli: undefined as unknown as never,
+        rest: vi.fn()
+      },
+      trace: true
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe("ADAPTER_UNSUPPORTED")
+    expect(result.meta.attempts?.length).toBeGreaterThan(0)
+  })
+
+  it("returns schema mismatch when output misses required fields", async () => {
+    const card: OperationCard = {
+      ...baseCard,
+      output_schema: {
+        type: "object",
+        required: ["id"]
+      }
+    }
+
+    const result = await execute({
+      card,
+      params: { owner: "acme", name: "modkit" },
+      preflight: alwaysPassPreflight,
+      routes: {
+        graphql: vi.fn(async () => ({
+          ok: true,
+          data: {},
+          meta: { capability_id: "repo.view", route_used: "graphql" as const }
+        })),
+        cli: vi.fn(),
+        rest: vi.fn()
+      }
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.message).toContain("Output schema mismatch")
+  })
+
+  it("returns non-retryable route errors with trace attempts", async () => {
+    const result = await execute({
+      card: baseCard,
+      params: { owner: "acme", name: "modkit" },
+      preflight: alwaysPassPreflight,
+      routes: {
+        graphql: vi.fn(async () => ({
+          ok: false,
+          error: { code: "VALIDATION", message: "bad input", retryable: false },
+          meta: { capability_id: "repo.view", route_used: "graphql" as const }
+        })),
+        cli: vi.fn(),
+        rest: vi.fn()
+      },
+      trace: true
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe("VALIDATION")
+    expect(result.meta.attempts).toEqual([
+      expect.objectContaining({ route: "graphql", status: "error", error_code: "VALIDATION" })
+    ])
+  })
 })

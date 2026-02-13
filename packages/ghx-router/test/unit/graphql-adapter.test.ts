@@ -39,4 +39,21 @@ describe("runGraphqlAdapter", () => {
     expect(result.error?.code).toBe("NETWORK")
     expect(result.error?.details).toEqual({ adapter: "graphql" })
   })
+
+  it("maps non-Error failures and uses default capability id", async () => {
+    const client = createGraphqlClient({
+      async execute(): Promise<never> {
+        throw "forbidden"
+      }
+    })
+
+    const result = await runGraphqlAdapter(client, {
+      query: "query { viewer { login } }"
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe("AUTH")
+    expect(result.error?.message).toBe("forbidden")
+    expect(result.meta.capability_id).toBe("unknown")
+  })
 })

@@ -41,6 +41,67 @@ describe("runCliCapability", () => {
     )
   })
 
+  it("normalizes repo.view when stdout is empty", async () => {
+    const runner = {
+      run: vi.fn(async () => ({ stdout: "  ", stderr: "", exitCode: 0 }))
+    }
+
+    const result = await runCliCapability(runner, "repo.view", {
+      owner: "acme",
+      name: "modkit"
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.data).toEqual(
+      expect.objectContaining({
+        defaultBranch: null
+      })
+    )
+  })
+
+  it("supports issue.view and pr.view success paths", async () => {
+    const runner = {
+      run: vi
+        .fn()
+        .mockResolvedValueOnce({
+          stdout: JSON.stringify({ id: "issue-id", number: 7, title: "Issue", state: "OPEN", url: "u" }),
+          stderr: "",
+          exitCode: 0
+        })
+        .mockResolvedValueOnce({
+          stdout: JSON.stringify({ id: "pr-id", number: 9, title: "PR", state: "OPEN", url: "u" }),
+          stderr: "",
+          exitCode: 0
+        })
+    }
+
+    const issueResult = await runCliCapability(runner, "issue.view", {
+      owner: "acme",
+      name: "modkit",
+      issueNumber: 7
+    })
+    const prResult = await runCliCapability(runner, "pr.view", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 9
+    })
+
+    expect(issueResult.ok).toBe(true)
+    expect(prResult.ok).toBe(true)
+    expect(runner.run).toHaveBeenNthCalledWith(
+      1,
+      "gh",
+      expect.arrayContaining(["issue", "view", "7", "--repo", "acme/modkit"]),
+      10_000
+    )
+    expect(runner.run).toHaveBeenNthCalledWith(
+      2,
+      "gh",
+      expect.arrayContaining(["pr", "view", "9", "--repo", "acme/modkit"]),
+      10_000
+    )
+  })
+
   it("maps cli failures to normalized error", async () => {
     const runner = {
       run: vi.fn(async () => ({ stdout: "", stderr: "unauthorized", exitCode: 1 }))
@@ -475,5 +536,56 @@ describe("runCliCapability", () => {
 
     expect(result.ok).toBe(false)
     expect(result.error?.code).toBe("SERVER")
+  })
+
+  it("returns server error when comment item is not an object", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: JSON.stringify({
+          data: {
+            repository: {
+              issue: {
+                comments: {
+                  nodes: [null],
+                  pageInfo: {
+                    hasNextPage: false,
+                    endCursor: null
+                  }
+                }
+              }
+            }
+          }
+        }),
+        stderr: "",
+        exitCode: 0
+      }))
+    }
+
+    const result = await runCliCapability(runner, "issue.comments.list", {
+      owner: "acme",
+      name: "modkit",
+      issueNumber: 1,
+      first: 20
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe("SERVER")
+  })
+
+  it("maps thrown non-Error failures", async () => {
+    const runner = {
+      run: vi.fn(async () => {
+        throw "forbidden"
+      })
+    }
+
+    const result = await runCliCapability(runner, "repo.view", {
+      owner: "acme",
+      name: "modkit"
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe("AUTH")
+    expect(result.error?.message).toBe("forbidden")
   })
 })

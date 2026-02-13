@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { buildSummary } from "../../src/report/aggregate.js"
+import { buildSummary, toMarkdown } from "../../src/report/aggregate.js"
 import type { BenchmarkRow } from "../../src/domain/types.js"
 
 function row(overrides: Partial<BenchmarkRow>): BenchmarkRow {
@@ -65,5 +65,33 @@ describe("buildSummary", () => {
 
     expect(summary.gate.passed).toBe(false)
     expect(summary.gate.checks.some((check) => check.passed === false)).toBe(true)
+  })
+
+  it("handles missing comparison mode and renders markdown", () => {
+    const summary = buildSummary([
+      row({ mode: "mcp", latency_ms_wall: 120, tool_calls: 2 })
+    ])
+
+    expect(summary.deltaVsAgentDirect).toBeNull()
+    const markdown = toMarkdown(summary)
+    expect(markdown).toContain("Insufficient data")
+  })
+
+  it("supports custom thresholds", () => {
+    const summary = buildSummary(
+      [
+        row({ mode: "agent_direct", latency_ms_wall: 100, tool_calls: 10, tokens: { input: 0, output: 0, reasoning: 0, cache_read: 0, cache_write: 0, total: 100 } }),
+        row({ mode: "ghx_router", latency_ms_wall: 90, tool_calls: 8, tokens: { input: 0, output: 0, reasoning: 0, cache_read: 0, cache_write: 0, total: 95 } })
+      ],
+      {
+        minTokensReductionPct: 1,
+        minLatencyReductionPct: 1,
+        minToolCallReductionPct: 1,
+        maxSuccessRateDropPct: 5,
+        minOutputValidityRatePct: 90
+      }
+    )
+
+    expect(summary.gate.checks.length).toBeGreaterThan(0)
   })
 })
