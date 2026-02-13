@@ -3,30 +3,20 @@
   "defaultBase": "main",
   "targetDefaults": {
     "build": {
-      "dependsOn": [
-        "^build"
-      ],
-      "outputs": [
-        "{projectRoot}/dist"
-      ],
+      "dependsOn": ["^build"],
+      "outputs": ["{projectRoot}/dist"],
       "cache": true
     },
     "lint": {
-      "dependsOn": [
-        "^lint"
-      ],
+      "dependsOn": ["^lint"],
       "cache": true
     },
     "test": {
-      "dependsOn": [
-        "^test"
-      ],
+      "dependsOn": ["^test"],
       "cache": true
     },
     "typecheck": {
-      "dependsOn": [
-        "^typecheck"
-      ],
+      "dependsOn": ["^typecheck"],
       "cache": true
     },
     "gql-check": {
@@ -42,16 +32,17 @@
       "cache": false
     },
     "ci": {
-      "dependsOn": [
-        "lint",
-        "typecheck",
-        "test",
-        "build"
-      ],
+      "dependsOn": ["lint", "typecheck", "test", "build"],
       "cache": false
     }
   },
   "plugins": [
-    "@nx/js"
+    "@nx/js",
+    {
+      "plugin": "@nx/eslint/plugin",
+      "options": {
+        "targetName": "eslint:lint"
+      }
+    }
   ]
 }

@@ -88,9 +88,7 @@ Normalized runtime envelope:
 ```bash
 pnpm run build
 pnpm run lint
-pnpm run verify
 pnpm run ci
-pnpm run verify:affected
 pnpm run ghx:gql:check
 pnpm run benchmark:check
 ```
