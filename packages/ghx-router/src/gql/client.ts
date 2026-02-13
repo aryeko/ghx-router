@@ -2,14 +2,26 @@ import { print, type DocumentNode } from "graphql"
 import type { GraphQLClient, RequestDocument, RequestOptions } from "graphql-request"
 
 import {
-  getSdk,
-  type IssueViewQuery,
-  type IssueViewQueryVariables,
-  type PrViewQuery,
-  type PrViewQueryVariables,
-  type RepoViewQuery,
-  type RepoViewQueryVariables
-} from "./generated/graphql.js"
+  getSdk as getIssueViewSdk
+} from "./operations/issue-view.generated.js"
+import {
+  getSdk as getPrViewSdk
+} from "./operations/pr-view.generated.js"
+import {
+  getSdk as getRepoViewSdk
+} from "./operations/repo-view.generated.js"
+import type {
+  IssueViewQuery,
+  IssueViewQueryVariables,
+} from "./operations/issue-view.generated.js"
+import type {
+  PrViewQuery,
+  PrViewQueryVariables,
+} from "./operations/pr-view.generated.js"
+import type {
+  RepoViewQuery,
+  RepoViewQueryVariables
+} from "./operations/repo-view.generated.js"
 
 export type GraphqlVariables = Record<string, unknown>
 type GraphqlDocument = string | DocumentNode
@@ -87,7 +99,13 @@ function assertPrInput(input: PrViewInput): void {
   }
 }
 
-function createSdkClient(transport: GraphqlTransport): ReturnType<typeof getSdk> {
+type SdkClients = {
+  issue: ReturnType<typeof getIssueViewSdk>
+  pr: ReturnType<typeof getPrViewSdk>
+  repo: ReturnType<typeof getRepoViewSdk>
+}
+
+function createSdkClients(transport: GraphqlTransport): SdkClients {
   const client: Pick<GraphQLClient, "request"> = {
     request<TData, TVariables extends object = object>(
       documentOrOptions: RequestDocument | RequestOptions<TVariables, TData>,
@@ -107,10 +125,16 @@ function createSdkClient(transport: GraphqlTransport): ReturnType<typeof getSdk>
     }
   }
 
-  return getSdk(client as GraphQLClient)
+  const graphqlRequestClient = client as GraphQLClient
+
+  return {
+    issue: getIssueViewSdk(graphqlRequestClient),
+    pr: getPrViewSdk(graphqlRequestClient),
+    repo: getRepoViewSdk(graphqlRequestClient)
+  }
 }
 
-async function runRepoView(sdk: ReturnType<typeof getSdk>, input: RepoViewInput): Promise<RepoViewData> {
+async function runRepoView(sdk: SdkClients["repo"], input: RepoViewInput): Promise<RepoViewData> {
   assertRepoInput(input)
 
   const result: RepoViewQuery = await sdk.RepoView(input)
@@ -130,7 +154,7 @@ async function runRepoView(sdk: ReturnType<typeof getSdk>, input: RepoViewInput)
   }
 }
 
-async function runIssueView(sdk: ReturnType<typeof getSdk>, input: IssueViewInput): Promise<IssueViewData> {
+async function runIssueView(sdk: SdkClients["issue"], input: IssueViewInput): Promise<IssueViewData> {
   assertIssueInput(input)
 
   const result: IssueViewQuery = await sdk.IssueView(input)
@@ -148,7 +172,7 @@ async function runIssueView(sdk: ReturnType<typeof getSdk>, input: IssueViewInpu
   }
 }
 
-async function runPrView(sdk: ReturnType<typeof getSdk>, input: PrViewInput): Promise<PrViewData> {
+async function runPrView(sdk: SdkClients["pr"], input: PrViewInput): Promise<PrViewData> {
   assertPrInput(input)
 
   const result: PrViewQuery = await sdk.PrView(input)
@@ -199,12 +223,12 @@ export function createGraphqlClient(transport: GraphqlTransport): GraphqlClient 
 
 export function createGithubClient(transport: GraphqlTransport): GithubClient {
   const graphqlClient = createGraphqlClient(transport)
-  const sdk = createSdkClient(transport)
+  const sdk = createSdkClients(transport)
 
   return {
     query: (query, variables) => graphqlClient.query(query, variables),
-    fetchRepoView: (input) => runRepoView(sdk, input),
-    fetchIssueView: (input) => runIssueView(sdk, input),
-    fetchPrView: (input) => runPrView(sdk, input)
+    fetchRepoView: (input) => runRepoView(sdk.repo, input),
+    fetchIssueView: (input) => runIssueView(sdk.issue, input),
+    fetchPrView: (input) => runPrView(sdk.pr, input)
   }
 }

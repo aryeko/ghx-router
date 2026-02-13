@@ -6,7 +6,7 @@ if (!token) {
   throw new Error("GITHUB_TOKEN is required for GraphQL code generation")
 }
 
-const config: CodegenConfig = {
+const config = {
   schema: [
     {
       "https://api.github.com/graphql": {
@@ -18,15 +18,24 @@ const config: CodegenConfig = {
   ],
   documents: ["src/gql/operations/**/*.graphql"],
   generates: {
-    "src/gql/generated/graphql.ts": {
-      plugins: ["typescript", "typescript-operations", "typescript-graphql-request"],
+    "src/gql/operations/": {
+      preset: "near-operation-file",
+      presetConfig: {
+        extension: ".generated.ts",
+        baseTypesPath: "../generated/common-types.js"
+      },
+      plugins: ["typescript-operations", "typescript-graphql-request"],
       config: {
+        useTypeImports: true,
         documentMode: "string",
-        useTypeImports: true
+        preResolveTypes: true,
+        onlyOperationTypes: true,
+        emitLegacyCommonJSImports: false,
+        rawRequest: false
       }
     }
   },
   ignoreNoDocuments: false
-}
+} as CodegenConfig
 
 export default config

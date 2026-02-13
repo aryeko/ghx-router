@@ -4,13 +4,21 @@ describe("codegen config", () => {
   it("uses operations folder and graphql-request sdk plugin", async () => {
     process.env.GITHUB_TOKEN = "test-token"
     const { default: config } = await import("../../codegen.js")
-    const generatedOutput = config.generates["src/gql/generated/graphql.ts"] as {
-      plugins?: string[]
+    const generatedOutput = config.generates["src/gql/operations/"] as {
+      plugins?: Array<string>
+      preset?: string
+      presetConfig?: Record<string, unknown>
     }
 
     expect(config.documents).toEqual(["src/gql/operations/**/*.graphql"])
+    expect(generatedOutput.preset).toBe("near-operation-file")
+    expect(generatedOutput.presetConfig).toEqual(
+      expect.objectContaining({
+        extension: ".generated.ts",
+        baseTypesPath: "../generated/common-types.js"
+      })
+    )
     expect(generatedOutput.plugins).toEqual([
-      "typescript",
       "typescript-operations",
       "typescript-graphql-request"
     ])

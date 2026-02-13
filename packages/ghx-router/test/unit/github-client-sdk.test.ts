@@ -41,9 +41,13 @@ describe("createGithubClient sdk integration", () => {
         }
       }
     }))
-    const getSdk = vi.fn(() => ({ RepoView: repoView, IssueView: issueView, PrView: prView }))
+    const getRepoViewSdk = vi.fn(() => ({ RepoView: repoView }))
+    const getIssueViewSdk = vi.fn(() => ({ IssueView: issueView }))
+    const getPrViewSdk = vi.fn(() => ({ PrView: prView }))
 
-    vi.doMock("../../src/gql/generated/graphql.js", () => ({ getSdk }))
+    vi.doMock("../../src/gql/operations/repo-view.generated.js", () => ({ getSdk: getRepoViewSdk }))
+    vi.doMock("../../src/gql/operations/issue-view.generated.js", () => ({ getSdk: getIssueViewSdk }))
+    vi.doMock("../../src/gql/operations/pr-view.generated.js", () => ({ getSdk: getPrViewSdk }))
 
     const { createGithubClient } = await import("../../src/gql/client.js")
 
@@ -57,7 +61,9 @@ describe("createGithubClient sdk integration", () => {
     await client.fetchIssueView({ owner: "go-modkit", name: "modkit", issueNumber: 42 })
     await client.fetchPrView({ owner: "go-modkit", name: "modkit", prNumber: 7 })
 
-    expect(getSdk).toHaveBeenCalledTimes(1)
+    expect(getRepoViewSdk).toHaveBeenCalledTimes(1)
+    expect(getIssueViewSdk).toHaveBeenCalledTimes(1)
+    expect(getPrViewSdk).toHaveBeenCalledTimes(1)
     expect(repoView).toHaveBeenCalledWith({ owner: "go-modkit", name: "modkit" })
     expect(issueView).toHaveBeenCalledWith({ owner: "go-modkit", name: "modkit", issueNumber: 42 })
     expect(prView).toHaveBeenCalledWith({ owner: "go-modkit", name: "modkit", prNumber: 7 })
