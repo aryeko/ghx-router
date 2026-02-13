@@ -36,4 +36,31 @@ describe("runCliCapability", () => {
     expect(result.ok).toBe(false)
     expect(result.error?.code).toBe("AUTH")
   })
+
+  it("normalizes list limits and omits empty repo args", async () => {
+    const runner = {
+      run: vi.fn(async () => ({ stdout: "[]", stderr: "", exitCode: 0 }))
+    }
+
+    await runCliCapability(runner, "issue.list", {
+      owner: "",
+      name: "",
+      first: { bad: "input" }
+    })
+
+    await runCliCapability(runner, "pr.list", {
+      owner: "acme",
+      name: "modkit",
+      first: 12.9
+    })
+
+    const calls = runner.run.mock.calls as unknown as [string, string[], number][]
+    const issueArgs = calls[0]?.[1]
+    const prArgs = calls[1]?.[1]
+
+    expect(issueArgs).toEqual(expect.arrayContaining(["issue", "list", "--limit", "30"]))
+    expect(issueArgs).not.toContain("--repo")
+
+    expect(prArgs).toEqual(expect.arrayContaining(["pr", "list", "--repo", "acme/modkit", "--limit", "12"]))
+  })
 })

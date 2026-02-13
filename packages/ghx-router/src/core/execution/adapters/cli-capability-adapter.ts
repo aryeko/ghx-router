@@ -12,6 +12,15 @@ export type CliCommandRunner = {
 
 const DEFAULT_TIMEOUT_MS = 10_000
 
+function normalizeListLimit(value: unknown): number {
+  const candidate = typeof value === "number" ? value : Number(value)
+  if (!Number.isFinite(candidate) || candidate < 1) {
+    return 30
+  }
+
+  return Math.floor(candidate)
+}
+
 function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown>): string[] {
   const owner = String(params.owner ?? "")
   const name = String(params.name ?? "")
@@ -48,7 +57,7 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
       args.push("--repo", repo)
     }
 
-    args.push("--limit", String(params.first ?? 30), "--json", "id,number,title,state,url")
+    args.push("--limit", String(normalizeListLimit(params.first)), "--json", "id,number,title,state,url")
     return args
   }
 
@@ -73,7 +82,7 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
       args.push("--repo", repo)
     }
 
-    args.push("--limit", String(params.first ?? 30), "--json", "id,number,title,state,url")
+    args.push("--limit", String(normalizeListLimit(params.first)), "--json", "id,number,title,state,url")
     return args
   }
 
