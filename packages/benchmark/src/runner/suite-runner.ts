@@ -75,6 +75,7 @@ const MODEL_ID = process.env.BENCH_MODEL_ID ?? "gpt-5.3-codex"
 const OPEN_CODE_MODE = process.env.BENCH_OPENCODE_MODE ?? null
 const GIT_REPO = process.env.BENCH_GIT_REPO ?? null
 const GIT_COMMIT = process.env.BENCH_GIT_COMMIT ?? null
+const OPENCODE_PORT = Number.parseInt(process.env.BENCH_OPENCODE_PORT ?? "3000", 10)
 
 const modePromptPrefix: Record<BenchmarkMode, string> = {
   agent_direct:
@@ -165,6 +166,17 @@ export function hasAssistantMetadata(info: unknown): boolean {
   return hasCompleted && hasTokens
 }
 
+function hasStructuredOutput(info: unknown): boolean {
+  if (!isObject(info)) {
+    return false
+  }
+
+  const structuredOutput = (info as { structured_output?: unknown }).structured_output
+  const structured = (info as { structured?: unknown }).structured
+
+  return structuredOutput !== undefined || structured !== undefined
+}
+
 export function hasAssistantSignalParts(parts: SessionMessagePart[]): boolean {
   return parts.some((part) => part.type === "step-finish" || part.type === "tool")
 }
@@ -216,9 +228,13 @@ export function coercePromptResponse(value: PromptResponse): {
 } {
   const parts = value.parts ?? []
   const stepFinish = [...parts].reverse().find((part) => part.type === "step-finish")
+  const hasCompletedStep =
+    stepFinish !== undefined && stepFinish.reason !== "tool-calls" && stepFinish.reason !== "error"
+  const hasUsableMetadata =
+    value.info !== undefined && hasAssistantMetadata(value.info) && (hasCompletedStep || hasTextPart(parts) || hasStructuredOutput(value.info))
   const textOnlySignal = hasTextPart(parts) && stepFinish?.reason !== "tool-calls"
 
-  if (value.info && (value.info.role === "assistant" || hasAssistantMetadata(value.info) || textOnlySignal)) {
+  if (value.info && (hasUsableMetadata || hasCompletedStep || textOnlySignal)) {
     const info = value.info
     const snapshot = extractSnapshotFromParts(parts)
 
@@ -245,7 +261,8 @@ export function coercePromptResponse(value: PromptResponse): {
         cost: asNumber(info.cost) ?? snapshot.cost,
         error: info.error,
         role: info.role ?? "assistant",
-        structured_output: (info as { structured_output?: unknown }).structured_output
+        structured_output: (info as { structured_output?: unknown; structured?: unknown }).structured_output ??
+          (info as { structured_output?: unknown; structured?: unknown }).structured
       },
       parts
     }
@@ -453,15 +470,25 @@ export async function waitForAssistantFromMessages(
       const role = (entry.info as { role?: unknown }).role
       const parts = entry.parts ?? []
       const stepFinish = [...parts].reverse().find((part) => part.type === "step-finish")
+      const hasEnvelopeCandidate = extractEnvelopeFromParts(parts).envelope !== null
       const assistantByRole = role === "assistant"
       const assistantByMetadata = hasAssistantMetadata(entry.info)
+      const assistantWithStructuredOutput = hasStructuredOutput(entry.info)
+      const assistantByRoleTextSignal =
+        assistantByRole && hasTextPart(parts) && stepFinish?.reason !== "tool-calls" && hasEnvelopeCandidate
       const assistantByTextSignal = previousAssistantId !== undefined && hasTextPart(parts) && stepFinish?.reason !== "tool-calls"
+      const hasCompletedStep =
+        stepFinish !== undefined && stepFinish.reason !== "tool-calls" && stepFinish.reason !== "error"
+      const isCompletedAssistant =
+        (assistantByMetadata && (hasCompletedStep || hasTextPart(parts) || assistantWithStructuredOutput)) ||
+        hasCompletedStep ||
+        assistantWithStructuredOutput
 
-      if (!assistantByRole && !assistantByMetadata && !assistantByTextSignal) {
+      if (!assistantByRole && !assistantByMetadata && !assistantByTextSignal && !assistantByRoleTextSignal) {
         return false
       }
 
-      return assistantByMetadata || assistantByTextSignal || hasTextPart(parts)
+      return isCompletedAssistant || assistantByTextSignal || assistantByRoleTextSignal
     })
 
     if (latestAssistant?.info) {
@@ -484,7 +511,19 @@ export async function waitForAssistantFromMessages(
 
         const parts = entry.parts ?? []
         const stepFinish = [...parts].reverse().find((part) => part.type === "step-finish")
-        return hasTextPart(parts) && stepFinish?.reason !== "tool-calls"
+        const hasEnvelopeCandidate = extractEnvelopeFromParts(parts).envelope !== null
+        const role = (entry.info as { role?: unknown }).role
+        const assistantByRole = role === "assistant"
+        const assistantByMetadata = hasAssistantMetadata(entry.info)
+        const assistantWithStructuredOutput = hasStructuredOutput(entry.info)
+        const hasCompletedStep =
+          stepFinish !== undefined && stepFinish.reason !== "tool-calls" && stepFinish.reason !== "error"
+        return (
+          assistantWithStructuredOutput ||
+          (assistantByMetadata && (hasCompletedStep || hasTextPart(parts) || assistantWithStructuredOutput)) ||
+          (hasTextPart(parts) && hasCompletedStep) ||
+          (assistantByRole && hasTextPart(parts) && stepFinish?.reason !== "tool-calls" && hasEnvelopeCandidate)
+        )
       })
 
       if (continuedSameMessage?.info) {
@@ -503,6 +542,34 @@ export async function waitForAssistantFromMessages(
   }
 
   throw new Error("Timed out waiting for assistant message in session.messages")
+}
+
+export function extractPromptResponseFromPromptResult(value: unknown): PromptResponse | null {
+  const payload = unwrapData<unknown>(value, "session.promptAsync")
+
+  if (!isObject(payload)) {
+    return null
+  }
+
+  if (isObject(payload.info) || Array.isArray(payload.parts)) {
+    return payload as PromptResponse
+  }
+
+  const message = (payload as { message?: unknown }).message
+  if (isObject(message) && (isObject(message.info) || Array.isArray((message as { parts?: unknown }).parts))) {
+    return message as PromptResponse
+  }
+
+  const assistant = (payload as { assistant?: unknown }).assistant
+  const parts = (payload as { parts?: unknown }).parts
+  if (isObject(assistant) && Array.isArray(parts)) {
+    return {
+      info: assistant as AssistantMessage,
+      parts: parts as SessionMessagePart[]
+    }
+  }
+
+  return null
 }
 
 export function ghOk(args: string[]): boolean {
@@ -585,7 +652,10 @@ function buildOutputSchema(assertions: Scenario["assertions"]): Record<string, u
   const dataProperties: Record<string, unknown> = {}
   for (const field of requiredDataFields) {
     if (field === "items") {
-      dataProperties.items = { type: "array" }
+      dataProperties.items = {
+        type: "array",
+        items: {}
+      }
       continue
     }
     if (field === "pageInfo") {
@@ -839,7 +909,7 @@ export async function runScenario(
     const session = unwrapData<{ id: string }>(sessionResult, "session.create")
     sessionId = session.id
 
-    await withTimeout(
+    const promptResult = await withTimeout(
       sessionApi.promptAsync({
         url: "/session/{id}/prompt_async",
         path: { id: session.id },
@@ -859,7 +929,10 @@ export async function runScenario(
     )
 
     const remainingTimeoutMs = Math.max(1000, scenario.timeout_ms - (Date.now() - startedAt))
-    const hydrated = await waitForAssistantFromMessages(sessionApi, session.id, remainingTimeoutMs, scenario.id)
+    const immediatePrompt = extractPromptResponseFromPromptResult(promptResult)
+    const hydrated =
+      immediatePrompt ??
+      (await waitForAssistantFromMessages(sessionApi, session.id, remainingTimeoutMs, scenario.id))
     let assistantAndParts = coercePromptResponse(hydrated)
 
     let extracted = extractEnvelopeFromParts(assistantAndParts.parts)
@@ -871,11 +944,11 @@ export async function runScenario(
     }
 
     let continuationCount = 0
-    while ((shouldRequestContinuation(assistantAndParts.parts) || extracted.envelope === null) && continuationCount < 3) {
+    while (extracted.envelope === null && continuationCount < 3) {
       continuationCount += 1
       const remaining = Math.max(1000, scenario.timeout_ms - (Date.now() - startedAt))
 
-      await withTimeout(
+      const continuationResult = await withTimeout(
         sessionApi.promptAsync({
           url: "/session/{id}/prompt_async",
           path: { id: session.id },
@@ -890,13 +963,16 @@ export async function runScenario(
         "session.promptAsync.continue"
       )
 
-      const next = await waitForAssistantFromMessages(
-        sessionApi,
-        session.id,
-        remaining,
-        scenario.id,
-        assistantAndParts.assistant.id
-      )
+      const immediateContinuation = extractPromptResponseFromPromptResult(continuationResult)
+      const next =
+        immediateContinuation ??
+        (await waitForAssistantFromMessages(
+          sessionApi,
+          session.id,
+          remaining,
+          scenario.id,
+          assistantAndParts.assistant.id
+        ))
 
       assistantAndParts = coercePromptResponse(next)
       extracted = extractEnvelopeFromParts(assistantAndParts.parts)
@@ -914,7 +990,7 @@ export async function runScenario(
       forceToolAttempt += 1
       const remaining = Math.max(1000, scenario.timeout_ms - (Date.now() - startedAt))
       const forcedCommand = forcedToolCommandHint(scenario, mode)
-      await withTimeout(
+      const forcedPromptResult = await withTimeout(
         sessionApi.promptAsync({
           url: "/session/{id}/prompt_async",
           path: { id: session.id },
@@ -938,13 +1014,16 @@ export async function runScenario(
         "session.promptAsync.tool-required"
       )
 
-      const next = await waitForAssistantFromMessages(
-        sessionApi,
-        session.id,
-        remaining,
-        scenario.id,
-        assistant.id
-      )
+      const immediateForcedResponse = extractPromptResponseFromPromptResult(forcedPromptResult)
+      const next =
+        immediateForcedResponse ??
+        (await waitForAssistantFromMessages(
+          sessionApi,
+          session.id,
+          remaining,
+          scenario.id,
+          assistant.id
+        ))
 
       assistantAndParts = coercePromptResponse(next)
       assistant = assistantAndParts.assistant
@@ -1124,6 +1203,7 @@ export async function runSuite(options: RunSuiteOptions): Promise<void> {
 
   try {
     const opencode = await createOpencode({
+      port: Number.isInteger(OPENCODE_PORT) && OPENCODE_PORT > 0 ? OPENCODE_PORT : 3000,
       config: {
         model: `${PROVIDER_ID}/${MODEL_ID}`,
         instructions: [],

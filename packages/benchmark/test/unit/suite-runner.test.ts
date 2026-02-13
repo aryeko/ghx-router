@@ -9,6 +9,7 @@ import { spawnSync } from "node:child_process"
 import {
   asNumber,
   coercePromptResponse,
+  extractPromptResponseFromPromptResult,
   extractEnvelopeFromParts,
   extractSnapshotFromParts,
   fetchSessionMessages,
@@ -118,6 +119,25 @@ describe("suite-runner helpers", () => {
     expect(() => coercePromptResponse({})).toThrow("Unsupported prompt response shape")
   })
 
+  it("extracts immediate prompt response from wrapped promptAsync payload", () => {
+    const extracted = extractPromptResponseFromPromptResult({
+      data: {
+        info: {
+          id: "m-immediate",
+          sessionID: "s1",
+          role: "assistant",
+          time: { created: 1, completed: 2 },
+          tokens: { input: 1, output: 1, reasoning: 0, cache: { read: 0, write: 0 } },
+          cost: 0
+        },
+        parts: [{ type: "text", text: '{"ok":true,"data":{},"error":null,"meta":{}}' }]
+      }
+    })
+
+    expect(extracted?.info?.id).toBe("m-immediate")
+    expect(extracted?.parts).toHaveLength(1)
+  })
+
   it("extracts envelope from tool output when text parts do not contain JSON", () => {
     const extracted = extractEnvelopeFromParts([
       { type: "text", text: "not json" },
@@ -164,6 +184,35 @@ describe("suite-runner helpers", () => {
     })
   })
 
+  it("rejects assistant response without completion signals", () => {
+    expect(() =>
+      coercePromptResponse({
+        info: {
+          id: "m-empty",
+          sessionID: "s-empty",
+          role: "assistant"
+        } as never,
+        parts: []
+      })
+    ).toThrow("Unsupported prompt response shape")
+  })
+
+  it("rejects metadata-only assistant response without parts or structured output", () => {
+    expect(() =>
+      coercePromptResponse({
+        info: {
+          id: "m-meta-only",
+          sessionID: "s-meta-only",
+          role: "assistant",
+          time: { created: 1, completed: 2 },
+          tokens: { input: 0, output: 0, reasoning: 0, cache: { read: 0, write: 0 } },
+          cost: 0
+        },
+        parts: []
+      })
+    ).toThrow("Unsupported prompt response shape")
+  })
+
   it("times out and resolves with helper", async () => {
     await expect(withTimeout(Promise.resolve("ok"), 50, "x")).resolves.toBe("ok")
     await expect(withTimeout(new Promise(() => {}), 10, "never")).rejects.toThrow(
@@ -200,6 +249,58 @@ describe("suite-runner helpers", () => {
     expect(response.info?.id).toBe("m1")
   })
 
+  it("accepts assistant role with text when completion metadata is missing", async () => {
+    const sessionApi = {
+      create: vi.fn(),
+      promptAsync: vi.fn(),
+      messages: vi.fn(async () => ({
+        data: [
+          {
+            info: {
+              id: "m-text-only",
+              role: "assistant"
+            },
+            parts: [{ type: "text", text: '{"ok":true,"data":{"items":[]},"error":null,"meta":{}}' }]
+          }
+        ]
+      })),
+      abort: vi.fn()
+    }
+
+    const response = await waitForAssistantFromMessages(sessionApi, "s1", 200, "sc-text-only")
+    expect(response.info?.id).toBe("m-text-only")
+    expect(response.parts?.[0]).toEqual(expect.objectContaining({ type: "text" }))
+  })
+
+  it("accepts assistant structured output from info.structured", async () => {
+    const sessionApi = {
+      create: vi.fn(),
+      promptAsync: vi.fn(),
+      messages: vi.fn(async () => ({
+        data: [
+          {
+            info: {
+              id: "m-structured",
+              role: "assistant",
+              time: { created: 1, completed: 2 },
+              tokens: { input: 1, output: 1, reasoning: 0, cache: { read: 0, write: 0 } },
+              cost: 0,
+              structured: { ok: true, data: { items: [] }, error: null, meta: {} }
+            },
+            parts: [{ type: "step-finish", reason: "tool-calls" }]
+          }
+        ]
+      })),
+      abort: vi.fn()
+    }
+
+    const response = await waitForAssistantFromMessages(sessionApi, "s1", 200, "sc-structured")
+    const coerced = coercePromptResponse(response)
+
+    expect(response.info?.id).toBe("m-structured")
+    expect(coerced.assistant.structured_output).toEqual({ ok: true, data: { items: [] }, error: null, meta: {} })
+  })
+
   it("waits for assistant after previous id and ignores non-assistant entries", async () => {
     const messages = vi.fn(async () => ({
       data: [
@@ -233,6 +334,101 @@ describe("suite-runner helpers", () => {
 
     const response = await waitForAssistantFromMessages(sessionApi, "s1", 200, "sc-prev", "old")
     expect(response.info?.id).toBe("new")
+  })
+
+  it("waits for completed assistant message before returning", async () => {
+    let callCount = 0
+    const sessionApi = {
+      create: vi.fn(),
+      promptAsync: vi.fn(),
+      messages: vi.fn(async () => {
+        callCount += 1
+        if (callCount === 1) {
+          return {
+            data: [
+              {
+                info: {
+                  id: "m1",
+                  role: "assistant"
+                },
+                parts: [{ type: "text", text: "partial" }]
+              }
+            ]
+          }
+        }
+
+        return {
+          data: [
+            {
+              info: {
+                id: "m1",
+                role: "assistant",
+                time: { created: 1, completed: 2 },
+                tokens: { input: 1, output: 1, reasoning: 0, cache: { read: 0, write: 0 } },
+                cost: 0
+              },
+              parts: [
+                { type: "text", text: '{"ok":true,"data":{},"error":null,"meta":{}}' },
+                { type: "step-finish", reason: "stop" }
+              ]
+            }
+          ]
+        }
+      }),
+      abort: vi.fn()
+    }
+
+    const response = await waitForAssistantFromMessages(sessionApi, "s1", 1000, "sc-complete")
+    expect(response.parts?.[0]).toEqual(expect.objectContaining({ text: '{"ok":true,"data":{},"error":null,"meta":{}}' }))
+  })
+
+  it("ignores metadata-only assistant entries until content is present", async () => {
+    let callCount = 0
+    const sessionApi = {
+      create: vi.fn(),
+      promptAsync: vi.fn(),
+      messages: vi.fn(async () => {
+        callCount += 1
+        if (callCount === 1) {
+          return {
+            data: [
+              {
+                info: {
+                  id: "m-meta",
+                  role: "assistant",
+                  time: { created: 1, completed: 2 },
+                  tokens: { input: 0, output: 0, reasoning: 0, cache: { read: 0, write: 0 } },
+                  cost: 0
+                },
+                parts: []
+              }
+            ]
+          }
+        }
+
+        return {
+          data: [
+            {
+              info: {
+                id: "m-meta",
+                role: "assistant",
+                time: { created: 1, completed: 3 },
+                tokens: { input: 1, output: 1, reasoning: 0, cache: { read: 0, write: 0 } },
+                cost: 0
+              },
+              parts: [
+                { type: "text", text: '{"ok":true,"data":{},"error":null,"meta":{}}' },
+                { type: "step-finish", reason: "stop" }
+              ]
+            }
+          ]
+        }
+      }),
+      abort: vi.fn()
+    }
+
+    const response = await waitForAssistantFromMessages(sessionApi, "s1", 1000, "sc-metadata")
+    expect(response.parts?.length).toBeGreaterThan(0)
   })
 
   it("returns continuation on same assistant id when no new assistant id is present", async () => {
