@@ -108,7 +108,7 @@ export const operationCards: OperationCard[] = [
     },
     [
       "Prefer GraphQL for typed shape, fallback to CLI when unavailable.",
-      "CLI fallback supports up to 100 comments per call and does not provide cursor-based pagination."
+      "CLI fallback uses gh api graphql with bounded cursor pagination for comments."
     ]
   ),
   baseCard(

@@ -50,12 +50,12 @@ describe("operation cards registry", () => {
     expect(defaultBranch.type).toEqual(["string", "null"])
   })
 
-  it("documents non-cursor CLI pagination for issue comments fallback", () => {
+  it("documents cursor-capable CLI pagination for issue comments fallback", () => {
     const card = getOperationCard("issue.comments.list")
     expect(card?.routing.notes).toEqual(
       expect.arrayContaining([
-        expect.stringContaining("does not provide cursor-based pagination"),
-        expect.stringContaining("100 comments")
+        expect.stringContaining("gh api graphql"),
+        expect.stringContaining("cursor pagination")
       ])
     )
   })

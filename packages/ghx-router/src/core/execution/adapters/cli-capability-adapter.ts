@@ -11,8 +11,9 @@ export type CliCommandRunner = {
 }
 
 const DEFAULT_TIMEOUT_MS = 10_000
-const MAX_COMMENTS_PER_CLI_CALL = 100
 const DEFAULT_LIST_FIRST = 30
+const ISSUE_COMMENTS_GRAPHQL_QUERY =
+  "query($owner:String!,$name:String!,$issueNumber:Int!,$first:Int!,$after:String){repository(owner:$owner,name:$name){issue(number:$issueNumber){comments(first:$first,after:$after){nodes{id body createdAt url author{login}} pageInfo{hasNextPage endCursor}}}}}"
 
 function parseStrictPositiveInt(value: unknown): number | null {
   return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : null
@@ -77,12 +78,35 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
       throw new Error("Missing or invalid issueNumber for issue.comments.list")
     }
 
-    const args = ["issue", "view", String(issueNumber)]
-    if (repo) {
-      args.push("--repo", repo)
+    const first = parseStrictPositiveInt(params.first)
+    if (first === null) {
+      throw new Error("Missing or invalid first for issue.comments.list")
     }
 
-    args.push("--json", "comments")
+    const after = params.after
+    if (!(after === undefined || after === null || typeof after === "string")) {
+      throw new Error("Invalid after cursor for issue.comments.list")
+    }
+
+    const args = [
+      "api",
+      "graphql",
+      "-f",
+      `query=${ISSUE_COMMENTS_GRAPHQL_QUERY}`,
+      "-f",
+      `owner=${owner}`,
+      "-f",
+      `name=${name}`,
+      "-F",
+      `issueNumber=${issueNumber}`,
+      "-F",
+      `first=${first}`
+    ]
+
+    if (typeof after === "string" && after.length > 0) {
+      args.push("-f", `after=${after}`)
+    }
+
     return args
   }
 
@@ -180,20 +204,40 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
   }
 
   if (capabilityId === "issue.comments.list") {
-    const limit = parseStrictPositiveInt(params.first)
-    if (limit === null) {
+    if (parseStrictPositiveInt(params.first) === null) {
       throw new Error("Missing or invalid first for issue.comments.list")
     }
 
     const input = typeof data === "object" && data !== null && !Array.isArray(data)
       ? (data as Record<string, unknown>)
       : {}
-    if (!("comments" in input) || !Array.isArray(input.comments)) {
-      throw new Error("Invalid CLI payload: comments field must be an array")
+    const commentsConnection =
+      typeof input.data === "object" && input.data !== null && !Array.isArray(input.data)
+        ? (input.data as Record<string, unknown>).repository
+        : null
+    const repository =
+      typeof commentsConnection === "object" && commentsConnection !== null && !Array.isArray(commentsConnection)
+        ? (commentsConnection as Record<string, unknown>)
+        : null
+    const issue =
+      typeof repository?.issue === "object" && repository.issue !== null && !Array.isArray(repository.issue)
+        ? (repository.issue as Record<string, unknown>)
+        : null
+    const comments =
+      typeof issue?.comments === "object" && issue.comments !== null && !Array.isArray(issue.comments)
+        ? (issue.comments as Record<string, unknown>)
+        : null
+    const nodes = Array.isArray(comments?.nodes) ? comments.nodes : null
+    const pageInfo =
+      typeof comments?.pageInfo === "object" && comments.pageInfo !== null && !Array.isArray(comments.pageInfo)
+        ? (comments.pageInfo as Record<string, unknown>)
+        : null
+
+    if (nodes === null || pageInfo === null || typeof pageInfo.hasNextPage !== "boolean") {
+      throw new Error("Invalid CLI payload: comments connection is malformed")
     }
 
-    const comments = input.comments
-    const normalizedItems = comments.flatMap((comment) => {
+    const normalizedItems = nodes.flatMap((comment) => {
       if (typeof comment !== "object" || comment === null || Array.isArray(comment)) {
         throw new Error("Invalid CLI payload: comment item must be an object")
       }
@@ -222,13 +266,11 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
       }]
     })
 
-    const items = normalizedItems.slice(0, limit)
-
     return {
-      items,
+      items: normalizedItems,
       pageInfo: {
-        hasNextPage: false,
-        endCursor: null
+        hasNextPage: pageInfo.hasNextPage,
+        endCursor: typeof pageInfo.endCursor === "string" ? pageInfo.endCursor : null
       }
     }
   }
@@ -246,58 +288,7 @@ export async function runCliCapability(
   params: Record<string, unknown>
 ): Promise<ResultEnvelope> {
   try {
-    let normalizedParams = params
-    let paginationMeta: ResultEnvelope["meta"]["pagination"] | undefined
-
-    if (capabilityId === "issue.comments.list") {
-      const after = params.after
-      if (typeof after === "string" && after.trim().length > 0) {
-        return normalizeError(
-          {
-            code: errorCodes.AdapterUnsupported,
-            message: "CLI fallback does not support cursor pagination for issue.comments.list",
-            retryable: false,
-            details: { capabilityId }
-          },
-          "cli",
-          { capabilityId, reason: "CARD_FALLBACK" }
-        )
-      }
-
-      const requestedLimit = parseStrictPositiveInt(params.first)
-      if (requestedLimit === null) {
-        return normalizeError(
-          {
-            code: errorCodes.Validation,
-            message: "Missing or invalid first for issue.comments.list",
-            retryable: false,
-            details: { capabilityId }
-          },
-          "cli",
-          { capabilityId, reason: "CARD_FALLBACK" }
-        )
-      }
-
-      if (requestedLimit > MAX_COMMENTS_PER_CLI_CALL) {
-        return normalizeError(
-          {
-            code: errorCodes.AdapterUnsupported,
-            message: `CLI fallback supports at most ${MAX_COMMENTS_PER_CLI_CALL} comments per call for issue.comments.list`,
-            retryable: false,
-            details: { capabilityId, maxCommentsPerCall: MAX_COMMENTS_PER_CLI_CALL }
-          },
-          "cli",
-          { capabilityId, reason: "CARD_FALLBACK" }
-        )
-      }
-
-      normalizedParams = {
-        ...params,
-        first: requestedLimit
-      }
-    }
-
-    const args = buildArgs(capabilityId, normalizedParams)
+    const args = buildArgs(capabilityId, params)
     const result = await runner.run("gh", args, DEFAULT_TIMEOUT_MS)
 
     if (result.exitCode !== 0) {
@@ -315,30 +306,8 @@ export async function runCliCapability(
     }
 
     const data = parseCliData(result.stdout)
-    if (capabilityId === "issue.comments.list") {
-      const limit = parseStrictPositiveInt(normalizedParams.first)
-      const rawComments =
-        typeof data === "object" &&
-        data !== null &&
-        !Array.isArray(data) &&
-        Array.isArray((data as Record<string, unknown>).comments)
-          ? ((data as Record<string, unknown>).comments as unknown[])
-          : []
-
-      paginationMeta = {
-        next: {
-          cursor_supported: false,
-          more_items_observed: limit !== null ? rawComments.length > limit : false
-        }
-      }
-    }
-
-    const normalized = normalizeCliData(capabilityId, data, normalizedParams)
-    return normalizeResult(normalized, "cli", {
-      capabilityId,
-      reason: "CARD_FALLBACK",
-      pagination: paginationMeta
-    })
+    const normalized = normalizeCliData(capabilityId, data, params)
+    return normalizeResult(normalized, "cli", { capabilityId, reason: "CARD_FALLBACK" })
   } catch (error: unknown) {
     if (error instanceof SyntaxError) {
       return normalizeError(
@@ -356,6 +325,18 @@ export async function runCliCapability(
       return normalizeError(
         {
           code: errorCodes.Server,
+          message: error.message,
+          retryable: false
+        },
+        "cli",
+        { capabilityId, reason: "CARD_FALLBACK" }
+      )
+    }
+
+    if (error instanceof Error && error.message.toLowerCase().includes("invalid after cursor")) {
+      return normalizeError(
+        {
+          code: errorCodes.Validation,
           message: error.message,
           retryable: false
         },

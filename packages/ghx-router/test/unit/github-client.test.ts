@@ -142,6 +142,36 @@ describe("createGithubClient", () => {
     ).rejects.toThrow("Issue comments not found")
   })
 
+  it("throws when issue.comments.list after cursor has invalid type", async () => {
+    const client = createGithubClient({
+      async execute<TData>(): Promise<TData> {
+        return {
+          repository: {
+            issue: {
+              comments: {
+                nodes: [],
+                pageInfo: {
+                  endCursor: null,
+                  hasNextPage: false
+                }
+              }
+            }
+          }
+        } as TData
+      }
+    })
+
+    await expect(
+      client.fetchIssueCommentsList({
+        owner: "go-modkit",
+        name: "modkit",
+        issueNumber: 210,
+        first: 1,
+        after: 123 as unknown as string
+      })
+    ).rejects.toThrow("After cursor must be a string")
+  })
+
   it("exposes typed pr.view helper", async () => {
     const client = createGithubClient({
       async execute<TData>(): Promise<TData> {

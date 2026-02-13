@@ -168,6 +168,9 @@ function assertIssueCommentsListInput(input: IssueCommentsListInput): void {
   if (!Number.isInteger(input.first) || input.first <= 0) {
     throw new Error("List page size must be a positive integer")
   }
+  if (input.after !== undefined && input.after !== null && typeof input.after !== "string") {
+    throw new Error("After cursor must be a string")
+  }
 }
 
 function assertPrInput(input: PrViewInput): void {

@@ -220,15 +220,27 @@ describe("runCliCapability", () => {
     const runner = {
       run: vi.fn(async () => ({
         stdout: JSON.stringify({
-          comments: [
-            {
-              id: "comment-1",
-              body: "Looks good to me",
-              author: { login: "octocat" },
-              url: "https://github.com/acme/modkit/issues/1#issuecomment-1",
-              createdAt: "2025-01-01T00:00:00Z"
+          data: {
+            repository: {
+              issue: {
+                comments: {
+                  nodes: [
+                    {
+                      id: "comment-1",
+                      body: "Looks good to me",
+                      author: { login: "octocat" },
+                      url: "https://github.com/acme/modkit/issues/1#issuecomment-1",
+                      createdAt: "2025-01-01T00:00:00Z"
+                    }
+                  ],
+                  pageInfo: {
+                    hasNextPage: false,
+                    endCursor: null
+                  }
+                }
+              }
             }
-          ]
+          }
         }),
         stderr: "",
         exitCode: 0
@@ -264,22 +276,27 @@ describe("runCliCapability", () => {
     const runner = {
       run: vi.fn(async () => ({
         stdout: JSON.stringify({
-          comments: [
-            {
-              id: "comment-1",
-              body: "first",
-              author: { login: "octocat" },
-              url: "https://github.com/acme/modkit/issues/1#issuecomment-1",
-              createdAt: "2025-01-01T00:00:00Z"
-            },
-            {
-              id: "comment-2",
-              body: "second",
-              author: { login: "hubot" },
-              url: "https://github.com/acme/modkit/issues/1#issuecomment-2",
-              createdAt: "2025-01-01T00:01:00Z"
+          data: {
+            repository: {
+              issue: {
+                comments: {
+                  nodes: [
+                    {
+                      id: "comment-1",
+                      body: "first",
+                      author: { login: "octocat" },
+                      url: "https://github.com/acme/modkit/issues/1#issuecomment-1",
+                      createdAt: "2025-01-01T00:00:00Z"
+                    }
+                  ],
+                  pageInfo: {
+                    hasNextPage: true,
+                    endCursor: "cursor-1"
+                  }
+                }
+              }
             }
-          ]
+          }
         }),
         stderr: "",
         exitCode: 0
@@ -305,21 +322,33 @@ describe("runCliCapability", () => {
         }
       ],
       pageInfo: {
-        hasNextPage: false,
-        endCursor: null
+        hasNextPage: true,
+        endCursor: "cursor-1"
       }
     })
-    expect(result.meta.pagination?.next).toEqual(
-      expect.objectContaining({
-        cursor_supported: false,
-        more_items_observed: true
-      })
-    )
   })
 
-  it("returns adapter unsupported when cursor pagination is requested for comments fallback", async () => {
+  it("passes through after cursor for comments fallback", async () => {
     const runner = {
-      run: vi.fn(async () => ({ stdout: "", stderr: "", exitCode: 0 }))
+      run: vi.fn(async () => ({
+        stdout: JSON.stringify({
+          data: {
+            repository: {
+              issue: {
+                comments: {
+                  nodes: [],
+                  pageInfo: {
+                    hasNextPage: false,
+                    endCursor: null
+                  }
+                }
+              }
+            }
+          }
+        }),
+        stderr: "",
+        exitCode: 0
+      }))
     }
 
     const result = await runCliCapability(runner, "issue.comments.list", {
@@ -330,14 +359,35 @@ describe("runCliCapability", () => {
       after: "cursor-1"
     })
 
-    expect(result.ok).toBe(false)
-    expect(result.error?.code).toBe("ADAPTER_UNSUPPORTED")
-    expect(runner.run).not.toHaveBeenCalled()
+    expect(result.ok).toBe(true)
+    expect(runner.run).toHaveBeenCalledWith(
+      "gh",
+      expect.arrayContaining(["-f", "after=cursor-1"]),
+      10_000
+    )
   })
 
-  it("returns adapter unsupported when comment limit exceeds cli cap", async () => {
+  it("passes requested comment page size through to fallback graphql call", async () => {
     const runner = {
-      run: vi.fn(async () => ({ stdout: "", stderr: "", exitCode: 0 }))
+      run: vi.fn(async () => ({
+        stdout: JSON.stringify({
+          data: {
+            repository: {
+              issue: {
+                comments: {
+                  nodes: [],
+                  pageInfo: {
+                    hasNextPage: false,
+                    endCursor: null
+                  }
+                }
+              }
+            }
+          }
+        }),
+        stderr: "",
+        exitCode: 0
+      }))
     }
 
     const result = await runCliCapability(runner, "issue.comments.list", {
@@ -347,9 +397,12 @@ describe("runCliCapability", () => {
       first: 200
     })
 
-    expect(result.ok).toBe(false)
-    expect(result.error?.code).toBe("ADAPTER_UNSUPPORTED")
-    expect(runner.run).not.toHaveBeenCalled()
+    expect(result.ok).toBe(true)
+    expect(runner.run).toHaveBeenCalledWith(
+      "gh",
+      expect.arrayContaining(["-F", "first=200"]),
+      10_000
+    )
   })
 
   it("returns server error when comments payload is malformed", async () => {
@@ -372,18 +425,10 @@ describe("runCliCapability", () => {
     expect(result.error?.code).toBe("SERVER")
   })
 
-  it("keeps hasNextPage false at cli cap boundary without cursor", async () => {
-    const comments = Array.from({ length: 100 }, (_, index) => ({
-      id: `comment-${index + 1}`,
-      body: `comment ${index + 1}`,
-      author: { login: "octocat" },
-      url: `https://github.com/acme/modkit/issues/1#issuecomment-${index + 1}`,
-      createdAt: "2025-01-01T00:00:00Z"
-    }))
-
+  it("returns validation error for invalid after cursor type", async () => {
     const runner = {
       run: vi.fn(async () => ({
-        stdout: JSON.stringify({ comments }),
+        stdout: JSON.stringify({}),
         stderr: "",
         exitCode: 0
       }))
@@ -393,11 +438,13 @@ describe("runCliCapability", () => {
       owner: "acme",
       name: "modkit",
       issueNumber: 1,
-      first: 100
+      first: 20,
+      after: 123
     })
 
-    expect(result.ok).toBe(true)
-    expect((result.data as { pageInfo: { hasNextPage: boolean } }).pageInfo.hasNextPage).toBe(false)
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe("VALIDATION")
+    expect(runner.run).not.toHaveBeenCalled()
   })
 
   it("returns server error when comment item fields are invalid", async () => {
