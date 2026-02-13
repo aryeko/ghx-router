@@ -5,15 +5,21 @@
   "description": "CLI-first GitHub execution router for agents.",
   "packageManager": "pnpm@10.17.0",
   "scripts": {
-    "test": "pnpm -r run test",
-    "typecheck": "pnpm -r run typecheck",
+    "test": "nx run-many -t test --exclude=ghx-router",
+    "test:affected": "nx affected -t test --exclude=ghx-router",
+    "typecheck": "nx run-many -t typecheck --exclude=ghx-router",
+    "typecheck:affected": "nx affected -t typecheck --exclude=ghx-router",
     "verify": "pnpm run test && pnpm run typecheck",
-    "benchmark:check": "pnpm --filter @ghx-router/benchmark run check:scenarios",
-    "benchmark:run": "pnpm --filter @ghx-router/benchmark run run",
-    "benchmark:report": "pnpm --filter @ghx-router/benchmark run report",
-    "benchmark:gate": "pnpm --filter @ghx-router/benchmark run report:gate",
-    "benchmark:typecheck": "pnpm --filter @ghx-router/benchmark run typecheck",
-    "ghx:typecheck": "pnpm --filter @ghx-router/core run typecheck"
+    "verify:affected": "pnpm run test:affected && pnpm run typecheck:affected",
+    "benchmark:check": "nx run @ghx-router/benchmark:check-scenarios",
+    "benchmark:run": "nx run @ghx-router/benchmark:run",
+    "benchmark:report": "nx run @ghx-router/benchmark:report",
+    "benchmark:gate": "nx run @ghx-router/benchmark:report-gate",
+    "benchmark:typecheck": "nx run @ghx-router/benchmark:typecheck",
+    "ghx:typecheck": "nx run @ghx-router/core:typecheck",
+    "ghx:gql:check": "nx run @ghx-router/core:gql-check",
+    "dep-graph": "nx graph",
+    "cache:clean": "nx reset"
   },
   "repository": {
     "type": "git",
@@ -29,7 +35,9 @@
   "homepage": "https://github.com/aryeko/ghx-router#readme",
   "dependencies": {},
   "devDependencies": {
+    "@nx/js": "22.0.3",
     "@types/node": "^25.2.3",
+    "nx": "22.0.3",
     "typescript": "^5.9.3"
   }
 }

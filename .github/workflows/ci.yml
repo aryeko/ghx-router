@@ -9,13 +9,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version-file: ".nvmrc"
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @ghx-router/core run gql:check
+      - uses: nrwl/nx-set-shas@v4
+      - run: pnpm run ghx:gql:check
         env:
           GITHUB_TOKEN: ${{ github.token }}
+      - run: pnpm run verify:affected
+        if: github.event_name == 'pull_request'
       - run: pnpm run verify
+        if: github.event_name == 'push'

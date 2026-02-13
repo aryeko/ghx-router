@@ -87,6 +87,7 @@ Normalized runtime envelope:
 
 ```bash
 pnpm run verify
-pnpm --filter @ghx-router/core run gql:check
+pnpm run verify:affected
+pnpm run ghx:gql:check
 pnpm run benchmark:check
 ```

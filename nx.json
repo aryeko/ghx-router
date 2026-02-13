@@ -1,0 +1,33 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "defaultBase": "main",
+  "targetDefaults": {
+    "test": {
+      "dependsOn": [
+        "^test"
+      ],
+      "cache": true
+    },
+    "typecheck": {
+      "dependsOn": [
+        "^typecheck"
+      ],
+      "cache": true
+    },
+    "gql-check": {
+      "cache": false
+    },
+    "check-scenarios": {
+      "cache": false
+    },
+    "report": {
+      "cache": false
+    },
+    "report-gate": {
+      "cache": false
+    }
+  },
+  "plugins": [
+    "@nx/js"
+  ]
+}

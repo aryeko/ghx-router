@@ -8,15 +8,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version-file: ".nvmrc"
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @ghx-router/core run gql:check
+      - run: pnpm run ghx:gql:check
         env:
           GITHUB_TOKEN: ${{ github.token }}
       - run: pnpm run benchmark:check
-      - run: pnpm --filter @ghx-router/benchmark run test
-      - run: pnpm --filter @ghx-router/benchmark run typecheck
+      - run: pnpm exec nx run @ghx-router/benchmark:test
+      - run: pnpm exec nx run @ghx-router/benchmark:typecheck

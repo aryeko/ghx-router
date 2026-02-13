@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "run": "tsx src/cli/benchmark.ts run",
-    "check:scenarios": "tsx src/cli/check-scenarios.ts",
+    "check-scenarios": "tsx src/cli/check-scenarios.ts",
+    "check:scenarios": "pnpm run check-scenarios",
     "report": "tsx src/cli/report.ts",
-    "report:gate": "tsx src/cli/report.ts --gate",
+    "report-gate": "tsx src/cli/report.ts --gate",
+    "report:gate": "pnpm run report-gate",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"

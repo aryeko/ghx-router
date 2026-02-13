@@ -1,5 +1,6 @@
 node_modules/
 dist/
+.nx/
 
 # Benchmark runtime outputs
 packages/benchmark/results/*.jsonl
