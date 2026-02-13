@@ -18,4 +18,5 @@ jobs:
       - run: pnpm --filter @ghx-router/core run gql:check
         env:
           GITHUB_TOKEN: ${{ github.token }}
+      - run: pnpm run benchmark:check
       - run: pnpm run verify

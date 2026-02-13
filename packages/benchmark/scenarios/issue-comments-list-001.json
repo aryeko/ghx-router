@@ -1,11 +1,11 @@
 {
-  "id": "issue-list-open-001",
-  "name": "List open issues",
-  "task": "issue.list",
+  "id": "issue-comments-list-001",
+  "name": "List issue comments",
+  "task": "issue.comments.list",
   "input": {
     "owner": "go-modkit",
     "name": "modkit",
-    "state": "open",
+    "issueNumber": 210,
     "first": 20
   },
   "prompt_template": "Execute task {{task}} for repository {{fixture_repo}} using input {{input_json}}. Return only valid JSON matching this envelope: {\"ok\": boolean, \"data\": any, \"error\": object|null, \"meta\": object}.",
@@ -20,8 +20,7 @@
     "min_tool_calls": 1,
     "max_tool_calls": 4,
     "required_fields": ["ok", "data", "error", "meta"],
-    "required_data_fields": ["items", "pageInfo"],
-    "data_type": "object"
+    "required_data_fields": ["items", "pageInfo"]
   },
-  "tags": ["issue", "list", "thin-slice"]
+  "tags": ["issue", "comments", "thin-slice"]
 }

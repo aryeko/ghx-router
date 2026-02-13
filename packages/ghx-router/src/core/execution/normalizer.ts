@@ -4,6 +4,7 @@ import type { RouteReasonCode } from "../routing/reason-codes.js"
 type MetaInput = {
   capabilityId: string
   reason: RouteReasonCode | undefined
+  pagination?: ResultEnvelope["meta"]["pagination"]
 }
 
 function buildMeta(
@@ -17,6 +18,10 @@ function buildMeta(
 
   if (options.reason !== undefined) {
     meta.reason = options.reason
+  }
+
+  if (options.pagination !== undefined) {
+    meta.pagination = options.pagination
   }
 
   return meta

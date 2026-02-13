@@ -4,21 +4,27 @@ import { isRetryableErrorCode } from "../../errors/retryability.js"
 import type { ResultEnvelope } from "../../contracts/envelope.js"
 import { normalizeError, normalizeResult } from "../normalizer.js"
 
-export type CliCapabilityId = "repo.view" | "issue.view" | "issue.list" | "pr.view" | "pr.list"
+export type CliCapabilityId = "repo.view" | "issue.view" | "issue.list" | "issue.comments.list" | "pr.view" | "pr.list"
 
 export type CliCommandRunner = {
   run(command: string, args: string[], timeoutMs: number): Promise<{ stdout: string; stderr: string; exitCode: number }>
 }
 
 const DEFAULT_TIMEOUT_MS = 10_000
+const DEFAULT_LIST_FIRST = 30
+const ISSUE_COMMENTS_GRAPHQL_QUERY =
+  "query($owner:String!,$name:String!,$issueNumber:Int!,$first:Int!,$after:String){repository(owner:$owner,name:$name){issue(number:$issueNumber){comments(first:$first,after:$after){nodes{id body createdAt url author{login}} pageInfo{hasNextPage endCursor}}}}}"
 
-function normalizeListLimit(value: unknown): number {
-  const candidate = typeof value === "number" ? value : Number(value)
-  if (!Number.isFinite(candidate) || candidate < 1) {
-    return 30
+function parseStrictPositiveInt(value: unknown): number | null {
+  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : null
+}
+
+function parseListFirst(value: unknown): number | null {
+  if (value === undefined) {
+    return DEFAULT_LIST_FIRST
   }
 
-  return Math.floor(candidate)
+  return parseStrictPositiveInt(value)
 }
 
 function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown>): string[] {
@@ -37,8 +43,8 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
   }
 
   if (capabilityId === "issue.view") {
-    const issueNumber = params.issueNumber
-    if (typeof issueNumber !== "number" || Number.isNaN(issueNumber) || issueNumber < 1) {
+    const issueNumber = parseStrictPositiveInt(params.issueNumber)
+    if (issueNumber === null) {
       throw new Error("Missing or invalid issueNumber for issue.view")
     }
 
@@ -52,18 +58,61 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
   }
 
   if (capabilityId === "issue.list") {
+    const first = parseListFirst(params.first)
+    if (first === null) {
+      throw new Error("Missing or invalid first for issue.list")
+    }
+
     const args = ["issue", "list"]
     if (repo) {
       args.push("--repo", repo)
     }
 
-    args.push("--limit", String(normalizeListLimit(params.first)), "--json", "id,number,title,state,url")
+    args.push("--limit", String(first), "--json", "id,number,title,state,url")
+    return args
+  }
+
+  if (capabilityId === "issue.comments.list") {
+    const issueNumber = parseStrictPositiveInt(params.issueNumber)
+    if (issueNumber === null) {
+      throw new Error("Missing or invalid issueNumber for issue.comments.list")
+    }
+
+    const first = parseStrictPositiveInt(params.first)
+    if (first === null) {
+      throw new Error("Missing or invalid first for issue.comments.list")
+    }
+
+    const after = params.after
+    if (!(after === undefined || after === null || typeof after === "string")) {
+      throw new Error("Invalid after cursor for issue.comments.list")
+    }
+
+    const args = [
+      "api",
+      "graphql",
+      "-f",
+      `query=${ISSUE_COMMENTS_GRAPHQL_QUERY}`,
+      "-f",
+      `owner=${owner}`,
+      "-f",
+      `name=${name}`,
+      "-F",
+      `issueNumber=${issueNumber}`,
+      "-F",
+      `first=${first}`
+    ]
+
+    if (typeof after === "string" && after.length > 0) {
+      args.push("-f", `after=${after}`)
+    }
+
     return args
   }
 
   if (capabilityId === "pr.view") {
-    const prNumber = params.prNumber
-    if (typeof prNumber !== "number" || Number.isNaN(prNumber) || prNumber < 1) {
+    const prNumber = parseStrictPositiveInt(params.prNumber)
+    if (prNumber === null) {
       throw new Error("Missing or invalid prNumber for pr.view")
     }
 
@@ -77,12 +126,17 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
   }
 
   if (capabilityId === "pr.list") {
+    const first = parseListFirst(params.first)
+    if (first === null) {
+      throw new Error("Missing or invalid first for pr.list")
+    }
+
     const args = ["pr", "list"]
     if (repo) {
       args.push("--repo", repo)
     }
 
-    args.push("--limit", String(normalizeListLimit(params.first)), "--json", "id,number,title,state,url")
+    args.push("--limit", String(first), "--json", "id,number,title,state,url")
     return args
   }
 
@@ -96,6 +150,136 @@ function parseCliData(stdout: string): unknown {
   }
 
   return JSON.parse(trimmed)
+}
+
+function normalizeListItem(item: unknown): Record<string, unknown> {
+  if (typeof item !== "object" || item === null || Array.isArray(item)) {
+    return {}
+  }
+
+  const input = item as Record<string, unknown>
+  return {
+    id: input.id,
+    number: input.number,
+    title: input.title,
+    state: input.state,
+    url: input.url
+  }
+}
+
+function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: Record<string, unknown>): unknown {
+  if (capabilityId === "repo.view") {
+    const input = typeof data === "object" && data !== null && !Array.isArray(data)
+      ? (data as Record<string, unknown>)
+      : {}
+    const defaultBranchRef =
+      typeof input.defaultBranchRef === "object" && input.defaultBranchRef !== null
+        ? (input.defaultBranchRef as Record<string, unknown>)
+        : null
+
+    return {
+      id: input.id,
+      name: input.name,
+      nameWithOwner: input.nameWithOwner,
+      isPrivate: input.isPrivate,
+      stargazerCount: input.stargazerCount,
+      forkCount: input.forkCount,
+      url: input.url,
+      defaultBranch:
+        typeof defaultBranchRef?.name === "string"
+          ? defaultBranchRef.name
+          : null
+    }
+  }
+
+  if (capabilityId === "issue.list" || capabilityId === "pr.list") {
+    const items = Array.isArray(data) ? data.map((entry) => normalizeListItem(entry)) : []
+    return {
+      items,
+      pageInfo: {
+        hasNextPage: false,
+        endCursor: null
+      }
+    }
+  }
+
+  if (capabilityId === "issue.comments.list") {
+    if (parseStrictPositiveInt(params.first) === null) {
+      throw new Error("Missing or invalid first for issue.comments.list")
+    }
+
+    const input = typeof data === "object" && data !== null && !Array.isArray(data)
+      ? (data as Record<string, unknown>)
+      : {}
+    const commentsConnection =
+      typeof input.data === "object" && input.data !== null && !Array.isArray(input.data)
+        ? (input.data as Record<string, unknown>).repository
+        : null
+    const repository =
+      typeof commentsConnection === "object" && commentsConnection !== null && !Array.isArray(commentsConnection)
+        ? (commentsConnection as Record<string, unknown>)
+        : null
+    const issue =
+      typeof repository?.issue === "object" && repository.issue !== null && !Array.isArray(repository.issue)
+        ? (repository.issue as Record<string, unknown>)
+        : null
+    const comments =
+      typeof issue?.comments === "object" && issue.comments !== null && !Array.isArray(issue.comments)
+        ? (issue.comments as Record<string, unknown>)
+        : null
+    const nodes = Array.isArray(comments?.nodes) ? comments.nodes : null
+    const pageInfo =
+      typeof comments?.pageInfo === "object" && comments.pageInfo !== null && !Array.isArray(comments.pageInfo)
+        ? (comments.pageInfo as Record<string, unknown>)
+        : null
+
+    if (nodes === null || pageInfo === null || typeof pageInfo.hasNextPage !== "boolean") {
+      throw new Error("Invalid CLI payload: comments connection is malformed")
+    }
+
+    const normalizedItems = nodes.flatMap((comment) => {
+      if (typeof comment !== "object" || comment === null || Array.isArray(comment)) {
+        throw new Error("Invalid CLI payload: comment item must be an object")
+      }
+
+      const commentRecord = comment as Record<string, unknown>
+      const author =
+        typeof commentRecord.author === "object" && commentRecord.author !== null
+          ? (commentRecord.author as Record<string, unknown>)
+          : null
+
+      if (
+        typeof commentRecord.id !== "string" ||
+        typeof commentRecord.body !== "string" ||
+        typeof commentRecord.url !== "string" ||
+        typeof commentRecord.createdAt !== "string"
+      ) {
+        throw new Error("Invalid CLI payload: comment item has invalid field types")
+      }
+
+      return [{
+        id: commentRecord.id,
+        body: commentRecord.body,
+        authorLogin: typeof author?.login === "string" ? author.login : null,
+        url: commentRecord.url,
+        createdAt: commentRecord.createdAt
+      }]
+    })
+
+    return {
+      items: normalizedItems,
+      pageInfo: {
+        hasNextPage: pageInfo.hasNextPage,
+        endCursor: typeof pageInfo.endCursor === "string" ? pageInfo.endCursor : null
+      }
+    }
+  }
+
+  if (capabilityId === "issue.view" || capabilityId === "pr.view") {
+    return normalizeListItem(data)
+  }
+
+  return data
 }
 
 export async function runCliCapability(
@@ -122,13 +306,38 @@ export async function runCliCapability(
     }
 
     const data = parseCliData(result.stdout)
-    return normalizeResult(data, "cli", { capabilityId, reason: "CARD_FALLBACK" })
+    const normalized = normalizeCliData(capabilityId, data, params)
+    return normalizeResult(normalized, "cli", { capabilityId, reason: "CARD_FALLBACK" })
   } catch (error: unknown) {
     if (error instanceof SyntaxError) {
       return normalizeError(
         {
           code: errorCodes.Server,
           message: "Failed to parse CLI JSON output",
+          retryable: false
+        },
+        "cli",
+        { capabilityId, reason: "CARD_FALLBACK" }
+      )
+    }
+
+    if (error instanceof Error && error.message.toLowerCase().includes("invalid cli payload")) {
+      return normalizeError(
+        {
+          code: errorCodes.Server,
+          message: error.message,
+          retryable: false
+        },
+        "cli",
+        { capabilityId, reason: "CARD_FALLBACK" }
+      )
+    }
+
+    if (error instanceof Error && error.message.toLowerCase().includes("invalid after cursor")) {
+      return normalizeError(
+        {
+          code: errorCodes.Validation,
+          message: error.message,
           retryable: false
         },
         "cli",

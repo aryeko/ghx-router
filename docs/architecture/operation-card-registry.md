@@ -14,6 +14,7 @@ Operation cards are the runtime source of truth for capabilities.
 - `repo.view`
 - `issue.view`
 - `issue.list`
+- `issue.comments.list`
 - `pr.view`
 - `pr.list`
 

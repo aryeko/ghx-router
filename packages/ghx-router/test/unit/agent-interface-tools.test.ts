@@ -33,6 +33,11 @@ describe("agent interface tools", () => {
     expect(explained.required_inputs).toContain("issueNumber")
   })
 
+  it("explain tool includes pagination input for issue comments", () => {
+    const explained = explainCapability("issue.comments.list")
+    expect(explained.required_inputs).toContain("first")
+  })
+
   it("list_capabilities returns ids and descriptions", () => {
     const items = listCapabilities()
     expect(items.length).toBeGreaterThan(0)
