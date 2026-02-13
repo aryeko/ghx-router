@@ -376,9 +376,10 @@ function validateFixture(scenario: Scenario): void {
   }
 
   if (scenario.task === "issue.view") {
-    const issueNumber = scenario.input.issue_number
+    const issueNumber =
+      typeof scenario.input.issueNumber === "number" ? scenario.input.issueNumber : scenario.input.issue_number
     if (typeof issueNumber !== "number") {
-      throw new Error("fixture_invalid: issue.view requires numeric input.issue_number")
+      throw new Error("fixture_invalid: issue.view requires numeric input.issueNumber")
     }
     if (!ghOk(["issue", "view", String(issueNumber), "--repo", repo, "--json", "number"])) {
       throw new Error(`fixture_invalid: issue #${issueNumber} not found in ${repo}`)
@@ -386,9 +387,10 @@ function validateFixture(scenario: Scenario): void {
   }
 
   if (scenario.task === "pr.view") {
-    const prNumber = scenario.input.pr_number
+    const prNumber =
+      typeof scenario.input.prNumber === "number" ? scenario.input.prNumber : scenario.input.pr_number
     if (typeof prNumber !== "number") {
-      throw new Error("fixture_invalid: pr.view requires numeric input.pr_number")
+      throw new Error("fixture_invalid: pr.view requires numeric input.prNumber")
     }
     if (!ghOk(["pr", "view", String(prNumber), "--repo", repo, "--json", "number"])) {
       throw new Error(`fixture_invalid: pr #${prNumber} not found in ${repo}`)
@@ -611,11 +613,11 @@ export async function runSuite(options: RunSuiteOptions): Promise<void> {
   const { client, server } = await createOpencode({
     config: {
       permission: {
-        edit: "allow",
+        edit: "deny",
         bash: "allow",
         webfetch: "allow",
-        doom_loop: "allow",
-        external_directory: "allow"
+        doom_loop: "deny",
+        external_directory: "deny"
       }
     }
   })

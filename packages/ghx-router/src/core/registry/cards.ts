@@ -7,7 +7,8 @@ function baseCard(
   description: string,
   operationName: string,
   documentPath: string,
-  required: string[]
+  required: string[],
+  outputSchema: Record<string, unknown>
 ): OperationCard {
   return {
     capability_id: capabilityId,
@@ -18,7 +19,7 @@ function baseCard(
       required
     },
     output_schema: {
-      type: "object"
+      ...outputSchema
     },
     routing: {
       preferred: "graphql",
@@ -36,9 +37,91 @@ function baseCard(
 }
 
 export const operationCards: OperationCard[] = [
-  baseCard("repo.view", "Fetch repository metadata.", "RepoView", "src/gql/operations/repo-view.graphql", ["owner", "name"]),
-  baseCard("issue.view", "Fetch one issue by number.", "IssueView", "src/gql/operations/issue-view.graphql", ["owner", "name", "issueNumber"]),
-  baseCard("issue.list", "List repository issues.", "IssueList", "src/gql/operations/issue-list.graphql", ["owner", "name"]),
-  baseCard("pr.view", "Fetch one pull request by number.", "PrView", "src/gql/operations/pr-view.graphql", ["owner", "name", "prNumber"]),
-  baseCard("pr.list", "List repository pull requests.", "PrList", "src/gql/operations/pr-list.graphql", ["owner", "name"])
+  baseCard(
+    "repo.view",
+    "Fetch repository metadata.",
+    "RepoView",
+    "src/gql/operations/repo-view.graphql",
+    ["owner", "name"],
+    {
+      type: "object",
+      required: ["id", "name", "nameWithOwner", "isPrivate", "url", "defaultBranch"],
+      properties: {
+        id: { type: "string" },
+        name: { type: "string" },
+        nameWithOwner: { type: "string" },
+        isPrivate: { type: "boolean" },
+        stargazerCount: { type: "number" },
+        forkCount: { type: "number" },
+        url: { type: "string" },
+        defaultBranch: { type: "string" }
+      }
+    }
+  ),
+  baseCard(
+    "issue.view",
+    "Fetch one issue by number.",
+    "IssueView",
+    "src/gql/operations/issue-view.graphql",
+    ["owner", "name", "issueNumber"],
+    {
+      type: "object",
+      required: ["id", "number", "title", "state", "url"],
+      properties: {
+        id: { type: "string" },
+        number: { type: "number" },
+        title: { type: "string" },
+        state: { type: "string" },
+        url: { type: "string" }
+      }
+    }
+  ),
+  baseCard(
+    "issue.list",
+    "List repository issues.",
+    "IssueList",
+    "src/gql/operations/issue-list.graphql",
+    ["owner", "name"],
+    {
+      type: "object",
+      required: ["items", "pageInfo"],
+      properties: {
+        items: { type: "array" },
+        pageInfo: { type: "object" }
+      }
+    }
+  ),
+  baseCard(
+    "pr.view",
+    "Fetch one pull request by number.",
+    "PrView",
+    "src/gql/operations/pr-view.graphql",
+    ["owner", "name", "prNumber"],
+    {
+      type: "object",
+      required: ["id", "number", "title", "state", "url"],
+      properties: {
+        id: { type: "string" },
+        number: { type: "number" },
+        title: { type: "string" },
+        state: { type: "string" },
+        url: { type: "string" }
+      }
+    }
+  ),
+  baseCard(
+    "pr.list",
+    "List repository pull requests.",
+    "PrList",
+    "src/gql/operations/pr-list.graphql",
+    ["owner", "name"],
+    {
+      type: "object",
+      required: ["items", "pageInfo"],
+      properties: {
+        items: { type: "array" },
+        pageInfo: { type: "object" }
+      }
+    }
+  )
 ]

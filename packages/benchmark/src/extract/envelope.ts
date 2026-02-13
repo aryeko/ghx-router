@@ -66,6 +66,10 @@ export function validateEnvelope(assertions: ScenarioAssertions, payload: unknow
     return false
   }
 
+  if (typeof payload.ok !== "boolean") {
+    return false
+  }
+
   const requiredFields = assertions.required_fields ?? []
   for (const field of requiredFields) {
     if (!(field in payload)) {

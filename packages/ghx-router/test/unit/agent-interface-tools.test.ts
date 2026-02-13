@@ -16,7 +16,10 @@ describe("agent interface tools", () => {
     const result = await tool.execute("repo.view", { owner: "acme", name: "modkit" })
 
     expect(result.ok).toBe(true)
-    expect(executeTask).toHaveBeenCalledWith({ task: "repo.view", input: { owner: "acme", name: "modkit" } })
+    expect(executeTask).toHaveBeenCalledWith({
+      task: "repo.view",
+      input: { owner: "acme", name: "modkit" }
+    })
   })
 
   it("explain tool returns compact capability summary", () => {

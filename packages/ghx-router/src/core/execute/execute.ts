@@ -34,6 +34,19 @@ function validateRequiredParams(card: OperationCard, params: Record<string, unkn
   return required.filter((key) => params[key] === undefined || params[key] === null || params[key] === "")
 }
 
+function validateOutputSchema(card: OperationCard, data: unknown): string[] {
+  if (typeof data !== "object" || data === null || Array.isArray(data)) {
+    return ["data"]
+  }
+
+  const required = Array.isArray(card.output_schema.required)
+    ? card.output_schema.required.filter((entry): entry is string => typeof entry === "string")
+    : []
+
+  const payload = data as Record<string, unknown>
+  return required.filter((key) => !(key in payload))
+}
+
 function routePlan(card: OperationCard): RouteSource[] {
   const planned = new Set<RouteSource>([card.routing.preferred, ...card.routing.fallbacks])
   return [...planned]
@@ -103,6 +116,23 @@ export async function execute(options: ExecuteOptions): Promise<ResultEnvelope> 
       attempts.push(attempt)
 
       if (result.ok) {
+        const outputMissing = validateOutputSchema(options.card, result.data)
+        if (outputMissing.length > 0) {
+          return normalizeError(
+            {
+              code: errorCodes.Server,
+              message: `Output schema mismatch: missing ${outputMissing.join(", ")}`,
+              retryable: false,
+              details: { missing: outputMissing }
+            },
+            route,
+            {
+              capabilityId: options.card.capability_id,
+              reason: "CAPABILITY_LIMIT"
+            }
+          )
+        }
+
         if (options.trace) {
           result.meta.attempts = attempts
         }
