@@ -6,15 +6,15 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "lint": "eslint . --max-warnings=0",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "run": "tsx src/cli/benchmark.ts run",
     "check-scenarios": "tsx src/cli/check-scenarios.ts",
     "check:scenarios": "pnpm run check-scenarios",
     "report": "tsx src/cli/report.ts",
     "report-gate": "tsx src/cli/report.ts --gate",
-    "report:gate": "pnpm run report-gate",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "report:gate": "pnpm run report-gate"
   },
   "nx": {
     "targets": {
