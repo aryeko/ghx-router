@@ -1,5 +1,7 @@
 # ghx-router Efficiency Evaluation Plan (v1)
 
+Status: reference validation and release-gate policy.
+
 ## Objective
 
 Prove with measurements that `ghx-router` is more context-efficient and operationally efficient than direct agent-driven `gh`/API selection.
@@ -66,6 +68,17 @@ Secondary metrics:
 3. Record raw logs as JSONL with timestamps and mode labels.
 4. Compute median and P90 for latency and token usage.
 5. Compute confidence intervals for key deltas.
+
+## Early Checkpoint (Thin Slice)
+
+Before full v1 benchmarking, run an early checkpoint with 5-8 scenarios:
+
+- Capture baseline metrics for Agent-Direct mode.
+- Capture MCP baseline when available.
+- Run the same scenarios through early `ghx-router` implementation.
+- Use this checkpoint to prioritize adapter work and task coverage.
+
+This is a directional gate, not a release gate. It reduces build risk by validating the approach early.
 
 ## Success Criteria (v1)
 

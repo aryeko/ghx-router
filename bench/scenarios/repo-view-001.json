@@ -1,0 +1,24 @@
+{
+  "id": "repo-view-001",
+  "name": "View repository metadata",
+  "task": "repo.view",
+  "input": {},
+  "assertions": {
+    "must_succeed": true,
+    "required_fields": [
+      "success",
+      "data",
+      "meta"
+    ],
+    "required_data_fields": [
+      "name",
+      "owner",
+      "isPrivate"
+    ]
+  },
+  "tags": [
+    "repo",
+    "view",
+    "thin-slice"
+  ]
+}

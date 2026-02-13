@@ -1,5 +1,7 @@
 # ghx-router Architecture (v1)
 
+Status: reference architecture baseline.
+
 ## Problem Statement
 
 Agents can complete GitHub tasks today with `gh`, `gh api`, or MCP-backed tools, but they often spend extra context and time deciding which interface to use and how to shape outputs. This creates repeated docs/schema lookups, inconsistent execution paths, and avoidable retries.

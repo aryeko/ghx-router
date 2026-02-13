@@ -2,6 +2,12 @@
 
 CLI-first GitHub execution router for agents.
 
+## Status
+
+- Current phase: repository scaffold and design/spec work.
+- Not yet production-ready.
+- Primary objective now: implement and validate the thin-slice benchmark, then build `ghx` against measured baselines.
+
 ## Goals
 
 - Make GitHub task execution context-efficient for agents.
@@ -10,6 +16,12 @@ CLI-first GitHub execution router for agents.
 - Use REST or GraphQL only when CLI is missing capability or is materially less efficient.
 - Return deterministic JSON with clear error semantics for automation.
 - Support Claude/OpenCode and non-Claude agent runtimes equally well.
+
+## Why ghx-router
+
+- Agents lose time and context re-deciding API paths (`gh` vs REST vs GraphQL) per task.
+- Prompt-level routing decisions are inconsistent across runs.
+- A single runtime policy can reduce latency, retries, and token usage while improving output consistency.
 
 ## Motivation
 
@@ -34,6 +46,28 @@ This "interface ping-pong" makes runs slower, more expensive, and less reliable.
 ### Keep-us-honest note on MCP cost
 
 MCP is not universally "bad" or "too expensive." It can be a great integration surface in some runtimes. But in many agent workflows, repeated tool-schema exchange and orchestration overhead can increase token and latency cost relative to direct CLI calls for common operations. This project optimizes for a CLI-first baseline and uses API paths only when they provide clear value.
+
+## Planned Interface (v1)
+
+Primary command surface:
+
+```bash
+ghx run <task-id> --input '<json>'
+```
+
+Planned normalized output envelope:
+
+```json
+{
+  "success": true,
+  "data": {},
+  "error": null,
+  "meta": {
+    "source": "cli",
+    "reason": "coverage_gap"
+  }
+}
+```
 
 ## Routing Decision Matrix (v1)
 
@@ -77,6 +111,20 @@ This keeps agent behavior stable regardless of the underlying execution route.
 - Building a generic automation framework unrelated to GitHub workflows
 - Forcing GraphQL usage where CLI or REST is simpler
 
+## Quickstart (Current Scaffold)
+
+Prerequisites:
+
+- Node.js 20+
+- GitHub CLI (`gh`) authenticated
+
+Current repo is design-first and scaffolded. You can review:
+
+- architecture and phased plans under `docs/`
+- benchmark harness scaffold under `bench/`
+
+Note: runtime commands are not fully implemented yet.
+
 ## Initial Direction
 
 1. Build a universal `ghx` CLI with stable JSON contracts.
@@ -84,7 +132,41 @@ This keeps agent behavior stable regardless of the underlying execution route.
 3. Add typed GraphQL client generation from schema.
 4. Add skill/docs for agent guidance that call `ghx` first.
 
+## Roadmap Snapshot
+
+1. Phase 1: core CLI skeleton and task contracts.
+2. Phase 2: deterministic routing policy engine.
+3. Phase 2.5: thin benchmark slice (5-8 scenarios, early signal).
+4. Phase 3-5: adapters, normalization, telemetry, and v1 task coverage.
+5. Phase 6: full benchmark validation gate.
+
+## Benchmarking
+
+- Thin-slice harness: `bench/README.md`
+- Efficiency plan: `docs/plans/2026-02-13-efficiency-evaluation.md`
+- Benchmark design (TS SDK): `docs/plans/2026-02-13-benchmark-harness-ts-sdk-design.md`
+
+Current benchmark state:
+
+- Scenario scaffold exists in `bench/scenarios/`.
+- Runner scaffold exists in `bench/scripts/`.
+- Aggregation/reporting templates are defined.
+- Real SDK-backed benchmark execution is the next implementation step.
+
 ## Design Docs
 
+- Plans index (what is active): `docs/plans/README.md`
 - Architecture: `docs/plans/2026-02-13-ghx-router-architecture.md`
 - Efficiency evaluation plan: `docs/plans/2026-02-13-efficiency-evaluation.md`
+- Phased implementation plan: `docs/plans/2026-02-13-ghx-router-phased-plan.md`
+- Benchmark harness design: `docs/plans/2026-02-13-benchmark-harness-ts-sdk-design.md`
+
+## Architecture Docs
+
+- Repository structure: `docs/architecture/repository-structure.md`
+
+## Contributing
+
+- Open an issue before large architecture or benchmark methodology changes.
+- Keep routing policy changes aligned with `docs/architecture/routing-policy.md`.
+- Keep benchmark metric changes aligned with `docs/benchmark/metrics.md`.

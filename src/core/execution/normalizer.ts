@@ -1,0 +1,11 @@
+import type { ResultEnvelope } from "../contracts/envelope"
+
+export function normalizeResult<TData>(data: TData): ResultEnvelope<TData> {
+  return {
+    success: true,
+    data,
+    meta: {
+      source: "cli"
+    }
+  }
+}
