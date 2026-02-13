@@ -92,3 +92,5 @@ pnpm run ci
 pnpm run ghx:gql:check
 pnpm run benchmark:check
 ```
+
+Codecov common recipes: https://docs.codecov.com/docs/common-recipe-list
