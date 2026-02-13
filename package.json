@@ -5,12 +5,18 @@
   "description": "CLI-first GitHub execution router for agents.",
   "packageManager": "pnpm@10.17.0",
   "scripts": {
+    "build": "nx run-many -t build --exclude=ghx-router",
+    "build:affected": "nx affected -t build --exclude=ghx-router",
+    "lint": "nx run-many -t lint --exclude=ghx-router",
+    "lint:affected": "nx affected -t lint --exclude=ghx-router",
     "test": "nx run-many -t test --exclude=ghx-router",
     "test:affected": "nx affected -t test --exclude=ghx-router",
     "typecheck": "nx run-many -t typecheck --exclude=ghx-router",
     "typecheck:affected": "nx affected -t typecheck --exclude=ghx-router",
-    "verify": "pnpm run test && pnpm run typecheck",
-    "verify:affected": "pnpm run test:affected && pnpm run typecheck:affected",
+    "verify": "pnpm run lint && pnpm run test && pnpm run typecheck",
+    "verify:affected": "pnpm run lint:affected && pnpm run test:affected && pnpm run typecheck:affected",
+    "ci": "nx run-many -t ci --exclude=ghx-router",
+    "ci:affected": "nx affected -t ci --exclude=ghx-router",
     "benchmark:check": "nx run @ghx-router/benchmark:check-scenarios",
     "benchmark:run": "nx run @ghx-router/benchmark:run",
     "benchmark:report": "nx run @ghx-router/benchmark:report",
@@ -35,9 +41,13 @@
   "homepage": "https://github.com/aryeko/ghx-router#readme",
   "dependencies": {},
   "devDependencies": {
+    "@eslint/js": "^9.35.0",
     "@nx/js": "22.0.3",
     "@types/node": "^25.2.3",
+    "eslint": "^9.35.0",
+    "globals": "^16.3.0",
     "nx": "22.0.3",
+    "typescript-eslint": "^8.43.0",
     "typescript": "^5.9.3"
   }
 }

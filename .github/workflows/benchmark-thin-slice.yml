@@ -19,6 +19,7 @@ jobs:
       - run: pnpm run ghx:gql:check
         env:
           GITHUB_TOKEN: ${{ github.token }}
+      - run: pnpm exec nx run @ghx-router/benchmark:ci
       - run: pnpm run benchmark:check
-      - run: pnpm exec nx run @ghx-router/benchmark:test
-      - run: pnpm exec nx run @ghx-router/benchmark:typecheck
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
