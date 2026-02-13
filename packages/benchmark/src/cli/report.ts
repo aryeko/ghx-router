@@ -1,5 +1,6 @@
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises"
 import { join } from "node:path"
+import { pathToFileURL } from "node:url"
 
 import type { BenchmarkMode, BenchmarkRow } from "../domain/types.js"
 import { buildSummary, toMarkdown } from "../report/aggregate.js"
@@ -7,20 +8,20 @@ import { buildSummary, toMarkdown } from "../report/aggregate.js"
 const RESULTS_DIR = join(process.cwd(), "results")
 const REPORTS_DIR = join(process.cwd(), "reports")
 
-function parseArgs(args: string[]): { gate: boolean } {
+export function parseArgs(args: string[]): { gate: boolean } {
   return {
     gate: args.includes("--gate")
   }
 }
 
-function modeFromFilename(name: string): BenchmarkMode | null {
+export function modeFromFilename(name: string): BenchmarkMode | null {
   if (name.includes("-agent_direct-suite.jsonl")) return "agent_direct"
   if (name.includes("-mcp-suite.jsonl")) return "mcp"
   if (name.includes("-ghx_router-suite.jsonl")) return "ghx_router"
   return null
 }
 
-async function readRows(filePath: string): Promise<BenchmarkRow[]> {
+export async function readRows(filePath: string): Promise<BenchmarkRow[]> {
   const content = await readFile(filePath, "utf8")
   return content
     .split("\n")
@@ -29,7 +30,7 @@ async function readRows(filePath: string): Promise<BenchmarkRow[]> {
     .map((line) => JSON.parse(line) as BenchmarkRow)
 }
 
-async function loadLatestRowsPerMode(): Promise<BenchmarkRow[]> {
+export async function loadLatestRowsPerMode(): Promise<BenchmarkRow[]> {
   const entries = await readdir(RESULTS_DIR)
   const files = entries.filter((name) => name.endsWith("-suite.jsonl")).sort()
   const latestByMode = new Map<BenchmarkMode, string>()
@@ -49,8 +50,8 @@ async function loadLatestRowsPerMode(): Promise<BenchmarkRow[]> {
   return rows
 }
 
-async function main(): Promise<void> {
-  const { gate } = parseArgs(process.argv.slice(2))
+export async function main(args: string[] = process.argv.slice(2)): Promise<void> {
+  const { gate } = parseArgs(args)
   const rows = await loadLatestRowsPerMode()
 
   if (rows.length === 0) {
@@ -72,8 +73,14 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((error: unknown) => {
-  const message = error instanceof Error ? error.message : String(error)
-  console.error(message)
-  process.exit(1)
-})
+const isDirectRun = process.argv[1]
+  ? import.meta.url === pathToFileURL(process.argv[1]).href
+  : false
+
+if (isDirectRun) {
+  main().catch((error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error)
+    console.error(message)
+    process.exit(1)
+  })
+}

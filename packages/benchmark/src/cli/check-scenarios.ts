@@ -1,9 +1,10 @@
 import { resolve } from "node:path"
+import { pathToFileURL } from "node:url"
 
 import { loadScenarios } from "../scenario/loader.js"
 
-async function main(): Promise<void> {
-  const scenariosDir = resolve(process.cwd(), "scenarios")
+export async function main(cwd: string = process.cwd()): Promise<void> {
+  const scenariosDir = resolve(cwd, "scenarios")
   const scenarios = await loadScenarios(scenariosDir)
 
   if (scenarios.length === 0) {
@@ -13,7 +14,13 @@ async function main(): Promise<void> {
   console.log(`Validated ${scenarios.length} benchmark scenarios`)
 }
 
-main().catch((error: unknown) => {
-  console.error(error)
-  process.exit(1)
-})
+const isDirectRun = process.argv[1]
+  ? import.meta.url === pathToFileURL(process.argv[1]).href
+  : false
+
+if (isDirectRun) {
+  main().catch((error: unknown) => {
+    console.error(error)
+    process.exit(1)
+  })
+}
