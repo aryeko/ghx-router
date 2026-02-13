@@ -1,0 +1,22 @@
+name: Benchmark Thin Slice
+
+on:
+  workflow_dispatch:
+
+jobs:
+  benchmark-harness-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @ghx-router/core run gql:check
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - run: pnpm run benchmark:check
+      - run: pnpm --filter @ghx-router/benchmark run test
+      - run: pnpm --filter @ghx-router/benchmark run typecheck

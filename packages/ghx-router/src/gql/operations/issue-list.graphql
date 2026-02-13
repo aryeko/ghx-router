@@ -1,0 +1,17 @@
+query IssueList($owner: String!, $name: String!, $first: Int!, $after: String) {
+  repository(owner: $owner, name: $name) {
+    issues(first: $first, after: $after, orderBy: { field: CREATED_AT, direction: DESC }) {
+      nodes {
+        id
+        number
+        title
+        state
+        url
+      }
+      pageInfo {
+        endCursor
+        hasNextPage
+      }
+    }
+  }
+}

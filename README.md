@@ -2,6 +2,12 @@
 
 CLI-first GitHub execution router for agents.
 
+## Status
+
+- Active development branch with core routing and benchmark harness implemented.
+- Not yet production-ready.
+- Current focus: stabilize task coverage and keep benchmark validation green.
+
 ## Goals
 
 - Make GitHub task execution context-efficient for agents.
@@ -10,6 +16,12 @@ CLI-first GitHub execution router for agents.
 - Use REST or GraphQL only when CLI is missing capability or is materially less efficient.
 - Return deterministic JSON with clear error semantics for automation.
 - Support Claude/OpenCode and non-Claude agent runtimes equally well.
+
+## Why ghx-router
+
+- Agents lose time and context re-deciding API paths (`gh` vs REST vs GraphQL) per task.
+- Prompt-level routing decisions are inconsistent across runs.
+- A single runtime policy can reduce latency, retries, and token usage while improving output consistency.
 
 ## Motivation
 
@@ -35,6 +47,28 @@ This "interface ping-pong" makes runs slower, more expensive, and less reliable.
 
 MCP is not universally "bad" or "too expensive." It can be a great integration surface in some runtimes. But in many agent workflows, repeated tool-schema exchange and orchestration overhead can increase token and latency cost relative to direct CLI calls for common operations. This project optimizes for a CLI-first baseline and uses API paths only when they provide clear value.
 
+## Interface (v1)
+
+Primary command surface:
+
+```bash
+ghx run <task-id> --input '<json>'
+```
+
+Planned normalized output envelope:
+
+```json
+{
+  "success": true,
+  "data": {},
+  "error": null,
+  "meta": {
+    "source": "cli",
+    "reason": "coverage_gap"
+  }
+}
+```
+
 ## Routing Decision Matrix (v1)
 
 Use this policy to choose execution path per task.
@@ -50,15 +84,10 @@ Use this policy to choose execution path per task.
 | Write operations with mature CLI support | `gh` CLI first | Lower risk and clearer ergonomics for mutation workflows |
 | Write operations not exposed in CLI but available in API | REST first, GraphQL if required | Prefer simplest viable API path |
 
-### Tie-Break Rules
+### Runtime Note
 
-When multiple paths are possible, choose in this order:
-
-1. `gh` CLI command with `--json` support
-2. `gh api` REST endpoint
-3. Typed GraphQL client
-
-Only bypass this order when there is a clear and documented reason (coverage gap, major performance gain, or output-shape requirement).
+The active task set currently routes through GraphQL defaults in `packages/ghx-router/src/core/routing/capability-registry.ts`.
+The matrix above remains the target long-term policy as additional CLI and REST adapters are expanded.
 
 ### Required Runtime Guarantees
 
@@ -77,14 +106,53 @@ This keeps agent behavior stable regardless of the underlying execution route.
 - Building a generic automation framework unrelated to GitHub workflows
 - Forcing GraphQL usage where CLI or REST is simpler
 
-## Initial Direction
+## Quickstart
 
-1. Build a universal `ghx` CLI with stable JSON contracts.
-2. Implement a routing policy engine (`gh` vs REST vs GraphQL).
-3. Add typed GraphQL client generation from schema.
-4. Add skill/docs for agent guidance that call `ghx` first.
+Prerequisites:
 
-## Design Docs
+- Node.js 20+
+- GitHub CLI (`gh`) authenticated
 
-- Architecture: `docs/plans/2026-02-13-ghx-router-architecture.md`
-- Efficiency evaluation plan: `docs/plans/2026-02-13-efficiency-evaluation.md`
+Current repo includes active implementation plus architecture and benchmark docs under `docs/`.
+
+Note: `repo.view`, `issue.view`, and `pr.view` execution paths are wired through the GraphQL engine route.
+
+## Current Direction
+
+1. Expand task coverage while preserving deterministic envelope behavior.
+2. Keep routing and capability policy aligned with runtime behavior.
+3. Harden benchmark reliability and release-gate checks.
+4. Keep docs focused on long-lived architecture and benchmark references.
+
+## Benchmarking
+
+- Thin-slice harness: `packages/benchmark/README.md`
+- Efficiency criteria: `docs/benchmark/efficiency-criteria.md`
+- Benchmark harness design (TS SDK): `docs/benchmark/harness-design.md`
+
+Current benchmark state:
+
+- Scenarios live in `packages/benchmark/scenarios/`.
+- Runner lives in `packages/benchmark/src/`.
+- Aggregation/reporting templates are defined.
+- SDK-backed benchmark execution is wired; current focus is reliability and reporting stabilization.
+
+## Docs
+
+- Architecture overview: `docs/architecture/overview.md`
+- System design: `docs/architecture/system-design.md`
+- Routing policy: `docs/architecture/routing-policy.md`
+- Contracts: `docs/architecture/contracts.md`
+- Errors and retries: `docs/architecture/errors-and-retries.md`
+- Repository structure: `docs/architecture/repository-structure.md`
+- Benchmark methodology: `docs/benchmark/methodology.md`
+- Benchmark metrics: `docs/benchmark/metrics.md`
+- Benchmark reporting: `docs/benchmark/reporting.md`
+- Benchmark harness design: `docs/benchmark/harness-design.md`
+- Efficiency criteria: `docs/benchmark/efficiency-criteria.md`
+
+## Contributing
+
+- Open an issue before large architecture or benchmark methodology changes.
+- Keep routing policy changes aligned with `docs/architecture/routing-policy.md`.
+- Keep benchmark metric changes aligned with `docs/benchmark/metrics.md`.

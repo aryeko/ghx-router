@@ -1,0 +1,24 @@
+{
+  "id": "pr-list-open-001",
+  "name": "List open pull requests",
+  "task": "pr.list",
+  "input": {
+    "repo": "go-modkit/modkit",
+    "state": "open",
+    "limit": 20
+  },
+  "prompt_template": "Execute task {{task}} for repository {{fixture_repo}} using input {{input_json}}. Return only valid JSON matching this envelope: {\"success\": boolean, \"data\": any, \"error\": object|null, \"meta\": object}.",
+  "timeout_ms": 60000,
+  "allowed_retries": 0,
+  "fixture": {
+    "repo": "go-modkit/modkit"
+  },
+  "assertions": {
+    "must_succeed": true,
+    "require_tool_calls": true,
+    "min_tool_calls": 1,
+    "required_fields": ["success", "data", "error", "meta"],
+    "data_type": "array"
+  },
+  "tags": ["pr", "list", "thin-slice"]
+}

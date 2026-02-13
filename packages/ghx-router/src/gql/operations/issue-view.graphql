@@ -1,0 +1,11 @@
+query IssueView($owner: String!, $name: String!, $issueNumber: Int!) {
+  repository(owner: $owner, name: $name) {
+    issue(number: $issueNumber) {
+      id
+      number
+      title
+      state
+      url
+    }
+  }
+}

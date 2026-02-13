@@ -1,0 +1,56 @@
+import type { RouteSource } from "../contracts/envelope.js"
+import { errorCodes } from "../errors/codes.js"
+
+export type PreflightInput = {
+  route: RouteSource
+  githubToken?: string | null
+  ghCliAvailable?: boolean
+  ghAuthenticated?: boolean
+}
+
+export type PreflightResult =
+  | { ok: true }
+  | {
+      ok: false
+      code: string
+      message: string
+      retryable: boolean
+      details: { route: RouteSource }
+    }
+
+export function preflightCheck(input: PreflightInput): PreflightResult {
+  if ((input.route === "cli" || input.route === "rest") && input.ghCliAvailable === false) {
+    return {
+      ok: false,
+      code: errorCodes.ValidationFailed,
+      message: "GitHub CLI is required for cli/rest routes",
+      retryable: false,
+      details: { route: input.route }
+    }
+  }
+
+  if ((input.route === "cli" || input.route === "rest") && input.ghAuthenticated === false) {
+    return {
+      ok: false,
+      code: errorCodes.AuthFailed,
+      message: "GitHub CLI authentication is required for cli/rest routes",
+      retryable: false,
+      details: { route: input.route }
+    }
+  }
+
+  if (input.route === "graphql") {
+    const token = input.githubToken?.trim()
+    if (!token) {
+      return {
+        ok: false,
+        code: errorCodes.AuthFailed,
+        message: "GitHub token is required for graphql route",
+        retryable: false,
+        details: { route: input.route }
+      }
+    }
+  }
+
+  return { ok: true }
+}

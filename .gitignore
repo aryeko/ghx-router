@@ -1,0 +1,7 @@
+node_modules/
+dist/
+
+# Benchmark runtime outputs
+packages/benchmark/results/*.jsonl
+packages/benchmark/reports/*.json
+packages/benchmark/reports/*.md
