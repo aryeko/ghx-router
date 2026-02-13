@@ -3,15 +3,13 @@ import { mapErrorToCode } from "../../errors/map-error.js"
 import { isRetryableErrorCode } from "../../errors/retryability.js"
 import type { GraphqlClient, GraphqlVariables } from "../../../gql/client.js"
 import type { RouteReasonCode } from "../../routing/reason-codes.js"
+import { normalizeError, normalizeResult } from "../normalizer.js"
 
 export interface GraphqlAdapterRequest {
   query: string
   variables?: GraphqlVariables
+  capabilityId?: string
   reason?: RouteReasonCode
-}
-
-function buildMeta(reason?: RouteReasonCode): ResultEnvelope<unknown>["meta"] {
-  return reason ? { source: "graphql", reason } : { source: "graphql" }
 }
 
 export async function runGraphqlAdapter<TData>(
@@ -21,18 +19,16 @@ export async function runGraphqlAdapter<TData>(
   try {
     const data = await client.query<TData>(request.query, request.variables)
 
-    return {
-      success: true,
-      data,
-      meta: buildMeta(request.reason)
-    }
+    return normalizeResult(data, "graphql", {
+      capabilityId: request.capabilityId ?? "unknown",
+      reason: request.reason
+    })
   } catch (error: unknown) {
     const code = mapErrorToCode(error)
     const message = error instanceof Error ? error.message : String(error)
 
-    return {
-      success: false,
-      error: {
+    return normalizeError(
+      {
         code,
         message,
         details: {
@@ -40,7 +36,11 @@ export async function runGraphqlAdapter<TData>(
         },
         retryable: isRetryableErrorCode(code)
       },
-      meta: buildMeta(request.reason)
-    }
+      "graphql",
+      {
+        capabilityId: request.capabilityId ?? "unknown",
+        reason: request.reason
+      }
+    )
   }
 }

@@ -1,6 +1,6 @@
 import { routePreferenceOrder } from "./policy.js"
 import { capabilityRegistry } from "./capability-registry.js"
-import type { ResultEnvelope } from "../contracts/envelope.js"
+import type { ResultEnvelope, RouteSource } from "../contracts/envelope.js"
 import type { TaskRequest } from "../contracts/task.js"
 import { issueListTask } from "../contracts/tasks/issue.list.js"
 import { issueViewTask } from "../contracts/tasks/issue.view.js"
@@ -26,9 +26,9 @@ export function chooseRoute(): (typeof routePreferenceOrder)[number] {
   return routePreferenceOrder[0]
 }
 
-function resolveRoutesForTask(task: string): ResultEnvelope["meta"]["source"][] {
+function resolveRoutesForTask(task: string): RouteSource[] {
   const capability = capabilityRegistry.find((entry) => entry.task === task)
-  const ordered = new Set<ResultEnvelope["meta"]["source"]>()
+  const ordered = new Set<RouteSource>()
 
   if (capability) {
     ordered.add(capability.defaultRoute)
@@ -55,7 +55,7 @@ type ExecutionDeps = {
   reason?: RouteReasonCode
 }
 
-const DEFAULT_REASON: RouteReasonCode = "output_shape_requirement"
+const DEFAULT_REASON: RouteReasonCode = "DEFAULT_POLICY"
 
 export async function executeTask(
   request: TaskRequest,
@@ -67,21 +67,21 @@ export async function executeTask(
     | {
         code: string
         message: string
-        route: ResultEnvelope["meta"]["source"]
+        route: RouteSource
       }
     | null = null
   let lastPreflightError:
     | {
         code: string
         message: string
-        details: { route: ResultEnvelope["meta"]["source"] }
+        details: { route: RouteSource }
         retryable: boolean
-        route: ResultEnvelope["meta"]["source"]
+        route: RouteSource
       }
     | null = null
 
   for (let routeIndex = 0; routeIndex < routes.length; routeIndex += 1) {
-    const route = routes[routeIndex] as ResultEnvelope["meta"]["source"]
+    const route = routes[routeIndex] as RouteSource
     const hasNextRoute = routeIndex < routes.length - 1
 
     const preflightInput: Parameters<typeof preflightCheck>[0] = { route }
@@ -108,69 +108,78 @@ export async function executeTask(
         continue
       }
 
-      return normalizeError(
-        {
-          code: preflightResult.code,
-          message: preflightResult.message,
-          details: preflightResult.details,
-          retryable: preflightResult.retryable
-        },
-        route,
-        reason
-      )
-    }
+        return normalizeError(
+          {
+            code: preflightResult.code,
+            message: preflightResult.message,
+            details: preflightResult.details,
+            retryable: preflightResult.retryable
+          },
+          route,
+          {
+            capabilityId: request.task,
+            reason
+          }
+        )
+      }
 
     if (route !== "graphql") {
       if (hasNextRoute) {
         continue
       }
 
-      return normalizeError(
-        {
-          code: errorCodes.ValidationFailed,
-          message: `Route '${route}' is not implemented for task '${request.task}'`,
-          details: { route, task: request.task },
-          retryable: false
-        },
-        route,
-        reason
-      )
-    }
+        return normalizeError(
+          {
+            code: errorCodes.AdapterUnsupported,
+            message: `Route '${route}' is not implemented for task '${request.task}'`,
+            details: { route, task: request.task },
+            retryable: false
+          },
+          route,
+          {
+            capabilityId: request.task,
+            reason
+          }
+        )
+      }
 
     try {
       if (request.task === repoViewTask.id) {
         const data = await deps.githubClient.fetchRepoView(request.input as RepoViewInput)
-        return normalizeResult(data, route, reason)
+        return normalizeResult(data, route, { capabilityId: request.task, reason })
       }
 
       if (request.task === issueViewTask.id) {
         const data = await deps.githubClient.fetchIssueView(request.input as IssueViewInput)
-        return normalizeResult(data, route, reason)
+        return normalizeResult(data, route, { capabilityId: request.task, reason })
       }
 
       if (request.task === issueListTask.id) {
         const data = await deps.githubClient.fetchIssueList(request.input as IssueListInput)
-        return normalizeResult(data, route, reason)
+        return normalizeResult(data, route, { capabilityId: request.task, reason })
       }
 
       if (request.task === prViewTask.id) {
         const data = await deps.githubClient.fetchPrView(request.input as PrViewInput)
-        return normalizeResult(data, route, reason)
+        return normalizeResult(data, route, { capabilityId: request.task, reason })
       }
 
       if (request.task === prListTask.id) {
         const data = await deps.githubClient.fetchPrList(request.input as PrListInput)
-        return normalizeResult(data, route, reason)
+        return normalizeResult(data, route, { capabilityId: request.task, reason })
       }
 
       return normalizeError(
         {
-          code: errorCodes.ValidationFailed,
+          code: errorCodes.Validation,
           message: `Unsupported task: ${request.task}`,
           retryable: false
         },
         route,
-        reason
+        {
+          capabilityId: request.task,
+          reason
+        }
       )
     } catch (error: unknown) {
       const code = mapErrorToCode(error)
@@ -191,7 +200,10 @@ export async function executeTask(
           retryable
         },
         route,
-        reason
+        {
+          capabilityId: request.task,
+          reason
+        }
       )
     }
   }
@@ -204,7 +216,10 @@ export async function executeTask(
         retryable: true
       },
       lastRetryableError.route,
-      reason
+      {
+        capabilityId: request.task,
+        reason
+      }
     )
   }
 
@@ -217,18 +232,24 @@ export async function executeTask(
         retryable: lastPreflightError.retryable
       },
       lastPreflightError.route,
-      reason
+      {
+        capabilityId: request.task,
+        reason
+      }
     )
   }
 
   const defaultRoute = routes[0] ?? chooseRoute()
   return normalizeError(
     {
-      code: errorCodes.ValidationFailed,
+      code: errorCodes.Validation,
       message: `No executable route available for task: ${request.task}`,
       retryable: false
     },
     defaultRoute,
-    reason
+    {
+      capabilityId: request.task,
+      reason
+    }
   )
 }

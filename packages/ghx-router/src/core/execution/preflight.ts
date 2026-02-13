@@ -22,7 +22,7 @@ export function preflightCheck(input: PreflightInput): PreflightResult {
   if ((input.route === "cli" || input.route === "rest") && input.ghCliAvailable === false) {
     return {
       ok: false,
-      code: errorCodes.ValidationFailed,
+      code: errorCodes.Validation,
       message: "GitHub CLI is required for cli/rest routes",
       retryable: false,
       details: { route: input.route }
@@ -32,7 +32,7 @@ export function preflightCheck(input: PreflightInput): PreflightResult {
   if ((input.route === "cli" || input.route === "rest") && input.ghAuthenticated === false) {
     return {
       ok: false,
-      code: errorCodes.AuthFailed,
+      code: errorCodes.Auth,
       message: "GitHub CLI authentication is required for cli/rest routes",
       retryable: false,
       details: { route: input.route }
@@ -44,7 +44,7 @@ export function preflightCheck(input: PreflightInput): PreflightResult {
     if (!token) {
       return {
         ok: false,
-        code: errorCodes.AuthFailed,
+        code: errorCodes.Auth,
         message: "GitHub token is required for graphql route",
         retryable: false,
         details: { route: input.route }

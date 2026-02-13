@@ -8,6 +8,7 @@ export type CliAdapterRequest = {
   command: string
   args?: string[]
   timeoutMs?: number
+  capabilityId?: string
   reason?: RouteReasonCode
 }
 
@@ -47,11 +48,17 @@ export async function runCliAdapter(
           retryable: isRetryableErrorCode(code)
         },
         "cli",
-        request.reason
+        {
+          capabilityId: request.capabilityId ?? "unknown",
+          reason: request.reason
+        }
       )
     }
 
-    return normalizeResult(result, "cli", request.reason)
+    return normalizeResult(result, "cli", {
+      capabilityId: request.capabilityId ?? "unknown",
+      reason: request.reason
+    })
   } catch (error: unknown) {
     const code = mapErrorToCode(error)
     return normalizeError(
@@ -66,7 +73,10 @@ export async function runCliAdapter(
         retryable: isRetryableErrorCode(code)
       },
       "cli",
-      request.reason
+      {
+        capabilityId: request.capabilityId ?? "unknown",
+        reason: request.reason
+      }
     )
   }
 }

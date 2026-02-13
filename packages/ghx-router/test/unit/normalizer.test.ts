@@ -4,14 +4,18 @@ import { normalizeError, normalizeResult } from "../../src/core/execution/normal
 
 describe("normalizer", () => {
   it("normalizes success payloads", () => {
-    const result = normalizeResult({ id: 1 }, "graphql", "efficiency_gain")
+    const result = normalizeResult({ id: 1 }, "graphql", {
+      capabilityId: "issue.view",
+      reason: "CARD_PREFERRED"
+    })
 
     expect(result).toEqual({
-      success: true,
+      ok: true,
       data: { id: 1 },
       meta: {
-        source: "graphql",
-        reason: "efficiency_gain"
+        capability_id: "issue.view",
+        route_used: "graphql",
+        reason: "CARD_PREFERRED"
       }
     })
   })
@@ -19,24 +23,28 @@ describe("normalizer", () => {
   it("normalizes error payloads", () => {
     const result = normalizeError(
       {
-        code: "unknown",
+        code: "UNKNOWN",
         message: "boom",
         retryable: false
       },
       "cli",
-      "coverage_gap"
+      {
+        capabilityId: "issue.view",
+        reason: "CARD_FALLBACK"
+      }
     )
 
     expect(result).toEqual({
-      success: false,
+      ok: false,
       error: {
-        code: "unknown",
+        code: "UNKNOWN",
         message: "boom",
         retryable: false
       },
       meta: {
-        source: "cli",
-        reason: "coverage_gap"
+        capability_id: "issue.view",
+        route_used: "cli",
+        reason: "CARD_FALLBACK"
       }
     })
   })

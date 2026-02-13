@@ -11,31 +11,30 @@ function toMessage(error: unknown): string {
 export function mapErrorToCode(error: unknown): string {
   const message = toMessage(error).toLowerCase()
 
+  if (message.includes("rate limit") || message.includes(" 429") || message.includes("too many requests")) {
+    return errorCodes.RateLimit
+  }
+
+  if (message.includes("timeout")) {
+    return errorCodes.Network
+  }
+
   if (
     message.includes("econn") ||
     message.includes("enotfound") ||
     message.includes("eai_again") ||
     message.includes("network") ||
-    message.includes("connection reset") ||
-    message.includes("rate limit") ||
-    message.includes(" 429") ||
-    message.includes(" 502") ||
-    message.includes(" 503") ||
-    message.includes(" 504")
+    message.includes("connection reset")
   ) {
-    return errorCodes.InfraError
+    return errorCodes.Network
+  }
+
+  if (message.includes(" 500") || message.includes(" 502") || message.includes(" 503") || message.includes(" 504")) {
+    return errorCodes.Server
   }
 
   if (message.includes("auth") || message.includes("forbidden") || message.includes("unauthorized")) {
-    return errorCodes.AuthFailed
-  }
-
-  if (message.includes("timeout")) {
-    return errorCodes.Timeout
-  }
-
-  if (message.includes("graphql")) {
-    return errorCodes.GraphqlExecutionFailed
+    return errorCodes.Auth
   }
 
   if (
@@ -44,7 +43,11 @@ export function mapErrorToCode(error: unknown): string {
     message.includes("required") ||
     message.includes("positive integer")
   ) {
-    return errorCodes.ValidationFailed
+    return errorCodes.Validation
+  }
+
+  if (message.includes("not found") || message.includes(" 404")) {
+    return errorCodes.NotFound
   }
 
   return errorCodes.Unknown

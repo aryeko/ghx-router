@@ -35,9 +35,9 @@ describe("executeTask repo.view", () => {
 
     const result = await executeTask(request, { githubClient, githubToken: "test-token" })
 
-    expect(result.success).toBe(true)
-    expect(result.meta.source).toBe("graphql")
-    expect(result.meta.reason).toBe("output_shape_requirement")
+    expect(result.ok).toBe(true)
+    expect(result.meta.route_used).toBe("graphql")
+    expect(result.meta.reason).toBe("DEFAULT_POLICY")
     expect(result.data).toEqual(
       expect.objectContaining({
         nameWithOwner: "go-modkit/modkit",
@@ -60,9 +60,9 @@ describe("executeTask repo.view", () => {
 
     const result = await executeTask(request, { githubClient, githubToken: "test-token" })
 
-    expect(result.success).toBe(false)
-    expect(result.error?.code).toBe("validation_failed")
-    expect(result.meta.source).toBe("graphql")
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe("VALIDATION")
+    expect(result.meta.route_used).toBe("graphql")
   })
 
   it("returns validation error envelope for unsupported task", async () => {
@@ -79,8 +79,8 @@ describe("executeTask repo.view", () => {
 
     const result = await executeTask(request, { githubClient, githubToken: "test-token" })
 
-    expect(result.success).toBe(false)
-    expect(result.error?.code).toBe("validation_failed")
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe("VALIDATION")
     expect(result.error?.message).toContain("Unsupported task")
   })
 
@@ -98,8 +98,8 @@ describe("executeTask repo.view", () => {
 
     const result = await executeTask(request, { githubClient, githubToken: "" })
 
-    expect(result.success).toBe(false)
-    expect(result.error?.code).toBe("auth_failed")
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe("AUTH")
     expect(result.error?.message).toContain("token")
   })
 
@@ -149,8 +149,8 @@ describe("executeTask repo.view", () => {
         ghAuthenticated: true
       })
 
-      expect(result.success).toBe(true)
-      expect(result.meta.source).toBe("graphql")
+      expect(result.ok).toBe(true)
+      expect(result.meta.route_used).toBe("graphql")
     } finally {
       capability.defaultRoute = originalDefaultRoute
       capability.fallbackRoutes = originalFallbackRoutes
@@ -203,8 +203,8 @@ describe("executeTask repo.view", () => {
         ghAuthenticated: false
       })
 
-      expect(result.success).toBe(true)
-      expect(result.meta.source).toBe("graphql")
+      expect(result.ok).toBe(true)
+      expect(result.meta.route_used).toBe("graphql")
     } finally {
       capability.defaultRoute = originalDefaultRoute
       capability.fallbackRoutes = originalFallbackRoutes
