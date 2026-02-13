@@ -44,8 +44,8 @@ Establish an early measurement baseline before full implementation scale.
 - Report with early deltas and gaps.
 
 ### Exit Criteria
-- `bench/scenarios/` contains at least five stable scenarios.
-- `bench/results/` captures repeat runs with mode labels.
+- `packages/benchmark/scenarios/` contains at least five stable scenarios.
+- `packages/benchmark/results/` captures repeat runs with mode labels.
 - One summary report exists with median latency/token/tool-call comparison.
 - Findings are used to refine Phase 3-5 priorities.
 
@@ -103,7 +103,7 @@ Reach the v1 functional surface for high-frequency PR, issue, and repo operation
 Prove efficiency claims with repeatable measurements.
 
 ### Deliverables
-- Benchmark artifacts under `bench/`:
+- Benchmark artifacts under `packages/benchmark/`:
   - `scenarios/*.json`
   - `results/*.jsonl`
   - `reports/*.md`

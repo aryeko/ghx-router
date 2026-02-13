@@ -32,7 +32,7 @@ Each scenario runs in one or more modes with identical task intent.
 ## Core Architecture
 
 1. Scenario Loader
-- Reads `bench/scenarios/*.json`.
+- Reads `packages/benchmark/scenarios/*.json`.
 - Validates schema for scenario input, assertions, and tags.
 
 2. Run Orchestrator
@@ -55,8 +55,8 @@ Each scenario runs in one or more modes with identical task intent.
 - Computes `output_valid` and failure reasons.
 
 6. Artifact Writer
-- Writes JSONL raw rows to `bench/results/`.
-- Writes aggregate summaries to `bench/reports/`.
+- Writes JSONL raw rows to `packages/benchmark/results/`.
+- Writes aggregate summaries to `packages/benchmark/reports/`.
 
 ## OpenCode SDK Metrics Model
 

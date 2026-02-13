@@ -4,9 +4,9 @@ Defines report formats and release gate criteria.
 
 ## Required Artifacts
 
-- `bench/results/*.jsonl` (raw runs)
-- `bench/reports/*.md` (human summary)
-- `bench/reports/latest-summary.json` (machine summary)
+- `packages/benchmark/results/*.jsonl` (raw runs)
+- `packages/benchmark/reports/*.md` (human summary)
+- `packages/benchmark/reports/latest-summary.json` (machine summary)
 
 ## Required Summary Sections
 

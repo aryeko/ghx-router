@@ -26,62 +26,59 @@ Project documentation, design decisions, and implementation plans.
   - **Responsibility**: time-scoped plans and design specs.
   - **Scope**: dated implementation plans, benchmark design proposals, phase docs.
 
-### `src/`
+### `packages/ghx-router/src/`
 
 Production code for the `ghx` runtime and routing engine.
 
-- `src/cli/`
+- `packages/ghx-router/src/cli/`
   - **Responsibility**: command-line interface and command handlers.
   - **Scope**: argument parsing, output formatting, command wiring.
-  - **Boundary**: should delegate business logic to `src/core/`.
-- `src/core/`
+  - **Boundary**: should delegate business logic to `packages/ghx-router/src/core/`.
+- `packages/ghx-router/src/core/`
   - **Responsibility**: domain logic and execution orchestration.
   - **Scope**: contracts, routing, adapters, normalization, telemetry, errors.
   - **Boundary**: no CLI-specific presentation logic.
-  - `src/core/contracts/`: canonical task and envelope definitions.
-  - `src/core/routing/`: policy engine and capability registry.
-  - `src/core/execution/`: adapters (`cli`, `rest`, `graphql`) and preflight.
-  - `src/core/telemetry/`: runtime metrics collection and logging hooks.
-  - `src/core/errors/`: shared error codes and mapping.
-- `src/gql/`
+  - `packages/ghx-router/src/core/contracts/`: canonical task and envelope definitions.
+  - `packages/ghx-router/src/core/routing/`: policy engine and capability registry.
+  - `packages/ghx-router/src/core/execution/`: adapters (`cli`, `rest`, `graphql`) and preflight.
+  - `packages/ghx-router/src/core/telemetry/`: runtime metrics collection and logging hooks.
+  - `packages/ghx-router/src/core/errors/`: shared error codes and mapping.
+- `packages/ghx-router/src/gql/`
   - **Responsibility**: GraphQL integration layer.
   - **Scope**: client setup, handwritten query wrappers, generated client/types.
-  - **Boundary**: generated code should remain in `src/gql/generated/` only.
-- `src/shared/`
+  - **Boundary**: generated code should remain in `packages/ghx-router/src/gql/generated/` only.
+- `packages/ghx-router/src/shared/`
   - **Responsibility**: low-level shared utilities and common types.
   - **Scope**: constants, helper functions, cross-module utility types.
 
-### `bench/`
+### `packages/benchmark/`
 
 Benchmark harness and artifacts used to prove efficiency claims.
 
-- `bench/scenarios/`
+- `packages/benchmark/scenarios/`
   - **Responsibility**: canonical benchmark cases.
   - **Scope**: task input, assertions, tags, run parameters.
-- `bench/scripts/`
+- `packages/benchmark/src/`
   - **Responsibility**: benchmark execution and aggregation runners.
   - **Scope**: run orchestration, SDK session driving, report generation.
-- `bench/fixtures/`
-  - **Responsibility**: benchmark fixture metadata and setup helpers.
-  - **Scope**: test repos, deterministic setup instructions.
-- `bench/results/`
+- `packages/benchmark/results/`
   - **Responsibility**: raw per-run JSONL rows.
   - **Scope**: append-only execution data.
-- `bench/reports/`
+- `packages/benchmark/reports/`
   - **Responsibility**: aggregated benchmark outputs.
   - **Scope**: summary markdown/json artifacts for release decisions.
 
-### `test/`
+### `packages/ghx-router/test/`
 
 Automated tests for production code.
 
-- `test/unit/`
+- `packages/ghx-router/test/unit/`
   - **Responsibility**: pure module tests.
   - **Scope**: routing logic, contracts, normalization, utilities.
-- `test/integration/`
+- `packages/ghx-router/test/integration/`
   - **Responsibility**: cross-module and adapter behavior tests.
   - **Scope**: command-to-core flows, adapter integrations.
-- `test/fixtures/`
+- `packages/ghx-router/test/fixtures/`
   - **Responsibility**: reusable test data and stubs.
 
 ### `scripts/`
@@ -101,7 +98,7 @@ CI and automation workflows.
 
 ## Ownership and Change Guidelines
 
-- Changes to contracts (`src/core/contracts/`) require corresponding benchmark and test updates.
-- Changes to routing policy (`src/core/routing/`) require policy docs updates and route tests.
+- Changes to contracts (`packages/ghx-router/src/core/contracts/`) require corresponding benchmark and test updates.
+- Changes to routing policy (`packages/ghx-router/src/core/routing/`) require policy docs updates and route tests.
 - Changes to benchmark metrics must update `docs/benchmark/metrics.md`.
-- Generated GraphQL output must remain machine-generated and isolated in `src/gql/generated/`.
+- Generated GraphQL output must remain machine-generated and isolated in `packages/ghx-router/src/gql/generated/`.

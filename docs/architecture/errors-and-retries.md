@@ -13,8 +13,8 @@ Errors should be normalized with:
 
 Primary code definitions:
 
-- `src/core/errors/codes.ts`
-- `src/core/errors/map-error.ts`
+- `packages/ghx-router/src/core/errors/codes.ts`
+- `packages/ghx-router/src/core/errors/map-error.ts`
 
 ## Retry Policy (v1)
 

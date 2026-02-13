@@ -16,7 +16,7 @@ Only bypass this order with documented reason codes:
 
 ## Source of Truth
 
-- Runtime behavior: `src/core/routing/`
+- Runtime behavior: `packages/ghx-router/src/core/routing/`
 - Policy matrix: `README.md` (Routing Decision Matrix)
 - Detailed architecture rationale: `docs/plans/2026-02-13-ghx-router-architecture.md`
 

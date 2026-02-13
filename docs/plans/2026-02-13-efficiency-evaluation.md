@@ -106,10 +106,10 @@ Mitigations:
 
 Track these in repo:
 
-- `bench/scenarios/*.json` - benchmark definitions.
-- `bench/results/*.jsonl` - raw execution logs.
-- `bench/reports/*.md` - aggregated reports.
-- `bench/reports/latest-summary.json` - machine-readable summary.
+- `packages/benchmark/scenarios/*.json` - benchmark definitions.
+- `packages/benchmark/results/*.jsonl` - raw execution logs.
+- `packages/benchmark/reports/*.md` - aggregated reports.
+- `packages/benchmark/reports/latest-summary.json` - machine-readable summary.
 
 ## Reporting Template
 

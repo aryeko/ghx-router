@@ -2,9 +2,9 @@
 
 `ghx-router` is built around three boundaries:
 
-- `src/core/`: task contracts, route policy, adapters, normalization, telemetry.
-- `src/cli/`: command interface and formatting.
-- `bench/`: independent benchmark harness and reporting.
+- `packages/ghx-router/src/core/`: task contracts, route policy, adapters, normalization, telemetry.
+- `packages/ghx-router/src/cli/`: command interface and formatting.
+- `packages/benchmark/`: independent benchmark harness and reporting.
 
 The canonical architecture spec is:
 

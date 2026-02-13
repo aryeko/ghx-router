@@ -4,7 +4,7 @@ CLI-first GitHub execution router for agents.
 
 ## Status
 
-- Current phase: repository scaffold and design/spec work.
+- Current phase: workspace structure and benchmark harness are in place; `ghx` runtime implementation is in progress.
 - Not yet production-ready.
 - Primary objective now: implement and validate the thin-slice benchmark, then build `ghx` against measured baselines.
 
@@ -111,17 +111,17 @@ This keeps agent behavior stable regardless of the underlying execution route.
 - Building a generic automation framework unrelated to GitHub workflows
 - Forcing GraphQL usage where CLI or REST is simpler
 
-## Quickstart (Current Scaffold)
+## Quickstart
 
 Prerequisites:
 
 - Node.js 20+
 - GitHub CLI (`gh`) authenticated
 
-Current repo is design-first and scaffolded. You can review:
+Current repo includes active implementation plus design docs. You can review:
 
 - architecture and phased plans under `docs/`
-- benchmark harness scaffold under `bench/`
+- benchmark harness package under `packages/benchmark/`
 
 Note: runtime commands are not fully implemented yet.
 
@@ -142,16 +142,16 @@ Note: runtime commands are not fully implemented yet.
 
 ## Benchmarking
 
-- Thin-slice harness: `bench/README.md`
+- Thin-slice harness: `packages/benchmark/README.md`
 - Efficiency plan: `docs/plans/2026-02-13-efficiency-evaluation.md`
 - Benchmark design (TS SDK): `docs/plans/2026-02-13-benchmark-harness-ts-sdk-design.md`
 
 Current benchmark state:
 
-- Scenario scaffold exists in `bench/scenarios/`.
-- Runner scaffold exists in `bench/scripts/`.
+- Scenarios live in `packages/benchmark/scenarios/`.
+- Runner lives in `packages/benchmark/src/`.
 - Aggregation/reporting templates are defined.
-- Real SDK-backed benchmark execution is the next implementation step.
+- SDK-backed benchmark execution is wired; current focus is reliability and reporting stabilization.
 
 ## Design Docs
 

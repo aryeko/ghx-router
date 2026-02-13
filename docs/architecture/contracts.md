@@ -13,10 +13,10 @@ Every task returns a normalized envelope:
 
 Primary type location:
 
-- `src/core/contracts/envelope.ts`
+- `packages/ghx-router/src/core/contracts/envelope.ts`
 
 Task contracts live under:
 
-- `src/core/contracts/tasks/`
+- `packages/ghx-router/src/core/contracts/tasks/`
 
 Contract changes require matching test and benchmark updates.
