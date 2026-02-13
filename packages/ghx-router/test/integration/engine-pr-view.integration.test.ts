@@ -59,6 +59,6 @@ describe("executeTask pr.view", () => {
 
     expect(result.ok).toBe(false)
     expect(result.error?.code).toBe("VALIDATION")
-    expect(result.meta.reason).toBe("DEFAULT_POLICY")
+    expect(result.meta.reason).toBe("CARD_PREFERRED")
   })
 })

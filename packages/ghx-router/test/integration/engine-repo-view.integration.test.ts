@@ -37,7 +37,7 @@ describe("executeTask repo.view", () => {
 
     expect(result.ok).toBe(true)
     expect(result.meta.route_used).toBe("graphql")
-    expect(result.meta.reason).toBe("DEFAULT_POLICY")
+    expect(result.meta.reason).toBe("CARD_PREFERRED")
     expect(result.data).toEqual(
       expect.objectContaining({
         nameWithOwner: "go-modkit/modkit",
