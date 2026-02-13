@@ -25,6 +25,16 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm run ci
+      - name: Generate coverage
+        run: |
+          pnpm --filter @ghx-router/core run test:coverage
+          pnpm --filter @ghx-router/benchmark run test:coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: packages/ghx-router/coverage/lcov.info,packages/benchmark/coverage/lcov.info
+          flags: main
+          fail_ci_if_error: false
       - name: Upload dist artifacts
         id: upload_artifacts
         if: startsWith(github.event.head_commit.message, 'chore') && contains(github.event.head_commit.message, 'version packages')

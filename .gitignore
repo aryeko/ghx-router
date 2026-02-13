@@ -1,6 +1,8 @@
 node_modules/
 dist/
 .nx/
+coverage/
+packages/*/coverage/
 
 # Benchmark runtime outputs
 packages/benchmark/results/*.jsonl
