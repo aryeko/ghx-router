@@ -1,0 +1,14 @@
+query RepoView($owner: String!, $name: String!) {
+  repository(owner: $owner, name: $name) {
+    id
+    name
+    nameWithOwner
+    isPrivate
+    stargazerCount
+    forkCount
+    url
+    defaultBranchRef {
+      name
+    }
+  }
+}

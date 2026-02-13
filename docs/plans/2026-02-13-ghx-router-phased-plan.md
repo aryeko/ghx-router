@@ -49,14 +49,14 @@ Establish an early measurement baseline before full implementation scale.
 - One summary report exists with median latency/token/tool-call comparison.
 - Findings are used to refine Phase 3-5 priorities.
 
-## Phase 3: Execution Adapters (CLI + REST First)
+## Phase 3: Execution Adapters (CLI + GraphQL First)
 
 ### Goal
-Deliver robust execution for common workflows through `gh` and `gh api`.
+Deliver robust execution for common workflows through `gh` and GraphQL.
 
 ### Deliverables
 - CLI adapter wrapping `gh ... --json`.
-- REST adapter wrapping `gh api` with pagination defaults and bounded retries.
+- GraphQL adapter with typed query support for high-value task paths.
 - Auth/scope preflight checks with actionable errors.
 
 ### Exit Criteria

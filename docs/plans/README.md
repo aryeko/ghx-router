@@ -10,8 +10,14 @@ This index clarifies which plan is currently active and how each document is use
 
 ## Active Sub-Plan
 
+- `2026-02-13-phase-3-execution-plan.md`
+  - **Role**: implementation spec for Phase 3 adapter and hardening work.
+  - **Use for**: adapter sequencing, preflight/error normalization, and verification gates.
+
+## Recently Completed Sub-Plan
+
 - `2026-02-13-benchmark-harness-ts-sdk-design.md`
-  - **Role**: implementation spec for Phase 2.5 and benchmark system design.
+  - **Role**: Phase 2.5 benchmark system design.
   - **Use for**: benchmark runner architecture, metrics schema, and reliability controls.
 
 ## Reference Plans

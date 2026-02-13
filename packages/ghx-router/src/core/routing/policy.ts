@@ -1,1 +1,1 @@
-export const routePreferenceOrder = ["cli", "rest", "graphql"] as const
+export const routePreferenceOrder = ["cli", "graphql"] as const
