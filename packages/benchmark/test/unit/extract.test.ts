@@ -25,6 +25,18 @@ describe("extractors", () => {
     expect(extractFirstJsonObject("prefix {not-json}")).toBeNull()
   })
 
+  it("handles escaped characters inside JSON strings", () => {
+    const payload = extractFirstJsonObject(
+      'prefix {"ok":true,"data":{"text":"quote: \\\" and slash: \\\\"},"error":null,"meta":{}} suffix'
+    ) as { data?: { text?: string } } | null
+
+    expect(payload?.data?.text).toBe('quote: " and slash: \\')
+  })
+
+  it("returns null when JSON object is never closed", () => {
+    expect(extractFirstJsonObject('prefix {"ok":true')).toBeNull()
+  })
+
   it("validates envelope with required fields", () => {
     const valid = validateEnvelope(
       {
@@ -44,6 +56,7 @@ describe("extractors", () => {
 
   it("rejects invalid envelope shapes and data constraints", () => {
     expect(validateEnvelope({ must_succeed: true }, null)).toBe(false)
+    expect(validateEnvelope({ must_succeed: true }, { ok: "true" })).toBe(false)
     expect(
       validateEnvelope(
         { must_succeed: true, required_fields: ["meta"] },
@@ -112,6 +125,36 @@ describe("extractors", () => {
         }
       )
     ).toBe(false)
+
+    expect(
+      validateEnvelope(
+        {
+          must_succeed: true,
+          required_meta_fields: ["route_used"]
+        },
+        {
+          ok: true,
+          data: {},
+          error: null,
+          meta: null
+        }
+      )
+    ).toBe(false)
+
+    expect(
+      validateEnvelope(
+        {
+          must_succeed: true,
+          required_meta_fields: ["route_used"]
+        },
+        {
+          ok: true,
+          data: {},
+          error: null,
+          meta: {}
+        }
+      )
+    ).toBe(false)
   })
 
   it("validates expected error code assertions", () => {
@@ -167,6 +210,21 @@ describe("extractors", () => {
             message: "Input schema validation failed",
             retryable: false
           },
+          meta: { route_used: "graphql" }
+        }
+      )
+    ).toBe(false)
+
+    expect(
+      validateEnvelope(
+        {
+          must_succeed: false,
+          expected_error_code: "SERVER"
+        },
+        {
+          ok: false,
+          data: null,
+          error: null,
           meta: { route_used: "graphql" }
         }
       )

@@ -318,4 +318,245 @@ describe("executeTask repo.view", () => {
       capability.fallbackRoutes = originalFallbackRoutes
     }
   })
+
+  it("falls back to graphql when cli environment detection throws", async () => {
+    const githubClient = createGithubClient({
+      async execute<TData>(query: string): Promise<TData> {
+        if (query.includes("query RepoView")) {
+          return {
+            repository: {
+              id: "repo-id",
+              name: "modkit",
+              nameWithOwner: "go-modkit/modkit",
+              isPrivate: false,
+              stargazerCount: 10,
+              forkCount: 2,
+              url: "https://github.com/go-modkit/modkit",
+              defaultBranchRef: { name: "main" }
+            }
+          } as TData
+        }
+
+        throw new Error("Unexpected query")
+      }
+    })
+
+    const request: TaskRequest = {
+      task: "repo.view",
+      input: { owner: "go-modkit", name: "modkit" }
+    }
+
+    const result = await executeTask(request, {
+      githubClient,
+      githubToken: "test-token",
+      cliRunner: {
+        run: async (_command, args) => {
+          if (args[0] === "--version") {
+            throw new Error("gh unavailable")
+          }
+
+          return { stdout: "", stderr: "", exitCode: 0 }
+        }
+      }
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.meta.route_used).toBe("graphql")
+  })
+
+  it("falls back to graphql when gh --version exits non-zero", async () => {
+    const githubClient = createGithubClient({
+      async execute<TData>(query: string): Promise<TData> {
+        if (query.includes("query RepoView")) {
+          return {
+            repository: {
+              id: "repo-id",
+              name: "modkit",
+              nameWithOwner: "go-modkit/modkit",
+              isPrivate: false,
+              stargazerCount: 10,
+              forkCount: 2,
+              url: "https://github.com/go-modkit/modkit",
+              defaultBranchRef: { name: "main" }
+            }
+          } as TData
+        }
+
+        throw new Error("Unexpected query")
+      }
+    })
+
+    const request: TaskRequest = {
+      task: "repo.view",
+      input: { owner: "go-modkit", name: "modkit" }
+    }
+
+    const result = await executeTask(request, {
+      githubClient,
+      githubToken: "test-token",
+      cliRunner: {
+        run: async (_command, args) => {
+          if (args[0] === "--version") {
+            return { stdout: "", stderr: "missing gh", exitCode: 1 }
+          }
+
+          return { stdout: "", stderr: "", exitCode: 0 }
+        }
+      }
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.meta.route_used).toBe("graphql")
+  })
+
+  it("reuses cached cli environment checks across requests for same runner", async () => {
+    const githubClient = createGithubClient({
+      async execute<TData>(): Promise<TData> {
+        return {} as TData
+      }
+    })
+
+    const calls: string[] = []
+    const cliRunner = {
+      run: async (_command: string, args: string[]) => {
+        calls.push(args.join(" "))
+
+        if (args[0] === "--version") {
+          return { stdout: "gh version", stderr: "", exitCode: 0 }
+        }
+
+        if (args[0] === "auth" && args[1] === "status") {
+          return { stdout: "ok", stderr: "", exitCode: 0 }
+        }
+
+        return {
+          stdout: JSON.stringify({
+            id: "repo-id",
+            name: "modkit",
+            nameWithOwner: "go-modkit/modkit",
+            isPrivate: false,
+            stargazerCount: 10,
+            forkCount: 2,
+            url: "https://github.com/go-modkit/modkit",
+            defaultBranchRef: { name: "main" }
+          }),
+          stderr: "",
+          exitCode: 0
+        }
+      }
+    }
+
+    const request: TaskRequest = {
+      task: "repo.view",
+      input: { owner: "go-modkit", name: "modkit" }
+    }
+
+    const first = await executeTask(request, { githubClient, cliRunner })
+    const second = await executeTask(request, { githubClient, cliRunner })
+
+    expect(first.ok).toBe(true)
+    expect(second.ok).toBe(true)
+    expect(calls.filter((call) => call === "--version")).toHaveLength(1)
+    expect(calls.filter((call) => call === "auth status")).toHaveLength(1)
+  })
+
+  it("reuses in-flight cli environment detection for concurrent requests", async () => {
+    const githubClient = createGithubClient({
+      async execute<TData>(): Promise<TData> {
+        return {} as TData
+      }
+    })
+
+    let releaseVersionProbe: (() => void) | undefined
+    const versionProbeSettled = new Promise<void>((resolve) => {
+      releaseVersionProbe = resolve
+    })
+
+    const calls: string[] = []
+    const cliRunner = {
+      run: async (_command: string, args: string[]) => {
+        calls.push(args.join(" "))
+
+        if (args[0] === "--version") {
+          await versionProbeSettled
+          return { stdout: "gh version", stderr: "", exitCode: 0 }
+        }
+
+        if (args[0] === "auth" && args[1] === "status") {
+          return { stdout: "ok", stderr: "", exitCode: 0 }
+        }
+
+        return {
+          stdout: JSON.stringify({
+            id: "repo-id",
+            name: "modkit",
+            nameWithOwner: "go-modkit/modkit",
+            isPrivate: false,
+            stargazerCount: 10,
+            forkCount: 2,
+            url: "https://github.com/go-modkit/modkit",
+            defaultBranchRef: { name: "main" }
+          }),
+          stderr: "",
+          exitCode: 0
+        }
+      }
+    }
+
+    const request: TaskRequest = {
+      task: "repo.view",
+      input: { owner: "go-modkit", name: "modkit" }
+    }
+
+    const first = executeTask(request, { githubClient, cliRunner })
+    const second = executeTask(request, { githubClient, cliRunner })
+    releaseVersionProbe?.()
+
+    const [firstResult, secondResult] = await Promise.all([first, second])
+
+    expect(firstResult.ok).toBe(true)
+    expect(secondResult.ok).toBe(true)
+    expect(calls.filter((call) => call === "--version")).toHaveLength(1)
+    expect(calls.filter((call) => call === "auth status")).toHaveLength(1)
+  })
+
+  it("returns REST unsupported when card fallback explicitly uses rest", async () => {
+    const card = (await import("../../src/core/registry/index.js")).getOperationCard("repo.view")
+    if (!card) {
+      throw new Error("repo.view card missing")
+    }
+
+    const originalPreferred = card.routing.preferred
+    const originalFallbacks = [...card.routing.fallbacks]
+
+    card.routing.preferred = "rest"
+    card.routing.fallbacks = []
+
+    try {
+      const githubClient = createGithubClient({
+        async execute<TData>(): Promise<TData> {
+          return {} as TData
+        }
+      })
+
+      const request: TaskRequest = {
+        task: "repo.view",
+        input: { owner: "go-modkit", name: "modkit" }
+      }
+
+      const result = await executeTask(request, {
+        githubClient,
+        githubToken: "test-token",
+        ghCliAvailable: true,
+        ghAuthenticated: true
+      })
+
+      expect(result.ok).toBe(false)
+      expect(result.error?.code).toBe("ADAPTER_UNSUPPORTED")
+      expect(result.meta.route_used).toBe("rest")
+    } finally {
+      card.routing.preferred = originalPreferred
+      card.routing.fallbacks = originalFallbacks
+    }
+  })
 })

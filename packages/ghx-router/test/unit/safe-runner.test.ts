@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
+import { EventEmitter } from "node:events"
 
 import { createSafeCliCommandRunner } from "../../src/core/execution/cli/safe-runner.js"
 
@@ -33,9 +34,66 @@ describe("createSafeCliCommandRunner", () => {
     ).rejects.toThrow("output exceeded")
   })
 
+  it("rejects when stderr output exceeds configured bounds", async () => {
+    const runner = createSafeCliCommandRunner({ maxOutputBytes: 64 })
+
+    await expect(
+      runner.run(process.execPath, ["-e", "process.stderr.write('x'.repeat(256))"], 1000)
+    ).rejects.toThrow("output exceeded")
+  })
+
+  it("returns non-zero exit code without throwing", async () => {
+    const runner = createSafeCliCommandRunner()
+
+    const result = await runner.run(process.execPath, ["-e", "process.exit(42)"], 1000)
+
+    expect(result.exitCode).toBe(42)
+    expect(result.stdout).toBe("")
+    expect(result.stderr).toBe("")
+  })
+
   it("rejects when spawn fails", async () => {
     const runner = createSafeCliCommandRunner()
 
     await expect(runner.run("definitely-not-a-real-command-ghx", [], 1000)).rejects.toThrow()
+  })
+
+  it("ignores duplicate settle signals and post-overflow stream chunks", async () => {
+    const stdout = new EventEmitter()
+    const stderr = new EventEmitter()
+    const child = new EventEmitter() as EventEmitter & {
+      stdout: EventEmitter
+      stderr: EventEmitter
+      kill: (signal: string) => void
+    }
+    child.stdout = stdout
+    child.stderr = stderr
+    child.kill = vi.fn()
+
+    const spawnMock = vi.fn(() => child)
+    vi.resetModules()
+    vi.doMock("node:child_process", () => ({ spawn: spawnMock }))
+
+    try {
+      const { createSafeCliCommandRunner: createMockedRunner } = await import(
+        "../../src/core/execution/cli/safe-runner.js"
+      )
+      const runner = createMockedRunner({ maxOutputBytes: 4 })
+
+      const pending = runner.run("gh", ["repo", "view"], 200)
+
+      stdout.emit("data", Buffer.from("abc"))
+      stdout.emit("data", Buffer.from("de"))
+      stdout.emit("data", Buffer.from("ignored-after-overflow"))
+      stderr.emit("data", Buffer.from("ignored-too"))
+      child.emit("error", new Error("first failure"))
+      child.emit("close", 0)
+
+      await expect(pending).rejects.toThrow("first failure")
+      expect(child.kill).toHaveBeenCalledWith("SIGKILL")
+    } finally {
+      vi.doUnmock("node:child_process")
+      vi.resetModules()
+    }
   })
 })

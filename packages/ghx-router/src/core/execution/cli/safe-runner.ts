@@ -53,6 +53,10 @@ export function createSafeCliCommandRunner(options?: SafeRunnerOptions): CliComm
         }
 
         child.stdout?.on("data", (chunk: Buffer) => {
+          if (overflowed) {
+            return
+          }
+
           stdoutSize += chunk.length
           if (stdoutSize + stderrSize > maxOutputBytes) {
             overflowed = true
@@ -64,6 +68,10 @@ export function createSafeCliCommandRunner(options?: SafeRunnerOptions): CliComm
         })
 
         child.stderr?.on("data", (chunk: Buffer) => {
+          if (overflowed) {
+            return
+          }
+
           stderrSize += chunk.length
           if (stdoutSize + stderrSize > maxOutputBytes) {
             overflowed = true
