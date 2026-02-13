@@ -21,6 +21,19 @@ export type GraphqlCapabilityId =
   | "pr.view"
   | "pr.list"
 
+const DEFAULT_LIST_FIRST = 30
+
+function withDefaultFirst(params: Record<string, unknown>): Record<string, unknown> {
+  if (params.first === undefined) {
+    return {
+      ...params,
+      first: DEFAULT_LIST_FIRST
+    }
+  }
+
+  return params
+}
+
 export async function runGraphqlCapability(
   client: Pick<
     GithubClient,
@@ -41,7 +54,7 @@ export async function runGraphqlCapability(
     }
 
     if (capabilityId === "issue.list") {
-      const data = await client.fetchIssueList(params as IssueListInput)
+      const data = await client.fetchIssueList(withDefaultFirst(params) as IssueListInput)
       return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
     }
 
@@ -56,7 +69,7 @@ export async function runGraphqlCapability(
     }
 
     if (capabilityId === "pr.list") {
-      const data = await client.fetchPrList(params as PrListInput)
+      const data = await client.fetchPrList(withDefaultFirst(params) as PrListInput)
       return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
     }
 

@@ -82,7 +82,7 @@ export const operationCards: OperationCard[] = [
     "List repository issues.",
     "IssueList",
     "src/gql/operations/issue-list.graphql",
-    ["owner", "name", "first"],
+    ["owner", "name"],
     {
       type: "object",
       required: ["items", "pageInfo"],
@@ -108,7 +108,7 @@ export const operationCards: OperationCard[] = [
     },
     [
       "Prefer GraphQL for typed shape, fallback to CLI when unavailable.",
-      "CLI fallback truncates to requested first, caps at 100 comments, and does not provide cursor-based pagination."
+      "CLI fallback supports up to 100 comments per call and does not provide cursor-based pagination."
     ]
   ),
   baseCard(
@@ -134,7 +134,7 @@ export const operationCards: OperationCard[] = [
     "List repository pull requests.",
     "PrList",
     "src/gql/operations/pr-list.graphql",
-    ["owner", "name", "first"],
+    ["owner", "name"],
     {
       type: "object",
       required: ["items", "pageInfo"],

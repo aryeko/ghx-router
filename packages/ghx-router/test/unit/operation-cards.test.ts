@@ -33,8 +33,8 @@ describe("operation cards registry", () => {
     const issueListCard = getOperationCard("issue.list")
     const prListCard = getOperationCard("pr.list")
 
-    expect(issueListCard?.input_schema.required).toEqual(["owner", "name", "first"])
-    expect(prListCard?.input_schema.required).toEqual(["owner", "name", "first"])
+    expect(issueListCard?.input_schema.required).toEqual(["owner", "name"])
+    expect(prListCard?.input_schema.required).toEqual(["owner", "name"])
   })
 
   it("stores CLI command metadata with all dot segments expanded", () => {
@@ -55,7 +55,7 @@ describe("operation cards registry", () => {
     expect(card?.routing.notes).toEqual(
       expect.arrayContaining([
         expect.stringContaining("does not provide cursor-based pagination"),
-        expect.stringContaining("caps at 100 comments")
+        expect.stringContaining("100 comments")
       ])
     )
   })

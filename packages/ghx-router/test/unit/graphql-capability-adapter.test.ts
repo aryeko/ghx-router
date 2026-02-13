@@ -98,4 +98,32 @@ describe("runGraphqlCapability", () => {
       })
     )
   })
+
+  it("defaults first for list capabilities when omitted", async () => {
+    const client = {
+      fetchRepoView: vi.fn(),
+      fetchIssueView: vi.fn(),
+      fetchIssueList: vi.fn(async () => ({ items: [], pageInfo: { hasNextPage: false, endCursor: null } })),
+      fetchIssueCommentsList: vi.fn(),
+      fetchPrView: vi.fn(),
+      fetchPrList: vi.fn(async () => ({ items: [], pageInfo: { hasNextPage: false, endCursor: null } }))
+    }
+
+    await runGraphqlCapability(client, "issue.list", {
+      owner: "acme",
+      name: "modkit"
+    })
+
+    await runGraphqlCapability(client, "pr.list", {
+      owner: "acme",
+      name: "modkit"
+    })
+
+    expect(client.fetchIssueList).toHaveBeenCalledWith(
+      expect.objectContaining({ owner: "acme", name: "modkit", first: 30 })
+    )
+    expect(client.fetchPrList).toHaveBeenCalledWith(
+      expect.objectContaining({ owner: "acme", name: "modkit", first: 30 })
+    )
+  })
 })

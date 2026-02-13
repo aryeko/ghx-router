@@ -55,14 +55,41 @@ describe("runCliCapability", () => {
     expect(result.error?.code).toBe("AUTH")
   })
 
-  it("requires strict positive integer first for list capabilities", async () => {
+  it("defaults first for list capabilities when omitted", async () => {
+    const runner = {
+      run: vi.fn(async () => ({ stdout: JSON.stringify([]), stderr: "", exitCode: 0 }))
+    }
+
+    const issueResult = await runCliCapability(runner, "issue.list", {
+      owner: "",
+      name: ""
+    })
+
+    const prResult = await runCliCapability(runner, "pr.list", {
+      owner: "acme",
+      name: "modkit"
+    })
+
+    expect(issueResult.ok).toBe(true)
+    expect(prResult.ok).toBe(true)
+
+    const calls = runner.run.mock.calls as unknown as [string, string[], number][]
+    const issueArgs = calls[0]?.[1]
+    const prArgs = calls[1]?.[1]
+
+    expect(issueArgs).toEqual(expect.arrayContaining(["issue", "list", "--limit", "30"]))
+    expect(issueArgs).not.toContain("--repo")
+    expect(prArgs).toEqual(expect.arrayContaining(["pr", "list", "--repo", "acme/modkit", "--limit", "30"]))
+  })
+
+  it("rejects invalid provided first for list capabilities", async () => {
     const runner = {
       run: vi.fn(async () => ({ stdout: "[]", stderr: "", exitCode: 0 }))
     }
 
     const issueResult = await runCliCapability(runner, "issue.list", {
-      owner: "",
-      name: "",
+      owner: "acme",
+      name: "modkit",
       first: { bad: "input" }
     })
 
@@ -233,7 +260,7 @@ describe("runCliCapability", () => {
     })
   })
 
-  it("applies first limit for issue.comments.list and signals more pages", async () => {
+  it("applies first limit for issue.comments.list and keeps cursor paging disabled", async () => {
     const runner = {
       run: vi.fn(async () => ({
         stdout: JSON.stringify({
@@ -278,10 +305,16 @@ describe("runCliCapability", () => {
         }
       ],
       pageInfo: {
-        hasNextPage: true,
+        hasNextPage: false,
         endCursor: null
       }
     })
+    expect(result.meta.pagination?.next).toEqual(
+      expect.objectContaining({
+        cursor_supported: false,
+        more_items_observed: true
+      })
+    )
   })
 
   it("returns adapter unsupported when cursor pagination is requested for comments fallback", async () => {

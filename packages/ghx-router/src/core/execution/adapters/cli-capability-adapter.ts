@@ -12,9 +12,18 @@ export type CliCommandRunner = {
 
 const DEFAULT_TIMEOUT_MS = 10_000
 const MAX_COMMENTS_PER_CLI_CALL = 100
+const DEFAULT_LIST_FIRST = 30
 
 function parseStrictPositiveInt(value: unknown): number | null {
   return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : null
+}
+
+function parseListFirst(value: unknown): number | null {
+  if (value === undefined) {
+    return DEFAULT_LIST_FIRST
+  }
+
+  return parseStrictPositiveInt(value)
 }
 
 function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown>): string[] {
@@ -48,7 +57,7 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
   }
 
   if (capabilityId === "issue.list") {
-    const first = parseStrictPositiveInt(params.first)
+    const first = parseListFirst(params.first)
     if (first === null) {
       throw new Error("Missing or invalid first for issue.list")
     }
@@ -93,7 +102,7 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
   }
 
   if (capabilityId === "pr.list") {
-    const first = parseStrictPositiveInt(params.first)
+    const first = parseListFirst(params.first)
     if (first === null) {
       throw new Error("Missing or invalid first for pr.list")
     }
@@ -214,12 +223,11 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
     })
 
     const items = normalizedItems.slice(0, limit)
-    const hasNextPage = normalizedItems.length > items.length
 
     return {
       items,
       pageInfo: {
-        hasNextPage,
+        hasNextPage: false,
         endCursor: null
       }
     }
@@ -238,6 +246,9 @@ export async function runCliCapability(
   params: Record<string, unknown>
 ): Promise<ResultEnvelope> {
   try {
+    let normalizedParams = params
+    let paginationMeta: ResultEnvelope["meta"]["pagination"] | undefined
+
     if (capabilityId === "issue.comments.list") {
       const after = params.after
       if (typeof after === "string" && after.trim().length > 0) {
@@ -279,9 +290,14 @@ export async function runCliCapability(
           { capabilityId, reason: "CARD_FALLBACK" }
         )
       }
+
+      normalizedParams = {
+        ...params,
+        first: requestedLimit
+      }
     }
 
-    const args = buildArgs(capabilityId, params)
+    const args = buildArgs(capabilityId, normalizedParams)
     const result = await runner.run("gh", args, DEFAULT_TIMEOUT_MS)
 
     if (result.exitCode !== 0) {
@@ -299,8 +315,30 @@ export async function runCliCapability(
     }
 
     const data = parseCliData(result.stdout)
-    const normalized = normalizeCliData(capabilityId, data, params)
-    return normalizeResult(normalized, "cli", { capabilityId, reason: "CARD_FALLBACK" })
+    if (capabilityId === "issue.comments.list") {
+      const limit = parseStrictPositiveInt(normalizedParams.first)
+      const rawComments =
+        typeof data === "object" &&
+        data !== null &&
+        !Array.isArray(data) &&
+        Array.isArray((data as Record<string, unknown>).comments)
+          ? ((data as Record<string, unknown>).comments as unknown[])
+          : []
+
+      paginationMeta = {
+        next: {
+          cursor_supported: false,
+          more_items_observed: limit !== null ? rawComments.length > limit : false
+        }
+      }
+    }
+
+    const normalized = normalizeCliData(capabilityId, data, normalizedParams)
+    return normalizeResult(normalized, "cli", {
+      capabilityId,
+      reason: "CARD_FALLBACK",
+      pagination: paginationMeta
+    })
   } catch (error: unknown) {
     if (error instanceof SyntaxError) {
       return normalizeError(
