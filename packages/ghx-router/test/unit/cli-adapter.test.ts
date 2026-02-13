@@ -11,12 +11,13 @@ describe("runCliAdapter", () => {
     const result = await runCliAdapter(runner, {
       command: "gh",
       args: ["repo", "view"],
-      reason: "coverage_gap"
+      reason: "CARD_PREFERRED",
+      capabilityId: "repo.view"
     })
 
-    expect(result.success).toBe(true)
-    expect(result.meta.source).toBe("cli")
-    expect(result.meta.reason).toBe("coverage_gap")
+    expect(result.ok).toBe(true)
+    expect(result.meta.route_used).toBe("cli")
+    expect(result.meta.reason).toBe("CARD_PREFERRED")
     expect(result.data).toEqual({ stdout: "ok", stderr: "", exitCode: 0 })
   })
 
@@ -27,11 +28,12 @@ describe("runCliAdapter", () => {
 
     const result = await runCliAdapter(runner, {
       command: "gh",
-      args: ["repo", "view"]
+      args: ["repo", "view"],
+      capabilityId: "repo.view"
     })
 
-    expect(result.success).toBe(false)
-    expect(result.error?.code).toBe("validation_failed")
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe("VALIDATION")
     expect(result.error?.details).toEqual(
       expect.objectContaining({
         adapter: "cli",

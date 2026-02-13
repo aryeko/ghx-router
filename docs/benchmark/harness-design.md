@@ -1,69 +1,28 @@
 # Benchmark Harness Design
 
-Defines benchmark runner architecture and data contracts for efficiency evaluation.
+## Flow
 
-## Purpose
+1. load and validate scenarios
+2. render benchmark prompt
+3. run assistant session
+4. extract envelope JSON from assistant output
+5. validate envelope + scenario assertions
+6. collect tool/api/attempt metrics
+7. write JSONL rows and aggregate reports
 
-Provide a repeatable benchmark harness that compares `ghx_router` against baseline modes with consistent metadata and summary artifacts.
+## Extractors
 
-## Modes
+- `extractFirstJsonObject` - pulls first balanced JSON object
+- `validateEnvelope` - validates required envelope and data constraints
+- `aggregateToolCounts` - derives tool/api counts from session parts
+- `extractAttemptMetrics` - reads `meta.attempts` for retry and route context
 
-- `agent_direct`
-- `mcp` (when available)
-- `ghx_router`
+## Security Posture
 
-## High-Level Flow
+- benchmark runner uses constrained permissions by default
+- telemetry redaction avoids leaking sensitive runtime data
 
-```mermaid
-flowchart LR
-  A[Scenario Loader] --> B[Run Orchestrator]
-  B --> C[SDK Session Driver]
-  C --> D[Metrics Collector]
-  D --> E[Assertion Engine]
-  E --> F[JSONL Result Writer]
-  F --> G[Aggregator]
-  G --> H[Summary JSON and Markdown]
-```
+Source:
 
-## Core Components
-
-### Scenario Loader
-
-- Reads canonical scenarios from `packages/benchmark/scenarios/*.json`.
-- Validates scenario schema before execution.
-
-### Run Orchestrator
-
-- Applies run mode and repetition count.
-- Controls scenario order and reproducibility seed.
-
-### SDK Session Driver
-
-- Executes each scenario through OpenCode SDK session lifecycle.
-- Captures assistant timing and token metadata when available.
-
-### Assertion Engine
-
-- Evaluates scenario success criteria.
-- Records `success`, `output_valid`, and failure taxonomy.
-
-### Reporter
-
-- Aggregates medians and P90s.
-- Writes `packages/benchmark/reports/latest-summary.json` and markdown summary.
-
-## Result Row Contract
-
-Each run writes one JSONL row with:
-
-- scenario identity and iteration metadata
-- mode, success, output validity
-- latency/token/cost/tool-call measures
-- optional normalized error payload
-
-## Reliability Controls
-
-- Fixed fixtures and model/provider per suite.
-- Minimum 10 repetitions per scenario/mode.
-- Logged metadata for commit, timestamp, and run seed.
-- Bounded retries only for infrastructure failures.
+- `packages/benchmark/src/runner/suite-runner.ts`
+- `packages/benchmark/src/extract/`

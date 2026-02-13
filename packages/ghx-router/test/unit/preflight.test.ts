@@ -12,7 +12,7 @@ describe("preflightCheck", () => {
     const result = preflightCheck({ route: "graphql", githubToken: "" })
     expect(result.ok).toBe(false)
     if (!result.ok) {
-      expect(result.code).toBe("auth_failed")
+      expect(result.code).toBe("AUTH")
       expect(result.details).toEqual({ route: "graphql" })
     }
   })
@@ -26,7 +26,7 @@ describe("preflightCheck", () => {
     const result = preflightCheck({ route: "cli", ghCliAvailable: false })
     expect(result.ok).toBe(false)
     if (!result.ok) {
-      expect(result.code).toBe("validation_failed")
+      expect(result.code).toBe("VALIDATION")
       expect(result.message).toContain("GitHub CLI")
     }
   })
@@ -35,7 +35,7 @@ describe("preflightCheck", () => {
     const result = preflightCheck({ route: "rest", ghAuthenticated: false })
     expect(result.ok).toBe(false)
     if (!result.ok) {
-      expect(result.code).toBe("auth_failed")
+      expect(result.code).toBe("AUTH")
       expect(result.message).toContain("authentication")
     }
   })

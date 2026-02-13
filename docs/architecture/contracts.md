@@ -1,22 +1,43 @@
 # Contracts
 
-Defines task input/output contracts and normalized result envelope.
+## Result Envelope (v1)
 
-## Envelope (v1)
+All capability executions return:
 
-Every task returns a normalized envelope:
+- `ok`: boolean
+- `data`: normalized capability payload when `ok=true`
+- `error`: `{ code, message, retryable, details? }` when `ok=false`
+- `meta`:
+  - `capability_id`
+  - `route_used`
+  - `reason`
+  - optional `attempts`, `pagination`, `timings`, `cost`
 
-- `success`: boolean
-- `data`: object or array on success
-- `error`: structured object on failure
-- `meta`: route source and execution metadata
-
-Primary type location:
+Source of truth:
 
 - `packages/ghx-router/src/core/contracts/envelope.ts`
 
-Task contracts live under:
+## Operation Card Contract
 
-- `packages/ghx-router/src/core/contracts/tasks/`
+Each capability is defined by an operation card with:
 
-Contract changes require matching test and benchmark updates.
+- capability identity + version
+- input/output schema
+- route preference/fallback policy
+- adapter-specific metadata (GraphQL and CLI)
+
+Source of truth:
+
+- `packages/ghx-router/src/core/registry/types.ts`
+- `packages/ghx-router/src/core/registry/cards.ts`
+- `packages/ghx-router/src/core/registry/index.ts`
+
+## Agent Tool Surface Contract
+
+- `execute(capability_id, params, options?)`
+- `explain(capability_id)`
+- `list_capabilities()`
+
+Source of truth:
+
+- `packages/ghx-router/src/agent-interface/tools/`

@@ -1,51 +1,25 @@
 # ghx-router
 
-CLI-first GitHub execution router for agents.
+CLI-first GitHub execution router for agents, with card-driven routing and a normalized runtime envelope.
 
 ## Status
 
-- Active development branch with core routing and benchmark harness implemented.
-- Not yet production-ready.
-- Current focus: stabilize task coverage and keep benchmark validation green.
+- v1 agentic interface is implemented for the thin-slice capabilities:
+  - `repo.view`
+  - `issue.view`
+  - `issue.list`
+  - `pr.view`
+  - `pr.list`
+- Core runtime, benchmark harness, and architecture docs are aligned to the shipped contract.
 
-## Goals
+## Core Idea
 
-- Make GitHub task execution context-efficient for agents.
-- Provide one stable interface (`ghx`) that agents can call without re-learning docs each run.
-- Prefer `gh` CLI for covered workflows and reliability.
-- Use REST or GraphQL only when CLI is missing capability or is materially less efficient.
-- Return deterministic JSON with clear error semantics for automation.
-- Support Claude/OpenCode and non-Claude agent runtimes equally well.
+Agents should not re-fetch GitHub schema/docs on every run. `ghx-router` provides:
 
-## Why ghx-router
-
-- Agents lose time and context re-deciding API paths (`gh` vs REST vs GraphQL) per task.
-- Prompt-level routing decisions are inconsistent across runs.
-- A single runtime policy can reduce latency, retries, and token usage while improving output consistency.
-
-## Motivation
-
-Today, agents can interact with GitHub through `gh` CLI, `gh api`, and MCP servers. The problem is not capability; it is execution efficiency and consistency.
-
-Common failure pattern:
-
-1. Agent starts a task.
-2. It fetches docs or schema context again.
-3. It chooses an interface ad hoc (`gh`, REST, or GraphQL).
-4. It spends extra tokens/time resolving output shape, pagination, and auth edge cases.
-
-This "interface ping-pong" makes runs slower, more expensive, and less reliable.
-
-`ghx-router` encodes the decision logic once so agents do not re-derive it each time:
-
-- CLI-first routing policy
-- Typed API access when API is the better path
-- Built-in defaults for pagination, retries, and auth checks
-- Stable machine output contracts
-
-### Keep-us-honest note on MCP cost
-
-MCP is not universally "bad" or "too expensive." It can be a great integration surface in some runtimes. But in many agent workflows, repeated tool-schema exchange and orchestration overhead can increase token and latency cost relative to direct CLI calls for common operations. This project optimizes for a CLI-first baseline and uses API paths only when they provide clear value.
+- a stable capability interface,
+- deterministic route selection,
+- typed GraphQL + structured CLI adapters,
+- normalized output and error semantics.
 
 ## Interface (v1)
 
@@ -55,104 +29,64 @@ Primary command surface:
 ghx run <task-id> --input '<json>'
 ```
 
-Planned normalized output envelope:
+Normalized runtime envelope:
 
 ```json
 {
-  "success": true,
+  "ok": true,
   "data": {},
   "error": null,
   "meta": {
-    "source": "cli",
-    "reason": "coverage_gap"
+    "capability_id": "repo.view",
+    "route_used": "graphql",
+    "reason": "CARD_PREFERRED"
   }
 }
 ```
 
-## Routing Decision Matrix (v1)
+## Routing (v1)
 
-Use this policy to choose execution path per task.
+- Capabilities are defined by operation cards in `packages/ghx-router/src/core/registry/cards.ts`.
+- Route plan is deterministic: `preferred` then ordered `fallbacks`.
+- Current shipped cards prefer `graphql` with `cli`/`rest` fallbacks.
+- Preflight checks gate route eligibility before execution.
 
-| Task Type | Preferred Path | Why |
-|---|---|---|
-| Standard repo/PR/issue operations (`list`, `view`, `create`, `edit`, `status`) | `gh` CLI | Fast, stable UX, built-in auth, predictable behavior |
-| Common automation with structured output | `gh` CLI + `--json` | Keeps CLI reliability while giving machine-readable output |
-| Endpoint not covered by `gh` command surface | REST via `gh api` | Minimal switch cost, keeps auth/session from CLI |
-| Deep graph traversal (nested relations, selective fields across objects) | GraphQL (typed client) | Fewer round-trips, precise field selection, strong typing |
-| Large paginated reads with known REST endpoint support | REST via `gh api --paginate` | Simple and robust for flat resource enumeration |
-| Complex cross-entity aggregation where REST causes N+1 calls | GraphQL (typed client) | Better query efficiency and fewer request chains |
-| Write operations with mature CLI support | `gh` CLI first | Lower risk and clearer ergonomics for mutation workflows |
-| Write operations not exposed in CLI but available in API | REST first, GraphQL if required | Prefer simplest viable API path |
+## Runtime Guarantees
 
-### Runtime Note
-
-The active task set currently routes through GraphQL defaults in `packages/ghx-router/src/core/routing/capability-registry.ts`.
-The matrix above remains the target long-term policy as additional CLI and REST adapters are expanded.
-
-### Required Runtime Guarantees
-
-All paths must produce a normalized envelope:
-
-- `success`: boolean
-- `data`: object or array on success
-- `error`: structured error object on failure
-- `meta`: pagination, rate-limit, and source path (`cli` | `rest` | `graphql`)
-
-This keeps agent behavior stable regardless of the underlying execution route.
-
-## Non-Goals
-
-- Replacing the entire `gh` CLI
-- Building a generic automation framework unrelated to GitHub workflows
-- Forcing GraphQL usage where CLI or REST is simpler
-
-## Quickstart
-
-Prerequisites:
-
-- Node.js 20+
-- GitHub CLI (`gh`) authenticated
-
-Current repo includes active implementation plus architecture and benchmark docs under `docs/`.
-
-Note: `repo.view`, `issue.view`, and `pr.view` execution paths are wired through the GraphQL engine route.
-
-## Current Direction
-
-1. Expand task coverage while preserving deterministic envelope behavior.
-2. Keep routing and capability policy aligned with runtime behavior.
-3. Harden benchmark reliability and release-gate checks.
-4. Keep docs focused on long-lived architecture and benchmark references.
+- Stable envelope contract (`ok`, `data`, `error`, `meta`).
+- Structured error taxonomy (AUTH, VALIDATION, NETWORK, RATE_LIMIT, SERVER, etc).
+- Route-level retry/fallback orchestration with optional attempt trace metadata.
+- Telemetry events for route planning/attempts; sensitive context is redacted.
 
 ## Benchmarking
 
-- Thin-slice harness: `packages/benchmark/README.md`
-- Efficiency criteria: `docs/benchmark/efficiency-criteria.md`
-- Benchmark harness design (TS SDK): `docs/benchmark/harness-design.md`
-
-Current benchmark state:
-
-- Scenarios live in `packages/benchmark/scenarios/`.
-- Runner lives in `packages/benchmark/src/`.
-- Aggregation/reporting templates are defined.
-- SDK-backed benchmark execution is wired; current focus is reliability and reporting stabilization.
+- Harness: `packages/benchmark/`
+- Scenarios: `packages/benchmark/scenarios/`
+- Runner and extraction: `packages/benchmark/src/`
+- Summary artifacts: `packages/benchmark/reports/`
 
 ## Docs
 
 - Architecture overview: `docs/architecture/overview.md`
 - System design: `docs/architecture/system-design.md`
-- Routing policy: `docs/architecture/routing-policy.md`
 - Contracts: `docs/architecture/contracts.md`
+- Routing policy: `docs/architecture/routing-policy.md`
 - Errors and retries: `docs/architecture/errors-and-retries.md`
 - Repository structure: `docs/architecture/repository-structure.md`
+- Agent interface tools: `docs/architecture/agent-interface-tools.md`
+- Operation card registry: `docs/architecture/operation-card-registry.md`
+- Telemetry: `docs/architecture/telemetry.md`
 - Benchmark methodology: `docs/benchmark/methodology.md`
 - Benchmark metrics: `docs/benchmark/metrics.md`
-- Benchmark reporting: `docs/benchmark/reporting.md`
 - Benchmark harness design: `docs/benchmark/harness-design.md`
+- Benchmark reporting: `docs/benchmark/reporting.md`
 - Efficiency criteria: `docs/benchmark/efficiency-criteria.md`
+- Scenario assertions: `docs/benchmark/scenario-assertions.md`
 
-## Contributing
+## Verification
 
-- Open an issue before large architecture or benchmark methodology changes.
-- Keep routing policy changes aligned with `docs/architecture/routing-policy.md`.
-- Keep benchmark metric changes aligned with `docs/benchmark/metrics.md`.
+```bash
+pnpm run verify
+pnpm --filter @ghx-router/core run gql:check
+pnpm run benchmark:check
+```

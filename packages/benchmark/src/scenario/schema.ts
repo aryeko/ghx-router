@@ -9,7 +9,9 @@ const assertionsSchema = z.object({
   required_data_fields: z.array(z.string()).optional(),
   data_type: z.enum(["array", "object"]).optional(),
   require_tool_calls: z.boolean().optional(),
-  min_tool_calls: z.number().int().nonnegative().optional()
+  min_tool_calls: z.number().int().nonnegative().optional(),
+  max_tool_calls: z.number().int().nonnegative().optional(),
+  require_attempt_trace: z.boolean().optional()
 })
 
 const scenarioSchema = z.object({

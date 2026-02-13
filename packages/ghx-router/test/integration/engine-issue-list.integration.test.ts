@@ -48,8 +48,8 @@ describe("executeTask issue.list", () => {
 
     const result = await executeTask(request, { githubClient, githubToken: "test-token" })
 
-    expect(result.success).toBe(true)
-    expect(result.meta.source).toBe("graphql")
+    expect(result.ok).toBe(true)
+    expect(result.meta.route_used).toBe("graphql")
     expect(result.data).toEqual(
       expect.objectContaining({
         items: expect.arrayContaining([

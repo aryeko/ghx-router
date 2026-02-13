@@ -8,6 +8,8 @@ export type ScenarioAssertions = {
   data_type?: "array" | "object"
   require_tool_calls?: boolean
   min_tool_calls?: number
+  max_tool_calls?: number
+  require_attempt_trace?: boolean
 }
 
 export type Scenario = {
@@ -64,7 +66,8 @@ export type BenchmarkRow = {
   cost: number
   tool_calls: number
   api_calls: number
-  retry_count: number
+  internal_retry_count: number
+  external_retry_count: number
   model: {
     provider_id: string
     model_id: string

@@ -1,8 +1,12 @@
 export const errorCodes = {
-  Unknown: "unknown",
-  ValidationFailed: "validation_failed",
-  AuthFailed: "auth_failed",
-  InfraError: "infra_error",
-  Timeout: "timeout",
-  GraphqlExecutionFailed: "graphql_execution_failed"
+  Auth: "AUTH",
+  NotFound: "NOT_FOUND",
+  Validation: "VALIDATION",
+  RateLimit: "RATE_LIMIT",
+  Network: "NETWORK",
+  Server: "SERVER",
+  AdapterUnsupported: "ADAPTER_UNSUPPORTED",
+  Unknown: "UNKNOWN"
 } as const
+
+export type ErrorCode = (typeof errorCodes)[keyof typeof errorCodes]

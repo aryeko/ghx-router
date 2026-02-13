@@ -1,33 +1,47 @@
 import type { ResultEnvelope } from "../contracts/envelope.js"
 import type { RouteReasonCode } from "../routing/reason-codes.js"
 
+type MetaInput = {
+  capabilityId: string
+  reason: RouteReasonCode | undefined
+}
+
 function buildMeta(
-  source: ResultEnvelope["meta"]["source"],
-  reason?: RouteReasonCode
+  route: "cli" | "rest" | "graphql",
+  options: MetaInput
 ): ResultEnvelope["meta"] {
-  return reason ? { source, reason } : { source }
+  const meta: ResultEnvelope["meta"] = {
+    capability_id: options.capabilityId,
+    route_used: route
+  }
+
+  if (options.reason !== undefined) {
+    meta.reason = options.reason
+  }
+
+  return meta
 }
 
 export function normalizeResult<TData>(
   data: TData,
-  source: ResultEnvelope["meta"]["source"],
-  reason?: RouteReasonCode
+  route: "cli" | "rest" | "graphql",
+  options: MetaInput
 ): ResultEnvelope<TData> {
   return {
-    success: true,
+    ok: true,
     data,
-    meta: buildMeta(source, reason)
+    meta: buildMeta(route, options)
   }
 }
 
 export function normalizeError<TData = unknown>(
   error: NonNullable<ResultEnvelope["error"]>,
-  source: ResultEnvelope["meta"]["source"],
-  reason?: RouteReasonCode
+  route: "cli" | "rest" | "graphql",
+  options: MetaInput
 ): ResultEnvelope<TData> {
   return {
-    success: false,
+    ok: false,
     error,
-    meta: buildMeta(source, reason)
+    meta: buildMeta(route, options)
   }
 }

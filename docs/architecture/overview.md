@@ -1,32 +1,28 @@
 # Architecture Overview
 
-`ghx-router` is built around three boundaries:
+`ghx-router` has three primary boundaries:
 
-- `packages/ghx-router/src/core/`: task contracts, route policy, adapters, normalization, telemetry.
-- `packages/ghx-router/src/cli/`: command interface and formatting.
-- `packages/benchmark/`: independent benchmark harness and reporting.
+- `packages/ghx-router/src/core/` - contracts, operation-card registry, execute orchestration, adapters, telemetry.
+- `packages/ghx-router/src/agent-interface/` - agent-facing tools (`execute`, `explain`, `list_capabilities`) and stable main-skill text.
+- `packages/benchmark/` - benchmark scenarios, runner, extraction, and reporting.
 
 ```mermaid
 flowchart LR
-  A[Agent] --> B[ghx CLI]
-  B --> C[Contract Validation]
-  C --> D[Routing Engine]
-  D --> E[Execution Adapter]
-  E --> F[Normalization]
-  F --> G[Result Envelope]
-  E --> H[Telemetry Hooks]
-  H --> I[Benchmark Reports]
+  A[Agent] --> B[Agent Interface Tools]
+  B --> C[Execute Orchestration]
+  C --> D[Operation Card Registry]
+  C --> E[Route Preflight + Planning]
+  C --> F[Adapters: GraphQL CLI REST]
+  F --> G[Normalized Result Envelope]
+  C --> H[Telemetry Events]
+  H --> I[Benchmark Extraction + Reports]
 ```
 
-Canonical architecture reference:
+Primary references:
 
-- `docs/architecture/system-design.md`
-
-Supporting references:
-
-- `docs/architecture/repository-structure.md`
-- `docs/architecture/routing-policy.md`
 - `docs/architecture/contracts.md`
+- `docs/architecture/routing-policy.md`
 - `docs/architecture/errors-and-retries.md`
-
-This file is a stable summary and index to deeper architecture docs.
+- `docs/architecture/operation-card-registry.md`
+- `docs/architecture/agent-interface-tools.md`
+- `docs/architecture/telemetry.md`

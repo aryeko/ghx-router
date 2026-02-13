@@ -33,8 +33,8 @@ describe("executeTask pr.view", () => {
 
     const result = await executeTask(request, { githubClient, githubToken: "test-token" })
 
-    expect(result.success).toBe(true)
-    expect(result.meta.source).toBe("graphql")
+    expect(result.ok).toBe(true)
+    expect(result.meta.route_used).toBe("graphql")
     expect(result.data).toEqual(
       expect.objectContaining({
         number: 232,
@@ -57,8 +57,8 @@ describe("executeTask pr.view", () => {
 
     const result = await executeTask(request, { githubClient, githubToken: "test-token" })
 
-    expect(result.success).toBe(false)
-    expect(result.error?.code).toBe("validation_failed")
-    expect(result.meta.reason).toBe("output_shape_requirement")
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe("VALIDATION")
+    expect(result.meta.reason).toBe("CARD_PREFERRED")
   })
 })

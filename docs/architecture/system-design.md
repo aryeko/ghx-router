@@ -1,74 +1,56 @@
 # System Design (v1)
 
-This document defines the long-lived architecture baseline for `ghx-router`.
+`ghx-router` moves GitHub execution policy into deterministic runtime behavior.
 
-## Problem
+## Goals
 
-Agents can complete GitHub tasks through `gh`, `gh api`, GraphQL, and MCP tooling, but ad hoc route selection creates inconsistent output, extra retries, and repeated context usage.
+- stable capability contracts
+- deterministic route planning and fallback
+- normalized route-independent output
+- benchmarkable reliability and efficiency
 
-`ghx-router` moves route selection and output shaping into deterministic runtime behavior.
-
-## Design Goals
-
-- Keep task contracts stable and explicit.
-- Keep route selection deterministic and inspectable.
-- Keep adapter output normalized into one envelope.
-- Keep benchmark measurement independent from runtime internals.
-
-## Component Model
+## Runtime Model
 
 ```mermaid
 flowchart TB
-  A[Task Request] --> B[Contract Layer]
-  B --> C[Routing Engine]
-  C --> D[Capability Registry]
-  C --> E[Execution Adapter]
-  E --> F[Normalizer]
-  F --> G[Result Envelope]
-  E --> H[Error Mapper]
-  H --> F
-  E --> I[Telemetry]
-  I --> J[Benchmark Harness]
+  A[Agent Request] --> B[Agent Interface Tools]
+  B --> C[Execute Orchestration]
+  C --> D[Operation Card Registry]
+  C --> E[Preflight + Retry/Fallback]
+  E --> F[GraphQL Adapter]
+  E --> G[CLI Adapter]
+  E --> H[REST Adapter]
+  F --> I[Normalizer]
+  G --> I
+  H --> I
+  I --> J[ResultEnvelope]
+  C --> K[Telemetry]
 ```
-
-### Contract Layer
-
-- Validates task input and output shape.
-- Fails fast with normalized validation errors.
-
-### Routing Engine
-
-- Resolves route by task capability metadata.
-- Applies fallback policy when no task entry exists.
-- Emits reason code in output metadata.
-
-### Execution Adapters
-
-- Execute task implementation for `cli`, `rest`, or `graphql` paths.
-- Encapsulate transport behavior and provider-specific failure modes.
-
-### Normalization
-
-- Emits stable envelope shape across all routes.
-- Prevents downstream automation from route-specific branching.
 
 ## Result Envelope
 
-Every task result follows this shape:
+Every capability returns:
 
-- `success`: boolean
-- `data`: object or array on success
-- `error`: structured object on failure
-- `meta`: route source, reason, and execution metadata
+- `ok`: boolean
+- `data`: normalized payload on success
+- `error`: normalized error on failure
+- `meta`: `capability_id`, `route_used`, `reason`, plus optional trace/timing fields
 
-## Error Strategy
+## Route Planning
 
-- Map adapter failures to shared error codes.
-- Mark retryability explicitly.
-- Keep error payload safe for logs and automation.
+- capability cards define preferred and fallback routes
+- preflight checks gate route eligibility
+- execute applies bounded retries for retryable errors
+- fallback proceeds in deterministic card order
 
-## Scope
+## Current v1 Scope
 
-- Current shipped tasks cover `repo.view`, `issue.view`, `issue.list`, `pr.view`, and `pr.list`.
-- Current route defaults for shipped tasks are GraphQL, as defined in capability registry entries.
-- CLI-first matrix remains the target policy as additional adapters are expanded.
+- `repo.view`, `issue.view`, `issue.list`, `pr.view`, `pr.list`
+- GraphQL preferred, CLI/REST fallback per shipped cards
+
+## Source References
+
+- `packages/ghx-router/src/core/execute/execute.ts`
+- `packages/ghx-router/src/core/registry/cards.ts`
+- `packages/ghx-router/src/core/contracts/envelope.ts`
+- `packages/ghx-router/src/agent-interface/tools/`

@@ -13,12 +13,13 @@ describe("runGraphqlAdapter", () => {
 
     const result = await runGraphqlAdapter<{ repository: { name: string } }>(client, {
       query: "query { repository(owner: \"go-modkit\", name: \"modkit\") { name } }",
-      reason: "output_shape_requirement"
+      reason: "CARD_PREFERRED",
+      capabilityId: "repo.view"
     })
 
-    expect(result.success).toBe(true)
-    expect(result.meta.source).toBe("graphql")
-    expect(result.meta.reason).toBe("output_shape_requirement")
+    expect(result.ok).toBe(true)
+    expect(result.meta.route_used).toBe("graphql")
+    expect(result.meta.reason).toBe("CARD_PREFERRED")
     expect(result.data?.repository.name).toBe("modkit")
   })
 
@@ -30,11 +31,12 @@ describe("runGraphqlAdapter", () => {
     })
 
     const result = await runGraphqlAdapter(client, {
-      query: "query { repository(owner: \"go-modkit\", name: \"modkit\") { name } }"
+      query: "query { repository(owner: \"go-modkit\", name: \"modkit\") { name } }",
+      capabilityId: "repo.view"
     })
 
-    expect(result.success).toBe(false)
-    expect(result.error?.code).toBe("timeout")
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe("NETWORK")
     expect(result.error?.details).toEqual({ adapter: "graphql" })
   })
 })

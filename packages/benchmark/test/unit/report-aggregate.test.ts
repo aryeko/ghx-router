@@ -26,7 +26,8 @@ function row(overrides: Partial<BenchmarkRow>): BenchmarkRow {
     cost: 0,
     tool_calls: 4,
     api_calls: 2,
-    retry_count: 0,
+    internal_retry_count: 0,
+    external_retry_count: 0,
     model: {
       provider_id: "openai",
       model_id: "gpt-5.3-codex",

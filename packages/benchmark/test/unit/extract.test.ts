@@ -6,7 +6,7 @@ import { aggregateToolCounts } from "../../src/extract/tool-usage.js"
 describe("extractors", () => {
   it("extracts JSON object from plain text", () => {
     const payload = extractFirstJsonObject(
-      "prefix {\"success\":true,\"data\":{},\"error\":null,\"meta\":{}} suffix"
+      "prefix {\"ok\":true,\"data\":{},\"error\":null,\"meta\":{}} suffix"
     )
 
     expect(payload).toBeTruthy()
@@ -14,20 +14,20 @@ describe("extractors", () => {
 
   it("extracts first balanced JSON object when extra braces exist later", () => {
     const payload = extractFirstJsonObject(
-      "prefix {\"success\":true,\"data\":{\"message\":\"brace } in text\"},\"error\":null,\"meta\":{}} trailing {not-json}"
-    ) as { success?: boolean } | null
+      "prefix {\"ok\":true,\"data\":{\"message\":\"brace } in text\"},\"error\":null,\"meta\":{}} trailing {not-json}"
+    ) as { ok?: boolean } | null
 
-    expect(payload?.success).toBe(true)
+    expect(payload?.ok).toBe(true)
   })
 
   it("validates envelope with required fields", () => {
     const valid = validateEnvelope(
       {
         must_succeed: true,
-        required_fields: ["success", "data", "error", "meta"]
+        required_fields: ["ok", "data", "error", "meta"]
       },
       {
-        success: true,
+        ok: true,
         data: {},
         error: null,
         meta: {}

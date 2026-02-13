@@ -1,8 +1,9 @@
 import { errorCodes } from "./codes.js"
 
 const retryableCodes = new Set<string>([
-  errorCodes.Timeout,
-  errorCodes.InfraError
+  errorCodes.Network,
+  errorCodes.RateLimit,
+  errorCodes.Server
 ])
 
 export function isRetryableErrorCode(code: string): boolean {
