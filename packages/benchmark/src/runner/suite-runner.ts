@@ -479,7 +479,7 @@ export function renderPrompt(scenario: Scenario, mode: BenchmarkMode): string {
       : "The JSON meta object can include optional diagnostic fields."
   const routeContract =
     scopedAssertions.expected_route_used !== undefined
-      ? `meta.route_used MUST be exactly \"${scopedAssertions.expected_route_used}\".`
+      ? `meta.route_used MUST be exactly "${scopedAssertions.expected_route_used}".`
       : ""
 
   return `${modePromptPrefix[mode]}\n${fixtureNote}\nYou MUST use real tools to gather data. Do not fabricate outputs.\nReturn STRICT JSON only. No markdown fences.\nOutput must be exactly one JSON object with keys: ok, data, error, meta.\n${dataContract}\n${metaContract}\n${routeContract}\n\n${rendered}`
