@@ -2,8 +2,14 @@ import { print, type DocumentNode } from "graphql"
 import type { GraphQLClient, RequestDocument, RequestOptions } from "graphql-request"
 
 import {
+  getSdk as getIssueListSdk
+} from "./operations/issue-list.generated.js"
+import {
   getSdk as getIssueViewSdk
 } from "./operations/issue-view.generated.js"
+import {
+  getSdk as getPrListSdk
+} from "./operations/pr-list.generated.js"
 import {
   getSdk as getPrViewSdk
 } from "./operations/pr-view.generated.js"
@@ -11,9 +17,17 @@ import {
   getSdk as getRepoViewSdk
 } from "./operations/repo-view.generated.js"
 import type {
+  IssueListQuery,
+  IssueListQueryVariables,
+} from "./operations/issue-list.generated.js"
+import type {
   IssueViewQuery,
   IssueViewQueryVariables,
 } from "./operations/issue-view.generated.js"
+import type {
+  PrListQuery,
+  PrListQueryVariables,
+} from "./operations/pr-list.generated.js"
 import type {
   PrViewQuery,
   PrViewQueryVariables,
@@ -39,7 +53,9 @@ export interface GraphqlClient {
 }
 
 export type RepoViewInput = RepoViewQueryVariables
+export type IssueListInput = IssueListQueryVariables
 export type IssueViewInput = IssueViewQueryVariables
+export type PrListInput = PrListQueryVariables
 export type PrViewInput = PrViewQueryVariables
 
 export type RepoViewData = {
@@ -61,6 +77,14 @@ export type IssueViewData = {
   url: string
 }
 
+export type IssueListData = {
+  items: Array<IssueViewData>
+  pageInfo: {
+    endCursor: string | null
+    hasNextPage: boolean
+  }
+}
+
 export type PrViewData = {
   id: string
   number: number
@@ -69,9 +93,19 @@ export type PrViewData = {
   url: string
 }
 
+export type PrListData = {
+  items: Array<PrViewData>
+  pageInfo: {
+    endCursor: string | null
+    hasNextPage: boolean
+  }
+}
+
 export interface GithubClient extends GraphqlClient {
   fetchRepoView(input: RepoViewInput): Promise<RepoViewData>
+  fetchIssueList(input: IssueListInput): Promise<IssueListData>
   fetchIssueView(input: IssueViewInput): Promise<IssueViewData>
+  fetchPrList(input: PrListInput): Promise<PrListData>
   fetchPrView(input: PrViewInput): Promise<PrViewData>
 }
 
@@ -90,6 +124,15 @@ function assertIssueInput(input: IssueViewInput): void {
   }
 }
 
+function assertIssueListInput(input: IssueListInput): void {
+  if (input.owner.trim().length === 0 || input.name.trim().length === 0) {
+    throw new Error("Repository owner and name are required")
+  }
+  if (!Number.isInteger(input.first) || input.first <= 0) {
+    throw new Error("List page size must be a positive integer")
+  }
+}
+
 function assertPrInput(input: PrViewInput): void {
   if (input.owner.trim().length === 0 || input.name.trim().length === 0) {
     throw new Error("Repository owner and name are required")
@@ -99,8 +142,19 @@ function assertPrInput(input: PrViewInput): void {
   }
 }
 
+function assertPrListInput(input: PrListInput): void {
+  if (input.owner.trim().length === 0 || input.name.trim().length === 0) {
+    throw new Error("Repository owner and name are required")
+  }
+  if (!Number.isInteger(input.first) || input.first <= 0) {
+    throw new Error("List page size must be a positive integer")
+  }
+}
+
 type SdkClients = {
+  issueList: ReturnType<typeof getIssueListSdk>
   issue: ReturnType<typeof getIssueViewSdk>
+  prList: ReturnType<typeof getPrListSdk>
   pr: ReturnType<typeof getPrViewSdk>
   repo: ReturnType<typeof getRepoViewSdk>
 }
@@ -128,7 +182,9 @@ function createSdkClients(transport: GraphqlTransport): SdkClients {
   const graphqlRequestClient = client as GraphQLClient
 
   return {
+    issueList: getIssueListSdk(graphqlRequestClient),
     issue: getIssueViewSdk(graphqlRequestClient),
+    prList: getPrListSdk(graphqlRequestClient),
     pr: getPrViewSdk(graphqlRequestClient),
     repo: getRepoViewSdk(graphqlRequestClient)
   }
@@ -172,6 +228,36 @@ async function runIssueView(sdk: SdkClients["issue"], input: IssueViewInput): Pr
   }
 }
 
+async function runIssueList(sdk: SdkClients["issueList"], input: IssueListInput): Promise<IssueListData> {
+  assertIssueListInput(input)
+
+  const result: IssueListQuery = await sdk.IssueList(input)
+  const issues = result.repository?.issues
+  if (!issues) {
+    throw new Error("Issues not found")
+  }
+
+  return {
+    items: (issues.nodes ?? []).flatMap((issue) =>
+      issue
+        ? [
+            {
+              id: issue.id,
+              number: issue.number,
+              title: issue.title,
+              state: issue.state,
+              url: issue.url
+            }
+          ]
+        : []
+    ),
+    pageInfo: {
+      endCursor: issues.pageInfo.endCursor ?? null,
+      hasNextPage: issues.pageInfo.hasNextPage
+    }
+  }
+}
+
 async function runPrView(sdk: SdkClients["pr"], input: PrViewInput): Promise<PrViewData> {
   assertPrInput(input)
 
@@ -187,6 +273,36 @@ async function runPrView(sdk: SdkClients["pr"], input: PrViewInput): Promise<PrV
     title: pr.title,
     state: pr.state,
     url: pr.url
+  }
+}
+
+async function runPrList(sdk: SdkClients["prList"], input: PrListInput): Promise<PrListData> {
+  assertPrListInput(input)
+
+  const result: PrListQuery = await sdk.PrList(input)
+  const prs = result.repository?.pullRequests
+  if (!prs) {
+    throw new Error("Pull requests not found")
+  }
+
+  return {
+    items: (prs.nodes ?? []).flatMap((pr) =>
+      pr
+        ? [
+            {
+              id: pr.id,
+              number: pr.number,
+              title: pr.title,
+              state: pr.state,
+              url: pr.url
+            }
+          ]
+        : []
+    ),
+    pageInfo: {
+      endCursor: prs.pageInfo.endCursor ?? null,
+      hasNextPage: prs.pageInfo.hasNextPage
+    }
   }
 }
 
@@ -228,7 +344,9 @@ export function createGithubClient(transport: GraphqlTransport): GithubClient {
   return {
     query: (query, variables) => graphqlClient.query(query, variables),
     fetchRepoView: (input) => runRepoView(sdk.repo, input),
+    fetchIssueList: (input) => runIssueList(sdk.issueList, input),
     fetchIssueView: (input) => runIssueView(sdk.issue, input),
+    fetchPrList: (input) => runPrList(sdk.prList, input),
     fetchPrView: (input) => runPrView(sdk.pr, input)
   }
 }

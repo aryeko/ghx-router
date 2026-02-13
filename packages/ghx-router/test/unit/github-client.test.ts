@@ -50,6 +50,37 @@ describe("createGithubClient", () => {
     expect(issue.title).toContain("parser")
   })
 
+  it("exposes typed issue.list helper", async () => {
+    const client = createGithubClient({
+      async execute<TData>(): Promise<TData> {
+        return {
+          repository: {
+            issues: {
+              nodes: [
+                {
+                  id: "issue-id",
+                  number: 210,
+                  title: "Fix parser edge case",
+                  state: "OPEN",
+                  url: "https://github.com/go-modkit/modkit/issues/210"
+                }
+              ],
+              pageInfo: {
+                endCursor: "cursor-1",
+                hasNextPage: false
+              }
+            }
+          }
+        } as TData
+      }
+    })
+
+    const list = await client.fetchIssueList({ owner: "go-modkit", name: "modkit", first: 1 })
+
+    expect(list.items[0]?.number).toBe(210)
+    expect(list.pageInfo.hasNextPage).toBe(false)
+  })
+
   it("exposes typed pr.view helper", async () => {
     const client = createGithubClient({
       async execute<TData>(): Promise<TData> {
@@ -71,5 +102,36 @@ describe("createGithubClient", () => {
 
     expect(pr.number).toBe(232)
     expect(pr.title).toContain("benchmark")
+  })
+
+  it("exposes typed pr.list helper", async () => {
+    const client = createGithubClient({
+      async execute<TData>(): Promise<TData> {
+        return {
+          repository: {
+            pullRequests: {
+              nodes: [
+                {
+                  id: "pr-id",
+                  number: 232,
+                  title: "Add benchmark improvements",
+                  state: "OPEN",
+                  url: "https://github.com/go-modkit/modkit/pull/232"
+                }
+              ],
+              pageInfo: {
+                endCursor: "cursor-pr-1",
+                hasNextPage: true
+              }
+            }
+          }
+        } as TData
+      }
+    })
+
+    const list = await client.fetchPrList({ owner: "go-modkit", name: "modkit", first: 1 })
+
+    expect(list.items[0]?.number).toBe(232)
+    expect(list.pageInfo.hasNextPage).toBe(true)
   })
 })

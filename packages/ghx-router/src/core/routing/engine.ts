@@ -1,14 +1,18 @@
 import { routePreferenceOrder } from "./policy.js"
 import type { ResultEnvelope } from "../contracts/envelope.js"
 import type { TaskRequest } from "../contracts/task.js"
+import { issueListTask } from "../contracts/tasks/issue.list.js"
 import { issueViewTask } from "../contracts/tasks/issue.view.js"
+import { prListTask } from "../contracts/tasks/pr.list.js"
 import { prViewTask } from "../contracts/tasks/pr.view.js"
 import { repoViewTask } from "../contracts/tasks/repo.view.js"
 import { mapErrorToCode } from "../errors/map-error.js"
 import { errorCodes } from "../errors/codes.js"
 import type {
   GithubClient,
+  IssueListInput,
   IssueViewInput,
+  PrListInput,
   PrViewInput,
   RepoViewInput
 } from "../../gql/client.js"
@@ -21,7 +25,10 @@ export function chooseRoute(): (typeof routePreferenceOrder)[number] {
 }
 
 type ExecutionDeps = {
-  githubClient: Pick<GithubClient, "fetchRepoView" | "fetchIssueView" | "fetchPrView">
+  githubClient: Pick<
+    GithubClient,
+    "fetchRepoView" | "fetchIssueList" | "fetchIssueView" | "fetchPrList" | "fetchPrView"
+  >
   githubToken?: string | null
   reason?: RouteReasonCode
 }
@@ -63,8 +70,18 @@ export async function executeTask(
       return normalizeResult(data, route, reason)
     }
 
+    if (request.task === issueListTask.id) {
+      const data = await deps.githubClient.fetchIssueList(request.input as IssueListInput)
+      return normalizeResult(data, route, reason)
+    }
+
     if (request.task === prViewTask.id) {
       const data = await deps.githubClient.fetchPrView(request.input as PrViewInput)
+      return normalizeResult(data, route, reason)
+    }
+
+    if (request.task === prListTask.id) {
+      const data = await deps.githubClient.fetchPrList(request.input as PrListInput)
       return normalizeResult(data, route, reason)
     }
 
