@@ -47,4 +47,28 @@ describe("validateScenario", () => {
       })
     ).toThrow()
   })
+
+  it("rejects scenarios where max_tool_calls is below min_tool_calls", () => {
+    expect(() =>
+      validateScenario({
+        id: "bad-tool-window",
+        name: "Bad tool call bounds",
+        task: "repo.view",
+        input: {
+          owner: "go-modkit",
+          name: "modkit"
+        },
+        prompt_template: "Execute task {{task}} with {{input_json}}",
+        timeout_ms: 60000,
+        allowed_retries: 0,
+        assertions: {
+          must_succeed: true,
+          require_tool_calls: true,
+          min_tool_calls: 2,
+          max_tool_calls: 1
+        },
+        tags: ["repo", "view"]
+      })
+    ).toThrow("max_tool_calls must be greater than or equal to min_tool_calls")
+  })
 })
