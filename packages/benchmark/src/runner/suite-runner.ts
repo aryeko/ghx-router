@@ -314,13 +314,20 @@ async function waitForAssistantFromMessages(
     pollCount += 1
     const messages = await fetchSessionMessages(sessionApi, sessionId, 50)
 
-    const latestAssistant = [...messages].reverse().find((entry) => {
-      if (!entry.info) {
-        return false
-      }
+    const previousIndex = previousAssistantId
+      ? messages.findIndex((entry) => {
+          if (!entry.info) {
+            return false
+          }
 
-      const id = (entry.info as { id?: string }).id
-      if (previousAssistantId && id === previousAssistantId) {
+          return (entry.info as { id?: string }).id === previousAssistantId
+        })
+      : -1
+
+    const candidates = previousIndex >= 0 ? messages.slice(previousIndex + 1) : messages
+
+    const latestAssistant = [...candidates].reverse().find((entry) => {
+      if (!entry.info) {
         return false
       }
 
