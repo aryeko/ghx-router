@@ -9,6 +9,7 @@ import { prViewTask } from "../contracts/tasks/pr.view.js"
 import { repoViewTask } from "../contracts/tasks/repo.view.js"
 import { mapErrorToCode } from "../errors/map-error.js"
 import { errorCodes } from "../errors/codes.js"
+import { isRetryableErrorCode } from "../errors/retryability.js"
 import type {
   GithubClient,
   IssueListInput,
@@ -25,13 +26,26 @@ export function chooseRoute(): (typeof routePreferenceOrder)[number] {
   return routePreferenceOrder[0]
 }
 
-function resolveRouteForTask(task: string): ResultEnvelope["meta"]["source"] {
+function resolveRoutesForTask(task: string): ResultEnvelope["meta"]["source"][] {
   const capability = capabilityRegistry.find((entry) => entry.task === task)
+  const ordered = new Set<ResultEnvelope["meta"]["source"]>()
+
   if (capability) {
-    return capability.defaultRoute
+    ordered.add(capability.defaultRoute)
+    for (const fallbackRoute of capability.fallbackRoutes) {
+      ordered.add(fallbackRoute)
+    }
   }
 
-  return chooseRoute()
+  for (const route of routePreferenceOrder) {
+    ordered.add(route)
+  }
+
+  if (ordered.size === 0) {
+    ordered.add(chooseRoute())
+  }
+
+  return [...ordered]
 }
 
 type ExecutionDeps = {
@@ -40,6 +54,8 @@ type ExecutionDeps = {
     "fetchRepoView" | "fetchIssueList" | "fetchIssueView" | "fetchPrList" | "fetchPrView"
   >
   githubToken?: string | null
+  ghCliAvailable?: boolean
+  ghAuthenticated?: boolean
   reason?: RouteReasonCode
 }
 
@@ -50,69 +66,140 @@ export async function executeTask(
   deps: ExecutionDeps
 ): Promise<ResultEnvelope> {
   const reason = deps.reason ?? DEFAULT_REASON
-  const route = resolveRouteForTask(request.task)
-  const preflightInput =
-    deps.githubToken === undefined
-      ? { route }
-      : { route, githubToken: deps.githubToken }
-  const preflightResult = preflightCheck(preflightInput)
-  if (!preflightResult.ok) {
+  const routes = resolveRoutesForTask(request.task)
+  let lastRetryableError:
+    | {
+        code: string
+        message: string
+        route: ResultEnvelope["meta"]["source"]
+      }
+    | null = null
+
+  for (let routeIndex = 0; routeIndex < routes.length; routeIndex += 1) {
+    const route = routes[routeIndex] as ResultEnvelope["meta"]["source"]
+    const hasNextRoute = routeIndex < routes.length - 1
+
+    const preflightInput: Parameters<typeof preflightCheck>[0] = { route }
+    if (deps.githubToken !== undefined) {
+      preflightInput.githubToken = deps.githubToken
+    }
+    if (deps.ghCliAvailable !== undefined) {
+      preflightInput.ghCliAvailable = deps.ghCliAvailable
+    }
+    if (deps.ghAuthenticated !== undefined) {
+      preflightInput.ghAuthenticated = deps.ghAuthenticated
+    }
+
+    const preflightResult = preflightCheck(preflightInput)
+    if (!preflightResult.ok) {
+      return normalizeError(
+        {
+          code: preflightResult.code,
+          message: preflightResult.message,
+          details: preflightResult.details,
+          retryable: preflightResult.retryable
+        },
+        route,
+        reason
+      )
+    }
+
+    if (route !== "graphql") {
+      if (hasNextRoute) {
+        continue
+      }
+
+      return normalizeError(
+        {
+          code: errorCodes.ValidationFailed,
+          message: `Route '${route}' is not implemented for task '${request.task}'`,
+          details: { route, task: request.task },
+          retryable: false
+        },
+        route,
+        reason
+      )
+    }
+
+    try {
+      if (request.task === repoViewTask.id) {
+        const data = await deps.githubClient.fetchRepoView(request.input as RepoViewInput)
+        return normalizeResult(data, route, reason)
+      }
+
+      if (request.task === issueViewTask.id) {
+        const data = await deps.githubClient.fetchIssueView(request.input as IssueViewInput)
+        return normalizeResult(data, route, reason)
+      }
+
+      if (request.task === issueListTask.id) {
+        const data = await deps.githubClient.fetchIssueList(request.input as IssueListInput)
+        return normalizeResult(data, route, reason)
+      }
+
+      if (request.task === prViewTask.id) {
+        const data = await deps.githubClient.fetchPrView(request.input as PrViewInput)
+        return normalizeResult(data, route, reason)
+      }
+
+      if (request.task === prListTask.id) {
+        const data = await deps.githubClient.fetchPrList(request.input as PrListInput)
+        return normalizeResult(data, route, reason)
+      }
+
+      return normalizeError(
+        {
+          code: errorCodes.ValidationFailed,
+          message: `Unsupported task: ${request.task}`,
+          retryable: false
+        },
+        route,
+        reason
+      )
+    } catch (error: unknown) {
+      const code = mapErrorToCode(error)
+      const retryable = isRetryableErrorCode(code)
+      if (retryable && hasNextRoute) {
+        lastRetryableError = {
+          code,
+          message: error instanceof Error ? error.message : String(error),
+          route
+        }
+        continue
+      }
+
+      return normalizeError(
+        {
+          code,
+          message: error instanceof Error ? error.message : String(error),
+          retryable
+        },
+        route,
+        reason
+      )
+    }
+  }
+
+  if (lastRetryableError) {
     return normalizeError(
       {
-        code: preflightResult.code,
-        message: preflightResult.message,
-        details: preflightResult.details,
-        retryable: preflightResult.retryable
+        code: lastRetryableError.code,
+        message: lastRetryableError.message,
+        retryable: true
       },
-      route,
+      lastRetryableError.route,
       reason
     )
   }
 
-  try {
-    if (request.task === repoViewTask.id) {
-      const data = await deps.githubClient.fetchRepoView(request.input as RepoViewInput)
-      return normalizeResult(data, route, reason)
-    }
-
-    if (request.task === issueViewTask.id) {
-      const data = await deps.githubClient.fetchIssueView(request.input as IssueViewInput)
-      return normalizeResult(data, route, reason)
-    }
-
-    if (request.task === issueListTask.id) {
-      const data = await deps.githubClient.fetchIssueList(request.input as IssueListInput)
-      return normalizeResult(data, route, reason)
-    }
-
-    if (request.task === prViewTask.id) {
-      const data = await deps.githubClient.fetchPrView(request.input as PrViewInput)
-      return normalizeResult(data, route, reason)
-    }
-
-    if (request.task === prListTask.id) {
-      const data = await deps.githubClient.fetchPrList(request.input as PrListInput)
-      return normalizeResult(data, route, reason)
-    }
-
-    return normalizeError(
-      {
-        code: errorCodes.ValidationFailed,
-        message: `Unsupported task: ${request.task}`,
-        retryable: false
-      },
-      route,
-      reason
-    )
-  } catch (error: unknown) {
-    return normalizeError(
-      {
-        code: mapErrorToCode(error),
-        message: error instanceof Error ? error.message : String(error),
-        retryable: false
-      },
-      route,
-      reason
-    )
-  }
+  const defaultRoute = routes[0] ?? chooseRoute()
+  return normalizeError(
+    {
+      code: errorCodes.ValidationFailed,
+      message: `No executable route available for task: ${request.task}`,
+      retryable: false
+    },
+    defaultRoute,
+    reason
+  )
 }

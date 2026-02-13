@@ -4,6 +4,7 @@ import type { Scenario } from "../domain/types.js"
 
 const assertionsSchema = z.object({
   must_succeed: z.boolean(),
+  expect_valid_output: z.boolean().optional(),
   required_fields: z.array(z.string()).optional(),
   required_data_fields: z.array(z.string()).optional(),
   data_type: z.enum(["array", "object"]).optional(),

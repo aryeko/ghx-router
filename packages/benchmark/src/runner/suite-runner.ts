@@ -82,7 +82,7 @@ const modePromptPrefix: Record<BenchmarkMode, string> = {
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null
+  return typeof value === "object" && value !== null && !Array.isArray(value)
 }
 
 function unwrapData<T>(value: unknown, label: string): T {
@@ -493,8 +493,10 @@ async function runScenario(
     const minToolCalls = scenario.assertions.min_tool_calls ?? 1
     const requireToolCalls = scenario.assertions.require_tool_calls ?? true
     const hasRequiredToolCalls = requireToolCalls ? toolCounts.toolCalls >= minToolCalls : true
+    const expectValidOutput = scenario.assertions.expect_valid_output ?? scenario.assertions.must_succeed
+    const outputExpectationMet = expectValidOutput ? outputValid : !outputValid
 
-    const success = scenario.assertions.must_succeed ? outputValid && hasRequiredToolCalls : !outputValid
+    const success = outputExpectationMet && hasRequiredToolCalls
 
     return {
       timestamp: new Date().toISOString(),

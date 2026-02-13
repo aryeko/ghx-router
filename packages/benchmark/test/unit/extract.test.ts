@@ -12,11 +12,19 @@ describe("extractors", () => {
     expect(payload).toBeTruthy()
   })
 
+  it("extracts first balanced JSON object when extra braces exist later", () => {
+    const payload = extractFirstJsonObject(
+      "prefix {\"success\":true,\"data\":{\"message\":\"brace } in text\"},\"error\":null,\"meta\":{}} trailing {not-json}"
+    ) as { success?: boolean } | null
+
+    expect(payload?.success).toBe(true)
+  })
+
   it("validates envelope with required fields", () => {
     const valid = validateEnvelope(
       {
         must_succeed: true,
-        required_fields: ["success", "data", "meta"]
+        required_fields: ["success", "data", "error", "meta"]
       },
       {
         success: true,

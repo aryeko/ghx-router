@@ -4,6 +4,8 @@ import { errorCodes } from "../errors/codes.js"
 export type PreflightInput = {
   route: RouteSource
   githubToken?: string | null
+  ghCliAvailable?: boolean
+  ghAuthenticated?: boolean
 }
 
 export type PreflightResult =
@@ -17,6 +19,26 @@ export type PreflightResult =
     }
 
 export function preflightCheck(input: PreflightInput): PreflightResult {
+  if ((input.route === "cli" || input.route === "rest") && input.ghCliAvailable === false) {
+    return {
+      ok: false,
+      code: errorCodes.ValidationFailed,
+      message: "GitHub CLI is required for cli/rest routes",
+      retryable: false,
+      details: { route: input.route }
+    }
+  }
+
+  if ((input.route === "cli" || input.route === "rest") && input.ghAuthenticated === false) {
+    return {
+      ok: false,
+      code: errorCodes.AuthFailed,
+      message: "GitHub CLI authentication is required for cli/rest routes",
+      retryable: false,
+      details: { route: input.route }
+    }
+  }
+
   if (input.route === "graphql") {
     const token = input.githubToken?.trim()
     if (!token) {

@@ -6,19 +6,59 @@ function isObject(value: unknown): value is Record<string, unknown> {
 
 export function extractFirstJsonObject(input: string): unknown | null {
   const firstBrace = input.indexOf("{")
-  const lastBrace = input.lastIndexOf("}")
-
-  if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+  if (firstBrace === -1) {
     return null
   }
 
-  const candidate = input.slice(firstBrace, lastBrace + 1)
+  let depth = 0
+  let inString = false
+  let escaping = false
 
-  try {
-    return JSON.parse(candidate)
-  } catch {
-    return null
+  for (let i = firstBrace; i < input.length; i += 1) {
+    const ch = input[i]
+
+    if (inString) {
+      if (escaping) {
+        escaping = false
+        continue
+      }
+
+      if (ch === "\\") {
+        escaping = true
+        continue
+      }
+
+      if (ch === '"') {
+        inString = false
+      }
+      continue
+    }
+
+    if (ch === '"') {
+      inString = true
+      continue
+    }
+
+    if (ch === "{") {
+      depth += 1
+      continue
+    }
+
+    if (ch === "}") {
+      depth -= 1
+
+      if (depth === 0) {
+        const candidate = input.slice(firstBrace, i + 1)
+        try {
+          return JSON.parse(candidate)
+        } catch {
+          return null
+        }
+      }
+    }
   }
+
+  return null
 }
 
 export function validateEnvelope(assertions: ScenarioAssertions, payload: unknown): boolean {

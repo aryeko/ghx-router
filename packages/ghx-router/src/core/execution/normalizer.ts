@@ -1,8 +1,9 @@
 import type { ResultEnvelope } from "../contracts/envelope.js"
+import type { RouteReasonCode } from "../routing/reason-codes.js"
 
 function buildMeta(
   source: ResultEnvelope["meta"]["source"],
-  reason?: string
+  reason?: RouteReasonCode
 ): ResultEnvelope["meta"] {
   return reason ? { source, reason } : { source }
 }
@@ -10,7 +11,7 @@ function buildMeta(
 export function normalizeResult<TData>(
   data: TData,
   source: ResultEnvelope["meta"]["source"],
-  reason?: string
+  reason?: RouteReasonCode
 ): ResultEnvelope<TData> {
   return {
     success: true,
@@ -22,7 +23,7 @@ export function normalizeResult<TData>(
 export function normalizeError<TData = unknown>(
   error: NonNullable<ResultEnvelope["error"]>,
   source: ResultEnvelope["meta"]["source"],
-  reason?: string
+  reason?: RouteReasonCode
 ): ResultEnvelope<TData> {
   return {
     success: false,

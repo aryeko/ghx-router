@@ -20,11 +20,12 @@ describe("validateScenario", () => {
       },
       assertions: {
         must_succeed: true,
+        expect_valid_output: true,
         require_tool_calls: true,
         min_tool_calls: 1,
-        required_fields: ["success", "data", "meta"],
-        required_data_fields: ["number", "title", "state"]
-      },
+        required_fields: ["success", "data", "error", "meta"],
+          required_data_fields: ["number", "title", "state"]
+        },
       tags: ["pr", "view", "thin-slice"]
     })
 

@@ -1,3 +1,3 @@
 export async function runRestAdapter(): Promise<unknown> {
-  return null
+  throw new Error("runRestAdapter is not implemented yet")
 }

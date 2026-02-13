@@ -1,12 +1,14 @@
 import type { ResultEnvelope } from "../../contracts/envelope.js"
 import { mapErrorToCode } from "../../errors/map-error.js"
+import { isRetryableErrorCode } from "../../errors/retryability.js"
 import { normalizeError, normalizeResult } from "../normalizer.js"
+import type { RouteReasonCode } from "../../routing/reason-codes.js"
 
 export type CliAdapterRequest = {
   command: string
   args?: string[]
   timeoutMs?: number
-  reason?: string
+  reason?: RouteReasonCode
 }
 
 export type CliRunResult = {
@@ -31,9 +33,10 @@ export async function runCliAdapter(
     const result = await runner.run(request.command, args, timeoutMs)
 
     if (result.exitCode !== 0) {
+      const code = mapErrorToCode(result.stderr)
       return normalizeError(
         {
-          code: mapErrorToCode(result.stderr),
+          code,
           message: result.stderr || `CLI command failed with exit code ${result.exitCode}`,
           details: {
             adapter: "cli",
@@ -41,7 +44,7 @@ export async function runCliAdapter(
             command: request.command,
             args
           },
-          retryable: false
+          retryable: isRetryableErrorCode(code)
         },
         "cli",
         request.reason
@@ -50,16 +53,17 @@ export async function runCliAdapter(
 
     return normalizeResult(result, "cli", request.reason)
   } catch (error: unknown) {
+    const code = mapErrorToCode(error)
     return normalizeError(
       {
-        code: mapErrorToCode(error),
+        code,
         message: error instanceof Error ? error.message : String(error),
         details: {
           adapter: "cli",
           command: request.command,
           args: request.args ?? []
         },
-        retryable: false
+        retryable: isRetryableErrorCode(code)
       },
       "cli",
       request.reason

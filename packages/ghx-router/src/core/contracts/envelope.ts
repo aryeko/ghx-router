@@ -1,3 +1,5 @@
+import type { RouteReasonCode } from "../routing/reason-codes.js"
+
 export type RouteSource = "cli" | "rest" | "graphql"
 
 export interface ResultEnvelope<TData = unknown> {
@@ -11,7 +13,7 @@ export interface ResultEnvelope<TData = unknown> {
   }
   meta: {
     source: RouteSource
-    reason?: string
+    reason?: RouteReasonCode
     pagination?: unknown
     timings?: unknown
   }

@@ -1,3 +1,5 @@
 export async function runGraphqlCodegen(): Promise<void> {
-  // GraphQL code generation scaffold.
+  throw new Error(
+    "runGraphqlCodegen is not implemented. Use packages/ghx-router/scripts/run-gql-codegen.ts"
+  )
 }

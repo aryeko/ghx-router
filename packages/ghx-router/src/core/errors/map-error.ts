@@ -11,6 +11,21 @@ function toMessage(error: unknown): string {
 export function mapErrorToCode(error: unknown): string {
   const message = toMessage(error).toLowerCase()
 
+  if (
+    message.includes("econn") ||
+    message.includes("enotfound") ||
+    message.includes("eai_again") ||
+    message.includes("network") ||
+    message.includes("connection reset") ||
+    message.includes("rate limit") ||
+    message.includes(" 429") ||
+    message.includes(" 502") ||
+    message.includes(" 503") ||
+    message.includes(" 504")
+  ) {
+    return errorCodes.InfraError
+  }
+
   if (message.includes("auth") || message.includes("forbidden") || message.includes("unauthorized")) {
     return errorCodes.AuthFailed
   }

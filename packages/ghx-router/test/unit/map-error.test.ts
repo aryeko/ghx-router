@@ -14,4 +14,8 @@ describe("mapErrorToCode", () => {
   it("maps unknown errors", () => {
     expect(mapErrorToCode(new Error("boom"))).toBe("unknown")
   })
+
+  it("maps infra/network errors", () => {
+    expect(mapErrorToCode(new Error("ECONNRESET while calling GitHub"))).toBe("infra_error")
+  })
 })
