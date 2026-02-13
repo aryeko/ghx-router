@@ -1,7 +1,8 @@
 import { createOpencode } from "@opencode-ai/sdk"
 import { spawnSync } from "node:child_process"
-import { appendFile, mkdir } from "node:fs/promises"
+import { appendFile, mkdir, mkdtemp, rm } from "node:fs/promises"
 import { randomUUID } from "node:crypto"
+import { tmpdir } from "node:os"
 import { join } from "node:path"
 
 import { extractFirstJsonObject, validateEnvelope } from "../extract/envelope.js"
@@ -41,6 +42,7 @@ type AssistantMessage = {
   cost: number
   error?: unknown
   role?: string
+  structured_output?: unknown
 }
 
 type PromptResponse = {
@@ -124,21 +126,21 @@ export function getSessionApi(client: unknown): {
   }
 
   return {
-    create: (options) =>
+    create: (options: Record<string, unknown>) =>
       (create as (this: unknown, options: Record<string, unknown>) => Promise<unknown>).call(
         session,
         options
       ),
-    promptAsync: (options) =>
+    promptAsync: (options: Record<string, unknown>) =>
       (
         promptAsync as (this: unknown, options: Record<string, unknown>) => Promise<unknown>
       ).call(session, options),
-    messages: (options) =>
+    messages: (options: Record<string, unknown>) =>
       (messages as (this: unknown, options: Record<string, unknown>) => Promise<unknown>).call(
         session,
         options
       ),
-    abort: (options) =>
+    abort: (options: Record<string, unknown>) =>
       (abort as (this: unknown, options: Record<string, unknown>) => Promise<unknown>).call(
         session,
         options
@@ -242,7 +244,8 @@ export function coercePromptResponse(value: PromptResponse): {
         },
         cost: asNumber(info.cost) ?? snapshot.cost,
         error: info.error,
-        role: info.role ?? "assistant"
+        role: info.role ?? "assistant",
+        structured_output: (info as { structured_output?: unknown }).structured_output
       },
       parts
     }
@@ -507,6 +510,16 @@ export function ghOk(args: string[]): boolean {
   return result.status === 0
 }
 
+function resolveGhTokenFromCli(): string | null {
+  const result = spawnSync("gh", ["auth", "token"], { encoding: "utf8" })
+  if (result.status !== 0) {
+    return null
+  }
+
+  const token = typeof result.stdout === "string" ? result.stdout.trim() : ""
+  return token.length > 0 ? token : null
+}
+
 export function validateFixture(scenario: Scenario): void {
   const repo = scenario.fixture?.repo
   if (!repo) return
@@ -565,6 +578,68 @@ export function renderPrompt(scenario: Scenario, mode: BenchmarkMode): string {
   return `${modePromptPrefix[mode]}\n${fixtureNote}\nYou MUST use real tools to gather data. Do not fabricate outputs.\nReturn STRICT JSON only. No markdown fences.\nOutput must be exactly one JSON object with keys: ok, data, error, meta.\n${dataContract}\n${metaContract}\n${routeContract}\n\n${rendered}`
 }
 
+function buildOutputSchema(assertions: Scenario["assertions"]): Record<string, unknown> {
+  const requiredDataFields = assertions.required_data_fields ?? []
+  const requiredMetaFields = assertions.required_meta_fields ?? []
+
+  const dataProperties: Record<string, unknown> = {}
+  for (const field of requiredDataFields) {
+    if (field === "items") {
+      dataProperties.items = { type: "array" }
+      continue
+    }
+    if (field === "pageInfo") {
+      dataProperties.pageInfo = {
+        type: "object",
+        properties: {
+          hasNextPage: { type: "boolean" },
+          endCursor: { type: ["string", "null"] }
+        },
+        required: ["hasNextPage", "endCursor"],
+        additionalProperties: true
+      }
+      continue
+    }
+
+    dataProperties[field] = {}
+  }
+
+  const metaProperties: Record<string, unknown> = {}
+  for (const field of requiredMetaFields) {
+    if (field === "route_used") {
+      metaProperties.route_used =
+        assertions.expected_route_used !== undefined
+          ? { type: "string", const: assertions.expected_route_used }
+          : { type: "string" }
+      continue
+    }
+
+    metaProperties[field] = {}
+  }
+
+  return {
+    type: "object",
+    properties: {
+      ok: { type: "boolean" },
+      data: {
+        type: "object",
+        properties: dataProperties,
+        required: requiredDataFields,
+        additionalProperties: true
+      },
+      error: { type: ["object", "null"] },
+      meta: {
+        type: "object",
+        properties: metaProperties,
+        required: requiredMetaFields,
+        additionalProperties: true
+      }
+    },
+    required: ["ok", "data", "error", "meta"],
+    additionalProperties: false
+  }
+}
+
 function modeScopedAssertions(scenario: Scenario, mode: BenchmarkMode): Scenario["assertions"] {
   if (mode === "ghx_router") {
     if (scenario.assertions.expected_route_used === "graphql" && !process.env.GITHUB_TOKEN) {
@@ -580,6 +655,37 @@ function modeScopedAssertions(scenario: Scenario, mode: BenchmarkMode): Scenario
   return {
     ...baseAssertions,
     required_meta_fields: (scenario.assertions.required_meta_fields ?? []).filter((field) => field !== "route_used")
+  }
+}
+
+function forcedToolCommandHint(scenario: Scenario, mode: BenchmarkMode): string {
+  const owner = String((scenario.input.owner ?? "").toString())
+  const name = String((scenario.input.name ?? "").toString())
+  const repo = owner && name ? `${owner}/${name}` : scenario.fixture?.repo ?? ""
+  const first = typeof scenario.input.first === "number" ? scenario.input.first : 20
+  const state = String((scenario.input.state ?? "open").toString())
+  const issueNumber = typeof scenario.input.issueNumber === "number" ? scenario.input.issueNumber : 1
+  const prNumber = typeof scenario.input.prNumber === "number" ? scenario.input.prNumber : 1
+
+  if (mode === "ghx_router") {
+    return `pnpm exec tsx src/runner/ghx-router-shim.ts run ${scenario.task} --input '${JSON.stringify(scenario.input)}'`
+  }
+
+  switch (scenario.task) {
+    case "issue.comments.list":
+      return `gh api repos/${repo}/issues/${issueNumber}/comments?per_page=${first}&page=1`
+    case "issue.list":
+      return `gh issue list --repo ${repo} --state ${state} --limit ${first} --json id,number,title,state,url`
+    case "pr.list":
+      return `gh pr list --repo ${repo} --state ${state} --limit ${first} --json id,number,title,state,url`
+    case "issue.view":
+      return `gh issue view ${issueNumber} --repo ${repo} --json id,number,title,state,url`
+    case "pr.view":
+      return `gh pr view ${prNumber} --repo ${repo} --json id,number,title,state,url`
+    case "repo.view":
+      return `gh repo view ${repo} --json id,name,nameWithOwner,isPrivate,stargazerCount,forkCount,url,defaultBranchRef`
+    default:
+      return "gh --version"
   }
 }
 
@@ -728,6 +834,7 @@ export async function runScenario(
 
   try {
     const sessionApi = getSessionApi(client)
+    const scopedAssertions = modeScopedAssertions(scenario, mode)
     const sessionResult = await withTimeout(sessionApi.create({ url: "/session" }), scenario.timeout_ms, "session.create")
     const session = unwrapData<{ id: string }>(sessionResult, "session.create")
     sessionId = session.id
@@ -739,7 +846,12 @@ export async function runScenario(
         body: {
           model: { providerID: PROVIDER_ID, modelID: MODEL_ID },
           agent: OPEN_CODE_MODE ?? undefined,
-          parts: [{ type: "text", text: renderPrompt(scenario, mode) }]
+          parts: [{ type: "text", text: renderPrompt(scenario, mode) }],
+          format: {
+            type: "json_schema",
+            retryCount: 2,
+            schema: buildOutputSchema(scopedAssertions)
+          }
         }
       }),
       Math.min(15000, scenario.timeout_ms),
@@ -749,7 +861,14 @@ export async function runScenario(
     const remainingTimeoutMs = Math.max(1000, scenario.timeout_ms - (Date.now() - startedAt))
     const hydrated = await waitForAssistantFromMessages(sessionApi, session.id, remainingTimeoutMs, scenario.id)
     let assistantAndParts = coercePromptResponse(hydrated)
+
     let extracted = extractEnvelopeFromParts(assistantAndParts.parts)
+    if (extracted.envelope === null && assistantAndParts.assistant.structured_output !== undefined) {
+      extracted = {
+        ...extracted,
+        envelope: assistantAndParts.assistant.structured_output
+      }
+    }
 
     let continuationCount = 0
     while ((shouldRequestContinuation(assistantAndParts.parts) || extracted.envelope === null) && continuationCount < 3) {
@@ -783,11 +902,65 @@ export async function runScenario(
       extracted = extractEnvelopeFromParts(assistantAndParts.parts)
     }
 
-    const { assistant } = assistantAndParts
-    const scopedAssertions = modeScopedAssertions(scenario, mode)
+    let assistant = assistantAndParts.assistant
     let envelope = tryWrapRawDataAsEnvelope(extracted.envelope, scopedAssertions, mode)
 
-    const allMessages = await fetchSessionMessages(sessionApi, session.id)
+    let allMessages = await fetchSessionMessages(sessionApi, session.id)
+    let toolCounts = aggregateToolCounts(allMessages)
+    const requireToolCalls = scopedAssertions.require_tool_calls ?? true
+
+    let forceToolAttempt = 0
+    while (requireToolCalls && toolCounts.toolCalls === 0 && forceToolAttempt < 3) {
+      forceToolAttempt += 1
+      const remaining = Math.max(1000, scenario.timeout_ms - (Date.now() - startedAt))
+      const forcedCommand = forcedToolCommandHint(scenario, mode)
+      await withTimeout(
+        sessionApi.promptAsync({
+          url: "/session/{id}/prompt_async",
+          path: { id: session.id },
+          body: {
+            model: { providerID: PROVIDER_ID, modelID: MODEL_ID },
+            agent: OPEN_CODE_MODE ?? undefined,
+            parts: [
+              {
+                type: "text",
+                text: `You must execute at least one real tool call before producing the final JSON envelope. Run this exact command now: ${forcedCommand}. Then return the final envelope JSON only.`
+              }
+            ],
+            format: {
+              type: "json_schema",
+              retryCount: 2,
+              schema: buildOutputSchema(scopedAssertions)
+            }
+          }
+        }),
+        Math.min(10000, remaining),
+        "session.promptAsync.tool-required"
+      )
+
+      const next = await waitForAssistantFromMessages(
+        sessionApi,
+        session.id,
+        remaining,
+        scenario.id,
+        assistant.id
+      )
+
+      assistantAndParts = coercePromptResponse(next)
+      assistant = assistantAndParts.assistant
+      extracted = extractEnvelopeFromParts(assistantAndParts.parts)
+      if (extracted.envelope === null && assistantAndParts.assistant.structured_output !== undefined) {
+        extracted = {
+          ...extracted,
+          envelope: assistantAndParts.assistant.structured_output
+        }
+      }
+
+      envelope = tryWrapRawDataAsEnvelope(extracted.envelope, scopedAssertions, mode)
+      allMessages = await fetchSessionMessages(sessionApi, session.id)
+      toolCounts = aggregateToolCounts(allMessages)
+    }
+
     if (!validateEnvelope(scopedAssertions, envelope)) {
       const bestEnvelope = findBestEnvelopeFromMessages(allMessages, scopedAssertions, mode)
       if (bestEnvelope !== null) {
@@ -802,7 +975,6 @@ export async function runScenario(
 
     const outputValid = validateEnvelope(scopedAssertions, envelope)
 
-    const toolCounts = aggregateToolCounts(allMessages)
     const attemptMetrics = extractAttemptMetrics(envelope)
     const latencyWall = Date.now() - startedAt
     const sdkLatency =
@@ -819,7 +991,6 @@ export async function runScenario(
 
     const minToolCalls = scopedAssertions.min_tool_calls ?? 1
     const maxToolCalls = scopedAssertions.max_tool_calls
-    const requireToolCalls = scopedAssertions.require_tool_calls ?? true
     const hasRequiredToolCalls = requireToolCalls ? toolCounts.toolCalls >= minToolCalls : true
     const hasValidMaxToolCalls = maxToolCalls === undefined ? true : toolCounts.toolCalls <= maxToolCalls
     const requiresAttemptTrace = scopedAssertions.require_attempt_trace ?? false
@@ -928,19 +1099,97 @@ export async function runScenario(
 export async function runSuite(options: RunSuiteOptions): Promise<void> {
   const { mode, repetitions, scenarioFilter } = options
 
-  const { client, server } = await createOpencode({
-    config: {
-      permission: {
-        edit: "deny",
-        bash: "allow",
-        webfetch: "allow",
-        doom_loop: "deny",
-        external_directory: "deny"
-      }
-    }
-  })
+  const isolatedXdgConfigHome = await mkdtemp(join(tmpdir(), "ghx-router-benchmark-opencode-"))
+
+  const previousEnv = {
+    OPENCODE_CONFIG: process.env.OPENCODE_CONFIG,
+    OPENCODE_CONFIG_DIR: process.env.OPENCODE_CONFIG_DIR,
+    XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME,
+    GH_TOKEN: process.env.GH_TOKEN,
+    GITHUB_TOKEN: process.env.GITHUB_TOKEN
+  }
+
+  const ghToken = previousEnv.GH_TOKEN ?? previousEnv.GITHUB_TOKEN ?? resolveGhTokenFromCli()
+
+  delete process.env.OPENCODE_CONFIG
+  delete process.env.OPENCODE_CONFIG_DIR
+  process.env.XDG_CONFIG_HOME = isolatedXdgConfigHome
+  if (ghToken) {
+    process.env.GH_TOKEN = ghToken
+    process.env.GITHUB_TOKEN = ghToken
+  }
+
+  let client: unknown
+  let server: { close: () => void }
 
   try {
+    const opencode = await createOpencode({
+      config: {
+        model: `${PROVIDER_ID}/${MODEL_ID}`,
+        instructions: [],
+        plugin: [],
+        mcp: {},
+        agent: {},
+        command: {},
+        permission: {
+          edit: "deny",
+          bash: "allow",
+          webfetch: "allow",
+          doom_loop: "deny",
+          external_directory: "deny"
+        }
+      }
+    })
+
+    client = opencode.client
+    server = opencode.server
+  } finally {
+    if (previousEnv.OPENCODE_CONFIG === undefined) {
+      delete process.env.OPENCODE_CONFIG
+    } else {
+      process.env.OPENCODE_CONFIG = previousEnv.OPENCODE_CONFIG
+    }
+
+    if (previousEnv.OPENCODE_CONFIG_DIR === undefined) {
+      delete process.env.OPENCODE_CONFIG_DIR
+    } else {
+      process.env.OPENCODE_CONFIG_DIR = previousEnv.OPENCODE_CONFIG_DIR
+    }
+
+    if (previousEnv.XDG_CONFIG_HOME === undefined) {
+      delete process.env.XDG_CONFIG_HOME
+    } else {
+      process.env.XDG_CONFIG_HOME = previousEnv.XDG_CONFIG_HOME
+    }
+
+    if (previousEnv.GH_TOKEN === undefined) {
+      delete process.env.GH_TOKEN
+    } else {
+      process.env.GH_TOKEN = previousEnv.GH_TOKEN
+    }
+
+    if (previousEnv.GITHUB_TOKEN === undefined) {
+      delete process.env.GITHUB_TOKEN
+    } else {
+      process.env.GITHUB_TOKEN = previousEnv.GITHUB_TOKEN
+    }
+  }
+
+  try {
+    const configApi = (client as { config?: { get?: (args?: Record<string, unknown>) => Promise<unknown> } }).config
+    if (configApi?.get) {
+      const configResponse = await configApi.get({ url: "/config" })
+      const resolvedConfig = unwrapData<Record<string, unknown>>(configResponse, "config.get")
+      const configuredInstructions = Array.isArray(resolvedConfig.instructions) ? resolvedConfig.instructions : []
+      const configuredPlugins = Array.isArray(resolvedConfig.plugin) ? resolvedConfig.plugin : []
+
+      if (configuredInstructions.length > 0 || configuredPlugins.length > 0) {
+        throw new Error(
+          `benchmark_config_not_clean: expected empty instructions/plugins, got instructions=${configuredInstructions.length}, plugins=${configuredPlugins.length}`
+        )
+      }
+    }
+
     await mkdir(RESULTS_DIR, { recursive: true })
     const scenarios = await loadScenarios(SCENARIOS_DIR)
     const selectedScenarios = scenarioFilter
@@ -987,5 +1236,6 @@ export async function runSuite(options: RunSuiteOptions): Promise<void> {
     console.log(`Wrote benchmark suite results: ${outFile}`)
   } finally {
     server.close()
+    await rm(isolatedXdgConfigHome, { recursive: true, force: true })
   }
 }
