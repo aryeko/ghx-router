@@ -7,7 +7,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "gql:codegen": "tsx scripts/run-gql-codegen.ts",
-    "gql:codegen:watch": "graphql-codegen --config codegen.ts --watch"
+    "gql:codegen:watch": "graphql-codegen --config codegen.ts --watch",
+    "gql:check": "pnpm run gql:codegen && git diff --exit-code -- src/gql/generated src/gql/operations/*.generated.ts"
   },
   "dependencies": {
     "graphql": "^16.11.0",

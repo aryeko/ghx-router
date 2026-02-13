@@ -23,7 +23,12 @@ export function mapErrorToCode(error: unknown): string {
     return errorCodes.GraphqlExecutionFailed
   }
 
-  if (message.includes("validation") || message.includes("invalid")) {
+  if (
+    message.includes("validation") ||
+    message.includes("invalid") ||
+    message.includes("required") ||
+    message.includes("positive integer")
+  ) {
     return errorCodes.ValidationFailed
   }
 

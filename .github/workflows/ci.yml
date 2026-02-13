@@ -15,4 +15,7 @@ jobs:
           node-version-file: ".nvmrc"
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @ghx-router/core run gql:check
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
       - run: pnpm run verify
