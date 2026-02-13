@@ -8,6 +8,7 @@ CLI-first GitHub execution router for agents, with card-driven routing and a nor
   - `repo.view`
   - `issue.view`
   - `issue.list`
+  - `issue.comments.list`
   - `pr.view`
   - `pr.list`
 - Core runtime, benchmark harness, and architecture docs are aligned to the shipped contract.

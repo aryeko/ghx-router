@@ -1,5 +1,6 @@
 import type {
   GithubClient,
+  IssueCommentsListInput,
   IssueListInput,
   IssueViewInput,
   PrListInput,
@@ -12,10 +13,32 @@ import { isRetryableErrorCode } from "../../errors/retryability.js"
 import { normalizeError, normalizeResult } from "../normalizer.js"
 import type { ResultEnvelope } from "../../contracts/envelope.js"
 
-export type GraphqlCapabilityId = "repo.view" | "issue.view" | "issue.list" | "pr.view" | "pr.list"
+export type GraphqlCapabilityId =
+  | "repo.view"
+  | "issue.view"
+  | "issue.list"
+  | "issue.comments.list"
+  | "pr.view"
+  | "pr.list"
+
+const DEFAULT_LIST_FIRST = 30
+
+function withDefaultFirst(params: Record<string, unknown>): Record<string, unknown> {
+  if (params.first === undefined) {
+    return {
+      ...params,
+      first: DEFAULT_LIST_FIRST
+    }
+  }
+
+  return params
+}
 
 export async function runGraphqlCapability(
-  client: Pick<GithubClient, "fetchRepoView" | "fetchIssueView" | "fetchIssueList" | "fetchPrView" | "fetchPrList">,
+  client: Pick<
+    GithubClient,
+    "fetchRepoView" | "fetchIssueView" | "fetchIssueList" | "fetchIssueCommentsList" | "fetchPrView" | "fetchPrList"
+  >,
   capabilityId: GraphqlCapabilityId,
   params: Record<string, unknown>
 ): Promise<ResultEnvelope> {
@@ -31,7 +54,12 @@ export async function runGraphqlCapability(
     }
 
     if (capabilityId === "issue.list") {
-      const data = await client.fetchIssueList(params as IssueListInput)
+      const data = await client.fetchIssueList(withDefaultFirst(params) as IssueListInput)
+      return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
+    }
+
+    if (capabilityId === "issue.comments.list") {
+      const data = await client.fetchIssueCommentsList(params as IssueCommentsListInput)
       return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
     }
 
@@ -41,7 +69,7 @@ export async function runGraphqlCapability(
     }
 
     if (capabilityId === "pr.list") {
-      const data = await client.fetchPrList(params as PrListInput)
+      const data = await client.fetchPrList(withDefaultFirst(params) as PrListInput)
       return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
     }
 

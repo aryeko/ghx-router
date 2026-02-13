@@ -2,6 +2,9 @@ import { print, type DocumentNode } from "graphql"
 import type { GraphQLClient, RequestDocument, RequestOptions } from "graphql-request"
 
 import {
+  getSdk as getIssueCommentsListSdk
+} from "./operations/issue-comments-list.generated.js"
+import {
   getSdk as getIssueListSdk
 } from "./operations/issue-list.generated.js"
 import {
@@ -16,6 +19,10 @@ import {
 import {
   getSdk as getRepoViewSdk
 } from "./operations/repo-view.generated.js"
+import type {
+  IssueCommentsListQuery,
+  IssueCommentsListQueryVariables,
+} from "./operations/issue-comments-list.generated.js"
 import type {
   IssueListQuery,
   IssueListQueryVariables,
@@ -53,6 +60,7 @@ export interface GraphqlClient {
 }
 
 export type RepoViewInput = RepoViewQueryVariables
+export type IssueCommentsListInput = IssueCommentsListQueryVariables
 export type IssueListInput = IssueListQueryVariables
 export type IssueViewInput = IssueViewQueryVariables
 export type PrListInput = PrListQueryVariables
@@ -85,6 +93,22 @@ export type IssueListData = {
   }
 }
 
+export type IssueCommentData = {
+  id: string
+  body: string
+  authorLogin: string | null
+  createdAt: string
+  url: string
+}
+
+export type IssueCommentsListData = {
+  items: Array<IssueCommentData>
+  pageInfo: {
+    endCursor: string | null
+    hasNextPage: boolean
+  }
+}
+
 export type PrViewData = {
   id: string
   number: number
@@ -103,6 +127,7 @@ export type PrListData = {
 
 export interface GithubClient extends GraphqlClient {
   fetchRepoView(input: RepoViewInput): Promise<RepoViewData>
+  fetchIssueCommentsList(input: IssueCommentsListInput): Promise<IssueCommentsListData>
   fetchIssueList(input: IssueListInput): Promise<IssueListData>
   fetchIssueView(input: IssueViewInput): Promise<IssueViewData>
   fetchPrList(input: PrListInput): Promise<PrListData>
@@ -133,6 +158,21 @@ function assertIssueListInput(input: IssueListInput): void {
   }
 }
 
+function assertIssueCommentsListInput(input: IssueCommentsListInput): void {
+  if (input.owner.trim().length === 0 || input.name.trim().length === 0) {
+    throw new Error("Repository owner and name are required")
+  }
+  if (!Number.isInteger(input.issueNumber) || input.issueNumber <= 0) {
+    throw new Error("Issue number must be a positive integer")
+  }
+  if (!Number.isInteger(input.first) || input.first <= 0) {
+    throw new Error("List page size must be a positive integer")
+  }
+  if (input.after !== undefined && input.after !== null && typeof input.after !== "string") {
+    throw new Error("After cursor must be a string")
+  }
+}
+
 function assertPrInput(input: PrViewInput): void {
   if (input.owner.trim().length === 0 || input.name.trim().length === 0) {
     throw new Error("Repository owner and name are required")
@@ -152,6 +192,7 @@ function assertPrListInput(input: PrListInput): void {
 }
 
 type SdkClients = {
+  issueCommentsList: ReturnType<typeof getIssueCommentsListSdk>
   issueList: ReturnType<typeof getIssueListSdk>
   issue: ReturnType<typeof getIssueViewSdk>
   prList: ReturnType<typeof getPrListSdk>
@@ -182,6 +223,7 @@ function createSdkClients(transport: GraphqlTransport): SdkClients {
   const graphqlRequestClient = client as GraphQLClient
 
   return {
+    issueCommentsList: getIssueCommentsListSdk(graphqlRequestClient),
     issueList: getIssueListSdk(graphqlRequestClient),
     issue: getIssueViewSdk(graphqlRequestClient),
     prList: getPrListSdk(graphqlRequestClient),
@@ -254,6 +296,39 @@ async function runIssueList(sdk: SdkClients["issueList"], input: IssueListInput)
     pageInfo: {
       endCursor: issues.pageInfo.endCursor ?? null,
       hasNextPage: issues.pageInfo.hasNextPage
+    }
+  }
+}
+
+async function runIssueCommentsList(
+  sdk: SdkClients["issueCommentsList"],
+  input: IssueCommentsListInput
+): Promise<IssueCommentsListData> {
+  assertIssueCommentsListInput(input)
+
+  const result: IssueCommentsListQuery = await sdk.IssueCommentsList(input)
+  const comments = result.repository?.issue?.comments
+  if (!comments) {
+    throw new Error("Issue comments not found")
+  }
+
+  return {
+    items: (comments.nodes ?? []).flatMap((comment) =>
+      comment
+        ? [
+            {
+              id: comment.id,
+              body: comment.body,
+              authorLogin: comment.author?.login ?? null,
+              createdAt: comment.createdAt,
+              url: String(comment.url)
+            }
+          ]
+        : []
+    ),
+    pageInfo: {
+      endCursor: comments.pageInfo.endCursor ?? null,
+      hasNextPage: comments.pageInfo.hasNextPage
     }
   }
 }
@@ -344,6 +419,7 @@ export function createGithubClient(transport: GraphqlTransport): GithubClient {
   return {
     query: (query, variables) => graphqlClient.query(query, variables),
     fetchRepoView: (input) => runRepoView(sdk.repo, input),
+    fetchIssueCommentsList: (input) => runIssueCommentsList(sdk.issueCommentsList, input),
     fetchIssueList: (input) => runIssueList(sdk.issueList, input),
     fetchIssueView: (input) => runIssueView(sdk.issue, input),
     fetchPrList: (input) => runPrList(sdk.prList, input),

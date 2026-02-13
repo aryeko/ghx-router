@@ -2,17 +2,31 @@ import { z } from "zod"
 
 import type { Scenario } from "../domain/types.js"
 
-const assertionsSchema = z.object({
-  must_succeed: z.boolean(),
-  expect_valid_output: z.boolean().optional(),
-  required_fields: z.array(z.string()).optional(),
-  required_data_fields: z.array(z.string()).optional(),
-  data_type: z.enum(["array", "object"]).optional(),
-  require_tool_calls: z.boolean().optional(),
-  min_tool_calls: z.number().int().nonnegative().optional(),
-  max_tool_calls: z.number().int().nonnegative().optional(),
-  require_attempt_trace: z.boolean().optional()
-})
+const assertionsSchema = z
+  .object({
+    must_succeed: z.boolean(),
+    expect_valid_output: z.boolean().optional(),
+    required_fields: z.array(z.string()).optional(),
+    required_data_fields: z.array(z.string()).optional(),
+    data_type: z.enum(["array", "object"]).optional(),
+    require_tool_calls: z.boolean().optional(),
+    min_tool_calls: z.number().int().nonnegative().optional(),
+    max_tool_calls: z.number().int().nonnegative().optional(),
+    require_attempt_trace: z.boolean().optional()
+  })
+  .superRefine((value, context) => {
+    if (
+      value.min_tool_calls !== undefined &&
+      value.max_tool_calls !== undefined &&
+      value.max_tool_calls < value.min_tool_calls
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["max_tool_calls"],
+        message: "max_tool_calls must be greater than or equal to min_tool_calls"
+      })
+    }
+  })
 
 const scenarioSchema = z.object({
   id: z.string().min(1),

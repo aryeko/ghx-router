@@ -1,6 +1,6 @@
 import type { OperationCard } from "./types.js"
 
-const DEFAULT_FALLBACKS = ["cli", "rest"] as const
+const DEFAULT_FALLBACKS = ["cli"] as const
 
 function baseCard(
   capabilityId: string,
@@ -8,7 +8,8 @@ function baseCard(
   operationName: string,
   documentPath: string,
   required: string[],
-  outputSchema: Record<string, unknown>
+  outputSchema: Record<string, unknown>,
+  routingNotes?: string[]
 ): OperationCard {
   return {
     capability_id: capabilityId,
@@ -24,14 +25,14 @@ function baseCard(
     routing: {
       preferred: "graphql",
       fallbacks: [...DEFAULT_FALLBACKS],
-      notes: ["Prefer GraphQL for typed shape, fallback to CLI or REST when unavailable."]
+      notes: routingNotes ?? ["Prefer GraphQL for typed shape, fallback to CLI when unavailable."]
     },
     graphql: {
       operationName,
       documentPath
     },
     cli: {
-      command: capabilityId.replace(".", " ")
+      command: capabilityId.replaceAll(".", " ")
     }
   }
 }
@@ -54,7 +55,7 @@ export const operationCards: OperationCard[] = [
         stargazerCount: { type: "number" },
         forkCount: { type: "number" },
         url: { type: "string" },
-        defaultBranch: { type: "string" }
+        defaultBranch: { type: ["string", "null"] }
       }
     }
   ),
@@ -90,6 +91,25 @@ export const operationCards: OperationCard[] = [
         pageInfo: { type: "object" }
       }
     }
+  ),
+  baseCard(
+    "issue.comments.list",
+    "List comments for one issue.",
+    "IssueCommentsList",
+    "src/gql/operations/issue-comments-list.graphql",
+    ["owner", "name", "issueNumber", "first"],
+    {
+      type: "object",
+      required: ["items", "pageInfo"],
+      properties: {
+        items: { type: "array" },
+        pageInfo: { type: "object" }
+      }
+    },
+    [
+      "Prefer GraphQL for typed shape, fallback to CLI when unavailable.",
+      "CLI fallback uses gh api graphql with bounded cursor pagination for comments."
+    ]
   ),
   baseCard(
     "pr.view",
