@@ -212,8 +212,9 @@ export function coercePromptResponse(value: PromptResponse): {
   assistant: AssistantMessage
   parts: SessionMessagePart[]
 } {
-  if (value.info && (value.info.role === "assistant" || hasAssistantMetadata(value.info))) {
-    const parts = value.parts ?? []
+  const parts = value.parts ?? []
+
+  if (value.info && (value.info.role === "assistant" || hasAssistantMetadata(value.info) || hasAssistantSignalParts(parts) || hasTextPart(parts))) {
     const info = value.info
     const snapshot = extractSnapshotFromParts(parts)
 
@@ -228,8 +229,8 @@ export function coercePromptResponse(value: PromptResponse): {
 
     return {
       assistant: {
-        id: info.id,
-        sessionID: info.sessionID,
+        id: info.id ?? value.id ?? "assistant-unknown",
+        sessionID: info.sessionID ?? value.sessionID ?? "session-unknown",
         time: typeof completed === "number" ? { created, completed } : { created },
         tokens: {
           input,
@@ -315,17 +316,48 @@ export async function waitForAssistantFromMessages(
     pollCount += 1
     const messages = await fetchSessionMessages(sessionApi, sessionId, 50)
 
-    const previousIndex = previousAssistantId
-      ? messages.findIndex((entry) => {
+    let previousCreatedAt: number | null = null
+    if (previousAssistantId) {
+      const previousEntry = messages.find((entry) => {
+        if (!entry.info) {
+          return false
+        }
+
+        return (entry.info as { id?: string }).id === previousAssistantId
+      })
+
+      if (previousEntry?.info) {
+        const info = previousEntry.info as { time?: unknown }
+        if (isObject(info.time)) {
+          previousCreatedAt = asNumber((info.time as { created?: unknown }).created)
+        }
+      }
+    }
+
+    const candidates = previousAssistantId
+      ? messages.filter((entry) => {
           if (!entry.info) {
             return false
           }
 
-          return (entry.info as { id?: string }).id === previousAssistantId
-        })
-      : -1
+          const currentId = (entry.info as { id?: string }).id
+          if (currentId === previousAssistantId) {
+            return false
+          }
 
-    const candidates = previousIndex >= 0 ? messages.slice(previousIndex + 1) : messages
+          if (previousCreatedAt === null) {
+            return true
+          }
+
+          const info = entry.info as { time?: unknown }
+          if (!isObject(info.time)) {
+            return false
+          }
+
+          const createdAt = asNumber((info.time as { created?: unknown }).created)
+          return typeof createdAt === "number" && createdAt > previousCreatedAt
+        })
+      : messages
 
     const latestAssistant = [...candidates].reverse().find((entry) => {
       if (!entry.info) {
@@ -349,6 +381,30 @@ export async function waitForAssistantFromMessages(
       return {
         info: latestAssistant.info as AssistantMessage,
         parts: latestAssistant.parts ?? []
+      }
+    }
+
+    if (previousAssistantId) {
+      const continuedSameMessage = messages.find((entry) => {
+        if (!entry.info) {
+          return false
+        }
+
+        const currentId = (entry.info as { id?: string }).id
+        if (currentId !== previousAssistantId) {
+          return false
+        }
+
+        const parts = entry.parts ?? []
+        const stepFinish = [...parts].reverse().find((part) => part.type === "step-finish")
+        return hasTextPart(parts) && stepFinish?.reason !== "tool-calls"
+      })
+
+      if (continuedSameMessage?.info) {
+        return {
+          info: continuedSameMessage.info as AssistantMessage,
+          parts: continuedSameMessage.parts ?? []
+        }
       }
     }
 
