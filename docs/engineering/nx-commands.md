@@ -9,6 +9,7 @@ Root scripts map to Nx targets and are the preferred local/CI entrypoints.
 - `pnpm run build` / `pnpm run build:affected`
 - `pnpm run lint` / `pnpm run lint:affected`
 - `pnpm run test` / `pnpm run test:affected`
+- `pnpm run test:coverage` / `pnpm run test:coverage:affected`
 - `pnpm run typecheck` / `pnpm run typecheck:affected`
 
 ## Project-Specific Commands

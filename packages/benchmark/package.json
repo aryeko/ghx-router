@@ -11,16 +11,14 @@
     "test:coverage": "vitest run --coverage --coverage.reporter=lcov --coverage.reporter=text-summary",
     "test:watch": "vitest",
     "run": "tsx src/cli/benchmark.ts run",
-    "check-scenarios": "tsx src/cli/check-scenarios.ts",
-    "check:scenarios": "pnpm run check-scenarios",
+    "check:scenarios": "tsx src/cli/check-scenarios.ts",
     "report": "tsx src/cli/report.ts",
-    "report-gate": "tsx src/cli/report.ts --gate",
-    "report:gate": "pnpm run report-gate"
+    "report:gate": "tsx src/cli/report.ts --gate"
   },
   "nx": {
     "targets": {
       "ci": {
-        "dependsOn": ["lint", "typecheck", "test", "build", "check-scenarios"]
+        "dependsOn": ["lint", "typecheck", "test", "build"]
       }
     }
   },

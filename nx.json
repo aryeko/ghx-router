@@ -19,16 +19,7 @@
       "dependsOn": ["^typecheck"],
       "cache": true
     },
-    "gql-check": {
-      "cache": false
-    },
-    "check-scenarios": {
-      "cache": false
-    },
     "report": {
-      "cache": false
-    },
-    "report-gate": {
       "cache": false
     },
     "ci": {
