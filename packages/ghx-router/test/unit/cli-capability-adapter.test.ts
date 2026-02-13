@@ -158,4 +158,48 @@ describe("runCliCapability", () => {
       }
     })
   })
+
+  it("normalizes issue.comments.list into items and pageInfo", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: JSON.stringify({
+          comments: [
+            {
+              id: "comment-1",
+              body: "Looks good to me",
+              author: { login: "octocat" },
+              url: "https://github.com/acme/modkit/issues/1#issuecomment-1",
+              createdAt: "2025-01-01T00:00:00Z"
+            }
+          ]
+        }),
+        stderr: "",
+        exitCode: 0
+      }))
+    }
+
+    const result = await runCliCapability(runner, "issue.comments.list", {
+      owner: "acme",
+      name: "modkit",
+      issueNumber: 1,
+      first: 20
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.data).toEqual({
+      items: [
+        {
+          id: "comment-1",
+          body: "Looks good to me",
+          authorLogin: "octocat",
+          url: "https://github.com/acme/modkit/issues/1#issuecomment-1",
+          createdAt: "2025-01-01T00:00:00Z"
+        }
+      ],
+      pageInfo: {
+        hasNextPage: false,
+        endCursor: null
+      }
+    })
+  })
 })

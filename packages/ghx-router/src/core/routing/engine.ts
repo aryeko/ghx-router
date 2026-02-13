@@ -18,7 +18,7 @@ export function chooseRoute(): (typeof routePreferenceOrder)[number] {
 type ExecutionDeps = {
   githubClient: Pick<
     GithubClient,
-    "fetchRepoView" | "fetchIssueList" | "fetchIssueView" | "fetchPrList" | "fetchPrView"
+    "fetchRepoView" | "fetchIssueCommentsList" | "fetchIssueList" | "fetchIssueView" | "fetchPrList" | "fetchPrView"
   >
   githubToken?: string | null
   cliRunner?: CliCommandRunner

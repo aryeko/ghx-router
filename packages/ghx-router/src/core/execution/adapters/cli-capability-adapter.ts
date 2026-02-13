@@ -4,7 +4,7 @@ import { isRetryableErrorCode } from "../../errors/retryability.js"
 import type { ResultEnvelope } from "../../contracts/envelope.js"
 import { normalizeError, normalizeResult } from "../normalizer.js"
 
-export type CliCapabilityId = "repo.view" | "issue.view" | "issue.list" | "pr.view" | "pr.list"
+export type CliCapabilityId = "repo.view" | "issue.view" | "issue.list" | "issue.comments.list" | "pr.view" | "pr.list"
 
 export type CliCommandRunner = {
   run(command: string, args: string[], timeoutMs: number): Promise<{ stdout: string; stderr: string; exitCode: number }>
@@ -58,6 +58,21 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
     }
 
     args.push("--limit", String(normalizeListLimit(params.first)), "--json", "id,number,title,state,url")
+    return args
+  }
+
+  if (capabilityId === "issue.comments.list") {
+    const issueNumber = params.issueNumber
+    if (typeof issueNumber !== "number" || Number.isNaN(issueNumber) || issueNumber < 1) {
+      throw new Error("Missing or invalid issueNumber for issue.comments.list")
+    }
+
+    const args = ["issue", "view", String(issueNumber)]
+    if (repo) {
+      args.push("--repo", repo)
+    }
+
+    args.push("--json", "comments")
     return args
   }
 
@@ -142,6 +157,40 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown): unknown
     const items = Array.isArray(data) ? data.map((entry) => normalizeListItem(entry)) : []
     return {
       items,
+      pageInfo: {
+        hasNextPage: false,
+        endCursor: null
+      }
+    }
+  }
+
+  if (capabilityId === "issue.comments.list") {
+    const input = typeof data === "object" && data !== null && !Array.isArray(data)
+      ? (data as Record<string, unknown>)
+      : {}
+    const comments = Array.isArray(input.comments) ? input.comments : []
+    return {
+      items: comments.flatMap((comment) => {
+        if (typeof comment !== "object" || comment === null || Array.isArray(comment)) {
+          return []
+        }
+
+        const commentRecord = comment as Record<string, unknown>
+        const author =
+          typeof commentRecord.author === "object" && commentRecord.author !== null
+            ? (commentRecord.author as Record<string, unknown>)
+            : null
+
+        return [
+          {
+            id: commentRecord.id,
+            body: commentRecord.body,
+            authorLogin: typeof author?.login === "string" ? author.login : null,
+            url: commentRecord.url,
+            createdAt: commentRecord.createdAt
+          }
+        ]
+      }),
       pageInfo: {
         hasNextPage: false,
         endCursor: null

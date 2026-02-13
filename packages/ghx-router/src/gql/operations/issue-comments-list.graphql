@@ -1,0 +1,21 @@
+query IssueCommentsList($owner: String!, $name: String!, $issueNumber: Int!, $first: Int!, $after: String) {
+  repository(owner: $owner, name: $name) {
+    issue(number: $issueNumber) {
+      comments(first: $first, after: $after) {
+        nodes {
+          id
+          bodyText
+          createdAt
+          url
+          author {
+            login
+          }
+        }
+        pageInfo {
+          endCursor
+          hasNextPage
+        }
+      }
+    }
+  }
+}

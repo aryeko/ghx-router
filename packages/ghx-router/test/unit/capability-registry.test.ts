@@ -21,6 +21,11 @@ describe("capabilityRegistry", () => {
         fallbackRoutes: ["cli"]
       },
       {
+        task: "issue.comments.list",
+        defaultRoute: "graphql",
+        fallbackRoutes: ["cli"]
+      },
+      {
         task: "pr.view",
         defaultRoute: "graphql",
         fallbackRoutes: ["cli"]

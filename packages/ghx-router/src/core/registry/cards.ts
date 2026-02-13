@@ -92,6 +92,21 @@ export const operationCards: OperationCard[] = [
     }
   ),
   baseCard(
+    "issue.comments.list",
+    "List comments for one issue.",
+    "IssueCommentsList",
+    "src/gql/operations/issue-comments-list.graphql",
+    ["owner", "name", "issueNumber"],
+    {
+      type: "object",
+      required: ["items", "pageInfo"],
+      properties: {
+        items: { type: "array" },
+        pageInfo: { type: "object" }
+      }
+    }
+  ),
+  baseCard(
     "pr.view",
     "Fetch one pull request by number.",
     "PrView",

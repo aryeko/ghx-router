@@ -10,6 +10,7 @@ describe("operation cards registry", () => {
       "repo.view",
       "issue.view",
       "issue.list",
+      "issue.comments.list",
       "pr.view",
       "pr.list"
     ])
