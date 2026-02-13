@@ -98,6 +98,64 @@ function parseCliData(stdout: string): unknown {
   return JSON.parse(trimmed)
 }
 
+function normalizeListItem(item: unknown): Record<string, unknown> {
+  if (typeof item !== "object" || item === null || Array.isArray(item)) {
+    return {}
+  }
+
+  const input = item as Record<string, unknown>
+  return {
+    id: input.id,
+    number: input.number,
+    title: input.title,
+    state: input.state,
+    url: input.url
+  }
+}
+
+function normalizeCliData(capabilityId: CliCapabilityId, data: unknown): unknown {
+  if (capabilityId === "repo.view") {
+    const input = typeof data === "object" && data !== null && !Array.isArray(data)
+      ? (data as Record<string, unknown>)
+      : {}
+    const defaultBranchRef =
+      typeof input.defaultBranchRef === "object" && input.defaultBranchRef !== null
+        ? (input.defaultBranchRef as Record<string, unknown>)
+        : null
+
+    return {
+      id: input.id,
+      name: input.name,
+      nameWithOwner: input.nameWithOwner,
+      isPrivate: input.isPrivate,
+      stargazerCount: input.stargazerCount,
+      forkCount: input.forkCount,
+      url: input.url,
+      defaultBranch:
+        typeof defaultBranchRef?.name === "string"
+          ? defaultBranchRef.name
+          : null
+    }
+  }
+
+  if (capabilityId === "issue.list" || capabilityId === "pr.list") {
+    const items = Array.isArray(data) ? data.map((entry) => normalizeListItem(entry)) : []
+    return {
+      items,
+      pageInfo: {
+        hasNextPage: false,
+        endCursor: null
+      }
+    }
+  }
+
+  if (capabilityId === "issue.view" || capabilityId === "pr.view") {
+    return normalizeListItem(data)
+  }
+
+  return data
+}
+
 export async function runCliCapability(
   runner: CliCommandRunner,
   capabilityId: CliCapabilityId,
@@ -122,7 +180,8 @@ export async function runCliCapability(
     }
 
     const data = parseCliData(result.stdout)
-    return normalizeResult(data, "cli", { capabilityId, reason: "CARD_FALLBACK" })
+    const normalized = normalizeCliData(capabilityId, data)
+    return normalizeResult(normalized, "cli", { capabilityId, reason: "CARD_FALLBACK" })
   } catch (error: unknown) {
     if (error instanceof SyntaxError) {
       return normalizeError(

@@ -5,7 +5,20 @@ import { runCliCapability } from "../../src/core/execution/adapters/cli-capabili
 describe("runCliCapability", () => {
   it("builds gh args and parses json output", async () => {
     const runner = {
-      run: vi.fn(async () => ({ stdout: '{"id":"repo-id"}', stderr: "", exitCode: 0 }))
+      run: vi.fn(async () => ({
+        stdout: JSON.stringify({
+          id: "repo-id",
+          name: "modkit",
+          nameWithOwner: "acme/modkit",
+          isPrivate: false,
+          stargazerCount: 10,
+          forkCount: 2,
+          url: "https://github.com/acme/modkit",
+          defaultBranchRef: { name: "main" }
+        }),
+        stderr: "",
+        exitCode: 0
+      }))
     }
 
     const result = await runCliCapability(runner, "repo.view", {
@@ -15,7 +28,12 @@ describe("runCliCapability", () => {
 
     expect(result.ok).toBe(true)
     expect(result.meta.route_used).toBe("cli")
-    expect(result.data).toEqual({ id: "repo-id" })
+    expect(result.data).toEqual(
+      expect.objectContaining({
+        id: "repo-id",
+        defaultBranch: "main"
+      })
+    )
     expect(runner.run).toHaveBeenCalledWith(
       "gh",
       expect.arrayContaining(["repo", "view", "acme/modkit", "--json"]),
@@ -62,5 +80,82 @@ describe("runCliCapability", () => {
     expect(issueArgs).not.toContain("--repo")
 
     expect(prArgs).toEqual(expect.arrayContaining(["pr", "list", "--repo", "acme/modkit", "--limit", "12"]))
+  })
+
+  it("normalizes repo.view output shape", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: JSON.stringify({
+          id: "repo-id",
+          name: "modkit",
+          nameWithOwner: "acme/modkit",
+          isPrivate: false,
+          stargazerCount: 10,
+          forkCount: 2,
+          url: "https://github.com/acme/modkit",
+          defaultBranchRef: { name: "main" }
+        }),
+        stderr: "",
+        exitCode: 0
+      }))
+    }
+
+    const result = await runCliCapability(runner, "repo.view", {
+      owner: "acme",
+      name: "modkit"
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.data).toEqual({
+      id: "repo-id",
+      name: "modkit",
+      nameWithOwner: "acme/modkit",
+      isPrivate: false,
+      stargazerCount: 10,
+      forkCount: 2,
+      url: "https://github.com/acme/modkit",
+      defaultBranch: "main"
+    })
+  })
+
+  it("normalizes issue.list output into items and pageInfo", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: JSON.stringify([
+          {
+            id: "issue-id",
+            number: 12,
+            title: "Broken test",
+            state: "OPEN",
+            url: "https://github.com/acme/modkit/issues/12"
+          }
+        ]),
+        stderr: "",
+        exitCode: 0
+      }))
+    }
+
+    const result = await runCliCapability(runner, "issue.list", {
+      owner: "acme",
+      name: "modkit",
+      first: 20
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.data).toEqual({
+      items: [
+        {
+          id: "issue-id",
+          number: 12,
+          title: "Broken test",
+          state: "OPEN",
+          url: "https://github.com/acme/modkit/issues/12"
+        }
+      ],
+      pageInfo: {
+        hasNextPage: false,
+        endCursor: null
+      }
+    })
   })
 })
