@@ -32,7 +32,7 @@ describe("preflightCheck", () => {
   })
 
   it("fails cli route when gh CLI is not authenticated", () => {
-    const result = preflightCheck({ route: "cli", ghAuthenticated: false })
+    const result = preflightCheck({ route: "cli", ghCliAvailable: true, ghAuthenticated: false })
     expect(result.ok).toBe(false)
     if (!result.ok) {
       expect(result.code).toBe("AUTH")
@@ -46,6 +46,7 @@ describe("preflightCheck", () => {
     if (!result.ok) {
       expect(result.code).toBe("ADAPTER_UNSUPPORTED")
       expect(result.message).toContain("not implemented")
+      expect(result.details).toEqual({ route: "rest" })
     }
   })
 })

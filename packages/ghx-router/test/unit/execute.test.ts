@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest"
 
 import { execute } from "../../src/core/execute/execute.js"
 import type { OperationCard } from "../../src/core/registry/types.js"
-import type { RouteSource } from "../../src/core/contracts/envelope.js"
+import type { ResultEnvelope, RouteSource } from "../../src/core/contracts/envelope.js"
 
 const baseCard: OperationCard = {
   capability_id: "repo.view",
@@ -242,5 +242,284 @@ describe("execute", () => {
     expect(result.ok).toBe(true)
     expect(cli).toHaveBeenCalledTimes(1)
     expect(graphql).not.toHaveBeenCalled()
+  })
+
+  it("supports suitability rules with env predicates and inequality", async () => {
+    const cardWithSuitability: OperationCard = {
+      ...baseCard,
+      routing: {
+        preferred: "cli",
+        fallbacks: ["graphql"],
+        suitability: [
+          {
+            when: "env",
+            predicate: "graphql if env.githubTokenPresent == true",
+            reason: "Prefer GraphQL when token exists"
+          },
+          {
+            when: "params",
+            predicate: "cli if params.owner != octocat",
+            reason: "Use CLI for non-octocat repos"
+          }
+        ]
+      }
+    }
+
+    const cli = vi.fn(async () => ({
+      ok: true,
+      data: { id: "repo-id" },
+      meta: { capability_id: "repo.view", route_used: "cli" as const }
+    }))
+    const graphql = vi.fn(async () => ({
+      ok: true,
+      data: { id: "repo-id" },
+      meta: { capability_id: "repo.view", route_used: "graphql" as const }
+    }))
+
+    const result = await execute({
+      card: cardWithSuitability,
+      params: { owner: "acme", name: "modkit" },
+      routingContext: { githubTokenPresent: true },
+      preflight: alwaysPassPreflight,
+      routes: {
+        graphql,
+        cli,
+        rest: vi.fn()
+      }
+    })
+
+    expect(result.ok).toBe(true)
+    expect(graphql).toHaveBeenCalledTimes(1)
+    expect(cli).not.toHaveBeenCalled()
+  })
+
+  it("supports always suitability route and false/null/number predicate values", async () => {
+    const cli = vi.fn(async () => ({
+      ok: true,
+      data: { id: "repo-id" },
+      meta: { capability_id: "repo.view", route_used: "cli" as const }
+    }))
+    const graphql = vi.fn(async () => ({
+      ok: true,
+      data: { id: "repo-id" },
+      meta: { capability_id: "repo.view", route_used: "graphql" as const }
+    }))
+
+    const alwaysCard: OperationCard = {
+      ...baseCard,
+      routing: {
+        preferred: "graphql",
+        fallbacks: ["cli"],
+        suitability: [{ when: "always", predicate: "CLI", reason: "Always prefer cli" }]
+      }
+    }
+
+    const alwaysResult = await execute({
+      card: alwaysCard,
+      params: { owner: "acme", name: "modkit" },
+      preflight: alwaysPassPreflight,
+      routes: { graphql, cli, rest: vi.fn() }
+    })
+
+    expect(alwaysResult.ok).toBe(true)
+    expect(cli).toHaveBeenCalledTimes(1)
+
+    const conditionalCard: OperationCard = {
+      ...baseCard,
+      routing: {
+        preferred: "graphql",
+        fallbacks: ["cli"],
+        suitability: [
+          { when: "env", predicate: "cli if env.featureFlag == false", reason: "False boolean parse" },
+          { when: "env", predicate: "cli if env.selected == null", reason: "Null parse" },
+          { when: "env", predicate: "cli if env.batchSize == 2", reason: "Number parse" }
+        ]
+      }
+    }
+
+    const conditionalResult = await execute({
+      card: conditionalCard,
+      params: { owner: "acme", name: "modkit" },
+      routingContext: { featureFlag: false, selected: null, batchSize: 2 },
+      preflight: alwaysPassPreflight,
+      routes: { graphql: vi.fn(), cli: vi.fn(async () => ({
+        ok: true,
+        data: { id: "repo-id" },
+        meta: { capability_id: "repo.view", route_used: "cli" as const }
+      })), rest: vi.fn() }
+    })
+
+    expect(conditionalResult.ok).toBe(true)
+    expect(conditionalResult.meta.route_used).toBe("cli")
+  })
+
+  it("falls back to preferred route when suitability path cannot be resolved", async () => {
+    const graphql = vi.fn(async () => ({
+      ok: true,
+      data: { id: "repo-id" },
+      meta: { capability_id: "repo.view", route_used: "graphql" as const }
+    }))
+
+    const result = await execute({
+      card: {
+        ...baseCard,
+        routing: {
+          preferred: "graphql",
+          fallbacks: ["cli"],
+          suitability: [
+            {
+              when: "params",
+              predicate: "cli if params.owner.name == octocat",
+              reason: "owner is a string, nested path is unresolved"
+            }
+          ]
+        }
+      },
+      params: { owner: "acme", name: "modkit" },
+      preflight: alwaysPassPreflight,
+      routes: {
+        graphql,
+        cli: vi.fn(),
+        rest: vi.fn()
+      }
+    })
+
+    expect(result.ok).toBe(true)
+    expect(graphql).toHaveBeenCalledTimes(1)
+  })
+
+  it("falls back to card preferred route when suitability predicate is malformed", async () => {
+    const cardWithMalformedRule: OperationCard = {
+      ...baseCard,
+      routing: {
+        preferred: "graphql",
+        fallbacks: ["cli"],
+        suitability: [
+          {
+            when: "params",
+            predicate: "this is not parseable",
+            reason: "Ignore invalid rule"
+          }
+        ]
+      }
+    }
+
+    const graphql = vi.fn(async () => ({
+      ok: true,
+      data: { id: "repo-id" },
+      meta: { capability_id: "repo.view", route_used: "graphql" as const }
+    }))
+
+    const result = await execute({
+      card: cardWithMalformedRule,
+      params: { owner: "acme", name: "modkit" },
+      preflight: alwaysPassPreflight,
+      routes: {
+        graphql,
+        cli: vi.fn(),
+        rest: vi.fn()
+      }
+    })
+
+    expect(result.ok).toBe(true)
+    expect(graphql).toHaveBeenCalledTimes(1)
+  })
+
+  it("skips routes with missing handlers and keeps attempts trace", async () => {
+    const result = await execute({
+      card: {
+        ...baseCard,
+        routing: {
+          preferred: "cli",
+          fallbacks: ["graphql"]
+        }
+      },
+      params: { owner: "acme", name: "modkit" },
+      preflight: alwaysPassPreflight,
+      routes: {
+        graphql: vi.fn(async () => ({
+          ok: true,
+          data: { id: "repo-id" },
+          meta: { capability_id: "repo.view", route_used: "graphql" as const }
+        })),
+        cli: undefined as unknown as (params: Record<string, unknown>) => Promise<ResultEnvelope>,
+        rest: vi.fn()
+      },
+      trace: true
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.meta.attempts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ route: "cli", status: "skipped", error_code: "ADAPTER_UNSUPPORTED" })
+      ])
+    )
+  })
+
+  it("handles adapter-unsupported route errors by falling back", async () => {
+    const result = await execute({
+      card: {
+        ...baseCard,
+        routing: {
+          preferred: "cli",
+          fallbacks: ["graphql"]
+        }
+      },
+      params: { owner: "acme", name: "modkit" },
+      preflight: alwaysPassPreflight,
+      routes: {
+        graphql: vi.fn(async () => ({
+          ok: true,
+          data: { id: "repo-id" },
+          meta: { capability_id: "repo.view", route_used: "graphql" as const }
+        })),
+        cli: vi.fn(async () => ({
+          ok: false,
+          error: { code: "ADAPTER_UNSUPPORTED" as const, message: "unsupported", retryable: false },
+          meta: { capability_id: "repo.view", route_used: "cli" as const }
+        })),
+        rest: vi.fn()
+      },
+      trace: true
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.meta.attempts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ route: "cli", status: "error", error_code: "ADAPTER_UNSUPPORTED" }),
+        expect.objectContaining({ route: "graphql", status: "success" })
+      ])
+    )
+  })
+
+  it("attaches attempts to traced output-validation errors", async () => {
+    const card: OperationCard = {
+      ...baseCard,
+      output_schema: {
+        type: "object",
+        required: ["id"]
+      }
+    }
+
+    const result = await execute({
+      card,
+      params: { owner: "acme", name: "modkit" },
+      preflight: alwaysPassPreflight,
+      trace: true,
+      routes: {
+        graphql: vi.fn(async () => ({
+          ok: true,
+          data: {},
+          meta: { capability_id: "repo.view", route_used: "graphql" as const }
+        })),
+        cli: vi.fn(),
+        rest: vi.fn()
+      }
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.meta.attempts).toEqual([
+      expect.objectContaining({ route: "graphql", status: "success" })
+    ])
   })
 })
