@@ -82,11 +82,11 @@ const modePromptPrefix: Record<BenchmarkMode, string> = {
     "You are running a benchmark in ghx_router mode. Prefer `ghx run <task> --input ...` as the primary execution path."
 }
 
-function isObject(value: unknown): value is Record<string, unknown> {
+export function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
 }
 
-function unwrapData<T>(value: unknown, label: string): T {
+export function unwrapData<T>(value: unknown, label: string): T {
   if (isObject(value) && "data" in value) {
     const wrapped = value as { data?: unknown; error?: unknown }
     if (wrapped.error) {
@@ -98,7 +98,7 @@ function unwrapData<T>(value: unknown, label: string): T {
   return value as T
 }
 
-function getSessionApi(client: unknown): {
+export function getSessionApi(client: unknown): {
   create: (options: Record<string, unknown>) => Promise<unknown>
   promptAsync: (options: Record<string, unknown>) => Promise<unknown>
   messages: (options: Record<string, unknown>) => Promise<unknown>
@@ -146,11 +146,11 @@ function getSessionApi(client: unknown): {
   }
 }
 
-function asNumber(value: unknown): number | null {
+export function asNumber(value: unknown): number | null {
   return typeof value === "number" ? value : null
 }
 
-function hasAssistantMetadata(info: unknown): boolean {
+export function hasAssistantMetadata(info: unknown): boolean {
   if (!isObject(info)) {
     return false
   }
@@ -163,15 +163,15 @@ function hasAssistantMetadata(info: unknown): boolean {
   return hasCompleted && hasTokens
 }
 
-function hasAssistantSignalParts(parts: SessionMessagePart[]): boolean {
+export function hasAssistantSignalParts(parts: SessionMessagePart[]): boolean {
   return parts.some((part) => part.type === "step-finish" || part.type === "tool")
 }
 
-function hasTextPart(parts: SessionMessagePart[]): boolean {
+export function hasTextPart(parts: SessionMessagePart[]): boolean {
   return parts.some((part) => part.type === "text" && typeof part.text === "string")
 }
 
-function extractSnapshotFromParts(parts: SessionMessagePart[]): {
+export function extractSnapshotFromParts(parts: SessionMessagePart[]): {
   input: number
   output: number
   reasoning: number
@@ -208,7 +208,7 @@ function extractSnapshotFromParts(parts: SessionMessagePart[]): {
   }
 }
 
-function coercePromptResponse(value: PromptResponse): {
+export function coercePromptResponse(value: PromptResponse): {
   assistant: AssistantMessage
   parts: SessionMessagePart[]
 } {
@@ -249,7 +249,7 @@ function coercePromptResponse(value: PromptResponse): {
   throw new Error(`Unsupported prompt response shape (keys: ${keys})`)
 }
 
-function shouldRequestContinuation(parts: SessionMessagePart[]): boolean {
+export function shouldRequestContinuation(parts: SessionMessagePart[]): boolean {
   const hasText = parts.some((part) => part.type === "text")
   const stepFinish = [...parts].reverse().find((part) => part.type === "step-finish")
 
@@ -262,7 +262,7 @@ function shouldRequestContinuation(parts: SessionMessagePart[]): boolean {
   return !hasText
 }
 
-function extractEnvelopeFromParts(parts: SessionMessagePart[]): {
+export function extractEnvelopeFromParts(parts: SessionMessagePart[]): {
   text: string
   envelope: unknown | null
 } {
@@ -274,7 +274,7 @@ function extractEnvelopeFromParts(parts: SessionMessagePart[]): {
   return { text, envelope: extractFirstJsonObject(text) }
 }
 
-async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+export async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | null = null
   const timeoutPromise = new Promise<never>((_, reject) => {
     timer = setTimeout(() => reject(new Error(`Timeout while waiting for ${label} after ${timeoutMs}ms`)), timeoutMs)
@@ -287,7 +287,7 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: str
   }
 }
 
-async function fetchSessionMessages(
+export async function fetchSessionMessages(
   sessionApi: ReturnType<typeof getSessionApi>,
   sessionId: string,
   limit = 100
@@ -301,7 +301,7 @@ async function fetchSessionMessages(
   return unwrapData<SessionMessageEntry[]>(messagesResult, "session.messages")
 }
 
-async function waitForAssistantFromMessages(
+export async function waitForAssistantFromMessages(
   sessionApi: ReturnType<typeof getSessionApi>,
   sessionId: string,
   timeoutMs: number,
@@ -362,12 +362,12 @@ async function waitForAssistantFromMessages(
   throw new Error("Timed out waiting for assistant message in session.messages")
 }
 
-function ghOk(args: string[]): boolean {
+export function ghOk(args: string[]): boolean {
   const result = spawnSync("gh", args, { encoding: "utf8" })
   return result.status === 0
 }
 
-function validateFixture(scenario: Scenario): void {
+export function validateFixture(scenario: Scenario): void {
   const repo = scenario.fixture?.repo
   if (!repo) return
 
@@ -398,7 +398,7 @@ function validateFixture(scenario: Scenario): void {
   }
 }
 
-function renderPrompt(scenario: Scenario, mode: BenchmarkMode): string {
+export function renderPrompt(scenario: Scenario, mode: BenchmarkMode): string {
   const rendered = scenario.prompt_template
     .replaceAll("{{task}}", scenario.task)
     .replaceAll("{{scenario_id}}", scenario.id)
@@ -415,7 +415,7 @@ function renderPrompt(scenario: Scenario, mode: BenchmarkMode): string {
   return `${modePromptPrefix[mode]}\n${fixtureNote}\nYou MUST use real tools to gather data. Do not fabricate outputs.\nReturn STRICT JSON only. No markdown fences.\nOutput must be exactly one JSON object with keys: ok, data, error, meta.\n${dataContract}\n\n${rendered}`
 }
 
-async function runScenario(
+export async function runScenario(
   client: unknown,
   scenario: Scenario,
   mode: BenchmarkMode,
