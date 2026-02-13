@@ -1,27 +1,29 @@
 # Benchmark Methodology
 
-Defines scenario selection, execution strategy, and run controls.
-
 ## Modes
 
 - `agent_direct`
-- `mcp` (when available)
+- `mcp`
 - `ghx_router`
 
 ## Run Controls
 
-- Use fixed repository fixtures.
-- Use fixed model/provider per suite.
-- Run at least 10 repetitions per scenario/mode.
-- Randomize scenario order with logged seed.
-- Capture runtime metadata (model, commit, timestamp).
+- fixed scenario set across compared modes
+- fixed repository fixtures
+- fixed provider/model per suite
+- repeated runs per scenario
+- captured runtime metadata (commit, timestamp, model)
 
-## Scope
+## Output Validation
 
-- Thin-slice checkpoint: 5-8 scenarios.
-- Full v1 suite: 20+ scenarios.
+Benchmark output validation checks:
 
-Canonical detail:
+- envelope shape (`ok`, `data`, `error`, `meta`)
+- required fields/data fields from scenario assertions
+- tool-call min/max constraints
+- optional attempt-trace requirement
 
-- `docs/benchmark/efficiency-criteria.md`
+See:
+
+- `docs/benchmark/scenario-assertions.md`
 - `docs/benchmark/harness-design.md`

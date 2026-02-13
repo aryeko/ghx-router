@@ -1,25 +1,46 @@
 # Errors and Retries
 
-Defines common error codes and retry behavior.
+## Error Taxonomy
 
-## Error Shape
+Current normalized error codes:
 
-Errors should be normalized with:
+- `AUTH`
+- `NOT_FOUND`
+- `VALIDATION`
+- `RATE_LIMIT`
+- `NETWORK`
+- `SERVER`
+- `ADAPTER_UNSUPPORTED`
+- `UNKNOWN`
 
-- `code`
-- `message`
-- `details` (optional)
-- `retryable` (boolean)
-
-Primary code definitions:
+Source:
 
 - `packages/ghx-router/src/core/errors/codes.ts`
 - `packages/ghx-router/src/core/errors/map-error.ts`
 
-## Retry Policy (v1)
+## Retryability
 
-- Retry only transient infrastructure/network failures.
-- Use bounded backoff.
-- Do not retry schema validation or auth/scope errors.
+Retryable by default:
 
-Detailed behavior evolves with adapter implementation and should remain aligned with `docs/architecture/system-design.md`.
+- `NETWORK`
+- `RATE_LIMIT`
+- `SERVER`
+
+Non-retryable by default:
+
+- `AUTH`, `VALIDATION`, `NOT_FOUND`, `ADAPTER_UNSUPPORTED`, `UNKNOWN`
+
+Source:
+
+- `packages/ghx-router/src/core/errors/retryability.ts`
+
+## Fallback Behavior
+
+- Preflight route failures are recorded and route attempts continue.
+- Retryable adapter errors consume route retry budget.
+- Non-retryable non-adapter errors terminate route evaluation.
+- `ADAPTER_UNSUPPORTED` can trigger fallback to next route.
+
+Source:
+
+- `packages/ghx-router/src/core/execute/execute.ts`

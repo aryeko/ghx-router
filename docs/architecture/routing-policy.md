@@ -1,31 +1,35 @@
 # Routing Policy
 
-Defines how tasks are routed across `cli`, `rest`, and `graphql`.
+Routing is card-driven and deterministic.
 
-## Current Runtime Behavior
+## Planning Rules
 
-- Task-specific defaults come from `packages/ghx-router/src/core/routing/capability-registry.ts`.
-- Route fallback order comes from `packages/ghx-router/src/core/routing/policy.ts` (`cli` -> `rest` -> `graphql`).
-- Runtime builds route attempts as: `[defaultRoute, ...fallbackRoutes, ...globalOrder]` with de-duplication.
-- Routes are attempted in order until success or terminal error.
+For a given capability card:
 
-Current shipped task entries default to GraphQL.
+1. start with `routing.preferred`
+2. append ordered `routing.fallbacks`
+3. de-duplicate route order
+4. apply preflight checks per route
 
-Preflight behavior:
+## Route Reasons
 
-- GraphQL requires a token.
-- CLI/REST can enforce `gh` availability and authentication when those signals are provided to the engine.
+Runtime reason codes:
 
-Only bypass configured defaults with documented reason codes:
+- `CARD_PREFERRED`
+- `CARD_FALLBACK`
+- `PREFLIGHT_FAILED`
+- `ENV_CONSTRAINT`
+- `CAPABILITY_LIMIT`
+- `DEFAULT_POLICY`
 
-- `coverage_gap`
-- `efficiency_gain`
-- `output_shape_requirement`
+## Current v1 Shape
 
-## Source of Truth
+- shipped cards currently prefer `graphql`
+- fallback order is `cli`, then `rest`
+- `execute` performs bounded per-route retries and then fallback
 
-- Runtime behavior: `packages/ghx-router/src/core/routing/`
-- Policy matrix: `README.md` (Routing Decision Matrix)
-- Detailed architecture rationale: `docs/architecture/system-design.md`
+Source of truth:
 
-This file should remain concise and mirror runtime policy.
+- `packages/ghx-router/src/core/registry/cards.ts`
+- `packages/ghx-router/src/core/execute/execute.ts`
+- `packages/ghx-router/src/core/execution/preflight.ts`
