@@ -43,6 +43,7 @@ describe("suite-runner helpers", () => {
     )
     expect(asNumber(12)).toBe(12)
     expect(asNumber("12")).toBeNull()
+    expect(unwrapData({ ok: true }, "plain")).toEqual({ ok: true })
   })
 
   it("validates session API shape", () => {
@@ -115,6 +116,25 @@ describe("suite-runner helpers", () => {
     expect(shouldRequestContinuation([{ type: "step-finish", reason: "tool-calls" }])).toBe(true)
     expect(extractEnvelopeFromParts(parts).envelope).toBeTruthy()
     expect(() => coercePromptResponse({})).toThrow("Unsupported prompt response shape")
+  })
+
+  it("extracts envelope from tool output when text parts do not contain JSON", () => {
+    const extracted = extractEnvelopeFromParts([
+      { type: "text", text: "not json" },
+      {
+        type: "tool",
+        state: {
+          output: 'prefix {"ok":true,"data":{"id":"repo"},"error":null,"meta":{}} suffix'
+        }
+      }
+    ])
+
+    expect(extracted.envelope).toEqual({
+      ok: true,
+      data: { id: "repo" },
+      error: null,
+      meta: {}
+    })
   })
 
   it("coerces response with missing metadata using step-finish snapshot", () => {
@@ -215,6 +235,35 @@ describe("suite-runner helpers", () => {
     expect(response.info?.id).toBe("new")
   })
 
+  it("returns continuation on same assistant id when no new assistant id is present", async () => {
+    const sessionApi = {
+      create: vi.fn(),
+      promptAsync: vi.fn(),
+      messages: vi.fn(async () => ({
+        data: [
+          {
+            info: {
+              id: "m1",
+              role: "assistant",
+              time: { created: 1, completed: 2 },
+              tokens: { input: 1, output: 1, reasoning: 0, cache: { read: 0, write: 0 } },
+              cost: 0
+            },
+            parts: [
+              { type: "text", text: "continued response" },
+              { type: "step-finish", reason: "done" }
+            ]
+          }
+        ]
+      })),
+      abort: vi.fn()
+    }
+
+    const response = await waitForAssistantFromMessages(sessionApi, "s1", 200, "sc-cont", "m1")
+    expect(response.info?.id).toBe("m1")
+    expect(response.parts?.[0]).toEqual(expect.objectContaining({ type: "text" }))
+  })
+
   it("times out waiting for assistant message", async () => {
     const sessionApi = {
       create: vi.fn(),
@@ -262,6 +311,65 @@ describe("suite-runner helpers", () => {
     )
     expect(prompt).toContain("ghx-router-shim.ts run")
     expect(prompt).toContain("id")
+  })
+
+  it("omits route_used assertions outside ghx_router mode", () => {
+    const prompt = renderPrompt(
+      {
+        id: "s",
+        name: "n",
+        task: "repo.view",
+        input: { owner: "a", name: "b" },
+        prompt_template: "task={{task}}",
+        timeout_ms: 1000,
+        allowed_retries: 0,
+        assertions: {
+          must_succeed: true,
+          expected_route_used: "graphql",
+          required_meta_fields: ["route_used"]
+        },
+        tags: []
+      },
+      "mcp"
+    )
+
+    expect(prompt).not.toContain("meta.route_used MUST be exactly")
+    expect(prompt).toContain("The JSON meta object can include optional diagnostic fields.")
+  })
+
+  it("drops graphql route expectation in ghx_router mode when GITHUB_TOKEN is missing", () => {
+    const previousToken = process.env.GITHUB_TOKEN
+    delete process.env.GITHUB_TOKEN
+
+    try {
+      const prompt = renderPrompt(
+        {
+          id: "s",
+          name: "n",
+          task: "repo.view",
+          input: { owner: "a", name: "b" },
+          prompt_template: "task={{task}}",
+          timeout_ms: 1000,
+          allowed_retries: 0,
+          assertions: {
+            must_succeed: true,
+            expected_route_used: "graphql",
+            required_meta_fields: ["route_used"]
+          },
+          tags: []
+        },
+        "ghx_router"
+      )
+
+      expect(prompt).not.toContain("meta.route_used MUST be exactly")
+      expect(prompt).toContain("The JSON meta object MUST include: route_used.")
+    } finally {
+      if (previousToken === undefined) {
+        delete process.env.GITHUB_TOKEN
+      } else {
+        process.env.GITHUB_TOKEN = previousToken
+      }
+    }
   })
 
   it("fails fixture validation when repo or identifiers are invalid", () => {
@@ -333,6 +441,27 @@ describe("suite-runner helpers", () => {
         tags: []
       })
     ).toThrow("pr #9 not found")
+  })
+
+  it("fails fixture validation when issue is missing", () => {
+    spawnSyncMock
+      .mockReturnValueOnce({ status: 0 } as never)
+      .mockReturnValueOnce({ status: 1 } as never)
+
+    expect(() =>
+      validateFixture({
+        id: "s",
+        name: "n",
+        task: "issue.view",
+        input: { issueNumber: 7 },
+        prompt_template: "x",
+        timeout_ms: 1000,
+        allowed_retries: 0,
+        fixture: { repo: "owner/repo" },
+        assertions: { must_succeed: true },
+        tags: []
+      })
+    ).toThrow("issue #7 not found")
   })
 
   it("runs a scenario and returns normalized row", async () => {
@@ -607,6 +736,165 @@ describe("suite-runner helpers", () => {
     )
 
     expect(result.success).toBe(true)
+  })
+
+  it("wraps raw data object into a valid envelope for ghx_router mode", async () => {
+    const session = {
+      create: vi.fn(async () => ({ data: { id: "s1" } })),
+      promptAsync: vi.fn(async () => ({ data: {} })),
+      messages: vi.fn(async () => ({
+        data: [
+          {
+            info: {
+              id: "m1",
+              sessionID: "s1",
+              role: "assistant",
+              time: { created: 1, completed: 2 },
+              tokens: { input: 1, output: 1, reasoning: 0, cache: { read: 0, write: 0 } },
+              cost: 0
+            },
+            parts: [{ type: "text", text: '{"id":"repo"}' }]
+          }
+        ]
+      })),
+      abort: vi.fn(async () => ({ data: {} }))
+    }
+
+    const result = await runScenario(
+      { session },
+      {
+        id: "repo-view-raw",
+        name: "Repo view raw",
+        task: "repo.view",
+        input: { owner: "a", name: "b" },
+        prompt_template: "do {{task}}",
+        timeout_ms: 1000,
+        allowed_retries: 0,
+        assertions: {
+          must_succeed: true,
+          required_fields: ["ok", "data", "error", "meta"],
+          required_data_fields: ["id"],
+          require_tool_calls: false
+        },
+        tags: []
+      },
+      "ghx_router",
+      1
+    )
+
+    expect(result.success).toBe(true)
+    expect(result.output_valid).toBe(true)
+  })
+
+  it.each([
+    {
+      id: "issues",
+      payload: '{"data":{"repository":{"issues":{"nodes":[],"pageInfo":{"hasNextPage":true,"endCursor":"c1"}}}}}'
+    },
+    {
+      id: "pull-requests",
+      payload:
+        '{"data":{"repository":{"pullRequests":{"nodes":[],"pageInfo":{"hasNextPage":false,"endCursor":null}}}}}'
+    },
+    {
+      id: "issue-comments",
+      payload:
+        '{"data":{"repository":{"issue":{"comments":{"nodes":[],"pageInfo":{"hasNextPage":true,"endCursor":"c2"}}}}}}'
+    }
+  ])("normalizes %s graphql-style payloads into list envelope", async ({ id, payload }) => {
+    const session = {
+      create: vi.fn(async () => ({ data: { id: "s1" } })),
+      promptAsync: vi.fn(async () => ({ data: {} })),
+      messages: vi.fn(async () => ({
+        data: [
+          {
+            info: {
+              id: "m1",
+              sessionID: "s1",
+              role: "assistant",
+              time: { created: 1, completed: 2 },
+              tokens: { input: 1, output: 1, reasoning: 0, cache: { read: 0, write: 0 } },
+              cost: 0
+            },
+            parts: [{ type: "text", text: payload }]
+          }
+        ]
+      })),
+      abort: vi.fn(async () => ({ data: {} }))
+    }
+
+    const result = await runScenario(
+      { session },
+      {
+        id: `repo-${id}`,
+        name: `Repo ${id}`,
+        task: "repo.view",
+        input: { owner: "a", name: "b" },
+        prompt_template: "do {{task}}",
+        timeout_ms: 1000,
+        allowed_retries: 0,
+        assertions: {
+          must_succeed: true,
+          required_fields: ["ok", "data", "error", "meta"],
+          required_data_fields: ["items", "pageInfo"],
+          require_tool_calls: false
+        },
+        tags: []
+      },
+      "ghx_router",
+      1
+    )
+
+    expect(result.success).toBe(true)
+    expect(result.output_valid).toBe(true)
+  })
+
+  it("fills missing error field when envelope already has ok/data/meta", async () => {
+    const session = {
+      create: vi.fn(async () => ({ data: { id: "s1" } })),
+      promptAsync: vi.fn(async () => ({ data: {} })),
+      messages: vi.fn(async () => ({
+        data: [
+          {
+            info: {
+              id: "m1",
+              sessionID: "s1",
+              role: "assistant",
+              time: { created: 1, completed: 2 },
+              tokens: { input: 1, output: 1, reasoning: 0, cache: { read: 0, write: 0 } },
+              cost: 0
+            },
+            parts: [{ type: "text", text: '{"ok":true,"data":{"id":"repo"},"meta":{}}' }]
+          }
+        ]
+      })),
+      abort: vi.fn(async () => ({ data: {} }))
+    }
+
+    const result = await runScenario(
+      { session },
+      {
+        id: "repo-view-ok-meta",
+        name: "Repo view ok meta",
+        task: "repo.view",
+        input: { owner: "a", name: "b" },
+        prompt_template: "do {{task}}",
+        timeout_ms: 1000,
+        allowed_retries: 0,
+        assertions: {
+          must_succeed: true,
+          required_fields: ["ok", "data", "error", "meta"],
+          required_data_fields: ["id"],
+          require_tool_calls: false
+        },
+        tags: []
+      },
+      "ghx_router",
+      1
+    )
+
+    expect(result.success).toBe(true)
+    expect(result.output_valid).toBe(true)
   })
 
   it("returns runner_error row and aborts session on failures", async () => {
