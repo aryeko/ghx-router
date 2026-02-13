@@ -153,7 +153,7 @@ describe("execute", () => {
       routes: {
         graphql: vi.fn(async () => ({
           ok: false,
-          error: { code: "VALIDATION", message: "bad input", retryable: false },
+          error: { code: "VALIDATION" as const, message: "bad input", retryable: false },
           meta: { capability_id: "repo.view", route_used: "graphql" as const }
         })),
         cli: vi.fn(),
