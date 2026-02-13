@@ -51,6 +51,8 @@ Establish an early measurement baseline before full implementation scale.
 
 ## Phase 3: Execution Adapters (CLI + GraphQL First)
 
+Status: complete.
+
 ### Goal
 Deliver robust execution for common workflows through `gh` and GraphQL.
 
@@ -65,6 +67,8 @@ Deliver robust execution for common workflows through `gh` and GraphQL.
 - Adapter failures map to common error codes.
 
 ## Phase 4: Normalization, Telemetry, and Targeted GraphQL
+
+Status: active.
 
 ### Goal
 Guarantee consistent outputs and capture metrics needed to prove efficiency.

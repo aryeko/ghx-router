@@ -1,6 +1,6 @@
 # Phase 3 Execution Plan (Adapters + Hardening)
 
-Status: active implementation plan for Phase 3.
+Status: completed.
 
 ## Objective
 
@@ -90,3 +90,12 @@ Each increment must include tests before adding the next task.
 - Errors are normalized and stable across failure modes.
 - Integration tests exist for route selection and execution fallback.
 - `pnpm run verify` and `pnpm run benchmark:check` are green.
+
+## Completion Record
+
+- [x] CLI adapter envelope flow implemented with timeout/input controls.
+- [x] GraphQL adapter and typed SDK path wired for `repo.view`, `issue.view`, and `pr.view`.
+- [x] Preflight token checks enforced for GraphQL route execution.
+- [x] Normalization helpers applied for success and error envelopes.
+- [x] Route integration tests added under `packages/ghx-router/test/integration/`.
+- [x] Verification gates green: `pnpm run verify`, `pnpm run benchmark:check`, and `gql:check`.

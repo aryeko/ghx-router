@@ -31,7 +31,7 @@ describe("executeTask issue.view", () => {
       input: { owner: "go-modkit", name: "modkit", issueNumber: 210 }
     }
 
-    const result = await executeTask(request, { githubClient })
+    const result = await executeTask(request, { githubClient, githubToken: "test-token" })
 
     expect(result.success).toBe(true)
     expect(result.meta.source).toBe("graphql")
@@ -63,7 +63,7 @@ describe("executeTask issue.view", () => {
       input: { owner: "go-modkit", name: "modkit", issueNumber: 99999 }
     }
 
-    const result = await executeTask(request, { githubClient })
+    const result = await executeTask(request, { githubClient, githubToken: "test-token" })
 
     expect(result.success).toBe(false)
     expect(result.error?.code).toBe("unknown")

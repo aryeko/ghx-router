@@ -4,9 +4,9 @@ CLI-first GitHub execution router for agents.
 
 ## Status
 
-- Current phase: workspace structure and benchmark harness are in place; `ghx` runtime implementation is in progress.
+- Current phase: Phase 3 is complete and Phase 4 execution is starting.
 - Not yet production-ready.
-- Primary objective now: implement and validate the thin-slice benchmark, then build `ghx` against measured baselines.
+- Primary objective now: execute Phase 4 normalization + telemetry and keep benchmark validation green.
 
 ## Goals
 
@@ -123,7 +123,7 @@ Current repo includes active implementation plus design docs. You can review:
 - architecture and phased plans under `docs/`
 - benchmark harness package under `packages/benchmark/`
 
-Note: runtime commands are not fully implemented yet.
+Note: `repo.view`, `issue.view`, and `pr.view` execution paths are wired through the GraphQL engine route.
 
 ## Initial Direction
 
@@ -137,8 +137,9 @@ Note: runtime commands are not fully implemented yet.
 1. Phase 1: core CLI skeleton and task contracts.
 2. Phase 2: deterministic routing policy engine.
 3. Phase 2.5: thin benchmark slice (5-8 scenarios, early signal).
-4. Phase 3-5: adapters, normalization, telemetry, and v1 task coverage.
-5. Phase 6: full benchmark validation gate.
+4. Phase 3: adapters + safety + integration tests (complete).
+5. Phase 4-5: normalization, telemetry, and v1 task coverage.
+6. Phase 6: full benchmark validation gate.
 
 ## Benchmarking
 

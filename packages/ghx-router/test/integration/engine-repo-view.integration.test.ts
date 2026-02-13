@@ -32,7 +32,7 @@ describe("executeTask repo.view", () => {
       input: { owner: "go-modkit", name: "modkit" }
     }
 
-    const result = await executeTask(request, { githubClient })
+    const result = await executeTask(request, { githubClient, githubToken: "test-token" })
 
     expect(result.success).toBe(true)
     expect(result.meta.source).toBe("graphql")
@@ -57,7 +57,7 @@ describe("executeTask repo.view", () => {
       input: { owner: "", name: "modkit" }
     }
 
-    const result = await executeTask(request, { githubClient })
+    const result = await executeTask(request, { githubClient, githubToken: "test-token" })
 
     expect(result.success).toBe(false)
     expect(result.error?.code).toBe("validation_failed")
@@ -76,10 +76,29 @@ describe("executeTask repo.view", () => {
       input: { owner: "go-modkit", name: "modkit" }
     }
 
-    const result = await executeTask(request, { githubClient })
+    const result = await executeTask(request, { githubClient, githubToken: "test-token" })
 
     expect(result.success).toBe(false)
     expect(result.error?.code).toBe("validation_failed")
     expect(result.error?.message).toContain("Unsupported task")
+  })
+
+  it("returns auth error when graphql token is missing", async () => {
+    const githubClient = createGithubClient({
+      async execute<TData>(): Promise<TData> {
+        return {} as TData
+      }
+    })
+
+    const request: TaskRequest = {
+      task: "repo.view",
+      input: { owner: "go-modkit", name: "modkit" }
+    }
+
+    const result = await executeTask(request, { githubClient, githubToken: "" })
+
+    expect(result.success).toBe(false)
+    expect(result.error?.code).toBe("auth_failed")
+    expect(result.error?.message).toContain("token")
   })
 })

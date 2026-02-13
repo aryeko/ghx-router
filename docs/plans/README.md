@@ -10,11 +10,15 @@ This index clarifies which plan is currently active and how each document is use
 
 ## Active Sub-Plan
 
-- `2026-02-13-phase-3-execution-plan.md`
-  - **Role**: implementation spec for Phase 3 adapter and hardening work.
-  - **Use for**: adapter sequencing, preflight/error normalization, and verification gates.
+- `2026-02-13-phase-4-execution-plan.md`
+  - **Role**: implementation spec for Phase 4 normalization and telemetry work.
+  - **Use for**: envelope consistency, telemetry instrumentation, and targeted GraphQL expansion.
 
 ## Recently Completed Sub-Plan
+
+- `2026-02-13-phase-3-execution-plan.md`
+  - **Role**: Phase 3 adapter and safety implementation.
+  - **Use for**: CLI/GraphQL execution hardening and integration test references.
 
 - `2026-02-13-benchmark-harness-ts-sdk-design.md`
   - **Role**: Phase 2.5 benchmark system design.

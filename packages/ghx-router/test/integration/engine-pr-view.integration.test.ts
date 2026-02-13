@@ -31,7 +31,7 @@ describe("executeTask pr.view", () => {
       input: { owner: "go-modkit", name: "modkit", prNumber: 232 }
     }
 
-    const result = await executeTask(request, { githubClient })
+    const result = await executeTask(request, { githubClient, githubToken: "test-token" })
 
     expect(result.success).toBe(true)
     expect(result.meta.source).toBe("graphql")
@@ -55,7 +55,7 @@ describe("executeTask pr.view", () => {
       input: { owner: "go-modkit", name: "modkit", prNumber: 0 }
     }
 
-    const result = await executeTask(request, { githubClient })
+    const result = await executeTask(request, { githubClient, githubToken: "test-token" })
 
     expect(result.success).toBe(false)
     expect(result.error?.code).toBe("validation_failed")
