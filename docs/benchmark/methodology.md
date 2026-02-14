@@ -39,15 +39,15 @@ This design keeps timeout/intermittent runner stalls from corrupting efficiency 
 
 This avoids one noisy scenario dominating suite-level medians and improves comparability across runs.
 
-## Proof Workflow (PR)
+## Verify Workflow (PR)
 
-Recommended proof sequence for PR validation:
+Recommended verify sequence for PR validation:
 
-- quick path (repo root): `pnpm run benchmark:proof:pr-fast`
+- quick path (repo root): `pnpm run benchmark:verify:pr`
 
 1. `pnpm --filter @ghx-dev/core run build`
-2. `pnpm --filter @ghx-dev/benchmark run benchmark -- agent_direct 3 --scenario-set pr-exec`
-3. `GHX_SKIP_GH_PREFLIGHT=1 pnpm --filter @ghx-dev/benchmark run benchmark -- ghx 3 --scenario-set pr-exec`
+2. `pnpm --filter @ghx-dev/benchmark run benchmark -- agent_direct 4 --scenario-set ci-verify-pr`
+3. `GHX_SKIP_GH_PREFLIGHT=1 pnpm --filter @ghx-dev/benchmark run benchmark -- ghx 4 --scenario-set ci-verify-pr`
 4. `pnpm --filter @ghx-dev/benchmark run report`
 5. `pnpm --filter @ghx-dev/benchmark exec tsx src/cli/report.ts --gate --gate-profile pr_fast`
 

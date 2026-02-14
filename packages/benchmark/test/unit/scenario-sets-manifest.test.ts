@@ -94,6 +94,27 @@ describe("scenario-sets manifest", () => {
     ])
   })
 
+  it("defines ci-verify-pr for low-noise PR gating", () => {
+    const scenarioSets = loadScenarioSets()
+
+    expect(scenarioSets["ci-verify-pr"]).toEqual([
+      "pr-checks-rerun-all-001",
+      "pr-merge-execute-001"
+    ])
+  })
+
+  it("defines ci-verify-release for stable release gating", () => {
+    const scenarioSets = loadScenarioSets()
+
+    expect(scenarioSets["ci-verify-release"]).toEqual([
+      "pr-checks-rerun-all-001",
+      "pr-checks-rerun-failed-001",
+      "pr-merge-execute-001",
+      "pr-assignees-update-001",
+      "pr-review-submit-comment-001"
+    ])
+  })
+
   it("defines all as exact union of roadmap A-D sets", () => {
     const scenarioSets = loadScenarioSets()
 

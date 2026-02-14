@@ -22,7 +22,7 @@
 
 - `docs/benchmark/efficiency-criteria.md`
 - `pnpm --filter @ghx-dev/benchmark run report:gate`
-- `pnpm run benchmark:gate:release-strict`
+- `pnpm run benchmark:verify:release`
 
 Main-branch release automation runs `release_strict` before publish in CI (`.github/workflows/ci-main.yml`).
 

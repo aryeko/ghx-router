@@ -15,12 +15,14 @@ This package is intentionally **private** and is not published to npm. It compar
 
 ```bash
 # from repo root (recommended shortcuts)
-pnpm run benchmark:proof:pr-fast
-pnpm run benchmark:gate:release-strict
+pnpm run benchmark:verify:pr
+pnpm run benchmark:verify:release
 
 # package-level commands
 pnpm --filter @ghx-dev/benchmark run benchmark -- agent_direct 1 --scenario pr-view-001
 
+pnpm --filter @ghx-dev/benchmark run benchmark -- ghx 4 --scenario-set ci-verify-pr
+pnpm --filter @ghx-dev/benchmark run benchmark -- ghx 4 --scenario-set ci-verify-release
 pnpm --filter @ghx-dev/benchmark run benchmark -- ghx 1 --scenario-set pr-exec
 pnpm --filter @ghx-dev/benchmark run benchmark -- ghx 1 --scenario-set issues
 pnpm --filter @ghx-dev/benchmark run benchmark -- ghx 1 --scenario-set release-delivery
@@ -40,6 +42,8 @@ pnpm --filter @ghx-dev/benchmark run typecheck
 ## Scenario Sets
 
 - `default` - stable and mutation-free
+- `ci-verify-pr` - lightweight PR gate set (2 scenarios)
+- `ci-verify-release` - stable release gate set (5 scenarios)
 - `pr-exec`
 - `issues`
 - `release-delivery`

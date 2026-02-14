@@ -27,8 +27,8 @@
     "changeset:status": "changeset status",
     "changeset:version": "changeset version",
     "benchmark": "nx run-many -t benchmark",
-    "benchmark:proof:pr-fast": "nx run-many -t proof:pr-fast",
-    "benchmark:gate:release-strict": "nx run-many -t proof:release-strict",
+    "benchmark:verify:pr": "nx run-many -t verify:pr",
+    "benchmark:verify:release": "nx run-many -t verify:release",
     "ghx:gql:check": "nx run-many -t gql:check",
     "dep-graph": "nx graph",
     "cache:clean": "nx reset"
