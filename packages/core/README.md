@@ -32,27 +32,27 @@ Requirements:
 CLI without global install:
 
 ```bash
-npx @ghx-dev/core@beta capabilities list
+npx @ghx-dev/core capabilities list
 ```
 
 CLI global install:
 
 ```bash
-npm i -g @ghx-dev/core@beta
+npm i -g @ghx-dev/core
 ```
 
 Library install:
 
 ```bash
-pnpm add @ghx-dev/core@beta
+pnpm add @ghx-dev/core
 ```
 
 Alternative package managers:
 
 ```bash
-npm i @ghx-dev/core@beta
+npm i @ghx-dev/core
 # or
-yarn add @ghx-dev/core@beta
+yarn add @ghx-dev/core
 ```
 
 ## Quick Start (CLI)
@@ -60,19 +60,19 @@ yarn add @ghx-dev/core@beta
 Set GitHub token (`GITHUB_TOKEN` or `GH_TOKEN`) and run capabilities:
 
 ```bash
-npx @ghx-dev/core@beta capabilities list
-npx @ghx-dev/core@beta capabilities explain repo.view
-npx @ghx-dev/core@beta run repo.view --input '{"owner":"aryeko","name":"ghx"}'
+npx @ghx-dev/core capabilities list
+npx @ghx-dev/core capabilities explain repo.view
+npx @ghx-dev/core run repo.view --input '{"owner":"aryeko","name":"ghx"}'
 ```
 
 Setup helper for Claude Code skill installation:
 
 ```bash
-npx @ghx-dev/core@beta setup --platform claude-code --scope project --yes
-npx @ghx-dev/core@beta setup --platform claude-code --scope project --verify
+npx @ghx-dev/core setup --platform claude-code --scope project --yes
+npx @ghx-dev/core setup --platform claude-code --scope project --verify
 ```
 
-If installed globally, replace `npx @ghx-dev/core@beta` with `ghx`.
+If installed globally, replace `npx @ghx-dev/core` with `ghx`.
 
 ## Quick Start (Library API)
 

@@ -60,14 +60,14 @@ pnpm exec ghx run repo.view --input '{"owner":"aryeko","name":"ghx"}'
 Try without installing globally:
 
 ```bash
-npx @ghx-dev/core@beta capabilities list
-npx @ghx-dev/core@beta run repo.view --input '{"owner":"aryeko","name":"ghx"}'
+npx @ghx-dev/core capabilities list
+npx @ghx-dev/core run repo.view --input '{"owner":"aryeko","name":"ghx"}'
 ```
 
 Install the CLI globally (beta):
 
 ```bash
-npm i -g @ghx-dev/core@beta
+npm i -g @ghx-dev/core
 ghx capabilities list
 ghx run repo.view --input '{"owner":"aryeko","name":"ghx"}'
 ```
