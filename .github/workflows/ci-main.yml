@@ -29,6 +29,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm run ci
+      - name: Install opencode
+        run: curl -fsSL https://opencode.ai/install | bash
       - name: Run core E2E
         run: pnpm run test:e2e
       - name: Upload coverage to Codecov
