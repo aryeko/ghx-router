@@ -17,8 +17,8 @@ describe("capabilityRegistry", () => {
       },
       {
         task: "repo.issue_types.list",
-        defaultRoute: "cli",
-        fallbackRoutes: [],
+        defaultRoute: "graphql",
+        fallbackRoutes: ["cli"],
       },
       {
         task: "issue.view",
@@ -272,33 +272,33 @@ describe("capabilityRegistry", () => {
       },
       {
         task: "project_v2.org.get",
-        defaultRoute: "cli",
-        fallbackRoutes: [],
+        defaultRoute: "graphql",
+        fallbackRoutes: ["cli"],
       },
       {
         task: "project_v2.user.get",
-        defaultRoute: "cli",
-        fallbackRoutes: [],
+        defaultRoute: "graphql",
+        fallbackRoutes: ["cli"],
       },
       {
         task: "project_v2.fields.list",
-        defaultRoute: "cli",
-        fallbackRoutes: [],
+        defaultRoute: "graphql",
+        fallbackRoutes: ["cli"],
       },
       {
         task: "project_v2.items.list",
-        defaultRoute: "cli",
-        fallbackRoutes: [],
+        defaultRoute: "graphql",
+        fallbackRoutes: ["cli"],
       },
       {
         task: "project_v2.item.add_issue",
-        defaultRoute: "cli",
-        fallbackRoutes: [],
+        defaultRoute: "graphql",
+        fallbackRoutes: ["cli"],
       },
       {
         task: "project_v2.item.field.update",
-        defaultRoute: "cli",
-        fallbackRoutes: [],
+        defaultRoute: "graphql",
+        fallbackRoutes: ["cli"],
       },
       {
         task: "release.list",

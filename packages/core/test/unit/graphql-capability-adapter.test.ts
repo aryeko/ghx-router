@@ -495,7 +495,33 @@ describe("runGraphqlCapability", () => {
     )
 
     expect(result.ok).toBe(false)
-    expect(result.error?.code).toBe("VALIDATION")
+    expect(result.error?.code).toBe("ADAPTER_UNSUPPORTED")
     expect(result.meta.reason).toBe("CAPABILITY_LIMIT")
+  })
+
+  it("returns adapter unsupported when required GraphQL operation is unavailable", async () => {
+    const client = {
+      fetchRepoView: vi.fn(),
+      fetchIssueView: vi.fn(),
+      fetchIssueList: vi.fn(),
+      fetchIssueCommentsList: vi.fn(),
+      fetchPrView: vi.fn(),
+      fetchPrList: vi.fn(),
+      fetchPrCommentsList: vi.fn(),
+      fetchPrReviewsList: vi.fn(),
+      fetchPrDiffListFiles: vi.fn(),
+      replyToReviewThread: vi.fn(),
+      resolveReviewThread: vi.fn(),
+      unresolveReviewThread: vi.fn()
+    }
+
+    const result = await runGraphqlCapability(client, "issue.create", {
+      owner: "acme",
+      name: "modkit",
+      title: "Missing GraphQL op"
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe("ADAPTER_UNSUPPORTED")
   })
 })

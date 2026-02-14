@@ -31,7 +31,7 @@ output_schema:
       additionalProperties: false
   additionalProperties: false
 routing:
-  preferred: cli
-  fallbacks: []
+  preferred: graphql
+  fallbacks: [cli]
 cli:
   command: project field-list

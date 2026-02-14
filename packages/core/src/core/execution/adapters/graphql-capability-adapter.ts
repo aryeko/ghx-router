@@ -56,8 +56,27 @@ export type GraphqlCapabilityId =
   | "pr.comment.reply"
   | "pr.comment.resolve"
   | "pr.comment.unresolve"
+  | "project_v2.org.get"
+  | "project_v2.user.get"
+  | "project_v2.fields.list"
+  | "project_v2.items.list"
+  | "project_v2.item.add_issue"
+  | "project_v2.item.field.update"
+  | "repo.issue_types.list"
 
 const DEFAULT_LIST_FIRST = 30
+
+function unsupportedGraphqlCapability(capabilityId: string): ResultEnvelope {
+  return normalizeError(
+    {
+      code: errorCodes.AdapterUnsupported,
+      message: `Unsupported GraphQL capability: ${capabilityId}`,
+      retryable: false
+    },
+    "graphql",
+    { capabilityId, reason: "CAPABILITY_LIMIT" }
+  )
+}
 
 function withDefaultFirst(params: Record<string, unknown>): Record<string, unknown> {
   if (params.first === undefined) {
@@ -117,7 +136,7 @@ export async function runGraphqlCapability(
 
     if (capabilityId === "issue.create") {
       if (!client.createIssue) {
-        throw new Error("Unsupported GraphQL capability: issue.create")
+        return unsupportedGraphqlCapability(capabilityId)
       }
       const data = await client.createIssue(params as IssueCreateInput)
       return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
@@ -125,7 +144,7 @@ export async function runGraphqlCapability(
 
     if (capabilityId === "issue.update") {
       if (!client.updateIssue) {
-        throw new Error("Unsupported GraphQL capability: issue.update")
+        return unsupportedGraphqlCapability(capabilityId)
       }
       const data = await client.updateIssue(params as IssueUpdateInput)
       return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
@@ -133,7 +152,7 @@ export async function runGraphqlCapability(
 
     if (capabilityId === "issue.close") {
       if (!client.closeIssue) {
-        throw new Error("Unsupported GraphQL capability: issue.close")
+        return unsupportedGraphqlCapability(capabilityId)
       }
       const data = await client.closeIssue(params as IssueMutationInput)
       return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
@@ -141,7 +160,7 @@ export async function runGraphqlCapability(
 
     if (capabilityId === "issue.reopen") {
       if (!client.reopenIssue) {
-        throw new Error("Unsupported GraphQL capability: issue.reopen")
+        return unsupportedGraphqlCapability(capabilityId)
       }
       const data = await client.reopenIssue(params as IssueMutationInput)
       return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
@@ -149,7 +168,7 @@ export async function runGraphqlCapability(
 
     if (capabilityId === "issue.delete") {
       if (!client.deleteIssue) {
-        throw new Error("Unsupported GraphQL capability: issue.delete")
+        return unsupportedGraphqlCapability(capabilityId)
       }
       const data = await client.deleteIssue(params as IssueMutationInput)
       return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
@@ -157,7 +176,7 @@ export async function runGraphqlCapability(
 
     if (capabilityId === "issue.labels.update") {
       if (!client.updateIssueLabels) {
-        throw new Error("Unsupported GraphQL capability: issue.labels.update")
+        return unsupportedGraphqlCapability(capabilityId)
       }
       const data = await client.updateIssueLabels(params as IssueLabelsUpdateInput)
       return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
@@ -165,7 +184,7 @@ export async function runGraphqlCapability(
 
     if (capabilityId === "issue.assignees.update") {
       if (!client.updateIssueAssignees) {
-        throw new Error("Unsupported GraphQL capability: issue.assignees.update")
+        return unsupportedGraphqlCapability(capabilityId)
       }
       const data = await client.updateIssueAssignees(params as IssueAssigneesUpdateInput)
       return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
@@ -173,7 +192,7 @@ export async function runGraphqlCapability(
 
     if (capabilityId === "issue.milestone.set") {
       if (!client.setIssueMilestone) {
-        throw new Error("Unsupported GraphQL capability: issue.milestone.set")
+        return unsupportedGraphqlCapability(capabilityId)
       }
       const data = await client.setIssueMilestone(params as IssueMilestoneSetInput)
       return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
@@ -181,7 +200,7 @@ export async function runGraphqlCapability(
 
     if (capabilityId === "issue.comments.create") {
       if (!client.createIssueComment) {
-        throw new Error("Unsupported GraphQL capability: issue.comments.create")
+        return unsupportedGraphqlCapability(capabilityId)
       }
       const data = await client.createIssueComment(params as IssueCommentCreateInput)
       return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
@@ -189,7 +208,7 @@ export async function runGraphqlCapability(
 
     if (capabilityId === "issue.linked_prs.list") {
       if (!client.fetchIssueLinkedPrs) {
-        throw new Error("Unsupported GraphQL capability: issue.linked_prs.list")
+        return unsupportedGraphqlCapability(capabilityId)
       }
       const data = await client.fetchIssueLinkedPrs(params as IssueLinkedPrsListInput)
       return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
@@ -197,7 +216,7 @@ export async function runGraphqlCapability(
 
     if (capabilityId === "issue.relations.get") {
       if (!client.fetchIssueRelations) {
-        throw new Error("Unsupported GraphQL capability: issue.relations.get")
+        return unsupportedGraphqlCapability(capabilityId)
       }
       const data = await client.fetchIssueRelations(params as IssueRelationsGetInput)
       return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
@@ -205,7 +224,7 @@ export async function runGraphqlCapability(
 
     if (capabilityId === "issue.parent.set") {
       if (!client.setIssueParent) {
-        throw new Error("Unsupported GraphQL capability: issue.parent.set")
+        return unsupportedGraphqlCapability(capabilityId)
       }
       const data = await client.setIssueParent(params as IssueParentSetInput)
       return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
@@ -213,7 +232,7 @@ export async function runGraphqlCapability(
 
     if (capabilityId === "issue.parent.remove") {
       if (!client.removeIssueParent) {
-        throw new Error("Unsupported GraphQL capability: issue.parent.remove")
+        return unsupportedGraphqlCapability(capabilityId)
       }
       const data = await client.removeIssueParent(params as IssueParentRemoveInput)
       return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
@@ -221,7 +240,7 @@ export async function runGraphqlCapability(
 
     if (capabilityId === "issue.blocked_by.add") {
       if (!client.addIssueBlockedBy) {
-        throw new Error("Unsupported GraphQL capability: issue.blocked_by.add")
+        return unsupportedGraphqlCapability(capabilityId)
       }
       const data = await client.addIssueBlockedBy(params as IssueBlockedByInput)
       return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
@@ -229,7 +248,7 @@ export async function runGraphqlCapability(
 
     if (capabilityId === "issue.blocked_by.remove") {
       if (!client.removeIssueBlockedBy) {
-        throw new Error("Unsupported GraphQL capability: issue.blocked_by.remove")
+        return unsupportedGraphqlCapability(capabilityId)
       }
       const data = await client.removeIssueBlockedBy(params as IssueBlockedByInput)
       return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
@@ -279,15 +298,7 @@ export async function runGraphqlCapability(
       return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
     }
 
-    return normalizeError(
-      {
-        code: errorCodes.Validation,
-        message: `Unsupported GraphQL capability: ${capabilityId}`,
-        retryable: false
-      },
-      "graphql",
-      { capabilityId, reason: "CAPABILITY_LIMIT" }
-    )
+    return unsupportedGraphqlCapability(capabilityId)
   } catch (error: unknown) {
     const code = mapErrorToCode(error)
     return normalizeError(
