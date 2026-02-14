@@ -505,7 +505,7 @@ describe("suite-runner helpers", () => {
       },
       "ghx_router"
     )
-    expect(prompt).toContain("ghx run")
+    expect(prompt).toContain("pnpm exec ghx run")
     expect(prompt).toContain("id")
   })
 

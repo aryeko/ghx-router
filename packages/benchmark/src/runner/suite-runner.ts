@@ -1,9 +1,9 @@
 import { createOpencode } from "@opencode-ai/sdk"
 import { spawnSync } from "node:child_process"
-import { appendFile, chmod, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises"
+import { appendFile, mkdir, mkdtemp, rm } from "node:fs/promises"
 import { randomUUID } from "node:crypto"
 import { tmpdir } from "node:os"
-import { delimiter, join } from "node:path"
+import { join } from "node:path"
 
 import { extractFirstJsonObject, validateEnvelope } from "../extract/envelope.js"
 import { extractAttemptMetrics } from "../extract/attempts.js"
@@ -82,7 +82,7 @@ const modePromptPrefix: Record<BenchmarkMode, string> = {
     "You are running a benchmark in agent_direct mode. Use GitHub CLI (`gh`) commands directly to complete the task. Do not use any `ghx` command.",
   mcp: "You are running a benchmark in mcp mode. Prefer MCP tools when available.",
   ghx_router:
-    "You are running a benchmark in ghx_router mode. Use the local `ghx` command from PATH as the primary execution path. Run `ghx run <task> --input '<json>'` and do not use direct `gh` commands unless explicitly asked."
+    "You are running a benchmark in ghx_router mode. Use `pnpm exec ghx run <task> --input '<json>'` as the primary execution path and do not use direct `gh` commands unless explicitly asked."
 }
 
 export function isObject(value: unknown): value is Record<string, unknown> {
@@ -587,15 +587,104 @@ function resolveGhTokenFromCli(): string | null {
   return token.length > 0 ? token : null
 }
 
-async function installLocalGhxAlias(): Promise<{ binDir: string; commandPath: string }> {
-  const binDir = await mkdtemp(join(tmpdir(), "ghx-router-benchmark-bin-"))
-  const commandPath = join(binDir, "ghx")
-  const wrapper = "#!/usr/bin/env bash\nset -euo pipefail\npnpm exec tsx src/runner/ghx-local-entry.ts \"$@\"\n"
+async function withIsolatedBenchmarkClient<T>(run: (client: unknown) => Promise<T>): Promise<T> {
+  const isolatedXdgConfigHome = await mkdtemp(join(tmpdir(), "ghx-router-benchmark-opencode-"))
 
-  await writeFile(commandPath, wrapper, "utf8")
-  await chmod(commandPath, 0o755)
+  const previousEnv = {
+    OPENCODE_CONFIG: process.env.OPENCODE_CONFIG,
+    OPENCODE_CONFIG_DIR: process.env.OPENCODE_CONFIG_DIR,
+    XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME,
+    GH_TOKEN: process.env.GH_TOKEN,
+    GITHUB_TOKEN: process.env.GITHUB_TOKEN
+  }
 
-  return { binDir, commandPath }
+  const ghToken = previousEnv.GH_TOKEN ?? previousEnv.GITHUB_TOKEN ?? resolveGhTokenFromCli()
+
+  delete process.env.OPENCODE_CONFIG
+  delete process.env.OPENCODE_CONFIG_DIR
+  process.env.XDG_CONFIG_HOME = isolatedXdgConfigHome
+  if (ghToken) {
+    process.env.GH_TOKEN = ghToken
+    process.env.GITHUB_TOKEN = ghToken
+  }
+
+  let server: { close: () => void } | null = null
+
+  try {
+    const opencode = await createOpencode({
+      port: Number.isInteger(OPENCODE_PORT) && OPENCODE_PORT > 0 ? OPENCODE_PORT : 3000,
+      config: {
+        model: `${PROVIDER_ID}/${MODEL_ID}`,
+        instructions: [],
+        plugin: [],
+        mcp: {},
+        agent: {},
+        command: {},
+        permission: {
+          edit: "deny",
+          bash: "allow",
+          webfetch: "allow",
+          doom_loop: "deny",
+          external_directory: "deny"
+        }
+      }
+    })
+
+    server = opencode.server
+    const client = opencode.client
+
+    const configApi = (client as { config?: { get?: (args?: Record<string, unknown>) => Promise<unknown> } }).config
+    if (configApi?.get) {
+      const configResponse = await configApi.get({ url: "/config" })
+      const resolvedConfig = unwrapData<Record<string, unknown>>(configResponse, "config.get")
+      const configuredInstructions = Array.isArray(resolvedConfig.instructions) ? resolvedConfig.instructions : []
+      const configuredPlugins = Array.isArray(resolvedConfig.plugin) ? resolvedConfig.plugin : []
+
+      if (configuredInstructions.length > 0 || configuredPlugins.length > 0) {
+        throw new Error(
+          `benchmark_config_not_clean: expected empty instructions/plugins, got instructions=${configuredInstructions.length}, plugins=${configuredPlugins.length}`
+        )
+      }
+    }
+
+    return await run(client)
+  } finally {
+    if (server) {
+      server.close()
+    }
+
+    if (previousEnv.OPENCODE_CONFIG === undefined) {
+      delete process.env.OPENCODE_CONFIG
+    } else {
+      process.env.OPENCODE_CONFIG = previousEnv.OPENCODE_CONFIG
+    }
+
+    if (previousEnv.OPENCODE_CONFIG_DIR === undefined) {
+      delete process.env.OPENCODE_CONFIG_DIR
+    } else {
+      process.env.OPENCODE_CONFIG_DIR = previousEnv.OPENCODE_CONFIG_DIR
+    }
+
+    if (previousEnv.XDG_CONFIG_HOME === undefined) {
+      delete process.env.XDG_CONFIG_HOME
+    } else {
+      process.env.XDG_CONFIG_HOME = previousEnv.XDG_CONFIG_HOME
+    }
+
+    if (previousEnv.GH_TOKEN === undefined) {
+      delete process.env.GH_TOKEN
+    } else {
+      process.env.GH_TOKEN = previousEnv.GH_TOKEN
+    }
+
+    if (previousEnv.GITHUB_TOKEN === undefined) {
+      delete process.env.GITHUB_TOKEN
+    } else {
+      process.env.GITHUB_TOKEN = previousEnv.GITHUB_TOKEN
+    }
+
+    await rm(isolatedXdgConfigHome, { recursive: true, force: true })
+  }
 }
 
 export function validateFixture(scenario: Scenario): void {
@@ -629,7 +718,7 @@ export function validateFixture(scenario: Scenario): void {
   }
 }
 
-export function renderPrompt(scenario: Scenario, mode: BenchmarkMode): string {
+export function renderPrompt(scenario: Scenario, mode: BenchmarkMode, benchmarkNonce?: string): string {
   const scopedAssertions = modeScopedAssertions(scenario, mode)
   const rendered = scenario.prompt_template
     .replaceAll("{{task}}", scenario.task)
@@ -653,7 +742,9 @@ export function renderPrompt(scenario: Scenario, mode: BenchmarkMode): string {
       ? `meta.route_used MUST be exactly "${scopedAssertions.expected_route_used}".`
       : ""
 
-  return `${modePromptPrefix[mode]}\n${fixtureNote}\nYou MUST use real tools to gather data. Do not fabricate outputs.\nReturn STRICT JSON only. No markdown fences.\nOutput must be exactly one JSON object with keys: ok, data, error, meta.\n${dataContract}\n${metaContract}\n${routeContract}\n\n${rendered}`
+  const nonceLine = benchmarkNonce ? `Benchmark nonce: ${benchmarkNonce}` : ""
+
+  return `${modePromptPrefix[mode]}\n${fixtureNote}\n${nonceLine}\nYou MUST use real tools to gather data. Do not fabricate outputs.\nReturn STRICT JSON only. No markdown fences.\nOutput must be exactly one JSON object with keys: ok, data, error, meta.\n${dataContract}\n${metaContract}\n${routeContract}\n\n${rendered}`
 }
 
 function buildOutputSchema(assertions: Scenario["assertions"]): Record<string, unknown> {
@@ -749,7 +840,7 @@ function forcedToolCommandHint(scenario: Scenario, mode: BenchmarkMode): string 
   const prNumber = typeof scenario.input.prNumber === "number" ? scenario.input.prNumber : 1
 
   if (mode === "ghx_router") {
-    return `ghx run ${scenario.task} --input '${JSON.stringify(scenario.input)}'`
+    return `pnpm exec ghx run ${scenario.task} --input '${JSON.stringify(scenario.input)}'`
   }
 
   switch (scenario.task) {
@@ -916,6 +1007,7 @@ export async function runScenario(
   try {
     const sessionApi = getSessionApi(client)
     const scopedAssertions = modeScopedAssertions(scenario, mode)
+    const benchmarkNonce = randomUUID()
     const sessionResult = await withTimeout(sessionApi.create({ url: "/session" }), scenario.timeout_ms, "session.create")
     const session = unwrapData<{ id: string }>(sessionResult, "session.create")
     sessionId = session.id
@@ -927,7 +1019,7 @@ export async function runScenario(
         body: {
           model: { providerID: PROVIDER_ID, modelID: MODEL_ID },
           agent: OPEN_CODE_MODE ?? undefined,
-          parts: [{ type: "text", text: renderPrompt(scenario, mode) }],
+          parts: [{ type: "text", text: renderPrompt(scenario, mode, benchmarkNonce) }],
           format: {
             type: "json_schema",
             retryCount: 2,
@@ -1189,154 +1281,48 @@ export async function runScenario(
 export async function runSuite(options: RunSuiteOptions): Promise<void> {
   const { mode, repetitions, scenarioFilter } = options
 
-  const isolatedXdgConfigHome = await mkdtemp(join(tmpdir(), "ghx-router-benchmark-opencode-"))
+  await mkdir(RESULTS_DIR, { recursive: true })
+  const scenarios = await loadScenarios(SCENARIOS_DIR)
+  const selectedScenarios = scenarioFilter
+    ? scenarios.filter((scenario) => scenario.id === scenarioFilter)
+    : scenarios
 
-  const previousEnv = {
-    OPENCODE_CONFIG: process.env.OPENCODE_CONFIG,
-    OPENCODE_CONFIG_DIR: process.env.OPENCODE_CONFIG_DIR,
-    XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME,
-    PATH: process.env.PATH,
-    GH_TOKEN: process.env.GH_TOKEN,
-    GITHUB_TOKEN: process.env.GITHUB_TOKEN
-  }
-
-  const ghToken = previousEnv.GH_TOKEN ?? previousEnv.GITHUB_TOKEN ?? resolveGhTokenFromCli()
-  const ghxAlias = await installLocalGhxAlias()
-
-  delete process.env.OPENCODE_CONFIG
-  delete process.env.OPENCODE_CONFIG_DIR
-  process.env.XDG_CONFIG_HOME = isolatedXdgConfigHome
-  process.env.PATH = previousEnv.PATH ? `${ghxAlias.binDir}${delimiter}${previousEnv.PATH}` : ghxAlias.binDir
-  if (ghToken) {
-    process.env.GH_TOKEN = ghToken
-    process.env.GITHUB_TOKEN = ghToken
-  }
-
-  let client: unknown
-  let server: { close: () => void }
-
-  try {
-    const opencode = await createOpencode({
-      port: Number.isInteger(OPENCODE_PORT) && OPENCODE_PORT > 0 ? OPENCODE_PORT : 3000,
-      config: {
-        model: `${PROVIDER_ID}/${MODEL_ID}`,
-        instructions: [],
-        plugin: [],
-        mcp: {},
-        agent: {},
-        command: {},
-        permission: {
-          edit: "deny",
-          bash: "allow",
-          webfetch: "allow",
-          doom_loop: "deny",
-          external_directory: "deny"
-        }
-      }
-    })
-
-    client = opencode.client
-    server = opencode.server
-  } finally {
-    if (previousEnv.OPENCODE_CONFIG === undefined) {
-      delete process.env.OPENCODE_CONFIG
-    } else {
-      process.env.OPENCODE_CONFIG = previousEnv.OPENCODE_CONFIG
-    }
-
-    if (previousEnv.OPENCODE_CONFIG_DIR === undefined) {
-      delete process.env.OPENCODE_CONFIG_DIR
-    } else {
-      process.env.OPENCODE_CONFIG_DIR = previousEnv.OPENCODE_CONFIG_DIR
-    }
-
-    if (previousEnv.XDG_CONFIG_HOME === undefined) {
-      delete process.env.XDG_CONFIG_HOME
-    } else {
-      process.env.XDG_CONFIG_HOME = previousEnv.XDG_CONFIG_HOME
-    }
-
-    if (previousEnv.PATH === undefined) {
-      delete process.env.PATH
-    } else {
-      process.env.PATH = previousEnv.PATH
-    }
-
-    if (previousEnv.GH_TOKEN === undefined) {
-      delete process.env.GH_TOKEN
-    } else {
-      process.env.GH_TOKEN = previousEnv.GH_TOKEN
-    }
-
-    if (previousEnv.GITHUB_TOKEN === undefined) {
-      delete process.env.GITHUB_TOKEN
-    } else {
-      process.env.GITHUB_TOKEN = previousEnv.GITHUB_TOKEN
-    }
-  }
-
-  try {
-    const configApi = (client as { config?: { get?: (args?: Record<string, unknown>) => Promise<unknown> } }).config
-    if (configApi?.get) {
-      const configResponse = await configApi.get({ url: "/config" })
-      const resolvedConfig = unwrapData<Record<string, unknown>>(configResponse, "config.get")
-      const configuredInstructions = Array.isArray(resolvedConfig.instructions) ? resolvedConfig.instructions : []
-      const configuredPlugins = Array.isArray(resolvedConfig.plugin) ? resolvedConfig.plugin : []
-
-      if (configuredInstructions.length > 0 || configuredPlugins.length > 0) {
-        throw new Error(
-          `benchmark_config_not_clean: expected empty instructions/plugins, got instructions=${configuredInstructions.length}, plugins=${configuredPlugins.length}`
-        )
-      }
-    }
-
-    await mkdir(RESULTS_DIR, { recursive: true })
-    const scenarios = await loadScenarios(SCENARIOS_DIR)
-    const selectedScenarios = scenarioFilter
-      ? scenarios.filter((scenario) => scenario.id === scenarioFilter)
-      : scenarios
-
-    if (selectedScenarios.length === 0) {
-      throw new Error(
-        scenarioFilter ? `No scenarios matched filter: ${scenarioFilter}` : "No benchmark scenarios found"
-      )
-    }
-
-    const outFile = join(
-      RESULTS_DIR,
-      `${new Date().toISOString().replace(/[:.]/g, "-")}-${mode}-suite.jsonl`
+  if (selectedScenarios.length === 0) {
+    throw new Error(
+      scenarioFilter ? `No scenarios matched filter: ${scenarioFilter}` : "No benchmark scenarios found"
     )
-
-    for (const scenario of selectedScenarios) {
-      validateFixture(scenario)
-
-      for (let iteration = 1; iteration <= repetitions; iteration += 1) {
-        let latestResult: BenchmarkRow | null = null
-
-        for (let attempt = 0; attempt <= scenario.allowed_retries; attempt += 1) {
-          const result = await runScenario(client, scenario, mode, iteration)
-          latestResult = {
-            ...result,
-            external_retry_count: attempt
-          }
-
-          if (result.success || attempt === scenario.allowed_retries) {
-            break
-          }
-        }
-
-        if (!latestResult) {
-          throw new Error(`No benchmark result produced for scenario ${scenario.id}`)
-        }
-
-        await appendFile(outFile, `${JSON.stringify(latestResult)}\n`, "utf8")
-      }
-    }
-
-    console.log(`Wrote benchmark suite results: ${outFile}`)
-  } finally {
-    server.close()
-    await rm(ghxAlias.binDir, { recursive: true, force: true })
-    await rm(isolatedXdgConfigHome, { recursive: true, force: true })
   }
+
+  const outFile = join(
+    RESULTS_DIR,
+    `${new Date().toISOString().replace(/[:.]/g, "-")}-${mode}-suite.jsonl`
+  )
+
+  for (const scenario of selectedScenarios) {
+    validateFixture(scenario)
+
+    for (let iteration = 1; iteration <= repetitions; iteration += 1) {
+      let latestResult: BenchmarkRow | null = null
+
+      for (let attempt = 0; attempt <= scenario.allowed_retries; attempt += 1) {
+        const result = await withIsolatedBenchmarkClient((client) => runScenario(client, scenario, mode, iteration))
+        latestResult = {
+          ...result,
+          external_retry_count: attempt
+        }
+
+        if (result.success || attempt === scenario.allowed_retries) {
+          break
+        }
+      }
+
+      if (!latestResult) {
+        throw new Error(`No benchmark result produced for scenario ${scenario.id}`)
+      }
+
+      await appendFile(outFile, `${JSON.stringify(latestResult)}\n`, "utf8")
+    }
+  }
+
+  console.log(`Wrote benchmark suite results: ${outFile}`)
 }

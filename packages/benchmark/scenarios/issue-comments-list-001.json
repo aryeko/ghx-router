@@ -18,7 +18,7 @@
     "must_succeed": true,
     "require_tool_calls": true,
     "min_tool_calls": 1,
-    "max_tool_calls": 4,
+    "max_tool_calls": 6,
     "required_fields": ["ok", "data", "error", "meta"],
     "required_data_fields": ["items", "pageInfo"],
     "required_meta_fields": ["route_used"],

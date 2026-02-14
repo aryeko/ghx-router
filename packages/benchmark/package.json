@@ -23,6 +23,7 @@
     }
   },
   "dependencies": {
+    "@ghx-router/core": "workspace:*",
     "@opencode-ai/sdk": "^1.1.64",
     "zod": "^3.24.1"
   },

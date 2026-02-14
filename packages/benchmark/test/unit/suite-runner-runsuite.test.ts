@@ -118,7 +118,8 @@ describe("runSuite", () => {
     await expect(mod.runSuite({ mode: "ghx_router", repetitions: 1, scenarioFilter: "none" })).rejects.toThrow(
       "No scenarios matched filter"
     )
-    expect(close).toHaveBeenCalled()
+    expect(close).not.toHaveBeenCalled()
+    expect(createOpencodeMock).not.toHaveBeenCalled()
   })
 
   it("throws when no scenarios exist without a filter", async () => {
@@ -131,7 +132,8 @@ describe("runSuite", () => {
     await expect(mod.runSuite({ mode: "ghx_router", repetitions: 1, scenarioFilter: null })).rejects.toThrow(
       "No benchmark scenarios found"
     )
-    expect(close).toHaveBeenCalled()
+    expect(close).not.toHaveBeenCalled()
+    expect(createOpencodeMock).not.toHaveBeenCalled()
   })
 
   it("retries failed scenario attempts up to allowed_retries", async () => {
@@ -193,6 +195,6 @@ describe("runSuite", () => {
     await expect(mod.runSuite({ mode: "ghx_router", repetitions: 1, scenarioFilter: null })).rejects.toThrow(
       "No benchmark result produced"
     )
-    expect(close).toHaveBeenCalled()
+    expect(close).not.toHaveBeenCalled()
   })
 })

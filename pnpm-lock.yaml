@@ -41,6 +41,9 @@ importers:
 
   packages/benchmark:
     dependencies:
+      '@ghx-router/core':
+        specifier: workspace:*
+        version: link:../ghx-router
       '@opencode-ai/sdk':
         specifier: ^1.1.64
         version: 1.1.64
