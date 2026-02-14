@@ -22,7 +22,7 @@
     },
     "test:coverage": {
       "dependsOn": ["^test:coverage", "typecheck"],
-      "cache": true
+      "cache": false
     },
     "ci": {
       "dependsOn": ["lint", "typecheck", "test:coverage", "build"],
