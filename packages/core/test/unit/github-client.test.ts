@@ -685,4 +685,95 @@ describe("createGithubClient", () => {
       isResolved: false
     })
   })
+
+  it("throws when pr.comment.reply mutation payload is missing comment", async () => {
+    const client = createGithubClient({
+      async execute<TData>(query: string): Promise<TData> {
+        if (query.includes("mutation PrCommentReply")) {
+          return {
+            addPullRequestReviewThreadReply: {
+              comment: null
+            }
+          } as TData
+        }
+
+        return {
+          node: {
+            id: "thread-1",
+            isResolved: true
+          }
+        } as TData
+      }
+    })
+
+    await expect(client.replyToReviewThread({ threadId: "thread-1", body: "done" })).rejects.toThrow(
+      "Review thread mutation failed"
+    )
+  })
+
+  it("throws when pr.comment.reply thread-state lookup returns no node", async () => {
+    const client = createGithubClient({
+      async execute<TData>(query: string): Promise<TData> {
+        if (query.includes("mutation PrCommentReply")) {
+          return {
+            addPullRequestReviewThreadReply: {
+              comment: { id: "comment-1" }
+            }
+          } as TData
+        }
+
+        return {
+          node: null
+        } as TData
+      }
+    })
+
+    await expect(client.replyToReviewThread({ threadId: "thread-1", body: "done" })).rejects.toThrow(
+      "Review thread state lookup failed"
+    )
+  })
+
+  it("throws when pr.comment.resolve payload has no thread", async () => {
+    const client = createGithubClient({
+      async execute<TData>(): Promise<TData> {
+        return {
+          resolveReviewThread: {
+            thread: null
+          }
+        } as TData
+      }
+    })
+
+    await expect(client.resolveReviewThread({ threadId: "thread-1" })).rejects.toThrow("Review thread mutation failed")
+  })
+
+  it("validates non-empty review thread id for thread mutations", async () => {
+    const client = createGithubClient({
+      async execute<TData>(): Promise<TData> {
+        return {
+          resolveReviewThread: {
+            thread: { id: "thread-1", isResolved: true }
+          }
+        } as TData
+      }
+    })
+
+    await expect(client.resolveReviewThread({ threadId: " " })).rejects.toThrow("Review thread id is required")
+  })
+
+  it("validates non-empty body for pr.comment.reply", async () => {
+    const client = createGithubClient({
+      async execute<TData>(): Promise<TData> {
+        return {
+          addPullRequestReviewThreadReply: {
+            comment: { id: "comment-1" }
+          }
+        } as TData
+      }
+    })
+
+    await expect(client.replyToReviewThread({ threadId: "thread-1", body: "   " })).rejects.toThrow(
+      "Reply body is required"
+    )
+  })
 })

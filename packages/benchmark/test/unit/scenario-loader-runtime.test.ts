@@ -46,4 +46,26 @@ describe("loadScenarios", () => {
     const sets = await loadScenarioSets(root)
     expect(sets).toEqual(manifest)
   })
+
+  it("throws when scenario set manifest is not an object", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ghx-bench-scenario-sets-invalid-root-"))
+    await mkdir(root, { recursive: true })
+    await writeFile(join(root, "scenario-sets.json"), JSON.stringify(["default"]), "utf8")
+
+    await expect(loadScenarioSets(root)).rejects.toThrow("Invalid scenario-sets manifest: expected object")
+  })
+
+  it("throws when scenario set contains non-string ids", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ghx-bench-scenario-sets-invalid-ids-"))
+    await mkdir(root, { recursive: true })
+    await writeFile(
+      join(root, "scenario-sets.json"),
+      JSON.stringify({ default: ["repo-view-001", 123], "pr-operations-all": ["repo-view-001"] }),
+      "utf8"
+    )
+
+    await expect(loadScenarioSets(root)).rejects.toThrow(
+      "Invalid scenario-sets manifest: set 'default' must be an array of non-empty scenario ids"
+    )
+  })
 })
