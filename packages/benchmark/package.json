@@ -32,7 +32,7 @@
         "dependsOn": [
           "lint",
           "typecheck",
-          "test",
+          "test:coverage",
           "build",
           "check:scenarios"
         ]

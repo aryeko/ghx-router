@@ -3,25 +3,29 @@
   "defaultBase": "main",
   "parallel": 3,
   "targetDefaults": {
-    "build": {
-      "dependsOn": ["^build"],
-      "outputs": ["{projectRoot}/dist"],
-      "cache": true
-    },
     "lint": {
       "dependsOn": ["^lint"],
-      "cache": true
-    },
-    "test": {
-      "dependsOn": ["^test"],
       "cache": true
     },
     "typecheck": {
       "dependsOn": ["^typecheck"],
       "cache": true
     },
+    "build": {
+      "dependsOn": ["^build", "typecheck"],
+      "outputs": ["{projectRoot}/dist"],
+      "cache": true
+    },
+    "test": {
+      "dependsOn": ["^test", "typecheck"],
+      "cache": true
+    },
+    "test:coverage": {
+      "dependsOn": ["^test:coverage", "typecheck"],
+      "cache": true
+    },
     "ci": {
-      "dependsOn": ["lint", "typecheck", "test", "build"],
+      "dependsOn": ["lint", "typecheck", "test:coverage", "build"],
       "cache": false
     },
     "test:e2e": {

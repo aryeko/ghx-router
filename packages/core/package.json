@@ -74,7 +74,7 @@
         "dependsOn": [
           "lint",
           "typecheck",
-          "test",
+          "test:coverage",
           "build",
           "gql:check"
         ]
