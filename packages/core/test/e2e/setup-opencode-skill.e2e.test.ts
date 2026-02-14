@@ -1,11 +1,11 @@
+import { createOpencode } from "@opencode-ai/sdk"
+import { describe, expect, it } from "vitest"
+
+import { spawnSync } from "node:child_process"
 import { mkdtempSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { spawnSync } from "node:child_process"
 import { fileURLToPath } from "node:url"
-
-import { createOpencode } from "@opencode-ai/sdk"
-import { describe, expect, it } from "vitest"
 
 type CommandResult = {
   status: number
@@ -181,34 +181,35 @@ describe("ghx setup OpenCode skill e2e", () => {
     expect(tarballName).toBeDefined()
     const tarballPath = (tarballName as string).startsWith("/") ? (tarballName as string) : join(packDir, tarballName as string)
     runOrThrow("pnpm", ["add", tarballPath], projectDir)
-    runOrThrow("pnpm", ["exec", "ghx", "setup", "--scope", "project", "--yes"], projectDir)
 
-    process.env.XDG_CONFIG_HOME = isolatedXdgConfig
-    process.chdir(projectDir)
-
-    const providerID = process.env.BENCH_PROVIDER_ID ?? "openai"
-    const modelID = process.env.BENCH_MODEL_ID ?? "gpt-5.3-codex"
-
-    const opencode = await createOpencode({
-      port: 3000,
-      config: {
-        model: `${providerID}/${modelID}`,
-        instructions: [],
-        plugin: [],
-        mcp: {},
-        agent: {},
-        command: {},
-        permission: {
-          edit: "deny",
-          bash: "allow",
-          webfetch: "deny",
-          doom_loop: "deny",
-          external_directory: "deny",
-        },
-      },
-    })
-
+    let opencode: Awaited<ReturnType<typeof createOpencode>> | null = null
     try {
+      process.env.XDG_CONFIG_HOME = isolatedXdgConfig
+      process.chdir(projectDir)
+      runOrThrow("pnpm", ["exec", "ghx", "setup", "--scope", "project", "--yes"], projectDir)
+
+      const providerID = process.env.BENCH_PROVIDER_ID ?? "openai"
+      const modelID = process.env.BENCH_MODEL_ID ?? "gpt-5.3-codex"
+
+      opencode = await createOpencode({
+        port: 3000,
+        config: {
+          model: `${providerID}/${modelID}`,
+          instructions: [],
+          plugin: [],
+          mcp: {},
+          agent: {},
+          command: {},
+          permission: {
+            edit: "deny",
+            bash: "allow",
+            webfetch: "deny",
+            doom_loop: "deny",
+            external_directory: "deny",
+          },
+        },
+      })
+
       const sessionApi = getSessionApi(opencode.client)
 
       const sessionResult = await sessionApi.create({ url: "/session" })
@@ -255,7 +256,7 @@ describe("ghx setup OpenCode skill e2e", () => {
         expect(combinedEvidence).toContain("ghx capabilities list")
       }
     } finally {
-      opencode.server.close()
+      opencode?.server.close()
       process.chdir(originalCwd)
       if (originalXdg === undefined) {
         delete process.env.XDG_CONFIG_HOME
