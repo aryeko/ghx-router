@@ -3,24 +3,39 @@
   "defaultBase": "main",
   "targetDefaults": {
     "build": {
-      "dependsOn": ["^build"],
-      "outputs": ["{projectRoot}/dist"],
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        "{projectRoot}/dist"
+      ],
       "cache": true
     },
     "lint": {
-      "dependsOn": ["^lint"],
+      "dependsOn": [
+        "^lint"
+      ],
       "cache": true
     },
     "test": {
-      "dependsOn": ["^test"],
+      "dependsOn": [
+        "^test"
+      ],
       "cache": true
     },
     "typecheck": {
-      "dependsOn": ["^typecheck"],
+      "dependsOn": [
+        "^typecheck"
+      ],
       "cache": true
     },
     "ci": {
-      "dependsOn": ["lint", "typecheck", "test", "build"],
+      "dependsOn": [
+        "lint",
+        "typecheck",
+        "test",
+        "build"
+      ],
       "cache": false
     }
   },
@@ -32,5 +47,6 @@
         "targetName": "eslint:lint"
       }
     }
-  ]
+  ],
+  "nxCloudId": "6990cfdeb641322dd2b87b5a"
 }
