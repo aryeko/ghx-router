@@ -28,7 +28,7 @@ Efficiency (stable sample):
 - median latency reduction >= 15%
 - median tool-call reduction >= 20%
 
-### Profile: `nightly_full`
+### Profile: `release_strict`
 
 Reliability:
 

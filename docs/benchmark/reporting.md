@@ -13,7 +13,7 @@
 - success and output-validity rates
 - runner-failure and timeout/stall rates
 - tool-call and retry trends
-- v2 gate outcome with profile (`pr_fast` or `nightly_full`)
+- v2 gate outcome with profile (`pr_fast` or `release_strict`)
 - stable-sample efficiency coverage and reductions
 - legacy v1 gate outcome (compatibility visibility)
 - profiling snapshot (assistant reasoning, reasoning->tool gap, tool runtime, post-tool)
@@ -28,7 +28,7 @@
 `report` supports profile selection:
 
 - `--gate-profile pr_fast` (default)
-- `--gate-profile nightly_full`
+- `--gate-profile release_strict`
 
 `--gate` evaluates gate v2 for the selected profile.
 

@@ -1,6 +1,6 @@
 import type { BenchmarkMode, BenchmarkRow } from "../domain/types.js"
 
-export type GateProfile = "pr_fast" | "nightly_full"
+export type GateProfile = "pr_fast" | "release_strict"
 
 type GateCheck = {
   name: string
@@ -125,7 +125,7 @@ const GATE_V2_THRESHOLDS: Record<GateProfile, GateV2Thresholds> = {
     maxRetryRatePct: 15,
     minSamplesPerScenarioPerMode: 1,
   },
-  nightly_full: {
+  release_strict: {
     minTokensActiveReductionPct: 22,
     minLatencyReductionPct: 20,
     minToolCallReductionPct: 30,

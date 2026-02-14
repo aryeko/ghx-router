@@ -35,6 +35,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - uses: nrwl/nx-set-shas@v4
       - run: pnpm run ci:affected --parallel=3 --outputStyle=static
+      - name: Benchmark gate (pr_fast, Node 24, secret-gated)
+        if: ${{ matrix.node-version == 24 && env.OPENAI_API_KEY != '' }}
+        run: pnpm --filter @ghx-dev/core run build && pnpm --filter @ghx-dev/benchmark run run -- agent_direct 1 --scenario-set pr-exec && GHX_SKIP_GH_PREFLIGHT=1 pnpm --filter @ghx-dev/benchmark run run -- ghx 1 --scenario-set pr-exec && pnpm --filter @ghx-dev/benchmark exec tsx src/cli/report.ts --gate --gate-profile pr_fast
       - name: Run core E2E local (Node 24)
         if: matrix.node-version == 24
         run: pnpm --filter @ghx-dev/core run test:e2e:local

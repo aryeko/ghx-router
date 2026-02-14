@@ -139,17 +139,17 @@ describe("buildSummary", () => {
     expect(tokenCheck?.passed).toBe(false)
   })
 
-  it("supports nightly profile with stricter sample requirements", () => {
+  it("supports release_strict profile with stricter sample requirements", () => {
     const summary = buildSummary(
       [
         row({ mode: "agent_direct", scenario_id: "s1", latency_ms_wall: 100, tool_calls: 5, tokens: { input: 0, output: 0, reasoning: 0, cache_read: 0, cache_write: 0, total: 100 } }),
         row({ mode: "ghx", scenario_id: "s1", latency_ms_wall: 70, tool_calls: 3, tokens: { input: 0, output: 0, reasoning: 0, cache_read: 0, cache_write: 0, total: 70 } })
       ],
       undefined,
-      "nightly_full"
+      "release_strict"
     )
 
-    expect(summary.gateV2.profile).toBe("nightly_full")
+    expect(summary.gateV2.profile).toBe("release_strict")
     expect(summary.gateV2.checks.find((check) => check.name === "efficiency_coverage")?.passed).toBe(false)
   })
 
