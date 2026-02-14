@@ -16,12 +16,76 @@
     "run": "tsx src/cli/benchmark.ts run",
     "check:scenarios": "tsx src/cli/check-scenarios.ts",
     "report": "tsx src/cli/report.ts",
-    "report:gate": "tsx src/cli/report.ts --gate"
+    "report:gate": "pnpm run report -- --gate",
+    "proof:pr-fast:direct": "BENCH_OPENCODE_PORT=3002 pnpm run run -- agent_direct 1 --scenario-set pr-exec",
+    "proof:pr-fast:ghx": "GHX_SKIP_GH_PREFLIGHT=1 BENCH_OPENCODE_PORT=3001 pnpm run run -- ghx 1 --scenario-set pr-exec",
+    "proof:pr-fast:report": "pnpm report:gate --gate-profile pr_fast",
+    "proof:release-strict:direct": "BENCH_OPENCODE_PORT=3004 pnpm run run -- agent_direct 3 --scenario-set pr-exec",
+    "proof:release-strict:ghx": "GHX_SKIP_GH_PREFLIGHT=1 BENCH_OPENCODE_PORT=3003 pnpm run run -- ghx 3 --scenario-set pr-exec",
+    "proof:release-strict:report": "pnpm report:gate --gate-profile release_strict"
   },
   "nx": {
     "targets": {
       "ci": {
-        "dependsOn": ["lint", "typecheck", "test", "build", "check:scenarios"]
+        "dependsOn": [
+          "lint",
+          "typecheck",
+          "test",
+          "build",
+          "check:scenarios"
+        ]
+      },
+      "proof:pr-fast:direct": {
+        "dependsOn": [
+          "build"
+        ],
+        "cache": false
+      },
+      "proof:pr-fast:ghx": {
+        "dependsOn": [
+          "build"
+        ],
+        "cache": false
+      },
+      "proof:pr-fast:report": {
+        "dependsOn": [
+          "proof:pr-fast:direct",
+          "proof:pr-fast:ghx"
+        ],
+        "cache": false
+      },
+      "proof:pr-fast": {
+        "dependsOn": [
+          "proof:pr-fast:direct",
+          "proof:pr-fast:ghx",
+          "proof:pr-fast:report"
+        ]
+      },
+      "proof:release-strict:direct": {
+        "dependsOn": [
+          "build"
+        ],
+        "cache": false
+      },
+      "proof:release-strict:ghx": {
+        "dependsOn": [
+          "build"
+        ],
+        "cache": false
+      },
+      "proof:release-strict:report": {
+        "dependsOn": [
+          "proof:release-strict:direct",
+          "proof:release-strict:ghx"
+        ],
+        "cache": false
+      },
+      "proof:release-strict": {
+        "dependsOn": [
+          "proof:release-strict:direct",
+          "proof:release-strict:ghx",
+          "proof:release-strict:report"
+        ]
       }
     }
   },

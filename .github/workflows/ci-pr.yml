@@ -35,15 +35,6 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - uses: nrwl/nx-set-shas@v4
       - run: pnpm run ci:affected --parallel=3 --outputStyle=static
-      - name: Benchmark gate (pr_fast, Node 24, secret-gated)
-        if: ${{ matrix.node-version == 24 && env.OPENAI_API_KEY != '' }}
-        run: pnpm run benchmark:proof:pr-fast
-      - name: Run core E2E local (Node 24)
-        if: matrix.node-version == 24
-        run: pnpm --filter @ghx-dev/core run test:e2e:local
-      - name: Run core E2E SDK (Node 24, secret-gated)
-        if: ${{ matrix.node-version == 24 && env.OPENAI_API_KEY != '' }}
-        run: pnpm --filter @ghx-dev/core run test:e2e:sdk
       - name: Generate coverage (Node 24)
         if: matrix.node-version == 24
         run: pnpm run test:coverage
@@ -64,3 +55,31 @@ jobs:
           flags: pr
           use_oidc: true
           fail_ci_if_error: true
+
+  benchmark-and-e2e:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GITHUB_TOKEN: ${{ github.token }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm nx run @ghx-dev/core:build
+      - name: Run core E2E local
+        run: pnpm --filter @ghx-dev/core run test:e2e:local
+      - name: Run core E2E SDK (secret-gated)
+        if: ${{ env.OPENAI_API_KEY != '' }}
+        run: pnpm --filter @ghx-dev/core run test:e2e:sdk
+      - name: Benchmark gate (pr_fast, secret-gated)
+        if: ${{ env.OPENAI_API_KEY != '' }}
+        run: pnpm run benchmark:proof:pr-fast
