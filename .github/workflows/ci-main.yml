@@ -30,7 +30,7 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run ci
+      - run: pnpm run ci --parallel=3 --outputStyle=static
       - name: Generate coverage
         run: pnpm run test:coverage
       - name: Upload coverage and test results to Codecov
