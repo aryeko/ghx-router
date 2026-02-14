@@ -59,6 +59,9 @@
     "prepack": "pnpm run build",
     "lint": "eslint . --max-warnings=0",
     "test": "vitest run",
+    "test:e2e": "pnpm run test:e2e:local && pnpm run test:e2e:sdk",
+    "test:e2e:local": "vitest run test/e2e/setup-install-verify.e2e.test.ts",
+    "test:e2e:sdk": "vitest run test/e2e/setup-opencode-skill.e2e.test.ts",
     "test:coverage": "vitest run --coverage --coverage.reporter=text --coverage.reporter=text-summary --coverage.reporter=lcov",
     "typecheck": "tsc --noEmit",
     "gql:codegen": "tsx scripts/run-gql-codegen.ts",
@@ -86,6 +89,7 @@
     "js-yaml": "^4.1.0"
   },
   "devDependencies": {
+    "@opencode-ai/sdk": "^1.1.64",
     "@vitest/coverage-v8": "^2.1.8",
     "@graphql-codegen/cli": "^5.0.7",
     "@graphql-codegen/near-operation-file-preset": "^3.1.0",

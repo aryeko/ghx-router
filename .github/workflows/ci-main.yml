@@ -18,6 +18,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GITHUB_TOKEN: ${{ github.token }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -30,6 +31,11 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm run ci --parallel=3 --outputStyle=static
+      - name: Run core E2E local
+        run: pnpm --filter @ghx-dev/core run test:e2e:local
+      - name: Run core E2E SDK (secret-gated)
+        if: ${{ env.OPENAI_API_KEY != '' }}
+        run: pnpm --filter @ghx-dev/core run test:e2e:sdk
       - name: Generate coverage
         run: pnpm run test:coverage
       - name: Upload coverage to Codecov

@@ -18,6 +18,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GITHUB_TOKEN: ${{ github.token }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
     strategy:
       fail-fast: false
       matrix:
@@ -34,6 +35,12 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - uses: nrwl/nx-set-shas@v4
       - run: pnpm run ci:affected --parallel=3 --outputStyle=static
+      - name: Run core E2E local (Node 24)
+        if: matrix.node-version == 24
+        run: pnpm --filter @ghx-dev/core run test:e2e:local
+      - name: Run core E2E SDK (Node 24, secret-gated)
+        if: ${{ matrix.node-version == 24 && env.OPENAI_API_KEY != '' }}
+        run: pnpm --filter @ghx-dev/core run test:e2e:sdk
       - name: Generate coverage (Node 24)
         if: matrix.node-version == 24
         run: pnpm run test:coverage
