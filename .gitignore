@@ -3,6 +3,7 @@ dist/
 .nx/
 coverage/
 packages/*/coverage/
+packages/*/test-report.junit.xml
 
 # Benchmark runtime outputs
 packages/benchmark/results/*.jsonl
