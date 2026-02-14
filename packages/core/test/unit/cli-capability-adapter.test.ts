@@ -2232,4 +2232,116 @@ describe("runCliCapability", () => {
     expect(result.error?.message).toContain("Missing owner/name")
     expect(runner.run).not.toHaveBeenCalled()
   })
+
+  it("covers validation failure branches across roadmap CLI capabilities", async () => {
+    const runner = {
+      run: vi.fn(async () => {
+        throw new Error("runner should not be invoked for build-arg validation failures")
+      })
+    }
+
+    const cases = [
+      { capabilityId: "pr.review.submit_approve", params: { prNumber: 0 }, message: "prNumber" },
+      { capabilityId: "pr.review.submit_request_changes", params: { prNumber: 1 }, message: "body" },
+      { capabilityId: "pr.merge.execute", params: { prNumber: 0 }, message: "prNumber" },
+      { capabilityId: "pr.merge.execute", params: { prNumber: 1, method: "fast-forward" }, message: "method" },
+      { capabilityId: "pr.merge.execute", params: { prNumber: 1, method: "merge", deleteBranch: "yes" }, message: "deleteBranch" },
+      { capabilityId: "pr.checks.rerun_failed", params: { prNumber: 0, runId: 1 }, message: "prNumber" },
+      { capabilityId: "pr.reviewers.request", params: { prNumber: 0, reviewers: ["octocat"] }, message: "prNumber" },
+      { capabilityId: "pr.reviewers.request", params: { prNumber: 1, reviewers: [] }, message: "reviewers" },
+      { capabilityId: "pr.assignees.update", params: { prNumber: 0, add: ["octocat"] }, message: "prNumber" },
+      { capabilityId: "pr.assignees.update", params: { prNumber: 1, add: [], remove: [] }, message: "assignees" },
+      { capabilityId: "pr.branch.update", params: { prNumber: 0 }, message: "prNumber" },
+      { capabilityId: "workflow.list", params: { owner: "acme", name: "modkit", first: 0 }, message: "first" },
+      { capabilityId: "workflow.get", params: { owner: "acme", name: "modkit", workflowId: null }, message: "workflowId" },
+      { capabilityId: "workflow_run.get", params: { owner: "acme", name: "modkit", runId: 0 }, message: "runId" },
+      { capabilityId: "workflow_run.rerun_all", params: { owner: "acme", name: "modkit", runId: 0 }, message: "runId" },
+      { capabilityId: "workflow_run.artifacts.list", params: { owner: "acme", name: "modkit", runId: 0 }, message: "runId" },
+      { capabilityId: "project_v2.fields.list", params: { owner: "", projectNumber: 1 }, message: "owner/projectNumber" },
+      { capabilityId: "project_v2.items.list", params: { owner: "acme", projectNumber: 1, first: 0 }, message: "owner/projectNumber/first" },
+      { capabilityId: "release.list", params: { owner: "acme", name: "modkit", first: 0 }, message: "first" },
+      { capabilityId: "release.get", params: { owner: "acme", name: "modkit", tagName: "" }, message: "tagName" },
+      { capabilityId: "release.create_draft", params: { owner: "acme", name: "modkit", tagName: "" }, message: "tagName" },
+      { capabilityId: "release.update", params: { owner: "acme", name: "modkit", releaseId: 0 }, message: "releaseId" },
+      { capabilityId: "release.publish_draft", params: { owner: "acme", name: "modkit", releaseId: 0 }, message: "releaseId" },
+      { capabilityId: "workflow_dispatch.run", params: { owner: "acme", name: "modkit", ref: "main" }, message: "workflowId" },
+      { capabilityId: "workflow_dispatch.run", params: { owner: "acme", name: "modkit", workflowId: "ci" }, message: "ref" },
+      { capabilityId: "workflow_dispatch.run", params: { owner: "acme", name: "modkit", workflowId: "ci", ref: "main", inputs: null }, message: "inputs" },
+      { capabilityId: "workflow_dispatch.run", params: { owner: "acme", name: "modkit", workflowId: "ci", ref: "main", inputs: { "": "x" } }, message: "inputs" },
+      { capabilityId: "workflow_dispatch.run", params: { owner: "acme", name: "modkit", workflowId: "ci", ref: "main", inputs: { env: {} } }, message: "inputs" },
+      { capabilityId: "workflow_run.rerun_failed", params: { owner: "acme", name: "modkit", runId: 0 }, message: "runId" },
+      { capabilityId: "project_v2.item.add_issue", params: { owner: "acme", projectNumber: 1, issueUrl: "" }, message: "owner/projectNumber/issueUrl" },
+      { capabilityId: "project_v2.item.field.update", params: { projectId: "", itemId: "", fieldId: "" }, message: "projectId/itemId/fieldId" }
+    ] as const
+
+    for (const testCase of cases) {
+      const result = await runCliCapability(runner, testCase.capabilityId, testCase.params)
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain(testCase.message)
+    }
+
+    expect(runner.run).not.toHaveBeenCalled()
+  })
+
+  it("covers value-number field updates and passthrough normalization paths", async () => {
+    const runner = {
+      run: vi
+        .fn()
+        .mockResolvedValueOnce({
+          stdout: JSON.stringify({ id: "item-42" }),
+          stderr: "",
+          exitCode: 0
+        })
+        .mockResolvedValueOnce({
+          stdout: JSON.stringify({ items: [{ id: "item-1", content: null }] }),
+          stderr: "",
+          exitCode: 0
+        })
+        .mockResolvedValueOnce({
+          stdout: JSON.stringify({ updated: true, marker: "passthrough" }),
+          stderr: "",
+          exitCode: 0
+        })
+    }
+
+    const fieldUpdateResult = await runCliCapability(runner, "project_v2.item.field.update", {
+      projectId: "project-1",
+      itemId: "item-42",
+      fieldId: "field-9",
+      valueNumber: 3.14
+    })
+    const itemsResult = await runCliCapability(runner, "project_v2.items.list", {
+      owner: "acme",
+      projectNumber: 1,
+      first: 10
+    })
+    const branchUpdateResult = await runCliCapability(runner, "pr.branch.update", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 7
+    })
+
+    expect(fieldUpdateResult.ok).toBe(true)
+    expect(fieldUpdateResult.data).toEqual({
+      itemId: "item-42",
+      updated: true
+    })
+
+    expect(itemsResult.ok).toBe(true)
+    expect(itemsResult.data).toEqual(
+      expect.objectContaining({
+        items: [
+          {
+            id: "item-1",
+            contentType: null,
+            contentNumber: null,
+            contentTitle: null
+          }
+        ]
+      })
+    )
+
+    expect(branchUpdateResult.ok).toBe(true)
+    expect(branchUpdateResult.data).toEqual({ prNumber: 7, updated: true })
+  })
 })
