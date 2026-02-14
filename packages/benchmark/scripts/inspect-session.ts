@@ -1,9 +1,16 @@
 import { createOpencode } from "@opencode-ai/sdk"
 
-const sessionId = process.argv[2]
+type SessionMessage = {
+  info: unknown
+  parts: unknown[]
+}
 
-if (!sessionId) {
-  throw new Error("Usage: tsx scripts/inspect-session.ts <session-id>")
+type SessionApi = {
+  messages: (args: { path: { id: string } }) => Promise<SessionMessage[]>
+}
+
+type OpencodeClient = {
+  session?: SessionApi
 }
 
 const PROVIDER_ID = process.env.BENCH_PROVIDER_ID ?? "openai"
@@ -11,6 +18,11 @@ const MODEL_ID = process.env.BENCH_MODEL_ID ?? "gpt-5.3-codex"
 const OPENCODE_PORT = Number.parseInt(process.env.BENCH_OPENCODE_PORT ?? "3000", 10)
 
 async function main(): Promise<void> {
+  const sessionId = process.argv[2]
+  if (!sessionId) {
+    throw new Error("Usage: tsx scripts/inspect-session.ts <session-id>")
+  }
+
   const opencode = await createOpencode({
     port: Number.isInteger(OPENCODE_PORT) && OPENCODE_PORT > 0 ? OPENCODE_PORT : 3000,
     config: {
@@ -31,20 +43,13 @@ async function main(): Promise<void> {
   })
 
   try {
-    const session = (opencode.client as { session?: unknown }).session
-    if (!session || typeof session !== "object") {
+    const client = opencode.client as OpencodeClient
+    const sessionApi = client.session
+    if (!sessionApi || typeof sessionApi.messages !== "function") {
       throw new Error("session API is unavailable")
     }
 
-    const messages = (session as { messages?: unknown }).messages
-    if (typeof messages !== "function") {
-      throw new Error("session.messages API is unavailable")
-    }
-
-    const response = await (messages as (args: { path: { id: string }; query?: { limit?: number } }) => Promise<unknown>)({
-      path: { id: sessionId },
-      query: { limit: 100 }
-    })
+    const response = await sessionApi.messages({ path: { id: sessionId } })
 
     process.stdout.write(`${JSON.stringify(response, null, 2)}\n`)
   } finally {

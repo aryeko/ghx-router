@@ -58,6 +58,14 @@ describe("createSafeCliCommandRunner", () => {
     await expect(runner.run("definitely-not-a-real-command-ghx", [], 1000)).rejects.toThrow()
   })
 
+  it("rejects when timeout is non-positive", async () => {
+    const runner = createSafeCliCommandRunner()
+
+    await expect(runner.run(process.execPath, ["-e", "process.stdout.write('ok')"], 0)).rejects.toThrow(
+      "timeoutMs must be a positive number"
+    )
+  })
+
   it("ignores duplicate settle signals and post-overflow stream chunks", async () => {
     const stdout = new EventEmitter()
     const stderr = new EventEmitter()

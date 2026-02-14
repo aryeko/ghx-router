@@ -13,6 +13,10 @@ export function createSafeCliCommandRunner(options?: SafeRunnerOptions): CliComm
 
   return {
     run(command: string, args: string[], timeoutMs: number): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+      if (timeoutMs <= 0) {
+        return Promise.reject(new Error("timeoutMs must be a positive number"))
+      }
+
       return new Promise((resolve, reject) => {
         const child = spawn(command, args, {
           shell: false,
