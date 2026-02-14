@@ -7,7 +7,7 @@
     "ghx": "dist/cli/index.js"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && node scripts/copy-registry-cards.mjs",
+    "build": "tsup \"src/**/*.ts\" --format esm --out-dir dist --clean --no-dts --sourcemap && node scripts/copy-registry-cards.mjs",
     "lint": "eslint . --max-warnings=0",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage --coverage.reporter=lcov --coverage.reporter=text-summary",
@@ -39,6 +39,7 @@
     "@graphql-codegen/typescript-operations": "^4.6.1",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^25.2.3",
+    "tsup": "^8.5.0",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^2.1.8"

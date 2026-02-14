@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsup \"src/**/*.ts\" --format esm --out-dir dist --clean --no-dts --sourcemap",
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
@@ -30,6 +30,7 @@
   "devDependencies": {
     "@vitest/coverage-v8": "^2.1.8",
     "@types/node": "^25.2.3",
+    "tsup": "^8.5.0",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^2.1.8"
