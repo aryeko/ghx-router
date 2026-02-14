@@ -3,6 +3,8 @@ import { homedir } from "node:os"
 import { dirname, join } from "node:path"
 import readline from "node:readline/promises"
 
+import Ajv from "ajv"
+
 type SetupScope = "user" | "project"
 
 type SetupOptions = {
@@ -12,6 +14,26 @@ type SetupOptions = {
   verifyOnly: boolean
   track: boolean
 }
+
+const ajv = new Ajv({ allErrors: true, strict: false })
+
+const setupOptionsSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["scope", "assumeYes", "dryRun", "verifyOnly", "track"],
+  properties: {
+    scope: {
+      type: "string",
+      enum: ["user", "project"]
+    },
+    assumeYes: { type: "boolean" },
+    dryRun: { type: "boolean" },
+    verifyOnly: { type: "boolean" },
+    track: { type: "boolean" }
+  }
+} as const
+
+const validateSetupOptions = ajv.compile(setupOptionsSchema)
 
 const SKILL_CONTENT = `# ghx skill
 
@@ -59,13 +81,19 @@ function parseArgs(argv: string[]): SetupOptions | null {
     return null
   }
 
-  return {
+  const options: SetupOptions = {
     scope,
     assumeYes: argv.includes("--yes"),
     dryRun: argv.includes("--dry-run"),
     verifyOnly: argv.includes("--verify"),
     track: argv.includes("--track")
   }
+
+  if (!validateSetupOptions(options)) {
+    return null
+  }
+
+  return options
 }
 
 function resolveSkillPath(scope: SetupScope): string {
@@ -125,8 +153,14 @@ async function verifySkill(skillPath: string): Promise<boolean> {
   try {
     const content = await readFile(skillPath, "utf8")
     return content.includes("ghx capabilities")
-  } catch {
-    return false
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error) {
+      if ((error as { code?: string }).code === "ENOENT") {
+        return false
+      }
+    }
+
+    throw error
   }
 }
 
@@ -134,8 +168,14 @@ async function skillFileExists(skillPath: string): Promise<boolean> {
   try {
     await access(skillPath)
     return true
-  } catch {
-    return false
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error) {
+      if ((error as { code?: string }).code === "ENOENT") {
+        return false
+      }
+    }
+
+    throw error
   }
 }
 
@@ -148,39 +188,45 @@ export async function setupCommand(argv: string[] = []): Promise<number> {
 
   const skillPath = resolveSkillPath(parsed.scope)
 
-  if (parsed.verifyOnly) {
-    const ok = await verifySkill(skillPath)
-    if (!ok) {
-      process.stderr.write(`Verify failed: skill not installed at ${skillPath}\n`)
-      return 1
+  try {
+    if (parsed.verifyOnly) {
+      const ok = await verifySkill(skillPath)
+      if (!ok) {
+        process.stderr.write(`Verify failed: skill not installed at ${skillPath}\n`)
+        return 1
+      }
+
+      process.stdout.write(`Verify passed: skill installed at ${skillPath}\n`)
+      return 0
     }
 
-    process.stdout.write(`Verify passed: skill installed at ${skillPath}\n`)
-    return 0
-  }
-
-  if (parsed.dryRun) {
-    process.stdout.write(`Dry run: would write ${skillPath}\n`)
-    return 0
-  }
-
-  const alreadyExists = await skillFileExists(skillPath)
-  if (alreadyExists && !parsed.assumeYes) {
-    const approved = await confirmOverwrite(skillPath)
-    if (!approved) {
-      process.stderr.write(
-        `Skill already exists at ${skillPath}. Re-run with --yes or confirm overwrite interactively.\n`
-      )
-      await writeTrackingEvent({ track: parsed.track, scope: parsed.scope, mode: "apply", success: false })
-      return 1
+    if (parsed.dryRun) {
+      process.stdout.write(`Dry run: would write ${skillPath}\n`)
+      return 0
     }
+
+    const alreadyExists = await skillFileExists(skillPath)
+    if (alreadyExists && !parsed.assumeYes) {
+      const approved = await confirmOverwrite(skillPath)
+      if (!approved) {
+        process.stderr.write(
+          `Skill already exists at ${skillPath}. Re-run with --yes or confirm overwrite interactively.\n`
+        )
+        await writeTrackingEvent({ track: parsed.track, scope: parsed.scope, mode: "apply", success: false })
+        return 1
+      }
+    }
+
+    await mkdir(dirname(skillPath), { recursive: true })
+    await writeFile(skillPath, SKILL_CONTENT, "utf8")
+
+    process.stdout.write(`Setup complete: wrote ${skillPath}\n`)
+    process.stdout.write("Try: ghx capabilities list\n")
+    await writeTrackingEvent({ track: parsed.track, scope: parsed.scope, mode: "apply", success: true })
+    return 0
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    process.stderr.write(`Setup failed: ${message}\n`)
+    return 1
   }
-
-  await mkdir(dirname(skillPath), { recursive: true })
-  await writeFile(skillPath, SKILL_CONTENT, "utf8")
-
-  process.stdout.write(`Setup complete: wrote ${skillPath}\n`)
-  process.stdout.write("Try: ghx capabilities list\n")
-  await writeTrackingEvent({ track: parsed.track, scope: parsed.scope, mode: "apply", success: true })
-  return 0
 }

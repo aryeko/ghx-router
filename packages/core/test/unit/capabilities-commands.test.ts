@@ -1,9 +1,13 @@
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { capabilitiesExplainCommand } from "../../src/cli/commands/capabilities-explain.js"
 import { capabilitiesListCommand } from "../../src/cli/commands/capabilities-list.js"
 
 describe("capabilities CLI commands", () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
   it("lists capabilities in text output by default", async () => {
     const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true)
 

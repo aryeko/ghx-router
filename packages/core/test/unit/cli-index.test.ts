@@ -105,6 +105,17 @@ describe("cli index main", () => {
     )
   })
 
+  it("prints usage when capabilities subcommand is missing", async () => {
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true)
+
+    const code = await main(["capabilities"])
+
+    expect(code).toBe(1)
+    expect(stderr).toHaveBeenCalledWith(
+      "Missing capabilities subcommand.\nUsage:\n  ghx run <task> --input '<json>'\n  ghx setup --scope <user|project> [--yes] [--dry-run] [--verify] [--track]\n  ghx capabilities list\n  ghx capabilities explain <capability_id>\n"
+    )
+  })
+
   it("prints error and exits 1 for unknown command", async () => {
     const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true)
 

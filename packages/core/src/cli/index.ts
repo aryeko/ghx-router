@@ -37,6 +37,11 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
   if (command === "capabilities") {
     const [subcommand, ...subcommandArgs] = rest
 
+    if (!subcommand) {
+      process.stderr.write(`Missing capabilities subcommand.\n${usage()}\n`)
+      return 1
+    }
+
     if (subcommand === "list") {
       return capabilitiesListCommand(subcommandArgs)
     }
@@ -45,7 +50,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
       return capabilitiesExplainCommand(subcommandArgs)
     }
 
-    process.stderr.write(`Unknown capabilities subcommand: ${subcommand ?? ""}\n${usage()}\n`)
+    process.stderr.write(`Unknown capabilities subcommand: ${subcommand}\n${usage()}\n`)
     return 1
   }
 
