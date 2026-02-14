@@ -493,6 +493,15 @@ describe("createGithubClient", () => {
         }
       }
 
+      if (query.includes("query ReviewThreadState")) {
+        return {
+          node: {
+            id: "thread-1",
+            isResolved: true
+          }
+        }
+      }
+
       throw new Error("unexpected query")
     })
 
@@ -500,7 +509,7 @@ describe("createGithubClient", () => {
 
     await expect(client.replyToReviewThread({ threadId: "thread-1", body: "done" })).resolves.toEqual({
       id: "thread-1",
-      isResolved: false
+      isResolved: true
     })
     await expect(client.resolveReviewThread({ threadId: "thread-1" })).resolves.toEqual({
       id: "thread-1",

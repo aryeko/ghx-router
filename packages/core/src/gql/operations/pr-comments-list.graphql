@@ -11,6 +11,7 @@ query PrCommentsList($owner: String!, $name: String!, $prNumber: Int!, $first: I
           subjectType
           isResolved
           isOutdated
+          viewerCanReply
           viewerCanResolve
           viewerCanUnresolve
           resolvedBy {

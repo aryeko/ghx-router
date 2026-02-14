@@ -11,7 +11,7 @@ export type PrCommentsListQueryVariables = Types.Exact<{
 }>;
 
 
-export type PrCommentsListQuery = { __typename?: 'Query', repository?: { __typename?: 'Repository', pullRequest?: { __typename?: 'PullRequest', reviewThreads: { __typename?: 'PullRequestReviewThreadConnection', nodes?: Array<{ __typename?: 'PullRequestReviewThread', id: string, path: string, line?: number | null, startLine?: number | null, diffSide: Types.DiffSide, subjectType: Types.PullRequestReviewThreadSubjectType, isResolved: boolean, isOutdated: boolean, viewerCanResolve: boolean, viewerCanUnresolve: boolean, resolvedBy?: { __typename?: 'User', login: string } | null, comments: { __typename?: 'PullRequestReviewCommentConnection', nodes?: Array<{ __typename?: 'PullRequestReviewComment', id: string, body: string, createdAt: any, url: any, author?: { __typename?: 'Bot', login: string } | { __typename?: 'EnterpriseUserAccount', login: string } | { __typename?: 'Mannequin', login: string } | { __typename?: 'Organization', login: string } | { __typename?: 'User', login: string } | null } | null> | null } } | null> | null, pageInfo: { __typename?: 'PageInfo', endCursor?: string | null, hasNextPage: boolean } } } | null } | null };
+export type PrCommentsListQuery = { __typename?: 'Query', repository?: { __typename?: 'Repository', pullRequest?: { __typename?: 'PullRequest', reviewThreads: { __typename?: 'PullRequestReviewThreadConnection', nodes?: Array<{ __typename?: 'PullRequestReviewThread', id: string, path: string, line?: number | null, startLine?: number | null, diffSide: Types.DiffSide, subjectType: Types.PullRequestReviewThreadSubjectType, isResolved: boolean, isOutdated: boolean, viewerCanReply: boolean, viewerCanResolve: boolean, viewerCanUnresolve: boolean, resolvedBy?: { __typename?: 'User', login: string } | null, comments: { __typename?: 'PullRequestReviewCommentConnection', nodes?: Array<{ __typename?: 'PullRequestReviewComment', id: string, body: string, createdAt: any, url: any, author?: { __typename?: 'Bot', login: string } | { __typename?: 'EnterpriseUserAccount', login: string } | { __typename?: 'Mannequin', login: string } | { __typename?: 'Organization', login: string } | { __typename?: 'User', login: string } | null } | null> | null } } | null> | null, pageInfo: { __typename?: 'PageInfo', endCursor?: string | null, hasNextPage: boolean } } } | null } | null };
 
 
 export const PrCommentsListDocument = `
@@ -28,6 +28,7 @@ export const PrCommentsListDocument = `
           subjectType
           isResolved
           isOutdated
+          viewerCanReply
           viewerCanResolve
           viewerCanUnresolve
           resolvedBy {

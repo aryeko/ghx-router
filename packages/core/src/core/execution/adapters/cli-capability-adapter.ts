@@ -640,7 +640,8 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
     const boundedLog = truncated ? rawLog.slice(0, MAX_WORKFLOW_JOB_LOG_CHARS) : rawLog
 
     const lines = boundedLog.split(/\r?\n/)
-    const errorLines = lines.filter((line) => /\berror\b/i.test(line)).slice(0, 10)
+    const errorLines = lines.filter((line) => /\berror\b/i.test(line))
+    const topErrorLines = errorLines.slice(0, 10)
     const warningLines = lines.filter((line) => /\bwarn(ing)?\b/i.test(line))
 
     return {
@@ -649,7 +650,7 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
       summary: {
         errorCount: errorLines.length,
         warningCount: warningLines.length,
-        topErrorLines: errorLines
+        topErrorLines
       }
     }
   }

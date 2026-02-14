@@ -362,6 +362,7 @@ const PR_COMMENTS_LIST_QUERY = `
             subjectType
             isResolved
             isOutdated
+            viewerCanReply
             viewerCanResolve
             viewerCanUnresolve
             resolvedBy {
@@ -414,6 +415,17 @@ const PR_COMMENT_UNRESOLVE_MUTATION = `
   mutation PrCommentUnresolve($threadId: ID!) {
     unresolveReviewThread(input: { threadId: $threadId }) {
       thread {
+        id
+        isResolved
+      }
+    }
+  }
+`
+
+const REVIEW_THREAD_STATE_QUERY = `
+  query ReviewThreadState($threadId: ID!) {
+    node(id: $threadId) {
+      ... on PullRequestReviewThread {
         id
         isResolved
       }
@@ -722,7 +734,7 @@ function normalizePrReviewThread(thread: unknown): PrReviewThreadData | null {
     subjectType: typeof threadRecord.subjectType === "string" ? threadRecord.subjectType : null,
     isResolved: Boolean(threadRecord.isResolved),
     isOutdated: Boolean(threadRecord.isOutdated),
-    viewerCanReply: true,
+    viewerCanReply: Boolean(threadRecord.viewerCanReply),
     viewerCanResolve: Boolean(threadRecord.viewerCanResolve),
     viewerCanUnresolve: Boolean(threadRecord.viewerCanUnresolve),
     resolvedByLogin: typeof resolvedBy?.login === "string" ? resolvedBy.login : null,
@@ -859,9 +871,17 @@ async function runReplyToReviewThread(
     throw new Error("Review thread mutation failed")
   }
 
+  const threadStateResult = await graphqlClient.query<unknown, GraphqlVariables>(REVIEW_THREAD_STATE_QUERY, {
+    threadId: input.threadId
+  })
+  const threadNode = asRecord(asRecord(threadStateResult)?.node)
+  if (!threadNode || typeof threadNode.id !== "string") {
+    throw new Error("Review thread state lookup failed")
+  }
+
   return {
     id: input.threadId,
-    isResolved: false
+    isResolved: Boolean(threadNode.isResolved)
   }
 }
 
