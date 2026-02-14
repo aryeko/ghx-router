@@ -178,6 +178,12 @@ describe("suite-runner helpers", () => {
     expect(extracted?.parts).toHaveLength(1)
   })
 
+  it("returns null when promptAsync payload data is not an object", () => {
+    const extracted = extractPromptResponseFromPromptResult({ data: "not-an-object" })
+
+    expect(extracted).toBeNull()
+  })
+
   it("extracts envelope from tool output when text parts do not contain JSON", () => {
     const extracted = extractEnvelopeFromParts([
       { type: "text", text: "not json" },
