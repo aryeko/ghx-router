@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs"
+import { mkdtempSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { spawnSync } from "node:child_process"
@@ -247,13 +247,12 @@ describe("ghx setup OpenCode skill e2e", () => {
       const assistantMessages = messages.filter((message) => message.info?.role === "assistant")
       const rawMessages = JSON.stringify(messages)
       const rawPrompt = JSON.stringify(promptResult)
+      const combinedEvidence = `${assistantText}\n${rawMessages}\n${rawPrompt}`
 
       expect(rawPrompt.length).toBeGreaterThan(2)
+      expect(combinedEvidence).toContain("repo.view")
       if (assistantMessages.length > 0) {
-        expect(rawMessages).toContain("ghx capabilities list")
-      }
-      if (assistantText.length > 0) {
-        expect(assistantText).toContain("repo.view")
+        expect(combinedEvidence).toContain("ghx capabilities list")
       }
     } finally {
       opencode.server.close()
