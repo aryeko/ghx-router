@@ -10,7 +10,7 @@
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:coverage": "vitest run --coverage --coverage.reporter=lcov --coverage.reporter=text-summary",
+    "test:coverage": "vitest run --coverage --coverage.reporter=text --coverage.reporter=text-summary --coverage.reporter=lcov",
     "test:watch": "vitest",
     "run": "tsx src/cli/benchmark.ts run",
     "check:scenarios": "tsx src/cli/check-scenarios.ts",
