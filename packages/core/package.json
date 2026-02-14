@@ -59,7 +59,7 @@
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --project unit",
-    "test:watch": "vitest run --project unit --watch",
+    "test:watch": "vitest watch --project unit",
     "test:coverage": "vitest run --project unit --coverage",
     "test:e2e:local": "vitest run --project e2e:local",
     "test:e2e:sdk": "if [ -n \"$OPENAI_API_KEY\" ]; then vitest run --project e2e:sdk; else echo 'Skipping core SDK E2E: OPENAI_API_KEY not set'; fi",
