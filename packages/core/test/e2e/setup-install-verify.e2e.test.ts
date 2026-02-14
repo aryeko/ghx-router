@@ -1,10 +1,10 @@
+import { describe, expect, it } from "vitest"
+
+import { spawnSync } from "node:child_process"
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { spawnSync } from "node:child_process"
 import { fileURLToPath } from "node:url"
-
-import { describe, expect, it } from "vitest"
 
 type CommandResult = {
   status: number
@@ -42,40 +42,52 @@ describe("ghx setup e2e install/verify", () => {
     const tempRoot = mkdtempSync(join(tmpdir(), "ghx-e2e-install-"))
     const packDir = join(tempRoot, "pack")
     const projectDir = join(tempRoot, "project")
+    const isolatedXdgConfig = mkdtempSync(join(tmpdir(), "ghx-e2e-install-xdg-"))
+    const originalXdg = process.env.XDG_CONFIG_HOME
 
-    runOrThrow("mkdir", ["-p", packDir, projectDir], workspacePath)
-    writeFileSync(
-      join(projectDir, "package.json"),
-      JSON.stringify({ name: "ghx-e2e-project", private: true, version: "0.0.0" }, null, 2),
-      "utf8"
-    )
+    process.env.XDG_CONFIG_HOME = isolatedXdgConfig
 
-    runOrThrow("pnpm", ["--filter", "@ghx-dev/core", "run", "build"], workspacePath)
-    const packResult = runOrThrow("pnpm", ["--filter", "@ghx-dev/core", "pack", "--pack-destination", packDir], workspacePath)
-    const tarballName = packResult.stdout
-      .split("\n")
-      .map((line) => line.trim())
-      .find((line) => line.endsWith(".tgz"))
+    try {
+      runOrThrow("mkdir", ["-p", packDir, projectDir], workspacePath)
+      writeFileSync(
+        join(projectDir, "package.json"),
+        JSON.stringify({ name: "ghx-e2e-project", private: true, version: "0.0.0" }, null, 2),
+        "utf8"
+      )
 
-    expect(tarballName).toBeDefined()
-    const tarballPath = (tarballName as string).startsWith("/") ? (tarballName as string) : join(packDir, tarballName as string)
+      runOrThrow("pnpm", ["--filter", "@ghx-dev/core", "run", "build"], workspacePath)
+      const packResult = runOrThrow("pnpm", ["--filter", "@ghx-dev/core", "pack", "--pack-destination", packDir], workspacePath)
+      const tarballName = packResult.stdout
+        .split("\n")
+        .map((line) => line.trim())
+        .find((line) => line.endsWith(".tgz"))
 
-    runOrThrow("pnpm", ["add", tarballPath], projectDir)
+      expect(tarballName).toBeDefined()
+      const tarballPath = (tarballName as string).startsWith("/") ? (tarballName as string) : join(packDir, tarballName as string)
 
-    const verifyBefore = run("pnpm", ["exec", "ghx", "setup", "--scope", "project", "--verify"], projectDir)
-    expect(verifyBefore.status).toBe(1)
-    expect(verifyBefore.stderr).toContain("Verify failed")
+      runOrThrow("pnpm", ["add", tarballPath], projectDir)
 
-    const setup = run("pnpm", ["exec", "ghx", "setup", "--scope", "project", "--yes"], projectDir)
-    expect(setup.status).toBe(0)
-    expect(setup.stdout).toContain("Setup complete")
+      const verifyBefore = run("pnpm", ["exec", "ghx", "setup", "--scope", "project", "--verify"], projectDir)
+      expect(verifyBefore.status).toBe(1)
+      expect(verifyBefore.stderr).toContain("Verify failed")
 
-    const skillPath = join(projectDir, ".agents", "skill", "ghx", "SKILL.md")
-    const skillContent = readFileSync(skillPath, "utf8")
-    expect(skillContent).toContain("ghx capabilities")
+      const setup = run("pnpm", ["exec", "ghx", "setup", "--scope", "project", "--yes"], projectDir)
+      expect(setup.status).toBe(0)
+      expect(setup.stdout).toContain("Setup complete")
 
-    const verifyAfter = run("pnpm", ["exec", "ghx", "setup", "--scope", "project", "--verify"], projectDir)
-    expect(verifyAfter.status).toBe(0)
-    expect(verifyAfter.stdout).toContain("Verify passed")
+      const skillPath = join(projectDir, ".agents", "skill", "ghx", "SKILL.md")
+      const skillContent = readFileSync(skillPath, "utf8")
+      expect(skillContent).toContain("ghx capabilities")
+
+      const verifyAfter = run("pnpm", ["exec", "ghx", "setup", "--scope", "project", "--verify"], projectDir)
+      expect(verifyAfter.status).toBe(0)
+      expect(verifyAfter.stdout).toContain("Verify passed")
+    } finally {
+      if (originalXdg === undefined) {
+        delete process.env.XDG_CONFIG_HOME
+      } else {
+        process.env.XDG_CONFIG_HOME = originalXdg
+      }
+    }
   })
 })

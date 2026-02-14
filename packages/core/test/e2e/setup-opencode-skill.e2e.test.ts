@@ -1,11 +1,11 @@
+import { createOpencode } from "@opencode-ai/sdk"
+import { describe, expect, it } from "vitest"
+
+import { spawnSync } from "node:child_process"
 import { mkdtempSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { spawnSync } from "node:child_process"
 import { fileURLToPath } from "node:url"
-
-import { createOpencode } from "@opencode-ai/sdk"
-import { describe, expect, it } from "vitest"
 
 type CommandResult = {
   status: number
@@ -181,10 +181,10 @@ describe("ghx setup OpenCode skill e2e", () => {
     expect(tarballName).toBeDefined()
     const tarballPath = (tarballName as string).startsWith("/") ? (tarballName as string) : join(packDir, tarballName as string)
     runOrThrow("pnpm", ["add", tarballPath], projectDir)
-    runOrThrow("pnpm", ["exec", "ghx", "setup", "--scope", "project", "--yes"], projectDir)
 
     process.env.XDG_CONFIG_HOME = isolatedXdgConfig
     process.chdir(projectDir)
+    runOrThrow("pnpm", ["exec", "ghx", "setup", "--scope", "project", "--yes"], projectDir)
 
     const providerID = process.env.BENCH_PROVIDER_ID ?? "openai"
     const modelID = process.env.BENCH_MODEL_ID ?? "gpt-5.3-codex"
