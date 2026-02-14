@@ -1,0 +1,26 @@
+capability_id: pr.review.submit_approve
+version: "1.0.0"
+description: Submit an approving pull request review.
+input_schema:
+  type: object
+  required: [owner, name, prNumber]
+  properties:
+    owner: { type: string, minLength: 1 }
+    name: { type: string, minLength: 1 }
+    prNumber: { type: integer, minimum: 1 }
+    body: { type: string, minLength: 1 }
+  additionalProperties: false
+output_schema:
+  type: object
+  required: [prNumber, event, submitted, body]
+  properties:
+    prNumber: { type: integer, minimum: 1 }
+    event: { type: string, const: APPROVE }
+    submitted: { type: boolean }
+    body: { type: [string, "null"] }
+  additionalProperties: false
+routing:
+  preferred: cli
+  fallbacks: []
+cli:
+  command: pr review

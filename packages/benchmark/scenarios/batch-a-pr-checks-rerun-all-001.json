@@ -1,0 +1,27 @@
+{
+  "id": "batch-a-pr-checks-rerun-all-001",
+  "name": "Batch A: rerun all pull request checks",
+  "task": "pr.checks.rerun_all",
+  "input": {
+    "owner": "go-modkit",
+    "name": "modkit",
+    "prNumber": 232,
+    "runId": 123456789
+  },
+  "prompt_template": "Execute task {{task}} for repository {{fixture_repo}} using input {{input_json}}. Return only valid JSON matching this envelope: {\"ok\": boolean, \"data\": any, \"error\": object|null, \"meta\": object}.",
+  "timeout_ms": 60000,
+  "allowed_retries": 0,
+  "fixture": {
+    "repo": "go-modkit/modkit"
+  },
+  "assertions": {
+    "must_succeed": false,
+    "require_tool_calls": true,
+    "min_tool_calls": 1,
+    "required_fields": ["ok", "data", "error", "meta"],
+    "required_data_fields": ["prNumber", "runId", "mode", "queued"],
+    "required_meta_fields": ["route_used"],
+    "expected_route_used": "cli"
+  },
+  "tags": ["roadmap", "batch-a", "pr", "checks", "mutations"]
+}

@@ -621,6 +621,34 @@ describe("runCliCapability", () => {
     expect(result.error?.message).toBe("forbidden")
   })
 
+  it("redacts sensitive stderr and omits command args in error details", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "",
+        stderr: "authorization: Bearer ghp_supersecrettokenvalue123",
+        exitCode: 1
+      }))
+    }
+
+    const result = await runCliCapability(runner, "pr.review.submit_comment", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 12,
+      body: "api_key=topsecret"
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.message).toBe("gh command failed; stderr redacted for safety")
+    expect(result.error?.details).toEqual(
+      expect.objectContaining({
+        capabilityId: "pr.review.submit_comment",
+        exitCode: 1
+      })
+    )
+    expect(String(result.error?.details ?? "")).not.toContain("topsecret")
+    expect(String(result.error?.details ?? "")).not.toContain("ghp_supersecrettokenvalue123")
+  })
+
   it("normalizes pr.status.checks from gh pr checks output", async () => {
     const runner = {
       run: vi.fn(async () => ({
@@ -758,6 +786,204 @@ describe("runCliCapability", () => {
       ["pr", "ready", "10", "--repo", "acme/modkit"],
       10_000
     )
+  })
+
+  it("executes Batch A PR review and merge mutations", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "",
+        stderr: "",
+        exitCode: 0
+      }))
+    }
+
+    const approve = await runCliCapability(runner, "pr.review.submit_approve", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 10,
+      body: "Ship it"
+    })
+    const requestChanges = await runCliCapability(runner, "pr.review.submit_request_changes", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 10,
+      body: "Please add tests"
+    })
+    const comment = await runCliCapability(runner, "pr.review.submit_comment", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 10,
+      body: "Looks good with one note"
+    })
+    const merge = await runCliCapability(runner, "pr.merge.execute", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 10,
+      method: "squash",
+      deleteBranch: true
+    })
+    const branchUpdate = await runCliCapability(runner, "pr.branch.update", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 10
+    })
+
+    expect(approve.ok).toBe(true)
+    expect(requestChanges.ok).toBe(true)
+    expect(comment.ok).toBe(true)
+    expect(merge.ok).toBe(true)
+    expect(branchUpdate.ok).toBe(true)
+
+    expect(runner.run).toHaveBeenNthCalledWith(
+      1,
+      "gh",
+      ["pr", "review", "10", "--repo", "acme/modkit", "--approve", "--body", "Ship it"],
+      10_000
+    )
+    expect(runner.run).toHaveBeenNthCalledWith(
+      2,
+      "gh",
+      ["pr", "review", "10", "--repo", "acme/modkit", "--request-changes", "--body", "Please add tests"],
+      10_000
+    )
+    expect(runner.run).toHaveBeenNthCalledWith(
+      3,
+      "gh",
+      ["pr", "review", "10", "--repo", "acme/modkit", "--comment", "--body", "Looks good with one note"],
+      10_000
+    )
+    expect(runner.run).toHaveBeenNthCalledWith(
+      4,
+      "gh",
+      ["pr", "merge", "10", "--repo", "acme/modkit", "--squash", "--delete-branch"],
+      10_000
+    )
+    expect(runner.run).toHaveBeenNthCalledWith(
+      5,
+      "gh",
+      ["pr", "update-branch", "10", "--repo", "acme/modkit"],
+      10_000
+    )
+  })
+
+  it("executes Batch A check reruns and reviewer/assignee updates", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "",
+        stderr: "",
+        exitCode: 0
+      }))
+    }
+
+    const rerunFailed = await runCliCapability(runner, "pr.checks.rerun_failed", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 10,
+      runId: 88
+    })
+    const rerunAll = await runCliCapability(runner, "pr.checks.rerun_all", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 10,
+      runId: 88
+    })
+    const reviewers = await runCliCapability(runner, "pr.reviewers.request", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 10,
+      reviewers: ["octocat", "hubot"]
+    })
+    const assignees = await runCliCapability(runner, "pr.assignees.update", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 10,
+      add: ["octocat"],
+      remove: ["hubot"]
+    })
+
+    expect(rerunFailed.ok).toBe(true)
+    expect(rerunAll.ok).toBe(true)
+    expect(reviewers.ok).toBe(true)
+    expect(assignees.ok).toBe(true)
+
+    expect(runner.run).toHaveBeenNthCalledWith(
+      1,
+      "gh",
+      ["run", "rerun", "88", "--repo", "acme/modkit", "--failed"],
+      10_000
+    )
+    expect(runner.run).toHaveBeenNthCalledWith(
+      2,
+      "gh",
+      ["run", "rerun", "88", "--repo", "acme/modkit"],
+      10_000
+    )
+    expect(runner.run).toHaveBeenNthCalledWith(
+      3,
+      "gh",
+      ["pr", "edit", "10", "--repo", "acme/modkit", "--add-reviewer", "octocat,hubot"],
+      10_000
+    )
+    expect(runner.run).toHaveBeenNthCalledWith(
+      4,
+      "gh",
+      ["pr", "edit", "10", "--repo", "acme/modkit", "--add-assignee", "octocat", "--remove-assignee", "hubot"],
+      10_000
+    )
+  })
+
+  it("validates required Batch A mutation inputs", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "",
+        stderr: "",
+        exitCode: 0
+      }))
+    }
+
+    const invalidReviewBody = await runCliCapability(runner, "pr.review.submit_comment", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 10,
+      body: ""
+    })
+    const invalidMergeMethod = await runCliCapability(runner, "pr.merge.execute", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 10,
+      method: "fast-forward"
+    })
+    const invalidRerun = await runCliCapability(runner, "pr.checks.rerun_failed", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 10,
+      runId: 0
+    })
+    const invalidReviewers = await runCliCapability(runner, "pr.reviewers.request", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 10,
+      reviewers: []
+    })
+    const invalidAssignees = await runCliCapability(runner, "pr.assignees.update", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 10,
+      add: [],
+      remove: []
+    })
+
+    expect(invalidReviewBody.ok).toBe(false)
+    expect(invalidMergeMethod.ok).toBe(false)
+    expect(invalidRerun.ok).toBe(false)
+    expect(invalidReviewers.ok).toBe(false)
+    expect(invalidAssignees.ok).toBe(false)
+    expect(invalidReviewBody.error?.code).toBe("VALIDATION")
+    expect(invalidMergeMethod.error?.code).toBe("VALIDATION")
+    expect(invalidRerun.error?.code).toBe("VALIDATION")
+    expect(invalidReviewers.error?.code).toBe("VALIDATION")
+    expect(invalidAssignees.error?.code).toBe("VALIDATION")
+    expect(runner.run).not.toHaveBeenCalled()
   })
 
   it("normalizes check run annotations list", async () => {
@@ -1028,12 +1254,16 @@ describe("runCliCapability", () => {
       ready: false
     })
 
-    const workflowRunCall = runner.run.mock.calls.find((call) => call[1][0] === "run" && call[1][1] === "list")
+    const workflowRunCall = runner.run.mock.calls.find(
+      (call: [string, string[]]) => call[1][0] === "run" && call[1][1] === "list"
+    )
     expect(workflowRunCall?.[1]).toEqual(
       expect.arrayContaining(["--branch", "main", "--event", "push", "--status", "completed"])
     )
 
-    const readyCall = runner.run.mock.calls.find((call) => call[1][0] === "pr" && call[1][1] === "ready")
+    const readyCall = runner.run.mock.calls.find(
+      (call: [string, string[]]) => call[1][0] === "pr" && call[1][1] === "ready"
+    )
     expect(readyCall?.[1]).toEqual(expect.arrayContaining(["--undo"]))
   })
 

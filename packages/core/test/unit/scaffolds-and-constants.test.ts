@@ -22,6 +22,15 @@ import { prCommentReplyTask } from "../../src/core/contracts/tasks/pr.comment.re
 import { prCommentResolveTask } from "../../src/core/contracts/tasks/pr.comment.resolve.js"
 import { prCommentUnresolveTask } from "../../src/core/contracts/tasks/pr.comment.unresolve.js"
 import { prReadyForReviewSetTask } from "../../src/core/contracts/tasks/pr.ready_for_review.set.js"
+import { prReviewSubmitApproveTask } from "../../src/core/contracts/tasks/pr.review.submit_approve.js"
+import { prReviewSubmitRequestChangesTask } from "../../src/core/contracts/tasks/pr.review.submit_request_changes.js"
+import { prReviewSubmitCommentTask } from "../../src/core/contracts/tasks/pr.review.submit_comment.js"
+import { prMergeExecuteTask } from "../../src/core/contracts/tasks/pr.merge.execute.js"
+import { prChecksRerunFailedTask } from "../../src/core/contracts/tasks/pr.checks.rerun_failed.js"
+import { prChecksRerunAllTask } from "../../src/core/contracts/tasks/pr.checks.rerun_all.js"
+import { prReviewersRequestTask } from "../../src/core/contracts/tasks/pr.reviewers.request.js"
+import { prAssigneesUpdateTask } from "../../src/core/contracts/tasks/pr.assignees.update.js"
+import { prBranchUpdateTask } from "../../src/core/contracts/tasks/pr.branch.update.js"
 import { checkRunAnnotationsListTask } from "../../src/core/contracts/tasks/check_run.annotations.list.js"
 import { workflowRunsListTask } from "../../src/core/contracts/tasks/workflow_runs.list.js"
 import { workflowRunJobsListTask } from "../../src/core/contracts/tasks/workflow_run.jobs.list.js"
@@ -67,6 +76,15 @@ describe("scaffolds and constants", () => {
     expect(prCommentResolveTask.id).toBe("pr.comment.resolve")
     expect(prCommentUnresolveTask.id).toBe("pr.comment.unresolve")
     expect(prReadyForReviewSetTask.id).toBe("pr.ready_for_review.set")
+    expect(prReviewSubmitApproveTask.id).toBe("pr.review.submit_approve")
+    expect(prReviewSubmitRequestChangesTask.id).toBe("pr.review.submit_request_changes")
+    expect(prReviewSubmitCommentTask.id).toBe("pr.review.submit_comment")
+    expect(prMergeExecuteTask.id).toBe("pr.merge.execute")
+    expect(prChecksRerunFailedTask.id).toBe("pr.checks.rerun_failed")
+    expect(prChecksRerunAllTask.id).toBe("pr.checks.rerun_all")
+    expect(prReviewersRequestTask.id).toBe("pr.reviewers.request")
+    expect(prAssigneesUpdateTask.id).toBe("pr.assignees.update")
+    expect(prBranchUpdateTask.id).toBe("pr.branch.update")
     expect(checkRunAnnotationsListTask.id).toBe("check_run.annotations.list")
     expect(workflowRunsListTask.id).toBe("workflow_runs.list")
     expect(workflowRunJobsListTask.id).toBe("workflow_run.jobs.list")

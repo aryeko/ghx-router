@@ -47,6 +47,7 @@ describe("benchmark cli mains", () => {
     vi.mocked(loadScenarioSets).mockResolvedValueOnce({
       default: ["repo-view-001"],
       "pr-operations-all": ["repo-view-001"],
+      "roadmap-batch-a-pr-exec": ["repo-view-001"],
       "pr-review-reads": [],
       "pr-thread-mutations": [],
       "ci-diagnostics": [],

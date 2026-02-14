@@ -1,0 +1,28 @@
+{
+  "id": "batch-a-pr-assignees-update-001",
+  "name": "Batch A: update pull request assignees",
+  "task": "pr.assignees.update",
+  "input": {
+    "owner": "go-modkit",
+    "name": "modkit",
+    "prNumber": 232,
+    "add": ["octocat"],
+    "remove": ["hubot"]
+  },
+  "prompt_template": "Execute task {{task}} for repository {{fixture_repo}} using input {{input_json}}. Return only valid JSON matching this envelope: {\"ok\": boolean, \"data\": any, \"error\": object|null, \"meta\": object}.",
+  "timeout_ms": 60000,
+  "allowed_retries": 0,
+  "fixture": {
+    "repo": "go-modkit/modkit"
+  },
+  "assertions": {
+    "must_succeed": false,
+    "require_tool_calls": true,
+    "min_tool_calls": 1,
+    "required_fields": ["ok", "data", "error", "meta"],
+    "required_data_fields": ["prNumber", "add", "remove", "updated"],
+    "required_meta_fields": ["route_used"],
+    "expected_route_used": "cli"
+  },
+  "tags": ["roadmap", "batch-a", "pr", "assignees", "mutations"]
+}

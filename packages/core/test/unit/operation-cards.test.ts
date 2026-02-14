@@ -23,6 +23,15 @@ describe("operation cards registry", () => {
       "pr.comment.resolve",
       "pr.comment.unresolve",
       "pr.ready_for_review.set",
+      "pr.review.submit_approve",
+      "pr.review.submit_request_changes",
+      "pr.review.submit_comment",
+      "pr.merge.execute",
+      "pr.checks.rerun_failed",
+      "pr.checks.rerun_all",
+      "pr.reviewers.request",
+      "pr.assignees.update",
+      "pr.branch.update",
       "check_run.annotations.list",
       "workflow_runs.list",
       "workflow_run.jobs.list",
@@ -113,5 +122,28 @@ describe("operation cards registry", () => {
     })
 
     expect(result.ok).toBe(false)
+  })
+
+  it("documents Batch A execution capabilities as mutating CLI operations", () => {
+    const batchACapabilities = [
+      "pr.review.submit_approve",
+      "pr.review.submit_request_changes",
+      "pr.review.submit_comment",
+      "pr.merge.execute",
+      "pr.checks.rerun_failed",
+      "pr.checks.rerun_all",
+      "pr.reviewers.request",
+      "pr.assignees.update",
+      "pr.branch.update"
+    ]
+
+    for (const capabilityId of batchACapabilities) {
+      const card = getOperationCard(capabilityId)
+
+      expect(card).toBeDefined()
+      expect(card?.routing.preferred).toBe("cli")
+      expect(card?.routing.fallbacks).toEqual([])
+      expect(card?.cli?.command).toMatch(/^pr |^run /)
+    }
   })
 })

@@ -1,0 +1,38 @@
+capability_id: pr.assignees.update
+version: "1.0.0"
+description: Update pull request assignees.
+input_schema:
+  type: object
+  required: [owner, name, prNumber]
+  properties:
+    owner: { type: string, minLength: 1 }
+    name: { type: string, minLength: 1 }
+    prNumber: { type: integer, minimum: 1 }
+    add:
+      type: array
+      items: { type: string, minLength: 1 }
+    remove:
+      type: array
+      items: { type: string, minLength: 1 }
+  anyOf:
+    - required: [add]
+    - required: [remove]
+  additionalProperties: false
+output_schema:
+  type: object
+  required: [prNumber, add, remove, updated]
+  properties:
+    prNumber: { type: integer, minimum: 1 }
+    add:
+      type: array
+      items: { type: string, minLength: 1 }
+    remove:
+      type: array
+      items: { type: string, minLength: 1 }
+    updated: { type: boolean }
+  additionalProperties: false
+routing:
+  preferred: cli
+  fallbacks: []
+cli:
+  command: pr edit

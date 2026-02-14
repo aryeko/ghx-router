@@ -16,6 +16,15 @@ export type CliCapabilityId =
   | "pr.checks.get_failed"
   | "pr.mergeability.view"
   | "pr.ready_for_review.set"
+  | "pr.review.submit_approve"
+  | "pr.review.submit_request_changes"
+  | "pr.review.submit_comment"
+  | "pr.merge.execute"
+  | "pr.checks.rerun_failed"
+  | "pr.checks.rerun_all"
+  | "pr.reviewers.request"
+  | "pr.assignees.update"
+  | "pr.branch.update"
   | "check_run.annotations.list"
   | "workflow_runs.list"
   | "workflow_run.jobs.list"
@@ -29,8 +38,28 @@ export type CliCommandRunner = {
 const DEFAULT_TIMEOUT_MS = 10_000
 const DEFAULT_LIST_FIRST = 30
 const MAX_WORKFLOW_JOB_LOG_CHARS = 50_000
+const REDACTED_CLI_ERROR_MESSAGE = "gh command failed; stderr redacted for safety"
 const ISSUE_COMMENTS_GRAPHQL_QUERY =
   "query($owner:String!,$name:String!,$issueNumber:Int!,$first:Int!,$after:String){repository(owner:$owner,name:$name){issue(number:$issueNumber){comments(first:$first,after:$after){nodes{id body createdAt url author{login}} pageInfo{hasNextPage endCursor}}}}}"
+
+function containsSensitiveText(value: string): boolean {
+  return /(gh[pousr]_[A-Za-z0-9_]+|github_pat_[A-Za-z0-9_]+|authorization:\s*bearer\s+\S+|bearer\s+[A-Za-z0-9._-]{20,}|(?:api[_-]?key|token|secret|password)\s*[=:]\s*\S+)/i.test(
+    value
+  )
+}
+
+function sanitizeCliErrorMessage(stderr: string, exitCode: number): string {
+  const trimmed = stderr.trim()
+  if (!trimmed) {
+    return `gh exited with code ${exitCode}`
+  }
+
+  if (containsSensitiveText(trimmed)) {
+    return REDACTED_CLI_ERROR_MESSAGE
+  }
+
+  return trimmed
+}
 
 function parseStrictPositiveInt(value: unknown): number | null {
   return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : null
@@ -42,6 +71,10 @@ function parseListFirst(value: unknown): number | null {
   }
 
   return parseStrictPositiveInt(value)
+}
+
+function parseNonEmptyString(value: unknown): string | null {
+  return typeof value === "string" && value.trim().length > 0 ? value : null
 }
 
 function commandTokens(card: OperationCard | undefined, fallbackCommand: string): string[] {
@@ -218,6 +251,166 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
 
     if (!params.ready) {
       args.push("--undo")
+    }
+
+    return args
+  }
+
+  if (
+    capabilityId === "pr.review.submit_approve"
+    || capabilityId === "pr.review.submit_request_changes"
+    || capabilityId === "pr.review.submit_comment"
+  ) {
+    const prNumber = parseStrictPositiveInt(params.prNumber)
+    if (prNumber === null) {
+      throw new Error(`Missing or invalid prNumber for ${capabilityId}`)
+    }
+
+    const args = [...commandTokens(card, "pr review"), String(prNumber)]
+    if (repo) {
+      args.push("--repo", repo)
+    }
+
+    if (capabilityId === "pr.review.submit_approve") {
+      args.push("--approve")
+      const body = parseNonEmptyString(params.body)
+      if (body) {
+        args.push("--body", body)
+      }
+      return args
+    }
+
+    const body = parseNonEmptyString(params.body)
+    if (body === null) {
+      throw new Error(`Missing or invalid body for ${capabilityId}`)
+    }
+
+    if (capabilityId === "pr.review.submit_request_changes") {
+      args.push("--request-changes", "--body", body)
+      return args
+    }
+
+    args.push("--comment", "--body", body)
+    return args
+  }
+
+  if (capabilityId === "pr.merge.execute") {
+    const prNumber = parseStrictPositiveInt(params.prNumber)
+    if (prNumber === null) {
+      throw new Error("Missing or invalid prNumber for pr.merge.execute")
+    }
+
+    const method = params.method === undefined ? "merge" : params.method
+    if (method !== "merge" && method !== "squash" && method !== "rebase") {
+      throw new Error("Missing or invalid method for pr.merge.execute")
+    }
+
+    if (params.deleteBranch !== undefined && typeof params.deleteBranch !== "boolean") {
+      throw new Error("Missing or invalid deleteBranch for pr.merge.execute")
+    }
+
+    const args = [...commandTokens(card, "pr merge"), String(prNumber)]
+    if (repo) {
+      args.push("--repo", repo)
+    }
+
+    args.push(`--${method}`)
+
+    if (params.deleteBranch === true) {
+      args.push("--delete-branch")
+    }
+
+    return args
+  }
+
+  if (capabilityId === "pr.checks.rerun_failed" || capabilityId === "pr.checks.rerun_all") {
+    const prNumber = parseStrictPositiveInt(params.prNumber)
+    if (prNumber === null) {
+      throw new Error(`Missing or invalid prNumber for ${capabilityId}`)
+    }
+
+    const runId = parseStrictPositiveInt(params.runId)
+    if (runId === null) {
+      throw new Error(`Missing or invalid runId for ${capabilityId}`)
+    }
+
+    const args = [...commandTokens(card, "run rerun"), String(runId)]
+    if (repo) {
+      args.push("--repo", repo)
+    }
+
+    if (capabilityId === "pr.checks.rerun_failed") {
+      args.push("--failed")
+    }
+
+    return args
+  }
+
+  if (capabilityId === "pr.reviewers.request") {
+    const prNumber = parseStrictPositiveInt(params.prNumber)
+    if (prNumber === null) {
+      throw new Error("Missing or invalid prNumber for pr.reviewers.request")
+    }
+
+    const reviewers = Array.isArray(params.reviewers)
+      ? params.reviewers.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      : []
+
+    if (reviewers.length === 0) {
+      throw new Error("Missing or invalid reviewers for pr.reviewers.request")
+    }
+
+    const args = [...commandTokens(card, "pr edit"), String(prNumber)]
+    if (repo) {
+      args.push("--repo", repo)
+    }
+
+    args.push("--add-reviewer", reviewers.join(","))
+    return args
+  }
+
+  if (capabilityId === "pr.assignees.update") {
+    const prNumber = parseStrictPositiveInt(params.prNumber)
+    if (prNumber === null) {
+      throw new Error("Missing or invalid prNumber for pr.assignees.update")
+    }
+
+    const addAssignees = Array.isArray(params.add)
+      ? params.add.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      : []
+    const removeAssignees = Array.isArray(params.remove)
+      ? params.remove.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      : []
+
+    if (addAssignees.length === 0 && removeAssignees.length === 0) {
+      throw new Error("Missing or invalid add/remove assignees for pr.assignees.update")
+    }
+
+    const args = [...commandTokens(card, "pr edit"), String(prNumber)]
+    if (repo) {
+      args.push("--repo", repo)
+    }
+
+    if (addAssignees.length > 0) {
+      args.push("--add-assignee", addAssignees.join(","))
+    }
+
+    if (removeAssignees.length > 0) {
+      args.push("--remove-assignee", removeAssignees.join(","))
+    }
+
+    return args
+  }
+
+  if (capabilityId === "pr.branch.update") {
+    const prNumber = parseStrictPositiveInt(params.prNumber)
+    if (prNumber === null) {
+      throw new Error("Missing or invalid prNumber for pr.branch.update")
+    }
+
+    const args = [...commandTokens(card, "pr update-branch"), String(prNumber)]
+    if (repo) {
+      args.push("--repo", repo)
     }
 
     return args
@@ -523,6 +716,80 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
     }
   }
 
+  if (
+    capabilityId === "pr.review.submit_approve"
+    || capabilityId === "pr.review.submit_request_changes"
+    || capabilityId === "pr.review.submit_comment"
+  ) {
+    const prNumber = Number(params.prNumber)
+    const event = capabilityId === "pr.review.submit_approve"
+      ? "APPROVE"
+      : capabilityId === "pr.review.submit_request_changes"
+        ? "REQUEST_CHANGES"
+        : "COMMENT"
+
+    return {
+      prNumber,
+      event,
+      submitted: true,
+      body: typeof params.body === "string" ? params.body : null
+    }
+  }
+
+  if (capabilityId === "pr.merge.execute") {
+    const method = params.method === "squash" || params.method === "rebase" ? params.method : "merge"
+    return {
+      prNumber: Number(params.prNumber),
+      method,
+      queued: true,
+      deleteBranch: params.deleteBranch === true
+    }
+  }
+
+  if (capabilityId === "pr.checks.rerun_failed" || capabilityId === "pr.checks.rerun_all") {
+    return {
+      prNumber: Number(params.prNumber),
+      runId: Number(params.runId),
+      mode: capabilityId === "pr.checks.rerun_failed" ? "failed" : "all",
+      queued: true
+    }
+  }
+
+  if (capabilityId === "pr.reviewers.request") {
+    const reviewers = Array.isArray(params.reviewers)
+      ? params.reviewers.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      : []
+
+    return {
+      prNumber: Number(params.prNumber),
+      reviewers,
+      updated: true
+    }
+  }
+
+  if (capabilityId === "pr.assignees.update") {
+    const add = Array.isArray(params.add)
+      ? params.add.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      : []
+    const remove = Array.isArray(params.remove)
+      ? params.remove.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      : []
+
+    return {
+      prNumber: Number(params.prNumber),
+      add,
+      remove,
+      updated: true
+    }
+  }
+
+  if (capabilityId === "pr.branch.update") {
+    return {
+      prNumber: Number(params.prNumber),
+      updated: true
+    }
+  }
+
   if (capabilityId === "check_run.annotations.list") {
     const annotations = Array.isArray(data) ? data : []
 
@@ -679,9 +946,9 @@ export async function runCliCapability(
       return normalizeError(
         {
           code,
-          message: result.stderr || `gh exited with code ${result.exitCode}`,
+          message: sanitizeCliErrorMessage(result.stderr, result.exitCode),
           retryable: isRetryableErrorCode(code),
-          details: { capabilityId, args, exitCode: result.exitCode }
+          details: { capabilityId, exitCode: result.exitCode }
         },
         "cli",
         { capabilityId, reason: "CARD_FALLBACK" }

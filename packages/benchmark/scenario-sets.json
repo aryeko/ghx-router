@@ -48,5 +48,16 @@
     "workflow-job-logs-analyze-001",
     "pr-view-001",
     "pr-list-open-001"
+  ],
+  "roadmap-batch-a-pr-exec": [
+    "batch-a-pr-review-submit-approve-001",
+    "batch-a-pr-review-submit-request-changes-001",
+    "batch-a-pr-review-submit-comment-001",
+    "batch-a-pr-merge-execute-001",
+    "batch-a-pr-checks-rerun-failed-001",
+    "batch-a-pr-checks-rerun-all-001",
+    "batch-a-pr-reviewers-request-001",
+    "batch-a-pr-assignees-update-001",
+    "batch-a-pr-branch-update-001"
   ]
 }

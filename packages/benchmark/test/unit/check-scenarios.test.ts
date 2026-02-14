@@ -34,6 +34,7 @@ describe("check-scenarios", () => {
     loadScenarioSetsMock.mockResolvedValue({
       default: ["repo-view-001"],
       "pr-operations-all": ["repo-view-001"],
+      "roadmap-batch-a-pr-exec": ["repo-view-001"],
       "pr-review-reads": [],
       "pr-thread-mutations": [],
       "ci-diagnostics": [],
@@ -59,7 +60,8 @@ describe("check-scenarios", () => {
     ])
     loadScenarioSetsMock.mockResolvedValue({
       default: ["missing-001"],
-      "pr-operations-all": ["repo-view-001"]
+      "pr-operations-all": ["repo-view-001"],
+      "roadmap-batch-a-pr-exec": ["repo-view-001"]
     })
 
     await expect(main("/tmp/benchmark")).rejects.toThrow("unknown scenario id")
@@ -81,7 +83,8 @@ describe("check-scenarios", () => {
     ])
     loadScenarioSetsMock.mockResolvedValue({
       default: [],
-      "pr-operations-all": []
+      "pr-operations-all": [],
+      "roadmap-batch-a-pr-exec": []
     })
 
     await expect(main("/tmp/benchmark")).rejects.toThrow("orphan scenario")
@@ -102,7 +105,8 @@ describe("check-scenarios", () => {
       }
     ])
     loadScenarioSetsMock.mockResolvedValue({
-      default: ["repo-view-001"]
+      default: ["repo-view-001"],
+      "pr-operations-all": ["repo-view-001"]
     })
 
     await expect(main("/tmp/benchmark")).rejects.toThrow("Missing required scenario set")
@@ -135,7 +139,8 @@ describe("check-scenarios", () => {
     ])
     loadScenarioSetsMock.mockResolvedValue({
       default: ["repo-view-001"],
-      "pr-operations-all": ["repo-view-001"]
+      "pr-operations-all": ["repo-view-001"],
+      "roadmap-batch-a-pr-exec": ["repo-view-001"]
     })
 
     await expect(main("/tmp/benchmark")).rejects.toThrow("Duplicate scenario id")

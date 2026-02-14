@@ -3,7 +3,7 @@ import { pathToFileURL } from "node:url"
 
 import { loadScenarios, loadScenarioSets } from "../scenario/loader.js"
 
-const REQUIRED_SCENARIO_SETS = ["default", "pr-operations-all"]
+const REQUIRED_SCENARIO_SETS = ["default", "pr-operations-all", "roadmap-batch-a-pr-exec"]
 
 function assertNoDuplicateScenarioIds(scenarioIds: string[]): void {
   const seen = new Set<string>()

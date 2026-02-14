@@ -86,6 +86,51 @@ describe("capabilityRegistry", () => {
         fallbackRoutes: [],
       },
       {
+        task: "pr.review.submit_approve",
+        defaultRoute: "cli",
+        fallbackRoutes: [],
+      },
+      {
+        task: "pr.review.submit_request_changes",
+        defaultRoute: "cli",
+        fallbackRoutes: [],
+      },
+      {
+        task: "pr.review.submit_comment",
+        defaultRoute: "cli",
+        fallbackRoutes: [],
+      },
+      {
+        task: "pr.merge.execute",
+        defaultRoute: "cli",
+        fallbackRoutes: [],
+      },
+      {
+        task: "pr.checks.rerun_failed",
+        defaultRoute: "cli",
+        fallbackRoutes: [],
+      },
+      {
+        task: "pr.checks.rerun_all",
+        defaultRoute: "cli",
+        fallbackRoutes: [],
+      },
+      {
+        task: "pr.reviewers.request",
+        defaultRoute: "cli",
+        fallbackRoutes: [],
+      },
+      {
+        task: "pr.assignees.update",
+        defaultRoute: "cli",
+        fallbackRoutes: [],
+      },
+      {
+        task: "pr.branch.update",
+        defaultRoute: "cli",
+        fallbackRoutes: [],
+      },
+      {
         task: "check_run.annotations.list",
         defaultRoute: "cli",
         fallbackRoutes: [],
