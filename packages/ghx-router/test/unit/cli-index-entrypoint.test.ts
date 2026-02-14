@@ -30,6 +30,43 @@ describe("cli index entrypoint", () => {
     expect(stdout).toHaveBeenCalledWith("Usage:\n  ghx run <task> --input '<json>'\n")
   })
 
+  it("does not run main when argv[1] is missing", async () => {
+    process.argv = ["node"]
+
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true)
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true)
+
+    vi.doMock("../../src/cli/commands/run.js", () => ({
+      runCommand: vi.fn(async () => 0)
+    }))
+
+    await import("../../src/cli/index.js")
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(stdout).not.toHaveBeenCalled()
+    expect(stderr).not.toHaveBeenCalled()
+  })
+
+  it("falls back to URL comparison when realpath throws", async () => {
+    process.argv = ["node", "/tmp/ghx-entry.js", "--help"]
+
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true)
+
+    vi.doMock("node:fs", () => ({
+      realpathSync: vi.fn(() => {
+        throw new Error("boom")
+      })
+    }))
+    vi.doMock("../../src/cli/commands/run.js", () => ({
+      runCommand: vi.fn(async () => 0)
+    }))
+
+    await import("../../src/cli/index.js")
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(stdout).not.toHaveBeenCalled()
+  })
+
   it("prints error and exits on direct invocation failures", async () => {
     process.argv = ["node", "/tmp/ghx-entry.js", "run", "repo.view", "--input", "{}"]
 

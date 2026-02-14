@@ -139,6 +139,45 @@ describe("createSafeCliCommandRunner", () => {
     }
   })
 
+  it("collects stdout and stderr chunks when under size limit", async () => {
+    const stdout = new EventEmitter()
+    const stderr = new EventEmitter()
+    const child = new EventEmitter() as EventEmitter & {
+      stdout: EventEmitter
+      stderr: EventEmitter
+      kill: (signal: string) => void
+    }
+    child.stdout = stdout
+    child.stderr = stderr
+    child.kill = vi.fn()
+
+    const spawnMock = vi.fn(() => child)
+    vi.resetModules()
+    vi.doMock("node:child_process", () => ({ spawn: spawnMock }))
+
+    try {
+      const { createSafeCliCommandRunner: createMockedRunner } = await import(
+        "../../src/core/execution/cli/safe-runner.js"
+      )
+      const runner = createMockedRunner({ maxOutputBytes: 1024 })
+
+      const pending = runner.run("gh", ["repo", "view"], 200)
+
+      stdout.emit("data", Buffer.from("ok"))
+      stderr.emit("data", Buffer.from("warn"))
+      child.emit("close", 0)
+
+      await expect(pending).resolves.toEqual({
+        stdout: "ok",
+        stderr: "warn",
+        exitCode: 0
+      })
+    } finally {
+      vi.doUnmock("node:child_process")
+      vi.resetModules()
+    }
+  })
+
   it("reports overflow even when close happens after timeout window", async () => {
     const stdout = new EventEmitter()
     const stderr = new EventEmitter()

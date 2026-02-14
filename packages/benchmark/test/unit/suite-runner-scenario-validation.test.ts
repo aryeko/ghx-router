@@ -420,4 +420,5 @@ describe("suite-runner scenario validation", () => {
     expect(result.success).toBe(false)
     expect(result.output_valid).toBe(false)
   })
+
 })
