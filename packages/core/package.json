@@ -2,6 +2,8 @@
   "name": "@ghx/core",
   "version": "0.1.0",
   "private": true,
+  "author": "Arye Kogan",
+  "license": "MIT",
   "type": "module",
   "bin": {
     "ghx": "dist/cli/index.js"

@@ -2,6 +2,8 @@
   "name": "@ghx/benchmark",
   "version": "0.1.0",
   "private": true,
+  "author": "Arye Kogan",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "build": "tsup \"src/**/*.ts\" --format esm --out-dir dist --clean --no-dts --sourcemap",
