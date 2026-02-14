@@ -1,14 +1,17 @@
 # File Codemap
 
-**Last Updated:** 2026-02-14
+**Last Updated:** 2026-02-15
 
 ## Repository Layout
 
 ```text
 ghx/
+├── .changeset/
 ├── docs/
 │   ├── architecture/
 │   ├── benchmark/
+│   ├── engineering/
+│   ├── guides/
 │   └── CODEMAPS/
 ├── packages/
 │   ├── core/
@@ -29,6 +32,7 @@ ghx/
 │       │   ├── runner/
 │       │   └── scenario/
 │       ├── scenarios/
+│       ├── results/
 │       ├── reports/
 │       └── test/
 ├── nx.json
@@ -43,6 +47,7 @@ ghx/
 - `package.json` - root scripts for build/lint/test/typecheck/benchmark
 - `pnpm-workspace.yaml` - workspace package discovery (`packages/*`)
 - `nx.json` - Nx task orchestration configuration
+- `.changeset/*.md` - release notes/versioning entries for publish flow
 
 ### Core Router Package (`packages/core`)
 
@@ -50,15 +55,20 @@ ghx/
 - `packages/core/src/agent.ts` - package public agent-interface exports (`listCapabilities`, `createExecuteTool`)
 - `packages/core/src/cli/index.ts` - `ghx` executable entrypoint
 - `packages/core/src/cli/commands/run.ts` - task parsing + execution entry
-- `packages/core/src/cli/commands/setup.ts` - setup/verify skill profile installation for claude-code/opencode
+- `packages/core/src/cli/commands/setup.ts` - setup/verify skill profile installation in `.agents/skill/ghx/SKILL.md`
 - `packages/core/src/cli/commands/capabilities-list.ts` - CLI capability list command
 - `packages/core/src/cli/commands/capabilities-explain.ts` - CLI capability explain command
+- `packages/core/src/cli/commands/doctor.ts` - diagnostics command scaffold (reserved)
+- `packages/core/src/cli/commands/routes.ts` - route-inspection command scaffold (reserved)
 - `packages/core/src/core/routing/engine.ts` - route selection + preflight orchestration
 - `packages/core/src/core/execute/execute.ts` - route attempts, retry loop, schema validation
 - `packages/core/src/core/registry/index.ts` - operation card loading/validation from YAML
 - `packages/core/src/core/registry/cards/*.yaml` - source-of-truth capability cards
+- `packages/core/src/core/contracts/tasks/*.ts` - per-capability task identifier constants
 - `packages/core/src/core/execution/adapters/cli-capability-adapter.ts` - `gh` command mapping + output normalization
+- `packages/core/src/core/execution/adapters/cli-adapter.ts` - generic CLI adapter primitive
 - `packages/core/src/core/execution/adapters/graphql-capability-adapter.ts` - GraphQL capability adapter
+- `packages/core/src/core/execution/adapters/graphql-adapter.ts` - generic GraphQL adapter primitive
 - `packages/core/src/gql/client.ts` - typed GitHub GraphQL client + operation wrappers
 - `packages/core/src/agent-interface/tools/list-capabilities-tool.ts` - capability listing tool for agents
 - `packages/core/src/agent-interface/tools/explain-tool.ts` - capability schema/route explanation helper
@@ -73,11 +83,14 @@ ghx/
 - `packages/benchmark/src/runner/suite-runner.ts` - end-to-end scenario execution orchestrator
 - `packages/benchmark/src/scenario/schema.ts` - Zod scenario schema and validation
 - `packages/benchmark/src/scenario/loader.ts` - scenario file loading
+- `packages/benchmark/src/cli/check-scenarios.ts` - scenario set coverage and registry compatibility checks
 - `packages/benchmark/scenario-sets.json` - explicit scenario set membership manifest
 - `packages/benchmark/src/extract/envelope.ts` - envelope extraction and output checks
 - `packages/benchmark/src/report/aggregate.ts` - summary metrics and gating logic
 - `packages/benchmark/scenarios/*.json` - benchmark scenarios (task + assertions + fixtures)
-- `packages/benchmark/reports/latest-summary.json` - latest generated benchmark summary
+- `packages/benchmark/results/*-suite.jsonl` - benchmark run outputs per mode
+- `packages/benchmark/reports/latest-summary.json` - latest generated benchmark summary (JSON)
+- `packages/benchmark/reports/latest-summary.md` - latest generated benchmark summary (markdown)
 
 ### Tests
 
@@ -92,9 +105,11 @@ Use this path when debugging common concerns:
 - **Route selection issue** -> `packages/core/src/core/routing/engine.ts`
 - **Input/output schema failure** -> `packages/core/src/core/execute/execute.ts` and `packages/core/src/core/registry/schema-validator.ts`
 - **Capability metadata mismatch** -> `packages/core/src/core/registry/cards/*.yaml`
+- **Task identifier mapping mismatch** -> `packages/core/src/core/contracts/tasks/*.ts`
 - **CLI command shape mismatch** -> `packages/core/src/core/execution/adapters/cli-capability-adapter.ts`
 - **GraphQL payload/field mismatch** -> `packages/core/src/gql/client.ts` and `packages/core/src/gql/operations/*.generated.ts`
 - **Benchmark scenario parse failure** -> `packages/benchmark/src/scenario/schema.ts`
+- **Scenario-set coverage failure** -> `packages/benchmark/src/cli/check-scenarios.ts` and `packages/benchmark/scenario-sets.json`
 - **Benchmark gate failure** -> `packages/benchmark/src/report/aggregate.ts`
 
 ## External Integrations (File-Level)

@@ -9,11 +9,12 @@ export type {
 } from "./core/contracts/envelope.js"
 export type { RouteReasonCode } from "./core/routing/reason-codes.js"
 
-export { createGithubClient, createGraphqlClient } from "./gql/client.js"
+export { createGithubClient, createGithubClientFromToken, createGraphqlClient } from "./gql/client.js"
 export type {
   GithubClient,
   GraphqlClient,
   GraphqlTransport,
+  TokenClientOptions,
 } from "./gql/client.js"
 
 export { getOperationCard, listOperationCards } from "./core/registry/index.js"

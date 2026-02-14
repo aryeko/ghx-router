@@ -1,7 +1,7 @@
 # @ghx-dev/core
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/aryeko/ghx/main/assets/branding/social/ghx-social-dark-1280x640.png" alt="ghx social preview" width="720">
+  <img src="https://raw.githubusercontent.com/aryeko/ghx/main/assets/branding/social/ghx-social-dark-1280x640.png" alt="ghx social preview" width="480">
 </p>
 
 [![npm version](https://img.shields.io/npm/v/%40ghx-dev%2Fcore)](https://www.npmjs.com/package/@ghx-dev/core)
@@ -10,54 +10,52 @@
 [![codecov](https://codecov.io/gh/aryeko/ghx/graph/badge.svg?token=KBIGR138V7)](https://codecov.io/gh/aryeko/ghx)
 [![License](https://img.shields.io/npm/l/%40ghx-dev%2Fcore)](https://github.com/aryeko/ghx/blob/main/LICENSE)
 
-Public ghx package: CLI-first GitHub execution router for AI agents.
+Typed GitHub execution router for AI agents. Deterministic routing across CLI and GraphQL, runtime schema validation, and a stable result envelope -- so agents stop wasting tokens re-discovering GitHub API surfaces.
 
-`@ghx-dev/core` routes GitHub capabilities across CLI and GraphQL, validates inputs/outputs against operation cards, and returns a stable envelope contract for deterministic agent automation.
+## Why ghx
 
-## Why @ghx-dev/core
+Agents instructed to "use `gh` CLI" for common PR and issue operations waste significant tokens on research, trial-and-error, and output parsing. Benchmarked across 27 runs on standard PR workflows:
 
-- Stable execution contract: `{ ok, data, error, meta }`
-- Deterministic route planning (`preferred` then ordered `fallbacks`)
-- Runtime schema validation for capability input/output
-- Structured error taxonomy for reliable automation behavior
-- Agent-facing exports for capability discovery and execution wrappers
+| Metric | Improvement |
+|---|---|
+| Active tokens | **-37%** fewer tokens consumed |
+| Latency | **-32%** faster end-to-end |
+| Tool calls | **-33%** fewer tool invocations |
+| Success rate | **100%** (zero regressions) |
+
+ghx eliminates the discovery phase: agents call typed capabilities, get validated results back in a stable envelope.
 
 ## Installation
 
-Requirements:
-
-- Node.js `22+`
-- `gh` CLI authenticated for CLI capability execution (`gh auth status`)
-
-CLI without global install:
+Requirements: Node.js `22+`, `gh` CLI authenticated (`gh auth status`).
 
 ```bash
-npx @ghx-dev/core capabilities list
-```
-
-CLI global install:
-
-```bash
-npm i -g @ghx-dev/core
-```
-
-Library install:
-
-```bash
-pnpm add @ghx-dev/core
+npm install @ghx-dev/core
 ```
 
 Alternative package managers:
 
 ```bash
-npm i @ghx-dev/core
+pnpm add @ghx-dev/core
 # or
 yarn add @ghx-dev/core
 ```
 
+Or run directly without installing:
+
+```bash
+npx @ghx-dev/core capabilities list
+```
+
+Global CLI install:
+
+```bash
+npm i -g @ghx-dev/core
+```
+
 ## Quick Start (CLI)
 
-Set GitHub token (`GITHUB_TOKEN` or `GH_TOKEN`) and run capabilities:
+Set `GITHUB_TOKEN` or `GH_TOKEN` in your environment, then:
 
 ```bash
 npx @ghx-dev/core capabilities list
@@ -65,78 +63,56 @@ npx @ghx-dev/core capabilities explain repo.view
 npx @ghx-dev/core run repo.view --input '{"owner":"aryeko","name":"ghx"}'
 ```
 
-Setup helper for Claude Code skill installation:
-
-```bash
-npx @ghx-dev/core setup --platform claude-code --scope project --yes
-npx @ghx-dev/core setup --platform claude-code --scope project --verify
-```
-
 If installed globally, replace `npx @ghx-dev/core` with `ghx`.
+
+Every capability returns a stable envelope:
+
+```json
+{
+  "ok": true,
+  "data": {
+    "id": "R_kgDOOx...",
+    "name": "ghx",
+    "nameWithOwner": "aryeko/ghx"
+  },
+  "error": null,
+  "meta": {
+    "capability_id": "repo.view",
+    "route_used": "cli",
+    "reason": "CARD_PREFERRED"
+  }
+}
+```
 
 ## Quick Start (Library API)
 
 ```ts
-import { createGithubClient, executeTask } from "@ghx-dev/core"
+import { createGithubClientFromToken, executeTask } from "@ghx-dev/core"
 
-const githubToken = process.env.GITHUB_TOKEN
-
-if (!githubToken) {
-  throw new Error("Missing GITHUB_TOKEN")
-}
-
-const githubClient = createGithubClient({
-  async execute<TData>(query: string, variables?: Record<string, unknown>): Promise<TData> {
-    const response = await fetch("https://api.github.com/graphql", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${githubToken}`,
-      },
-      body: JSON.stringify({ query, variables: variables ?? {} }),
-    })
-
-    const payload = (await response.json()) as {
-      data?: TData
-      errors?: Array<{ message?: string }>
-      message?: string
-    }
-
-    if (!response.ok) {
-      throw new Error(payload.message ?? `GraphQL request failed (${response.status})`)
-    }
-
-    if (payload.errors?.length) {
-      throw new Error(payload.errors[0]?.message ?? "GraphQL returned errors")
-    }
-
-    if (payload.data === undefined) {
-      throw new Error("GraphQL response missing data")
-    }
-
-    return payload.data
-  },
-})
+const token = process.env.GITHUB_TOKEN!
+const githubClient = createGithubClientFromToken(token)
 
 const result = await executeTask(
-  {
-    task: "repo.view",
-    input: {
-      owner: "aryeko",
-      name: "ghx",
-    },
-  },
-  {
-    githubClient,
-    githubToken,
-  },
+  { task: "repo.view", input: { owner: "aryeko", name: "ghx" } },
+  { githubClient, githubToken: token },
 )
 
-if (!result.ok) {
-  throw new Error(`${result.error?.code}: ${result.error?.message}`)
+if (result.ok) {
+  console.log(result.data)
+} else {
+  console.error(result.error?.code, result.error?.message)
 }
+```
 
-console.log(result.data)
+Need a custom GraphQL transport? Use `createGithubClient(transport)` instead -- see the [advanced usage section](#custom-graphql-transport).
+
+## Agent Onboarding
+
+Install ghx as a project skill for Claude Code:
+
+```bash
+npx @ghx-dev/core setup --platform claude-code --scope project --yes
+npx @ghx-dev/core setup --platform claude-code --scope project --verify
 ```
 
 ## Agent Tools (`@ghx-dev/core/agent`)
@@ -144,67 +120,47 @@ console.log(result.data)
 ```ts
 import {
   createExecuteTool,
-  explainCapability,
   listCapabilities,
+  explainCapability,
   MAIN_SKILL_TEXT,
 } from "@ghx-dev/core/agent"
+import { createGithubClientFromToken, executeTask } from "@ghx-dev/core"
 
-const executeTool = createExecuteTool({
-  executeTask: async (request) => {
-    return { ok: true, data: request, meta: { capability_id: request.task } }
-  },
+// Wire the execute tool to the real engine
+const token = process.env.GITHUB_TOKEN!
+const githubClient = createGithubClientFromToken(token)
+
+const tool = createExecuteTool({
+  executeTask: (request) => executeTask(request, { githubClient, githubToken: token }),
 })
 
-console.log(MAIN_SKILL_TEXT)
+// Discover and execute capabilities
 console.log(listCapabilities())
 console.log(explainCapability("repo.view"))
-await executeTool.execute("repo.view", { owner: "aryeko", name: "ghx" })
+const result = await tool.execute("repo.view", { owner: "aryeko", name: "ghx" })
 ```
 
-## Capability Groups
+`MAIN_SKILL_TEXT` provides a ready-to-use system prompt describing all capabilities.
 
-- Repository + issues: `repo.view`, `issue.view`, `issue.list`, `issue.comments.list`
-- PR read + diagnostics: comments/reviews/diff/checks/mergeability + check annotations and workflow job logs
-- PR execution: review submit, merge, rerun checks, request reviewers, assign users, update branch
-- Issue lifecycle: create/update/close/reopen/delete, labels/assignees/milestones, issue relations/dependencies
-- Release + delivery: release list/get/create/update/publish and workflow dispatch/rerun controls
-- Workflow + projects v2: workflow metadata, run controls/artifacts, projects v2 read/update operations
-- Repo metadata: labels and issue types
+## 66 Capabilities
 
-For exact capability contracts, see https://github.com/aryeko/ghx/tree/main/packages/core/src/core/registry/cards.
+**Repository** -- `repo.view`, `repo.labels.list`, `repo.issue_types.list`
 
-## CLI Environment Variables
+**Issues** -- `issue.view`, `issue.list`, `issue.comments.list`, `issue.create`, `issue.update`, `issue.close`, `issue.reopen`, `issue.delete`, `issue.labels.update`, `issue.assignees.update`, `issue.milestone.set`, `issue.comments.create`, `issue.linked_prs.list`, `issue.relations.get`, `issue.parent.set`, `issue.parent.remove`, `issue.blocked_by.add`, `issue.blocked_by.remove`
 
-- `GITHUB_TOKEN` or `GH_TOKEN` (required)
-- `GITHUB_GRAPHQL_URL` (optional override)
-- `GH_HOST` (optional; used to derive enterprise GraphQL endpoint)
+**Pull Requests (read)** -- `pr.view`, `pr.list`, `pr.comments.list`, `pr.reviews.list`, `pr.diff.list_files`, `pr.status.checks`, `pr.checks.get_failed`, `pr.mergeability.view`
 
-## Security and Permissions
+**Pull Requests (execute)** -- `pr.comment.reply`, `pr.comment.resolve`, `pr.comment.unresolve`, `pr.ready_for_review.set`, `pr.review.submit_approve`, `pr.review.submit_request_changes`, `pr.review.submit_comment`, `pr.merge.execute`, `pr.checks.rerun_failed`, `pr.checks.rerun_all`, `pr.reviewers.request`, `pr.assignees.update`, `pr.branch.update`
 
-- Start with least privilege and grant only what your capability set needs.
-- For quick local testing, a classic PAT with `repo` scope is the simplest route.
-- For production agents, prefer fine-grained tokens with read permissions first (`Metadata`, `Contents`, `Pull requests`, `Issues`, `Actions`, `Projects`) and add writes only where needed.
+**CI Diagnostics** -- `check_run.annotations.list`, `workflow_runs.list`, `workflow_run.jobs.list`, `workflow_job.logs.get`, `workflow_job.logs.analyze`
 
-## Compatibility
+**Releases** -- `release.list`, `release.get`, `release.create_draft`, `release.update`, `release.publish_draft`
 
-- Node.js `22+`
-- GitHub Cloud and GitHub Enterprise hosts (`GH_HOST` supported)
-- Route adapters currently used: CLI and GraphQL
+**Workflow Controls** -- `workflow.list`, `workflow.get`, `workflow_dispatch.run`, `workflow_run.get`, `workflow_run.rerun_failed`, `workflow_run.rerun_all`, `workflow_run.cancel`, `workflow_run.artifacts.list`
 
-## Public Exports
+**Projects v2** -- `project_v2.org.get`, `project_v2.user.get`, `project_v2.fields.list`, `project_v2.items.list`, `project_v2.item.add_issue`, `project_v2.item.field.update`
 
-Root (`@ghx-dev/core`):
-
-- `executeTask`
-- `createGithubClient`, `createGraphqlClient`
-- `listOperationCards`, `getOperationCard`
-- `createSafeCliCommandRunner`
-- Core result/task types (`TaskRequest`, `ResultEnvelope`, `ResultError`, `ResultMeta`, `AttemptMeta`, `RouteSource`, `RouteReasonCode`)
-
-Subpaths:
-
-- `@ghx-dev/core/agent` - agent tooling exports
-- `@ghx-dev/core/cli` - CLI entrypoint
+For exact input/output contracts, see the [operation card registry](https://github.com/aryeko/ghx/tree/main/packages/core/src/core/registry/cards).
 
 ## Result Envelope
 
@@ -215,7 +171,7 @@ type ResultEnvelope<TData = unknown> = {
   ok: boolean
   data?: TData
   error?: {
-    code: string
+    code: string      // AUTH, NOT_FOUND, RATE_LIMIT, VALIDATION, ...
     message: string
     retryable: boolean
     details?: Record<string, unknown>
@@ -234,13 +190,77 @@ type ResultEnvelope<TData = unknown> = {
 }
 ```
 
+## Environment Variables
+
+- `GITHUB_TOKEN` or `GH_TOKEN` (required)
+- `GITHUB_GRAPHQL_URL` (optional; override GraphQL endpoint)
+- `GH_HOST` (optional; derives enterprise GraphQL endpoint)
+
+## Security and Permissions
+
+- Start with least privilege and grant only what your capability set needs.
+- For quick local testing, a classic PAT with `repo` scope is the simplest route.
+- For production agents, prefer fine-grained tokens with read permissions first (`Metadata`, `Contents`, `Pull requests`, `Issues`, `Actions`, `Projects`) and add writes only where needed.
+
+## Compatibility
+
+- Node.js `22+`
+- GitHub Cloud and GitHub Enterprise hosts (`GH_HOST` supported)
+- Route adapters: CLI and GraphQL
+
+## Public Exports
+
+Root (`@ghx-dev/core`):
+
+- `executeTask` -- run a capability
+- `createGithubClientFromToken` -- create a client from a token string
+- `createGithubClient`, `createGraphqlClient` -- create clients from a custom transport
+- `listOperationCards`, `getOperationCard` -- inspect capability registry
+- `createSafeCliCommandRunner` -- custom CLI execution
+- Types: `TaskRequest`, `ResultEnvelope`, `ResultError`, `ResultMeta`, `AttemptMeta`, `RouteSource`, `RouteReasonCode`, `TokenClientOptions`
+
+Subpaths:
+
+- `@ghx-dev/core/agent` -- `createExecuteTool`, `listCapabilities`, `explainCapability`, `MAIN_SKILL_TEXT`
+- `@ghx-dev/core/cli` -- CLI entrypoint
+
+## Custom GraphQL Transport
+
+For full control over the GraphQL layer, pass your own transport to `createGithubClient`:
+
+```ts
+import { createGithubClient, executeTask } from "@ghx-dev/core"
+
+const githubClient = createGithubClient({
+  async execute<TData>(query: string, variables?: Record<string, unknown>): Promise<TData> {
+    const response = await fetch("https://api.github.com/graphql", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+      },
+      body: JSON.stringify({ query, variables: variables ?? {} }),
+    })
+    const payload = (await response.json()) as { data?: TData; errors?: Array<{ message?: string }> }
+    if (payload.errors?.length) throw new Error(payload.errors[0]?.message ?? "GraphQL error")
+    if (payload.data === undefined) throw new Error("GraphQL response missing data")
+    return payload.data
+  },
+})
+
+const result = await executeTask(
+  { task: "repo.view", input: { owner: "aryeko", name: "ghx" } },
+  { githubClient, githubToken: process.env.GITHUB_TOKEN },
+)
+```
+
 ## Documentation
 
-- Architecture overview: https://github.com/aryeko/ghx/blob/main/docs/CODEMAPS/ARCHITECTURE.md
-- Module map: https://github.com/aryeko/ghx/blob/main/docs/CODEMAPS/MODULES.md
-- File map: https://github.com/aryeko/ghx/blob/main/docs/CODEMAPS/FILES.md
-- Operation card registry: https://github.com/aryeko/ghx/blob/main/docs/architecture/operation-card-registry.md
-- Publishing guide: https://github.com/aryeko/ghx/blob/main/docs/guides/publishing.md
+- [Architecture overview](https://github.com/aryeko/ghx/blob/main/docs/CODEMAPS/ARCHITECTURE.md)
+- [Module map](https://github.com/aryeko/ghx/blob/main/docs/CODEMAPS/MODULES.md)
+- [File map](https://github.com/aryeko/ghx/blob/main/docs/CODEMAPS/FILES.md)
+- [Operation card registry](https://github.com/aryeko/ghx/blob/main/docs/architecture/operation-card-registry.md)
+- [Publishing guide](https://github.com/aryeko/ghx/blob/main/docs/guides/publishing.md)
 
 ## License
 

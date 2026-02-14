@@ -1,8 +1,9 @@
-# ghx
 
 <p align="center">
-  <img src="assets/branding/social/ghx-social-dark-1280x640.png" alt="ghx social preview" width="720">
+  <img src="assets/branding/social/ghx-social-dark-1280x640.png" alt="ghx social preview" width="480">
 </p>
+
+# ghx
 
 > GitHub execution router for AI agents.
 > One typed capability interface over `gh` CLI + GraphQL.
@@ -46,25 +47,15 @@ Requirements:
 - `gh` CLI authenticated (`gh auth status`)
 - `GITHUB_TOKEN` or `GH_TOKEN` in env
 
-From this repository:
-
-```bash
-pnpm install
-pnpm run build
-
-pnpm exec ghx capabilities list
-pnpm exec ghx capabilities explain repo.view
-pnpm exec ghx run repo.view --input '{"owner":"aryeko","name":"ghx"}'
-```
-
-Try without installing globally:
+Run instantly with `npx`:
 
 ```bash
 npx @ghx-dev/core capabilities list
+npx @ghx-dev/core capabilities explain repo.view
 npx @ghx-dev/core run repo.view --input '{"owner":"aryeko","name":"ghx"}'
 ```
 
-Install the CLI globally (beta):
+Or install the CLI globally:
 
 ```bash
 npm i -g @ghx-dev/core
@@ -72,11 +63,11 @@ ghx capabilities list
 ghx run repo.view --input '{"owner":"aryeko","name":"ghx"}'
 ```
 
-Setup helper for Claude Code skill installation:
+Agent onboarding (Claude Code skill):
 
 ```bash
-pnpm exec ghx setup --platform claude-code --scope project --yes
-pnpm exec ghx setup --platform claude-code --scope project --verify
+npx @ghx-dev/core setup --platform claude-code --scope project --yes
+npx @ghx-dev/core setup --platform claude-code --scope project --verify
 ```
 
 ## Example Output
@@ -103,10 +94,10 @@ pnpm exec ghx setup --platform claude-code --scope project --verify
 Diagnose a PR before merging:
 
 ```bash
-pnpm exec ghx run pr.status.checks --input '{"owner":"aryeko","name":"ghx","number":14}'
-pnpm exec ghx run pr.checks.get_failed --input '{"owner":"aryeko","name":"ghx","number":14}'
-pnpm exec ghx run workflow_job.logs.analyze --input '{"owner":"aryeko","name":"ghx","job_id":123456789}'
-pnpm exec ghx run pr.merge.execute --input '{"owner":"aryeko","name":"ghx","number":14,"method":"squash"}'
+ghx run pr.status.checks --input '{"owner":"aryeko","name":"ghx","number":14}'
+ghx run pr.checks.get_failed --input '{"owner":"aryeko","name":"ghx","number":14}'
+ghx run workflow_job.logs.analyze --input '{"owner":"aryeko","name":"ghx","job_id":123456789}'
+ghx run pr.merge.execute --input '{"owner":"aryeko","name":"ghx","number":14,"method":"squash"}'
 ```
 
 The same flow can be run by agents through the public library API or `@ghx-dev/core/agent` tools.
@@ -146,16 +137,6 @@ For the full capability inventory, see https://github.com/aryeko/ghx/blob/main/p
 - Branding assets: `assets/branding/README.md`
 - CI workflows: `docs/engineering/ci-workflows.md`
 
-## Verification
-
-```bash
-pnpm run build
-pnpm run lint
-pnpm run ci
-pnpm run ghx:gql:check
-pnpm --filter @ghx-dev/benchmark run check:scenarios
-```
-
 ## Roadmap
 
 Current roadmap priorities and capability batches are tracked in `ROADMAP.md`.
@@ -163,6 +144,15 @@ Current roadmap priorities and capability batches are tracked in `ROADMAP.md`.
 ## Contributing
 
 See `CONTRIBUTING.md` for local setup, test commands, and PR expectations.
+
+Development from source:
+
+```bash
+git clone https://github.com/aryeko/ghx.git && cd ghx
+pnpm install
+pnpm run build
+pnpm run ci
+```
 
 ## License
 
