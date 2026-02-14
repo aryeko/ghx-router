@@ -23,7 +23,7 @@ We need explicit **scenario sets** so we can:
 
 ## Goals
 
-1. Introduce first-class scenario sets in `@ghx/benchmark`.
+1. Introduce first-class scenario sets in `@ghx-dev/benchmark`.
 2. Keep default execution semantically equivalent to current behavior.
 3. Add benchmark coverage for all capability families introduced by the architecture spec.
 4. Isolate mutating PR operations from default runs.
@@ -150,7 +150,7 @@ Set metadata is captured now so future set-specific reports can be added without
   - Mitigation: bounded retries, stable fixture PRs, and diagnostics-specific assertions.
 
 - **Capability-name mismatch between core and benchmark scenarios**
-  - Mitigation: add scenario check that task IDs exist in `@ghx/core` capability list (follow-up enhancement).
+  - Mitigation: add scenario check that task IDs exist in `@ghx-dev/core` capability list (follow-up enhancement).
 
 ### Low
 
@@ -179,9 +179,9 @@ Set metadata is captured now so future set-specific reports can be added without
 2. Ensure existing benchmark commands still work:
 
 ```bash
-pnpm --filter @ghx/benchmark run check:scenarios
-pnpm --filter @ghx/benchmark run test
-pnpm --filter @ghx/benchmark run typecheck
+pnpm --filter @ghx-dev/benchmark run check:scenarios
+pnpm --filter @ghx-dev/benchmark run test
+pnpm --filter @ghx-dev/benchmark run typecheck
 ```
 
 ### Acceptance criteria
@@ -230,10 +230,10 @@ pnpm --filter @ghx/benchmark run typecheck
 ### Verification evidence
 
 ```bash
-pnpm --filter @ghx/benchmark run check:scenarios
-pnpm --filter @ghx/benchmark run test
-pnpm --filter @ghx/benchmark run typecheck
-pnpm --filter @ghx/benchmark run lint
+pnpm --filter @ghx-dev/benchmark run check:scenarios
+pnpm --filter @ghx-dev/benchmark run test
+pnpm --filter @ghx-dev/benchmark run typecheck
+pnpm --filter @ghx-dev/benchmark run lint
 ```
 
 All commands passed during implementation and re-review cycles.

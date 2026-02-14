@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "description": "CLI-first GitHub execution router for agents.",
+  "engines": {
+    "node": ">=22"
+  },
   "packageManager": "pnpm@10.17.0",
   "scripts": {
     "build": "nx run-many -t build",
@@ -21,12 +24,12 @@
     "changeset:publish": "changeset publish",
     "changeset:status": "changeset status",
     "changeset:version": "changeset version",
-    "benchmark:check": "nx run @ghx/benchmark:\"check:scenarios\"",
-    "benchmark:run": "nx run @ghx/benchmark:run",
-    "benchmark:report": "nx run @ghx/benchmark:report",
-    "benchmark:gate": "nx run @ghx/benchmark:\"report:gate\"",
-    "ghx:publish": "pnpm --filter @ghx/core run build && pnpm --filter @ghx/core publish --no-git-checks",
-    "ghx:gql:check": "nx run @ghx/core:\"gql:check\"",
+    "benchmark:check": "nx run @ghx-dev/benchmark:\"check:scenarios\"",
+    "benchmark:run": "nx run @ghx-dev/benchmark:run",
+    "benchmark:report": "nx run @ghx-dev/benchmark:report",
+    "benchmark:gate": "nx run @ghx-dev/benchmark:\"report:gate\"",
+    "ghx:publish": "pnpm --filter @ghx-dev/core run build && pnpm --filter @ghx-dev/core publish --no-git-checks",
+    "ghx:gql:check": "nx run @ghx-dev/core:\"gql:check\"",
     "dep-graph": "nx graph",
     "cache:clean": "nx reset"
   },

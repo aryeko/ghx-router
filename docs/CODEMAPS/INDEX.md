@@ -5,7 +5,7 @@
 ## Codemap Documents
 
 - `docs/CODEMAPS/ARCHITECTURE.md` - high-level package architecture, runtime data flow, and entry points.
-- `docs/CODEMAPS/MODULES.md` - module-by-module reference for `@ghx/core` and `@ghx/benchmark`.
+- `docs/CODEMAPS/MODULES.md` - module-by-module reference for `@ghx-dev/core` and `@ghx-dev/benchmark`.
 - `docs/CODEMAPS/FILES.md` - repository tree, key file index, and navigation shortcuts.
 
 ## Related Documentation
@@ -20,7 +20,7 @@
 - `docs/benchmark/reporting.md` - benchmark output and reporting flow.
 - `docs/benchmark/capability-expansion-scenario-sets-design.md` - implemented scenario-set expansion record.
 - `docs/benchmark/capability-roadmap-benchmark-sets-design.md` - roadmap benchmark-set design for batches A-D.
-- `docs/guides/publishing.md` - release and publish workflow for `@ghx/core`.
+- `docs/guides/publishing.md` - release and publish workflow for `@ghx-dev/core`.
 - `docs/guides/roadmap-golden-flows.md` - one golden flow per roadmap batch.
 
 ## Suggested Reading Paths

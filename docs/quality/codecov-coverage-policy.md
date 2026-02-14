@@ -24,6 +24,6 @@ Defined in `codecov.yml`:
 ## Local Verification
 
 ```bash
-pnpm --filter @ghx/core run test:coverage
-pnpm --filter @ghx/benchmark run test:coverage
+pnpm --filter @ghx-dev/core run test:coverage
+pnpm --filter @ghx-dev/benchmark run test:coverage
 ```

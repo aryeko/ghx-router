@@ -1,8 +1,31 @@
 {
-  "name": "@ghx/core",
-  "version": "0.1.0",
+  "name": "@ghx-dev/core",
+  "version": "0.1.0-beta.0",
+  "description": "GitHub execution router for AI agents with deterministic routing and normalized output.",
   "author": "Arye Kogan",
   "license": "MIT",
+  "keywords": [
+    "github",
+    "github-api",
+    "ai-agents",
+    "agentic",
+    "cli",
+    "graphql",
+    "automation",
+    "typescript"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aryeko/ghx.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/aryeko/ghx/issues"
+  },
+  "homepage": "https://github.com/aryeko/ghx/tree/main/packages/core#readme",
+  "engines": {
+    "node": ">=22"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -45,7 +68,13 @@
   "nx": {
     "targets": {
       "ci": {
-        "dependsOn": ["lint", "typecheck", "test", "build", "gql:check"]
+        "dependsOn": [
+          "lint",
+          "typecheck",
+          "test",
+          "build",
+          "gql:check"
+        ]
       }
     }
   },

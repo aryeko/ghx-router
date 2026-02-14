@@ -33,7 +33,7 @@ Thank you for your interest in contributing to ghx. This document provides guide
 
 - Run all tests: `pnpm run test`
 - Run tests with coverage: `pnpm run test:coverage`
-- Run tests for a specific package: `pnpm --filter @ghx/core run test` or `pnpm --filter @ghx/benchmark run test`
+- Run tests for a specific package: `pnpm --filter @ghx-dev/core run test` or `pnpm --filter @ghx-dev/benchmark run test`
 
 ## Linting and Type Checking
 

@@ -113,9 +113,9 @@
 ### 7.3 Release-gate commands
 
 ```bash
-pnpm --filter @ghx/core run typecheck
-pnpm --filter @ghx/core run lint
-pnpm --filter @ghx/core run test
+pnpm --filter @ghx-dev/core run typecheck
+pnpm --filter @ghx-dev/core run lint
+pnpm --filter @ghx-dev/core run test
 ```
 
 ---

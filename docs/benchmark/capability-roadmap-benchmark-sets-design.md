@@ -241,20 +241,20 @@ The check fails when a capability is missing benchmark coverage.
 ### 7.4 Gate commands
 
 ```bash
-pnpm --filter @ghx/benchmark run check:scenarios
-pnpm --filter @ghx/benchmark run test
-pnpm --filter @ghx/benchmark run typecheck
-pnpm --filter @ghx/benchmark run lint
+pnpm --filter @ghx-dev/benchmark run check:scenarios
+pnpm --filter @ghx-dev/benchmark run test
+pnpm --filter @ghx-dev/benchmark run typecheck
+pnpm --filter @ghx-dev/benchmark run lint
 ```
 
 Optional batch run commands:
 
 ```bash
-pnpm --filter @ghx/benchmark run run -- ghx_router 1 --scenario-set pr-exec
-pnpm --filter @ghx/benchmark run run -- ghx_router 1 --scenario-set issues
-pnpm --filter @ghx/benchmark run run -- ghx_router 1 --scenario-set release-delivery
-pnpm --filter @ghx/benchmark run run -- ghx_router 1 --scenario-set workflows
-pnpm --filter @ghx/benchmark run run -- ghx_router 1 --scenario-set projects-v2
+pnpm --filter @ghx-dev/benchmark run run -- ghx_router 1 --scenario-set pr-exec
+pnpm --filter @ghx-dev/benchmark run run -- ghx_router 1 --scenario-set issues
+pnpm --filter @ghx-dev/benchmark run run -- ghx_router 1 --scenario-set release-delivery
+pnpm --filter @ghx-dev/benchmark run run -- ghx_router 1 --scenario-set workflows
+pnpm --filter @ghx-dev/benchmark run run -- ghx_router 1 --scenario-set projects-v2
 ```
 
 ---

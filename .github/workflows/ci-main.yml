@@ -18,8 +18,6 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GITHUB_TOKEN: ${{ github.token }}
-    outputs:
-      artifacts_uploaded: ${{ steps.upload_artifacts.outputs.artifact-id }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -34,23 +32,23 @@ jobs:
       - run: pnpm run ci --parallel=3 --outputStyle=static
       - name: Generate coverage
         run: pnpm run test:coverage
-      - name: Upload coverage and test results to Codecov
-        if: ${{ !cancelled() }}
+      - name: Upload coverage to Codecov
+        if: ${{ always() && !cancelled() }}
         uses: codecov/codecov-action@v5
         with:
-          files: packages/*/coverage/lcov.info,packages/*/test-report.junit.xml
+          files: packages/*/coverage/lcov.info
           flags: main
           use_oidc: true
           fail_ci_if_error: true
-      - name: Upload dist artifacts
-        id: upload_artifacts
-        if: startsWith(github.event.head_commit.message, 'chore') && contains(github.event.head_commit.message, 'version packages')
-        uses: actions/upload-artifact@v4
+      - name: Upload test results to Codecov
+        if: ${{ always() && !cancelled() }}
+        uses: codecov/codecov-action@v5
         with:
-          name: dist-artifacts
-          path: packages/*/dist
-          retention-days: 1
-
+          files: packages/*/test-report.junit.xml
+          report_type: test_results
+          flags: main
+          use_oidc: true
+          fail_ci_if_error: true
   release:
     needs: build-and-test
     if: github.ref == 'refs/heads/main'

@@ -1,39 +1,83 @@
-# @ghx/core
+# @ghx-dev/core
 
-[![npm version](https://img.shields.io/npm/v/%40ghx%2Fcore)](https://www.npmjs.com/package/@ghx/core)
-[![npm downloads](https://img.shields.io/npm/dm/%40ghx%2Fcore)](https://www.npmjs.com/package/@ghx/core)
-[![License](https://img.shields.io/npm/l/%40ghx%2Fcore)](https://github.com/aryeko/ghx/blob/main/LICENSE)
+<p align="center">
+  <img src="https://raw.githubusercontent.com/aryeko/ghx/main/assets/branding/social/ghx-social-dark-1280x640.png" alt="ghx social preview" width="720">
+</p>
 
-CLI-first GitHub execution router for agents.
+[![npm version](https://img.shields.io/npm/v/%40ghx-dev%2Fcore)](https://www.npmjs.com/package/@ghx-dev/core)
+[![npm downloads](https://img.shields.io/npm/dm/%40ghx-dev%2Fcore)](https://www.npmjs.com/package/@ghx-dev/core)
+[![CI (main)](https://github.com/aryeko/ghx/actions/workflows/ci-main.yml/badge.svg)](https://github.com/aryeko/ghx/actions/workflows/ci-main.yml)
+[![codecov](https://codecov.io/gh/aryeko/ghx/graph/badge.svg?token=KBIGR138V7)](https://codecov.io/gh/aryeko/ghx)
+[![License](https://img.shields.io/npm/l/%40ghx-dev%2Fcore)](https://github.com/aryeko/ghx/blob/main/LICENSE)
 
-`@ghx/core` exposes a typed execution engine that routes GitHub tasks across CLI and GraphQL, validates inputs/outputs against operation-card schemas, and returns a stable result envelope for deterministic agent workflows.
+Public ghx package: CLI-first GitHub execution router for AI agents.
 
-## Why @ghx/core
+`@ghx-dev/core` routes GitHub capabilities across CLI and GraphQL, validates inputs/outputs against operation cards, and returns a stable envelope contract for deterministic agent automation.
 
-- **Stable contract**: every task returns `{ ok, data, error, meta }`
-- **Route-aware execution**: preferred route + fallback routes per capability
-- **Schema validation**: runtime validation for task input/output
-- **Typed clients**: typed GraphQL/GitHub client helpers
-- **Agent-ready tools**: subpath exports for capability listing/explanation/execution wrappers
+## Why @ghx-dev/core
+
+- Stable execution contract: `{ ok, data, error, meta }`
+- Deterministic route planning (`preferred` then ordered `fallbacks`)
+- Runtime schema validation for capability input/output
+- Structured error taxonomy for reliable automation behavior
+- Agent-facing exports for capability discovery and execution wrappers
 
 ## Installation
 
+Requirements:
+
+- Node.js `22+`
+- `gh` CLI authenticated for CLI capability execution (`gh auth status`)
+
+CLI without global install:
+
 ```bash
-pnpm add @ghx/core
+npx @ghx-dev/core capabilities list
+```
+
+CLI global install:
+
+```bash
+npm i -g @ghx-dev/core
+```
+
+Library install:
+
+```bash
+pnpm add @ghx-dev/core
 ```
 
 Alternative package managers:
 
 ```bash
-npm i @ghx/core
+npm i @ghx-dev/core
 # or
-yarn add @ghx/core
+yarn add @ghx-dev/core
 ```
+
+## Quick Start (CLI)
+
+Set GitHub token (`GITHUB_TOKEN` or `GH_TOKEN`) and run capabilities:
+
+```bash
+npx @ghx-dev/core capabilities list
+npx @ghx-dev/core capabilities explain repo.view
+npx @ghx-dev/core run repo.view --input '{"owner":"aryeko","name":"ghx"}'
+```
+
+Setup helper for Claude Code skill installation:
+
+```bash
+npx @ghx-dev/core setup --platform claude-code --scope project --yes
+npx @ghx-dev/core setup --platform claude-code --scope project --verify
+```
+
+If installed globally, replace `npx @ghx-dev/core` with `ghx`.
 
 ## Quick Start (Library API)
 
 ```ts
-import { createGithubClient, executeTask } from "@ghx/core"
+import { createGithubClient, executeTask } from "@ghx-dev/core"
 
 const githubToken = process.env.GITHUB_TOKEN
 
@@ -95,7 +139,7 @@ if (!result.ok) {
 console.log(result.data)
 ```
 
-## Agent Tools (`@ghx/core/agent`)
+## Agent Tools (`@ghx-dev/core/agent`)
 
 ```ts
 import {
@@ -103,11 +147,10 @@ import {
   explainCapability,
   listCapabilities,
   MAIN_SKILL_TEXT,
-} from "@ghx/core/agent"
+} from "@ghx-dev/core/agent"
 
 const executeTool = createExecuteTool({
   executeTask: async (request) => {
-    // delegate to your runtime integration
     return { ok: true, data: request, meta: { capability_id: request.task } }
   },
 })
@@ -118,69 +161,50 @@ console.log(explainCapability("repo.view"))
 await executeTool.execute("repo.view", { owner: "aryeko", name: "ghx" })
 ```
 
-## CLI
+## Capability Groups
 
-When installed globally (or executed via package manager), use:
+- Repository + issues: `repo.view`, `issue.view`, `issue.list`, `issue.comments.list`
+- PR read + diagnostics: comments/reviews/diff/checks/mergeability + check annotations and workflow job logs
+- PR execution: review submit, merge, rerun checks, request reviewers, assign users, update branch
+- Issue lifecycle: create/update/close/reopen/delete, labels/assignees/milestones, issue relations/dependencies
+- Release + delivery: release list/get/create/update/publish and workflow dispatch/rerun controls
+- Workflow + projects v2: workflow metadata, run controls/artifacts, projects v2 read/update operations
+- Repo metadata: labels and issue types
 
-```bash
-ghx run repo.view --input '{"owner":"aryeko","name":"ghx"}'
-ghx setup --platform claude-code --scope project --yes
-ghx setup --platform claude-code --scope project --verify
-ghx capabilities list
-ghx capabilities explain pr.merge.execute
-```
+For exact capability contracts, see https://github.com/aryeko/ghx/tree/main/packages/core/src/core/registry/cards.
 
-Environment variables used by the CLI path:
+## CLI Environment Variables
 
 - `GITHUB_TOKEN` or `GH_TOKEN` (required)
 - `GITHUB_GRAPHQL_URL` (optional override)
 - `GH_HOST` (optional; used to derive enterprise GraphQL endpoint)
 
-## Built-in Capabilities
+## Security and Permissions
 
-- `repo.view` - fetch repository metadata
-- `issue.view` - fetch a single issue
-- `issue.list` - list repository issues
-- `issue.comments.list` - list issue comments with pagination
-- `pr.view` - fetch a single pull request
-- `pr.list` - list pull requests
-- `pr.comments.list` - list pull request review threads/comments
-- `pr.reviews.list` - list pull request reviews
-- `pr.diff.list_files` - list changed files in a pull request
-- `pr.status.checks` - list pull request checks and summary counts
-- `pr.checks.get_failed` - list failed pull request checks
-- `pr.mergeability.view` - fetch mergeability and review decision signals
-- `pr.comment.reply` - reply to a pull request review thread
-- `pr.comment.resolve` - resolve a pull request review thread
-- `pr.comment.unresolve` - unresolve a pull request review thread
-- `pr.ready_for_review.set` - mark draft/ready-for-review state
-- `check_run.annotations.list` - list check run annotations
-- `workflow_runs.list` - list workflow runs for a repository
-- `workflow_run.jobs.list` - list jobs for a workflow run
-- `workflow_job.logs.get` - fetch workflow job logs
-- `workflow_job.logs.analyze` - analyze workflow job logs for error/warning summaries
-- `pr.review.submit_approve`, `pr.review.submit_request_changes`, `pr.review.submit_comment` - submit PR reviews
-- `pr.merge.execute`, `pr.checks.rerun_failed`, `pr.checks.rerun_all`, `pr.reviewers.request`, `pr.assignees.update`, `pr.branch.update` - complete PR execution operations
-- `issue.create`, `issue.update`, `issue.close`, `issue.reopen`, `issue.delete`, `issue.labels.update`, `issue.assignees.update`, `issue.milestone.set`, `issue.comments.create`, `issue.linked_prs.list`, `issue.relations.get`, `issue.parent.set`, `issue.parent.remove`, `issue.blocked_by.add`, `issue.blocked_by.remove` - issue lifecycle and dependency graph operations
-- `release.list`, `release.get`, `release.create_draft`, `release.update`, `release.publish_draft` - release lifecycle operations
-- `workflow.list`, `workflow.get`, `workflow_run.get`, `workflow_run.rerun_all`, `workflow_run.cancel`, `workflow_run.artifacts.list`, `workflow_dispatch.run`, `workflow_run.rerun_failed` - workflow control and delivery operations
-- `project_v2.org.get`, `project_v2.user.get`, `project_v2.fields.list`, `project_v2.items.list`, `project_v2.item.add_issue`, `project_v2.item.field.update` - Projects v2 operations
-- `repo.labels.list`, `repo.issue_types.list` - repository metadata operations
+- Start with least privilege and grant only what your capability set needs.
+- For quick local testing, a classic PAT with `repo` scope is the simplest route.
+- For production agents, prefer fine-grained tokens with read permissions first (`Metadata`, `Contents`, `Pull requests`, `Issues`, `Actions`, `Projects`) and add writes only where needed.
+
+## Compatibility
+
+- Node.js `22+`
+- GitHub Cloud and GitHub Enterprise hosts (`GH_HOST` supported)
+- Route adapters currently used: CLI and GraphQL
 
 ## Public Exports
 
-Root (`@ghx/core`):
+Root (`@ghx-dev/core`):
 
 - `executeTask`
 - `createGithubClient`, `createGraphqlClient`
 - `listOperationCards`, `getOperationCard`
 - `createSafeCliCommandRunner`
-- core result/task types (`TaskRequest`, `ResultEnvelope`, `ResultError`, `ResultMeta`, `AttemptMeta`, `RouteSource`, `RouteReasonCode`)
+- Core result/task types (`TaskRequest`, `ResultEnvelope`, `ResultError`, `ResultMeta`, `AttemptMeta`, `RouteSource`, `RouteReasonCode`)
 
 Subpaths:
 
-- `@ghx/core/agent` - agent tooling exports
-- `@ghx/core/cli` - CLI entrypoint
+- `@ghx-dev/core/agent` - agent tooling exports
+- `@ghx-dev/core/cli` - CLI entrypoint
 
 ## Result Envelope
 
@@ -215,7 +239,7 @@ type ResultEnvelope<TData = unknown> = {
 - Architecture overview: https://github.com/aryeko/ghx/blob/main/docs/CODEMAPS/ARCHITECTURE.md
 - Module map: https://github.com/aryeko/ghx/blob/main/docs/CODEMAPS/MODULES.md
 - File map: https://github.com/aryeko/ghx/blob/main/docs/CODEMAPS/FILES.md
-- Adding capabilities: https://github.com/aryeko/ghx/blob/main/docs/guides/adding-a-capability.md
+- Operation card registry: https://github.com/aryeko/ghx/blob/main/docs/architecture/operation-card-registry.md
 - Publishing guide: https://github.com/aryeko/ghx/blob/main/docs/guides/publishing.md
 
 ## License

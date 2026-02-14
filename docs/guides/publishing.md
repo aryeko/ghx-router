@@ -1,10 +1,10 @@
-# Publishing @ghx/core
+# Publishing @ghx-dev/core
 
-This repo publishes `@ghx/core` with Changesets and GitHub Actions OIDC trusted publishing.
+This repo publishes `@ghx-dev/core` with Changesets and GitHub Actions OIDC trusted publishing.
 
 ## One-time npm setup
 
-1. Create the `@ghx` npm organization if it does not exist.
+1. Create the `@ghx-dev` npm organization if it does not exist.
 2. Configure a trusted publisher for this repo and workflow:
    - Repository: `aryeko/ghx`
    - Workflow file: `.github/workflows/ci-main.yml`
@@ -32,6 +32,6 @@ npm login
 pnpm run ghx:publish
 ```
 
-`ghx:publish` builds `@ghx/core` before publishing so tarballs always include fresh `dist/` artifacts.
+`ghx:publish` builds `@ghx-dev/core` before publishing so tarballs always include fresh `dist/` artifacts.
 
 Use manual publish only when CI release automation is not appropriate.

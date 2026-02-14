@@ -37,11 +37,20 @@ jobs:
       - name: Generate coverage (Node 24)
         if: matrix.node-version == 24
         run: pnpm run test:coverage
-      - name: Upload coverage and test results to Codecov (Node 24)
-        if: matrix.node-version == 24 && !cancelled()
+      - name: Upload coverage to Codecov (Node 24)
+        if: ${{ always() && matrix.node-version == 24 && !cancelled() }}
         uses: codecov/codecov-action@v5
         with:
-          files: packages/*/coverage/lcov.info,packages/*/test-report.junit.xml
+          files: packages/*/coverage/lcov.info
+          flags: pr
+          use_oidc: true
+          fail_ci_if_error: true
+      - name: Upload test results to Codecov (Node 24)
+        if: ${{ always() && matrix.node-version == 24 && !cancelled() }}
+        uses: codecov/codecov-action@v5
+        with:
+          files: packages/*/test-report.junit.xml
+          report_type: test_results
           flags: pr
           use_oidc: true
           fail_ci_if_error: true

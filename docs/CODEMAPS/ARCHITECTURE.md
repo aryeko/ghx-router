@@ -8,8 +8,8 @@
 
 ghx is split into two main packages:
 
-- `@ghx/core` - capability router and CLI for GitHub tasks
-- `@ghx/benchmark` - benchmark harness that measures success, cost, latency, and tool usage across execution modes
+- `@ghx-dev/core` - capability router and CLI for GitHub tasks
+- `@ghx-dev/benchmark` - benchmark harness that measures success, cost, latency, and tool usage across execution modes
 
 The core package provides a normalized `ResultEnvelope` contract and routes each capability to CLI/GraphQL/REST adapters based on operation cards and preflight checks.
 
@@ -22,7 +22,7 @@ The core package provides a normalized `ResultEnvelope` contract and routes each
              │ ghx run <task> --input <json>
              ▼
 ┌──────────────────────────┐
-│ @ghx/core CLI            │
+│ @ghx-dev/core CLI        │
 │ packages/core/src/cli/*  │
 └────────────┬─────────────┘
              │ TaskRequest
@@ -52,15 +52,15 @@ The core package provides a normalized `ResultEnvelope` contract and routes each
 ## Package Relationships
 
 ```text
-@ghx/benchmark
-  ├─ depends on @ghx/core (workspace dependency)
+@ghx-dev/benchmark
+  ├─ depends on @ghx-dev/core (workspace dependency)
   ├─ runs scenarios against multiple modes:
   │   - agent_direct
   │   - mcp
   │   - ghx_router
   └─ writes suite results + summary artifacts
 
-@ghx/core
+@ghx-dev/core
   ├─ defines capability contracts and registry cards
   ├─ executes route selection and fallback logic
   └─ exposes CLI binary: ghx
@@ -93,7 +93,7 @@ The core package provides a normalized `ResultEnvelope` contract and routes each
 
 ## Entry Points
 
-- `packages/core/src/index.ts` - public `@ghx/core` package API entrypoint
+- `packages/core/src/index.ts` - public `@ghx-dev/core` package API entrypoint
 - `packages/core/src/cli/index.ts` - `ghx` executable entrypoint
 - `packages/benchmark/src/cli/benchmark.ts` - benchmark runner CLI
 - `packages/benchmark/src/cli/check-scenarios.ts` - scenario validity check

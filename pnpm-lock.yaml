@@ -41,7 +41,7 @@ importers:
 
   packages/benchmark:
     dependencies:
-      '@ghx/core':
+      '@ghx-dev/core':
         specifier: workspace:*
         version: link:../core
       '@opencode-ai/sdk':

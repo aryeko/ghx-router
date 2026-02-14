@@ -10,8 +10,8 @@ Operational guide for coding agents working in `ghx`.
 ## Repository Overview
 - Monorepo: `pnpm` + `Nx`.
 - Packages:
-  - `@ghx/core` (`packages/core`) - CLI-first GitHub execution router.
-  - `@ghx/benchmark` (`packages/benchmark`) - benchmark harness/reporting.
+  - `@ghx-dev/core` (`packages/core`) - CLI-first GitHub execution router.
+  - `@ghx-dev/benchmark` (`packages/benchmark`) - benchmark harness/reporting.
 - Language/runtime: TypeScript on Node.js, ESM modules.
 
 ## Additional Rules Files
@@ -66,26 +66,26 @@ Use package-filtered Vitest commands for targeted runs.
 Run one test file:
 
 ```bash
-pnpm --filter @ghx/core exec vitest run test/unit/engine.test.ts
-pnpm --filter @ghx/benchmark exec vitest run test/unit/cli-main.test.ts
+pnpm --filter @ghx-dev/core exec vitest run test/unit/engine.test.ts
+pnpm --filter @ghx-dev/benchmark exec vitest run test/unit/cli-main.test.ts
 ```
 
 Run by test name:
 
 ```bash
-pnpm --filter @ghx/core exec vitest run -t "executeTask engine wiring"
-pnpm --filter @ghx/benchmark exec vitest run -t "benchmark cli mains"
+pnpm --filter @ghx-dev/core exec vitest run -t "executeTask engine wiring"
+pnpm --filter @ghx-dev/benchmark exec vitest run -t "benchmark cli mains"
 ```
 
 Run one file and one test name together:
 
 ```bash
-pnpm --filter @ghx/core exec vitest run test/unit/run-command.test.ts -t "parses"
+pnpm --filter @ghx-dev/core exec vitest run test/unit/run-command.test.ts -t "parses"
 ```
 
 Package coverage commands:
-- `pnpm --filter @ghx/core run test:coverage`
-- `pnpm --filter @ghx/benchmark run test:coverage`
+- `pnpm --filter @ghx-dev/core run test:coverage`
+- `pnpm --filter @ghx-dev/benchmark run test:coverage`
 
 ## Code Style Guidelines
 

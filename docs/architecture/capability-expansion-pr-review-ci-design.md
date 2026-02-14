@@ -252,10 +252,10 @@ This keeps unresolved views useful while bounding latency.
 Run before merge:
 
 ```bash
-pnpm --filter @ghx/core run typecheck
-pnpm --filter @ghx/core run lint
-pnpm --filter @ghx/core run test
-pnpm --filter @ghx/core run gql:check
+pnpm --filter @ghx-dev/core run typecheck
+pnpm --filter @ghx-dev/core run lint
+pnpm --filter @ghx-dev/core run test
+pnpm --filter @ghx-dev/core run gql:check
 pnpm run benchmark:check
 ```
 
@@ -308,14 +308,14 @@ Ship in batch order (1 through 4), with each batch gated by tests and schema che
 Executed on feature branch:
 
 ```bash
-pnpm --filter @ghx/core run typecheck
-pnpm --filter @ghx/core run lint
-pnpm --filter @ghx/core run test
-pnpm --filter @ghx/core run gql:check
-pnpm --filter @ghx/benchmark run typecheck
-pnpm --filter @ghx/benchmark run check:scenarios
-pnpm --filter @ghx/benchmark run test
-pnpm --filter @ghx/benchmark run lint
+pnpm --filter @ghx-dev/core run typecheck
+pnpm --filter @ghx-dev/core run lint
+pnpm --filter @ghx-dev/core run test
+pnpm --filter @ghx-dev/core run gql:check
+pnpm --filter @ghx-dev/benchmark run typecheck
+pnpm --filter @ghx-dev/benchmark run check:scenarios
+pnpm --filter @ghx-dev/benchmark run test
+pnpm --filter @ghx-dev/benchmark run lint
 ```
 
 All commands passed during implementation and follow-up review/fix cycles.

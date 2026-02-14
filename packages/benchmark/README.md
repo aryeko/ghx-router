@@ -1,34 +1,51 @@
-# Benchmark Package
+# @ghx-dev/benchmark (Private)
 
-Benchmark tooling for `ghx`.
+Internal benchmark harness for `ghx` maintainers.
 
-## Commands
+This package is intentionally **private** and is not published to npm. It compares baseline `agent_direct` runs against `ghx_router` runs for correctness, latency, token usage, and tool-call counts.
 
-- `pnpm --filter @ghx/benchmark run run -- agent_direct 1 --scenario pr-view-001`
-- `pnpm --filter @ghx/benchmark run run -- ghx_router 1 --scenario-set pr-exec`
-- `pnpm --filter @ghx/benchmark run run -- ghx_router 1 --scenario-set issues`
-- `pnpm --filter @ghx/benchmark run run -- ghx_router 1 --scenario-set release-delivery`
-- `pnpm --filter @ghx/benchmark run run -- ghx_router 1 --scenario-set workflows`
-- `pnpm --filter @ghx/benchmark run run -- ghx_router 1 --scenario-set projects-v2`
-- `pnpm --filter @ghx/benchmark run report`
-- `pnpm --filter @ghx/benchmark run report:gate`
-- `pnpm --filter @ghx/benchmark run test`
-- `pnpm --filter @ghx/benchmark run typecheck`
+## What It Covers
 
-## Roadmap Scenario Sets
+- Scenario schemas and validation
+- Benchmark CLI runner and scenario execution
+- Parsing/extraction helpers for benchmark outputs
+- Summary report generation and gate checks
 
-- `default` remains stable and mutation-free
+## Common Commands
+
+```bash
+pnpm --filter @ghx-dev/benchmark run run -- agent_direct 1 --scenario pr-view-001
+
+pnpm --filter @ghx-dev/benchmark run run -- ghx_router 1 --scenario-set pr-exec
+pnpm --filter @ghx-dev/benchmark run run -- ghx_router 1 --scenario-set issues
+pnpm --filter @ghx-dev/benchmark run run -- ghx_router 1 --scenario-set release-delivery
+pnpm --filter @ghx-dev/benchmark run run -- ghx_router 1 --scenario-set workflows
+pnpm --filter @ghx-dev/benchmark run run -- ghx_router 1 --scenario-set projects-v2
+
+pnpm --filter @ghx-dev/benchmark run report
+pnpm --filter @ghx-dev/benchmark run report:gate
+
+pnpm --filter @ghx-dev/benchmark run test
+pnpm --filter @ghx-dev/benchmark run typecheck
+```
+
+## Scenario Sets
+
+- `default` - stable and mutation-free
 - `pr-exec`
 - `issues`
 - `release-delivery`
 - `workflows`
 - `projects-v2`
-- `all` is the exact union of A-D
+- `all` - exact union of A-D roadmap sets
 
-## Scope
+## Outputs
 
-- Scenario schemas and validation
-- Parsing and extraction helpers
-- CLI entrypoint for benchmark execution
-- Suite runner and OpenCode SDK integration
-- Benchmark summary report and validation gate output
+- Latest summary: `packages/benchmark/reports/latest-summary.md`
+- Scenario definitions: `packages/benchmark/scenarios/`
+
+For benchmark methodology and reporting details, see:
+
+- `docs/benchmark/methodology.md`
+- `docs/benchmark/metrics.md`
+- `docs/benchmark/reporting.md`
