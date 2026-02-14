@@ -45,7 +45,7 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           files: packages/*/test-report.junit.xml
-          report-type: test_results
+          report_type: test_results
           flags: main
           use_oidc: true
           fail_ci_if_error: true

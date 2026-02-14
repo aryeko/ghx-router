@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "description": "CLI-first GitHub execution router for agents.",
+  "engines": {
+    "node": ">=22"
+  },
   "packageManager": "pnpm@10.17.0",
   "scripts": {
     "build": "nx run-many -t build",
