@@ -514,18 +514,12 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
   }
 
   if (capabilityId === "pr.ready_for_review.set") {
-    const prNumber = parseStrictPositiveInt(params.prNumber)
-    if (prNumber === null) {
-      throw new Error("Missing or invalid prNumber for pr.ready_for_review.set")
-    }
-
-    if (typeof params.ready !== "boolean") {
-      throw new Error("Missing or invalid ready for pr.ready_for_review.set")
-    }
+    const prNumber = Number(params.prNumber)
+    const ready = Boolean(params.ready)
 
     return {
       prNumber,
-      isDraft: !params.ready
+      isDraft: !ready
     }
   }
 
@@ -628,10 +622,7 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
   }
 
   if (capabilityId === "workflow_job.logs.get") {
-    const jobId = parseStrictPositiveInt(params.jobId)
-    if (jobId === null) {
-      throw new Error("Missing or invalid jobId for workflow_job.logs.get")
-    }
+    const jobId = Number(params.jobId)
 
     const rawLog = typeof data === "string" ? data : String(data)
     const truncated = rawLog.length > MAX_WORKFLOW_JOB_LOG_CHARS
@@ -644,10 +635,7 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
   }
 
   if (capabilityId === "workflow_job.logs.analyze") {
-    const jobId = parseStrictPositiveInt(params.jobId)
-    if (jobId === null) {
-      throw new Error("Missing or invalid jobId for workflow_job.logs.analyze")
-    }
+    const jobId = Number(params.jobId)
 
     const rawLog = typeof data === "string" ? data : String(data)
     const truncated = rawLog.length > MAX_WORKFLOW_JOB_LOG_CHARS

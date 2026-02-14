@@ -1339,9 +1339,14 @@ export async function runSuite(options: RunSuiteOptions): Promise<void> {
       throw new Error(`Scenario set '${selectedSetName}' references unknown scenario id(s): ${unknownScenarioIds.join(", ")}`)
     }
 
-    selectedScenarios = selectedScenarioIds
-      .map((scenarioId) => scenarios.find((scenario) => scenario.id === scenarioId))
-      .flatMap((scenario) => (scenario ? [scenario] : []))
+    selectedScenarios = selectedScenarioIds.map((scenarioId) => {
+      const matchedScenario = scenarios.find((scenario) => scenario.id === scenarioId)
+      if (!matchedScenario) {
+        throw new Error(`Scenario set '${selectedSetName}' references unknown scenario id(s): ${scenarioId}`)
+      }
+
+      return matchedScenario
+    })
     resolvedScenarioSet = selectedSetName
   }
 

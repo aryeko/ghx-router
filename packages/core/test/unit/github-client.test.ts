@@ -712,7 +712,257 @@ describe("createGithubClient", () => {
       })
     ).rejects.toThrow("List page size must be a positive integer")
 
+    await expect(
+      client.fetchPrReviewsList({
+        owner: "go-modkit",
+        name: "modkit",
+        prNumber: 232,
+        first: 0
+      })
+    ).rejects.toThrow("List page size must be a positive integer")
+
+    await expect(
+      client.fetchPrDiffListFiles({
+        owner: "go-modkit",
+        name: "modkit",
+        prNumber: 0,
+        first: 10
+      })
+    ).rejects.toThrow("PR number must be a positive integer")
+
+    await expect(
+      client.fetchPrCommentsList({
+        owner: "",
+        name: "modkit",
+        prNumber: 232,
+        first: 10
+      })
+    ).rejects.toThrow("Repository owner and name are required")
+
+    await expect(
+      client.fetchPrCommentsList({
+        owner: "go-modkit",
+        name: "modkit",
+        prNumber: 0,
+        first: 10
+      })
+    ).rejects.toThrow("PR number must be a positive integer")
+
+    await expect(
+      client.fetchPrCommentsList({
+        owner: "go-modkit",
+        name: "modkit",
+        prNumber: 232,
+        first: 0
+      })
+    ).rejects.toThrow("List page size must be a positive integer")
+
     expect(execute).not.toHaveBeenCalled()
+  })
+
+  it("normalizes nullable PR review and diff nodes", async () => {
+    const client = createGithubClient({
+      async execute<TData>(query: string): Promise<TData> {
+        if (query.includes("query PrReviewsList")) {
+          return {
+            repository: {
+              pullRequest: {
+                reviews: {
+                  nodes: [
+                    null,
+                    {
+                      id: "review-1",
+                      body: "",
+                      state: "COMMENTED",
+                      submittedAt: null,
+                      url: "https://example.com/review-1",
+                      author: null,
+                      commit: null
+                    }
+                  ],
+                  pageInfo: {
+                    hasNextPage: false,
+                    endCursor: null
+                  }
+                }
+              }
+            }
+          } as TData
+        }
+
+        return {
+          repository: {
+            pullRequest: {
+              files: {
+                nodes: [
+                  null,
+                  {
+                    path: "src/main.ts",
+                    additions: 1,
+                    deletions: 2
+                  }
+                ],
+                pageInfo: {
+                  hasNextPage: false,
+                  endCursor: null
+                }
+              }
+            }
+          }
+        } as TData
+      }
+    })
+
+    const reviews = await client.fetchPrReviewsList({
+      owner: "go-modkit",
+      name: "modkit",
+      prNumber: 232,
+      first: 10
+    })
+    const files = await client.fetchPrDiffListFiles({
+      owner: "go-modkit",
+      name: "modkit",
+      prNumber: 232,
+      first: 10
+    })
+
+    expect(reviews.items).toHaveLength(1)
+    expect(reviews.items[0]).toEqual(
+      expect.objectContaining({
+        id: "review-1",
+        authorLogin: null,
+        submittedAt: null,
+        commitOid: null
+      })
+    )
+    expect(files.items).toHaveLength(1)
+    expect(files.items[0]).toEqual(expect.objectContaining({ path: "src/main.ts", additions: 1, deletions: 2 }))
+  })
+
+  it("normalizes PR comments threads with malformed edges and nodes fallback", async () => {
+    const client = createGithubClient({
+      async execute<TData>(): Promise<TData> {
+        return {
+          repository: {
+            pullRequest: {
+              reviewThreads: {
+                edges: [
+                  null,
+                  {
+                    cursor: 123,
+                    node: {
+                      id: "thread-1",
+                      path: 99,
+                      line: "x",
+                      startLine: "y",
+                      diffSide: 1,
+                      subjectType: 2,
+                      isResolved: false,
+                      isOutdated: false,
+                      viewerCanReply: true,
+                      viewerCanResolve: false,
+                      viewerCanUnresolve: false,
+                      resolvedBy: { login: 1 },
+                      comments: {
+                        nodes: [
+                          null,
+                          {
+                            id: "comment-1",
+                            body: 42,
+                            createdAt: 42,
+                            url: 42,
+                            author: null
+                          }
+                        ]
+                      }
+                    }
+                  }
+                ],
+                pageInfo: {
+                  endCursor: null,
+                  hasNextPage: false
+                }
+              }
+            }
+          }
+        } as TData
+      }
+    })
+
+    const list = await client.fetchPrCommentsList({
+      owner: "go-modkit",
+      name: "modkit",
+      prNumber: 232,
+      first: 10
+    })
+
+    expect(list.items).toHaveLength(1)
+    expect(list.items[0]).toEqual(
+      expect.objectContaining({
+        path: null,
+        line: null,
+        startLine: null,
+        diffSide: null,
+        subjectType: null,
+        resolvedByLogin: null,
+        comments: [
+          expect.objectContaining({
+            id: "comment-1",
+            authorLogin: null,
+            body: "",
+            createdAt: "",
+            url: "42"
+          })
+        ]
+      })
+    )
+  })
+
+  it("uses reviewThreads.nodes fallback when edges are unavailable", async () => {
+    const client = createGithubClient({
+      async execute<TData>(): Promise<TData> {
+        return {
+          repository: {
+            pullRequest: {
+              reviewThreads: {
+                nodes: [
+                  {
+                    id: "thread-fallback",
+                    path: "src/fallback.ts",
+                    line: 20,
+                    startLine: null,
+                    diffSide: "RIGHT",
+                    subjectType: "LINE",
+                    isResolved: false,
+                    isOutdated: false,
+                    viewerCanReply: true,
+                    viewerCanResolve: false,
+                    viewerCanUnresolve: false,
+                    resolvedBy: null,
+                    comments: { nodes: [] }
+                  }
+                ],
+                pageInfo: {
+                  endCursor: "cursor-1",
+                  hasNextPage: false
+                }
+              }
+            }
+          }
+        } as TData
+      }
+    })
+
+    const list = await client.fetchPrCommentsList({
+      owner: "go-modkit",
+      name: "modkit",
+      prNumber: 232,
+      first: 1
+    })
+
+    expect(list.items).toHaveLength(1)
+    expect(list.items[0]?.id).toBe("thread-fallback")
+    expect(list.pageInfo.endCursor).toBeNull()
   })
 
   it("applies PR comments filtering branches for invalid, resolved, and outdated threads", async () => {

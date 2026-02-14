@@ -956,6 +956,12 @@ describe("runCliCapability", () => {
       prNumber: 1,
       ready: "yes"
     })
+    const readyInvalidPrResult = await runCliCapability(runner, "pr.ready_for_review.set", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 0,
+      ready: true
+    })
     const workflowListResult = await runCliCapability(runner, "workflow_runs.list", {
       owner: "acme",
       name: "modkit",
@@ -971,13 +977,20 @@ describe("runCliCapability", () => {
       name: "modkit",
       jobId: 0
     })
+    const checkRunInvalidIdResult = await runCliCapability(runner, "check_run.annotations.list", {
+      owner: "acme",
+      name: "modkit",
+      checkRunId: 0
+    })
 
     expect(checksResult.ok).toBe(false)
     expect(mergeabilityResult.ok).toBe(false)
     expect(readyResult.ok).toBe(false)
+    expect(readyInvalidPrResult.ok).toBe(false)
     expect(workflowListResult.ok).toBe(false)
     expect(workflowJobsResult.ok).toBe(false)
     expect(workflowLogsResult.ok).toBe(false)
+    expect(checkRunInvalidIdResult.ok).toBe(false)
     expect(runner.run).not.toHaveBeenCalled()
   })
 
@@ -1100,6 +1113,80 @@ describe("runCliCapability", () => {
     expect(annotationsResult.data).toEqual(
       expect.objectContaining({
         items: [expect.objectContaining({ path: null, level: null, message: null })]
+      })
+    )
+  })
+
+  it("normalizes non-array checks and non-object workflow payloads", async () => {
+    const runner = {
+      run: vi.fn(async (_command: string, args: string[]) => {
+        if (args[0] === "pr" && args[1] === "checks") {
+          return {
+            stdout: JSON.stringify({ unexpected: true }),
+            stderr: "",
+            exitCode: 0
+          }
+        }
+        if (args[0] === "run" && args[1] === "list") {
+          return {
+            stdout: JSON.stringify([{
+              databaseId: "x",
+              workflowName: 1,
+              status: 2,
+              conclusion: 3,
+              headBranch: 4,
+              url: 5
+            }]),
+            stderr: "",
+            exitCode: 0
+          }
+        }
+        if (args[0] === "run" && args[1] === "view" && args.includes("--json")) {
+          return {
+            stdout: JSON.stringify(null),
+            stderr: "",
+            exitCode: 0
+          }
+        }
+
+        return {
+          stdout: "null",
+          stderr: "",
+          exitCode: 0
+        }
+      })
+    }
+
+    const checksResult = await runCliCapability(runner, "pr.status.checks", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 1
+    })
+    const runsResult = await runCliCapability(runner, "workflow_runs.list", {
+      owner: "acme",
+      name: "modkit",
+      first: 1
+    })
+    const jobsResult = await runCliCapability(runner, "workflow_run.jobs.list", {
+      owner: "acme",
+      name: "modkit",
+      runId: 1
+    })
+
+    expect(checksResult.data).toEqual(
+      expect.objectContaining({
+        items: [],
+        summary: expect.objectContaining({ total: 0, failed: 0, pending: 0, passed: 0 })
+      })
+    )
+    expect(runsResult.data).toEqual(
+      expect.objectContaining({
+        items: [expect.objectContaining({ id: 0, workflowName: null, status: null, conclusion: null, headBranch: null, url: null })]
+      })
+    )
+    expect(jobsResult.data).toEqual(
+      expect.objectContaining({
+        items: []
       })
     )
   })

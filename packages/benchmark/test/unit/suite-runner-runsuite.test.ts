@@ -292,6 +292,45 @@ describe("runSuite", () => {
     expect(close).not.toHaveBeenCalled()
   })
 
+  it("throws when selected scenario set is empty", async () => {
+    const session = createSessionMocks()
+    const close = vi.fn()
+    createOpencodeMock.mockResolvedValue({ client: { session }, server: { close } })
+
+    loadScenariosMock.mockResolvedValue([
+      {
+        id: "repo-view-001",
+        name: "Repo view",
+        task: "repo.view",
+        input: { owner: "a", name: "b" },
+        prompt_template: "run {{task}} {{input_json}}",
+        timeout_ms: 1000,
+        allowed_retries: 0,
+        fixture: { repo: "a/b" },
+        assertions: {
+          must_succeed: true,
+          required_fields: ["ok", "data", "error", "meta"],
+          required_data_fields: ["id"]
+        },
+        tags: []
+      }
+    ])
+    loadScenarioSetsMock.mockResolvedValue({
+      default: [],
+      "pr-operations-all": ["repo-view-001"],
+      "pr-review-reads": [],
+      "pr-thread-mutations": [],
+      "ci-diagnostics": [],
+      "ci-log-analysis": []
+    })
+
+    const mod = await import("../../src/runner/suite-runner.js")
+    await expect(mod.runSuite({ mode: "ghx_router", repetitions: 1, scenarioFilter: null })).rejects.toThrow(
+      "No scenarios matched filter: default"
+    )
+    expect(close).not.toHaveBeenCalled()
+  })
+
   it("throws when scenario filter matches nothing", async () => {
     const session = createSessionMocks()
     const close = vi.fn()
