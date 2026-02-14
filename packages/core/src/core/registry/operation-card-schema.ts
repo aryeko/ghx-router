@@ -1,5 +1,5 @@
 export const operationCardSchema = {
-  $id: "https://ghx-router.local/schemas/operation-card.json",
+  $id: "https://ghx.local/schemas/operation-card.json",
   type: "object",
   required: ["capability_id", "version", "description", "input_schema", "output_schema", "routing"],
   properties: {

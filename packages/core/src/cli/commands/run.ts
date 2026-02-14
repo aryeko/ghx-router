@@ -57,7 +57,7 @@ async function executeGraphqlRequest<TData>(
       "content-type": "application/json",
       accept: "application/json",
       authorization: `Bearer ${token}`,
-      "user-agent": "ghx-router"
+      "user-agent": "ghx"
     },
     body: JSON.stringify({ query, variables: variables ?? {} })
   })

@@ -157,7 +157,7 @@ They enable:
 - Registry-driven routing with deterministic policy.
 
 ### 6.2 Card lifecycle
-- Cards live in the repo under `packages/core/src/registry/cards/`.
+- Cards live in the repo under `packages/core/src/core/registry/cards/`.
 - `execute` loads the card by `capability_id`.
 - `explain` returns a compact summary derived from the card.
 - Benchmarks validate card correctness (inputs/outputs) and route behavior.

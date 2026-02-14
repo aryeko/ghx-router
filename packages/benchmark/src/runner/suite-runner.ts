@@ -605,7 +605,7 @@ function resolveGhTokenFromCli(): string | null {
 }
 
 async function withIsolatedBenchmarkClient<T>(run: (client: unknown) => Promise<T>): Promise<T> {
-  const isolatedXdgConfigHome = await mkdtemp(join(tmpdir(), "ghx-router-benchmark-opencode-"))
+  const isolatedXdgConfigHome = await mkdtemp(join(tmpdir(), "ghx-benchmark-opencode-"))
 
   const previousEnv = {
     OPENCODE_CONFIG: process.env.OPENCODE_CONFIG,
