@@ -1,0 +1,40 @@
+capability_id: repo.issue_types.list
+version: "1.0.0"
+description: List repository issue types.
+input_schema:
+  type: object
+  required: [owner, name]
+  properties:
+    owner: { type: string, minLength: 1 }
+    name: { type: string, minLength: 1 }
+    first: { type: integer, minimum: 1 }
+    after: { type: string, minLength: 1 }
+  additionalProperties: false
+output_schema:
+  type: object
+  required: [items, pageInfo]
+  properties:
+    items:
+      type: array
+      items:
+        type: object
+        required: [id, name, color, isEnabled]
+        properties:
+          id: { type: [string, "null"] }
+          name: { type: [string, "null"] }
+          color: { type: [string, "null"] }
+          isEnabled: { type: [boolean, "null"] }
+        additionalProperties: false
+    pageInfo:
+      type: object
+      required: [hasNextPage, endCursor]
+      properties:
+        hasNextPage: { type: boolean }
+        endCursor: { type: [string, "null"] }
+      additionalProperties: false
+  additionalProperties: false
+routing:
+  preferred: cli
+  fallbacks: []
+cli:
+  command: api graphql

@@ -1,0 +1,23 @@
+capability_id: workflow_run.cancel
+version: "1.0.0"
+description: Cancel a workflow run.
+input_schema:
+  type: object
+  required: [owner, name, runId]
+  properties:
+    owner: { type: string, minLength: 1 }
+    name: { type: string, minLength: 1 }
+    runId: { type: integer, minimum: 1 }
+  additionalProperties: false
+output_schema:
+  type: object
+  required: [runId, status]
+  properties:
+    runId: { type: integer, minimum: 1 }
+    status: { const: cancel_requested }
+  additionalProperties: false
+routing:
+  preferred: cli
+  fallbacks: []
+cli:
+  command: run cancel

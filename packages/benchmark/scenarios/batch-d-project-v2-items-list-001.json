@@ -1,0 +1,23 @@
+{
+  "id": "batch-d-project-v2-items-list-001",
+  "name": "Batch D: list project v2 items",
+  "task": "project_v2.items.list",
+  "input": {
+    "owner": "go-modkit",
+    "projectNumber": 1,
+    "first": 20
+  },
+  "prompt_template": "Execute task {{task}} using input {{input_json}}. Return only valid JSON matching this envelope: {\"ok\": boolean, \"data\": any, \"error\": object|null, \"meta\": object}.",
+  "timeout_ms": 60000,
+  "allowed_retries": 0,
+  "assertions": {
+    "must_succeed": true,
+    "require_tool_calls": true,
+    "min_tool_calls": 1,
+    "required_fields": ["ok", "data", "error", "meta"],
+    "required_data_fields": ["items", "pageInfo"],
+    "required_meta_fields": ["route_used"],
+    "expected_route_used": "cli"
+  },
+  "tags": ["roadmap", "batch-d", "projects-v2"]
+}

@@ -1,0 +1,40 @@
+capability_id: workflow_run.artifacts.list
+version: "1.0.0"
+description: List artifacts for a workflow run.
+input_schema:
+  type: object
+  required: [owner, name, runId]
+  properties:
+    owner: { type: string, minLength: 1 }
+    name: { type: string, minLength: 1 }
+    runId: { type: integer, minimum: 1 }
+  additionalProperties: false
+output_schema:
+  type: object
+  required: [items, pageInfo]
+  properties:
+    items:
+      type: array
+      items:
+        type: object
+        required: [id, name, sizeInBytes, archiveDownloadUrl]
+        properties:
+          id: { type: integer, minimum: 0 }
+          name: { type: [string, "null"] }
+          sizeInBytes: { type: [integer, "null"], minimum: 0 }
+          archiveDownloadUrl: { type: [string, "null"] }
+        additionalProperties: false
+    pageInfo:
+      type: object
+      required: [hasNextPage, endCursor]
+      properties:
+        hasNextPage: { type: boolean }
+        endCursor: { type: [string, "null"] }
+      additionalProperties: false
+  additionalProperties: false
+routing:
+  preferred: cli
+  fallbacks: []
+cli:
+  command: run view
+  jsonFields: [artifacts]

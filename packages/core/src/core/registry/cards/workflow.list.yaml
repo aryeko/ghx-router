@@ -1,0 +1,40 @@
+capability_id: workflow.list
+version: "1.0.0"
+description: List repository workflows.
+input_schema:
+  type: object
+  required: [owner, name]
+  properties:
+    owner: { type: string, minLength: 1 }
+    name: { type: string, minLength: 1 }
+    first: { type: integer, minimum: 1 }
+  additionalProperties: false
+output_schema:
+  type: object
+  required: [items, pageInfo]
+  properties:
+    items:
+      type: array
+      items:
+        type: object
+        required: [id, name, path, state]
+        properties:
+          id: { type: integer, minimum: 0 }
+          name: { type: [string, "null"] }
+          path: { type: [string, "null"] }
+          state: { type: [string, "null"] }
+        additionalProperties: false
+    pageInfo:
+      type: object
+      required: [hasNextPage, endCursor]
+      properties:
+        hasNextPage: { type: boolean }
+        endCursor: { type: [string, "null"] }
+      additionalProperties: false
+  additionalProperties: false
+routing:
+  preferred: cli
+  fallbacks: []
+cli:
+  command: workflow list
+  jsonFields: [id,name,path,state]

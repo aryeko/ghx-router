@@ -1,0 +1,29 @@
+capability_id: project_v2.item.field.update
+version: "1.0.0"
+description: Update a field on a Projects v2 project item.
+input_schema:
+  type: object
+  required: [projectId, itemId, fieldId]
+  properties:
+    projectId: { type: string, minLength: 1 }
+    itemId: { type: string, minLength: 1 }
+    fieldId: { type: string, minLength: 1 }
+    valueText: { type: string, minLength: 1 }
+    valueNumber: { type: number }
+    valueDate: { type: string, minLength: 1 }
+    valueSingleSelectOptionId: { type: string, minLength: 1 }
+    valueIterationId: { type: string, minLength: 1 }
+    clear: { type: boolean }
+  additionalProperties: false
+output_schema:
+  type: object
+  required: [itemId, updated]
+  properties:
+    itemId: { type: [string, "null"] }
+    updated: { type: boolean }
+  additionalProperties: false
+routing:
+  preferred: cli
+  fallbacks: []
+cli:
+  command: project item-edit

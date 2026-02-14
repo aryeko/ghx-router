@@ -20,6 +20,8 @@ function loadCardsFromYaml(): OperationCard[] {
   const directory = cardDirectory()
   const preferredOrder = [
     "repo.view",
+    "repo.labels.list",
+    "repo.issue_types.list",
     "issue.view",
     "issue.list",
     "issue.comments.list",
@@ -39,7 +41,19 @@ function loadCardsFromYaml(): OperationCard[] {
     "workflow_runs.list",
     "workflow_run.jobs.list",
     "workflow_job.logs.get",
-    "workflow_job.logs.analyze"
+    "workflow_job.logs.analyze",
+    "workflow.list",
+    "workflow.get",
+    "workflow_run.get",
+    "workflow_run.rerun_all",
+    "workflow_run.cancel",
+    "workflow_run.artifacts.list",
+    "project_v2.org.get",
+    "project_v2.user.get",
+    "project_v2.fields.list",
+    "project_v2.items.list",
+    "project_v2.item.add_issue",
+    "project_v2.item.field.update"
   ]
   const orderMap = new Map(preferredOrder.map((id, index) => [id, index]))
 

@@ -621,6 +621,34 @@ describe("runCliCapability", () => {
     expect(result.error?.message).toBe("forbidden")
   })
 
+  it("redacts sensitive stderr and omits command args in error details", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "",
+        stderr: "authorization: Bearer ghp_supersecrettokenvalue123",
+        exitCode: 1
+      }))
+    }
+
+    const result = await runCliCapability(runner, "project_v2.item.field.update", {
+      projectId: "PVT_kwDO123",
+      itemId: "ITEM_123",
+      fieldId: "FIELD_123",
+      valueText: "password=supersecret"
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.message).toBe("gh command failed; stderr redacted for safety")
+    expect(result.error?.details).toEqual(
+      expect.objectContaining({
+        capabilityId: "project_v2.item.field.update",
+        exitCode: 1
+      })
+    )
+    expect(String(result.error?.details ?? "")).not.toContain("supersecret")
+    expect(String(result.error?.details ?? "")).not.toContain("ghp_supersecrettokenvalue123")
+  })
+
   it("normalizes pr.status.checks from gh pr checks output", async () => {
     const runner = {
       run: vi.fn(async () => ({
@@ -1235,5 +1263,185 @@ describe("runCliCapability", () => {
     expect(logsResult.ok).toBe(true)
     expect((logsResult.data as { truncated: boolean }).truncated).toBe(true)
     expect((logsResult.data as { log: string }).log.length).toBe(50_000)
+  })
+
+  it("supports workflow control capabilities", async () => {
+    const runner = {
+      run: vi
+        .fn()
+        .mockResolvedValueOnce({
+          stdout: JSON.stringify([{ id: 1, name: "CI", state: "active", path: ".github/workflows/ci.yml" }]),
+          stderr: "",
+          exitCode: 0
+        })
+        .mockResolvedValueOnce({
+          stdout: JSON.stringify({
+            id: 1,
+            name: "CI",
+            state: "active",
+            path: ".github/workflows/ci.yml",
+            url: "https://example.com/workflow/1"
+          }),
+          stderr: "",
+          exitCode: 0
+        })
+        .mockResolvedValueOnce({
+          stdout: JSON.stringify({
+            databaseId: 123,
+            workflowName: "CI",
+            status: "completed",
+            conclusion: "success",
+            headBranch: "main",
+            url: "https://example.com/run/123"
+          }),
+          stderr: "",
+          exitCode: 0
+        })
+        .mockResolvedValueOnce({ stdout: "", stderr: "", exitCode: 0 })
+        .mockResolvedValueOnce({ stdout: "", stderr: "", exitCode: 0 })
+        .mockResolvedValueOnce({
+          stdout: JSON.stringify({
+            artifacts: [{ id: 10, name: "coverage", sizeInBytes: 1234, archiveDownloadUrl: "https://example.com/artifacts/10" }]
+          }),
+          stderr: "",
+          exitCode: 0
+        })
+    }
+
+    const workflowList = await runCliCapability(runner, "workflow.list", { owner: "acme", name: "modkit", first: 10 })
+    const workflowGet = await runCliCapability(runner, "workflow.get", { owner: "acme", name: "modkit", workflowId: "ci.yml" })
+    const workflowRunGet = await runCliCapability(runner, "workflow_run.get", { owner: "acme", name: "modkit", runId: 123 })
+    const rerunAll = await runCliCapability(runner, "workflow_run.rerun_all", { owner: "acme", name: "modkit", runId: 123 })
+    const cancel = await runCliCapability(runner, "workflow_run.cancel", { owner: "acme", name: "modkit", runId: 123 })
+    const artifacts = await runCliCapability(runner, "workflow_run.artifacts.list", {
+      owner: "acme",
+      name: "modkit",
+      runId: 123
+    })
+
+    expect(workflowList.ok).toBe(true)
+    expect(workflowGet.ok).toBe(true)
+    expect(workflowRunGet.ok).toBe(true)
+    expect(rerunAll.data).toEqual({ runId: 123, status: "requested" })
+    expect(cancel.data).toEqual({ runId: 123, status: "cancel_requested" })
+    expect(artifacts.data).toEqual(
+      expect.objectContaining({
+        items: [expect.objectContaining({ id: 10, name: "coverage" })],
+        pageInfo: { hasNextPage: false, endCursor: null }
+      })
+    )
+    expect(runner.run).toHaveBeenNthCalledWith(
+      1,
+      "gh",
+      ["workflow", "list", "--repo", "acme/modkit", "--limit", "10", "--json", "id,name,path,state"],
+      10_000
+    )
+    expect(runner.run).toHaveBeenNthCalledWith(
+      2,
+      "gh",
+      ["workflow", "view", "ci.yml", "--repo", "acme/modkit", "--json", "id,name,path,state,url"],
+      10_000
+    )
+  })
+
+  it("supports projects v2 capabilities and keeps output v2-only", async () => {
+    const runner = {
+      run: vi
+        .fn()
+        .mockResolvedValueOnce({
+          stdout: JSON.stringify({ id: "PVT_org_1", title: "Platform", shortDescription: "Org project", public: false, closed: false, url: "https://example.com/org/project/1" }),
+          stderr: "",
+          exitCode: 0
+        })
+        .mockResolvedValueOnce({
+          stdout: JSON.stringify({ id: "PVT_user_2", title: "Personal", shortDescription: "User project", public: true, closed: false, url: "https://example.com/user/project/2" }),
+          stderr: "",
+          exitCode: 0
+        })
+        .mockResolvedValueOnce({
+          stdout: JSON.stringify({
+            fields: [{ id: "PVTF_1", name: "Status", dataType: "SINGLE_SELECT" }]
+          }),
+          stderr: "",
+          exitCode: 0
+        })
+        .mockResolvedValueOnce({
+          stdout: JSON.stringify({
+            items: [{ id: "PVTI_1", content: { type: "Issue", number: 10, title: "Track batch D" } }]
+          }),
+          stderr: "",
+          exitCode: 0
+        })
+        .mockResolvedValueOnce({
+          stdout: JSON.stringify({ id: "PVTI_2" }),
+          stderr: "",
+          exitCode: 0
+        })
+        .mockResolvedValueOnce({ stdout: "", stderr: "", exitCode: 0 })
+    }
+
+    const org = await runCliCapability(runner, "project_v2.org.get", { org: "acme", projectNumber: 1 })
+    const user = await runCliCapability(runner, "project_v2.user.get", { user: "octocat", projectNumber: 2 })
+    const fields = await runCliCapability(runner, "project_v2.fields.list", { owner: "acme", projectNumber: 1 })
+    const items = await runCliCapability(runner, "project_v2.items.list", { owner: "acme", projectNumber: 1, first: 10 })
+    const addIssue = await runCliCapability(runner, "project_v2.item.add_issue", {
+      owner: "acme",
+      projectNumber: 1,
+      issueUrl: "https://github.com/acme/modkit/issues/10"
+    })
+    const fieldUpdate = await runCliCapability(runner, "project_v2.item.field.update", {
+      projectId: "PVT_org_1",
+      itemId: "PVTI_1",
+      fieldId: "PVTF_1",
+      valueSingleSelectOptionId: "a1b2c3"
+    })
+
+    expect(org.ok).toBe(true)
+    expect(user.ok).toBe(true)
+    expect(fields.data).toEqual(expect.objectContaining({ items: [expect.objectContaining({ id: "PVTF_1" })] }))
+    expect(items.data).toEqual(expect.objectContaining({ items: [expect.objectContaining({ id: "PVTI_1" })] }))
+    expect(addIssue.data).toEqual({ itemId: "PVTI_2", added: true })
+    expect(fieldUpdate.data).toEqual({ itemId: "PVTI_1", updated: true })
+    expect((org.data as Record<string, unknown>).columns).toBeUndefined()
+    expect((user.data as Record<string, unknown>).columns).toBeUndefined()
+  })
+
+  it("supports repo metadata capabilities", async () => {
+    const runner = {
+      run: vi
+        .fn()
+        .mockResolvedValueOnce({
+          stdout: JSON.stringify([{ id: "LA_kwDOA", name: "bug", description: "Something is broken", color: "d73a4a", isDefault: true }]),
+          stderr: "",
+          exitCode: 0
+        })
+        .mockResolvedValueOnce({
+          stdout: JSON.stringify({
+            data: {
+              repository: {
+                issueTypes: {
+                  nodes: [{ id: "IT_kwDOA", name: "Bug", color: "RED", isEnabled: true }],
+                  pageInfo: { hasNextPage: false, endCursor: null }
+                }
+              }
+            }
+          }),
+          stderr: "",
+          exitCode: 0
+        })
+    }
+
+    const labels = await runCliCapability(runner, "repo.labels.list", { owner: "acme", name: "modkit", first: 20 })
+    const issueTypes = await runCliCapability(runner, "repo.issue_types.list", { owner: "acme", name: "modkit", first: 20 })
+
+    expect(labels.ok).toBe(true)
+    expect(labels.data).toEqual(expect.objectContaining({ items: [expect.objectContaining({ name: "bug" })] }))
+    expect(issueTypes.ok).toBe(true)
+    expect(issueTypes.data).toEqual(
+      expect.objectContaining({
+        items: [expect.objectContaining({ id: "IT_kwDOA", name: "Bug" })],
+        pageInfo: { hasNextPage: false, endCursor: null }
+      })
+    )
   })
 })

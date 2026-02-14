@@ -30,6 +30,22 @@
   "ci-log-analysis": [
     "workflow-job-logs-analyze-001"
   ],
+  "roadmap-batch-d-workflow-projects-v2": [
+    "batch-d-workflow-list-001",
+    "batch-d-workflow-get-001",
+    "batch-d-workflow-run-get-001",
+    "batch-d-workflow-run-rerun-all-001",
+    "batch-d-workflow-run-cancel-001",
+    "batch-d-workflow-run-artifacts-list-001",
+    "batch-d-project-v2-org-get-001",
+    "batch-d-project-v2-user-get-001",
+    "batch-d-project-v2-fields-list-001",
+    "batch-d-project-v2-items-list-001",
+    "batch-d-project-v2-item-add-issue-001",
+    "batch-d-project-v2-item-field-update-001",
+    "batch-d-repo-labels-list-001",
+    "batch-d-repo-issue-types-list-001"
+  ],
   "pr-operations-all": [
     "pr-comments-unresolved-001",
     "pr-reviews-list-001",

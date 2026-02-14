@@ -11,6 +11,16 @@ describe("capabilityRegistry", () => {
         fallbackRoutes: ["graphql"]
       },
       {
+        task: "repo.labels.list",
+        defaultRoute: "cli",
+        fallbackRoutes: [],
+      },
+      {
+        task: "repo.issue_types.list",
+        defaultRoute: "cli",
+        fallbackRoutes: [],
+      },
+      {
         task: "issue.view",
         defaultRoute: "cli",
         fallbackRoutes: ["graphql"]
@@ -107,6 +117,66 @@ describe("capabilityRegistry", () => {
       },
       {
         task: "workflow_job.logs.analyze",
+        defaultRoute: "cli",
+        fallbackRoutes: [],
+      },
+      {
+        task: "workflow.list",
+        defaultRoute: "cli",
+        fallbackRoutes: [],
+      },
+      {
+        task: "workflow.get",
+        defaultRoute: "cli",
+        fallbackRoutes: [],
+      },
+      {
+        task: "workflow_run.get",
+        defaultRoute: "cli",
+        fallbackRoutes: [],
+      },
+      {
+        task: "workflow_run.rerun_all",
+        defaultRoute: "cli",
+        fallbackRoutes: [],
+      },
+      {
+        task: "workflow_run.cancel",
+        defaultRoute: "cli",
+        fallbackRoutes: [],
+      },
+      {
+        task: "workflow_run.artifacts.list",
+        defaultRoute: "cli",
+        fallbackRoutes: [],
+      },
+      {
+        task: "project_v2.org.get",
+        defaultRoute: "cli",
+        fallbackRoutes: [],
+      },
+      {
+        task: "project_v2.user.get",
+        defaultRoute: "cli",
+        fallbackRoutes: [],
+      },
+      {
+        task: "project_v2.fields.list",
+        defaultRoute: "cli",
+        fallbackRoutes: [],
+      },
+      {
+        task: "project_v2.items.list",
+        defaultRoute: "cli",
+        fallbackRoutes: [],
+      },
+      {
+        task: "project_v2.item.add_issue",
+        defaultRoute: "cli",
+        fallbackRoutes: [],
+      },
+      {
+        task: "project_v2.item.field.update",
         defaultRoute: "cli",
         fallbackRoutes: [],
       }
