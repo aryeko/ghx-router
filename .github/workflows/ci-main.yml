@@ -15,6 +15,9 @@ jobs:
     permissions:
       contents: read
       id-token: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GITHUB_TOKEN: ${{ github.token }}
     outputs:
       artifacts_uploaded: ${{ steps.upload_artifacts.outputs.artifact-id }}
     steps:

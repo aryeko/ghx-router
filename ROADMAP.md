@@ -25,15 +25,17 @@
 
 ### Track 0: Setup Foundation (first)
 
-- Ship `ghx setup --platform <claude-code|opencode> --scope <user|project> [--profile pr-review-ci] [--dry-run] [--verify] [--yes]`.
-- Ensure idempotent writes, additive merge behavior, backup-on-change, and post-setup verification.
+- Ship `ghx setup --scope <user|project> [--yes] [--dry-run] [--verify] [--track]`.
+- Ship `ghx capabilities list` and `ghx capabilities explain <capability_id>` for capability discovery.
+- Ensure skill-only installation under `.agents/skill/ghx/SKILL.md`, overwrite prompts, and post-setup verification.
 
 Exit criteria:
 
-- Setup succeeds for both platforms and both scopes in fixture validation.
+- Setup succeeds for both scopes in fixture validation.
 - `--dry-run` and `--verify` are reliable.
 - Re-run is a no-op when already configured.
 - New user can complete setup-to-verify in under 5 minutes.
+- Capability discovery subcommands (`list`/`explain`) are available and documented.
 
 ### Batch A: PR Execution Completeness
 
@@ -147,6 +149,7 @@ Exit criteria:
 
 ## Canonical Design Specs
 
+- `docs/architecture/cli-subcommands-design.md`
 - `docs/architecture/setup-command-design.md`
 - `docs/architecture/capability-roadmap-adoption-design.md`
 - `docs/benchmark/capability-roadmap-benchmark-sets-design.md`

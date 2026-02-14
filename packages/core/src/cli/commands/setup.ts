@@ -1,193 +1,232 @@
-import { mkdir, readFile, stat, copyFile, writeFile } from "node:fs/promises"
+import { access, appendFile, mkdir, readFile, writeFile } from "node:fs/promises"
 import { homedir } from "node:os"
 import { dirname, join } from "node:path"
+import readline from "node:readline/promises"
 
-import { MAIN_SKILL_TEXT } from "../../agent-interface/prompt/main-skill.js"
+import Ajv from "ajv"
 
-type SetupPlatform = "claude-code" | "opencode"
 type SetupScope = "user" | "project"
 
 type SetupOptions = {
-  platform: SetupPlatform
   scope: SetupScope
-  profile: "pr-review-ci"
+  assumeYes: boolean
   dryRun: boolean
-  verify: boolean
-  yes: boolean
+  verifyOnly: boolean
+  track: boolean
 }
 
-export type SetupCommandDeps = {
-  cwd: string
-  homeDir: string
-  nowMs: () => number
-}
+const ajv = new Ajv({ allErrors: true, strict: false })
 
-const DEFAULT_DEPS: SetupCommandDeps = {
-  cwd: process.cwd(),
-  homeDir: homedir(),
-  nowMs: () => Date.now()
-}
+const setupOptionsSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["scope", "assumeYes", "dryRun", "verifyOnly", "track"],
+  properties: {
+    scope: {
+      type: "string",
+      enum: ["user", "project"]
+    },
+    assumeYes: { type: "boolean" },
+    dryRun: { type: "boolean" },
+    verifyOnly: { type: "boolean" },
+    track: { type: "boolean" }
+  }
+} as const
+
+const validateSetupOptions = ajv.compile(setupOptionsSchema)
+
+const SKILL_CONTENT = `# ghx skill
+
+Use ghx capabilities to execute GitHub operations through a stable capability interface.
+
+Quick commands:
+- ghx capabilities list
+- ghx capabilities explain <capability_id>
+- ghx run <capability_id> --input '<json>'
+
+Example:
+- ghx run repo.view --input '{"owner":"aryeko","name":"ghx"}'
+`
 
 function usage(): string {
-  return "Usage:\n  ghx setup --platform <claude-code|opencode> --scope <user|project> [--profile pr-review-ci] [--dry-run] [--verify] [--yes]"
+  return "Usage: ghx setup --scope <user|project> [--yes] [--dry-run] [--verify] [--track]"
 }
 
-function parseSetupArgs(argv: string[]): SetupOptions {
-  let platform: SetupPlatform | undefined
-  let scope: SetupScope | undefined
-  let profile = "pr-review-ci" as const
-  let dryRun = false
-  let verify = false
-  let yes = false
-
-  for (let index = 0; index < argv.length; index += 1) {
-    const arg = argv[index]
-
-    if (arg === "--dry-run") {
-      dryRun = true
-      continue
+function parseScope(argv: string[]): SetupScope | undefined {
+  const inline = argv.find((arg) => arg.startsWith("--scope="))
+  if (inline) {
+    const raw = inline.slice("--scope=".length)
+    if (raw === "user" || raw === "project") {
+      return raw
     }
-    if (arg === "--verify") {
-      verify = true
-      continue
-    }
-    if (arg === "--yes") {
-      yes = true
-      continue
-    }
-    if (arg === "--platform") {
-      const value = argv[index + 1]
-      if (value === "claude-code" || value === "opencode") {
-        platform = value
-        index += 1
-        continue
-      }
-      throw new Error("Invalid --platform value. Expected claude-code or opencode")
-    }
-    if (arg === "--scope") {
-      const value = argv[index + 1]
-      if (value === "user" || value === "project") {
-        scope = value
-        index += 1
-        continue
-      }
-      throw new Error("Invalid --scope value. Expected user or project")
-    }
-    if (arg === "--profile") {
-      const value = argv[index + 1]
-      if (value === "pr-review-ci") {
-        profile = value
-        index += 1
-        continue
-      }
-      throw new Error("Invalid --profile value. Expected pr-review-ci")
-    }
-
-    throw new Error(`Unknown setup argument: ${arg}`)
+    return undefined
   }
 
-  if (!platform || !scope) {
-    throw new Error(usage())
+  const scopeIndex = argv.findIndex((arg) => arg === "--scope")
+  if (scopeIndex < 0) {
+    return undefined
   }
 
-  if (dryRun && verify) {
-    throw new Error("--dry-run and --verify cannot be used together")
+  const value = argv[scopeIndex + 1]
+  if (value === "user" || value === "project") {
+    return value
   }
 
-  return { platform, scope, profile, dryRun, verify, yes }
+  return undefined
 }
 
-function resolveSkillPath(options: Pick<SetupOptions, "platform" | "scope">, deps: SetupCommandDeps): string {
-  if (options.platform === "claude-code") {
-    const root = options.scope === "user" ? deps.homeDir : deps.cwd
-    return join(root, ".claude", "skills", "ghx", "SKILL.md")
+function parseArgs(argv: string[]): SetupOptions | null {
+  const scope = parseScope(argv)
+  if (!scope) {
+    return null
   }
 
-  if (options.scope === "user") {
-    return join(deps.homeDir, ".config", "opencode", "skills", "ghx", "SKILL.md")
+  const options: SetupOptions = {
+    scope,
+    assumeYes: argv.includes("--yes"),
+    dryRun: argv.includes("--dry-run"),
+    verifyOnly: argv.includes("--verify"),
+    track: argv.includes("--track")
   }
 
-  return join(deps.cwd, ".opencode", "skills", "ghx", "SKILL.md")
+  if (!validateSetupOptions(options)) {
+    return null
+  }
+
+  return options
 }
 
-function buildSkillContent(profile: SetupOptions["profile"]): string {
-  return [
-    "---",
-    "name: ghx",
-    "description: Stable GitHub capability execution with ghx",
-    `profile: ${profile}`,
-    "---",
-    "",
-    "# ghx",
-    "",
-    MAIN_SKILL_TEXT,
-    ""
-  ].join("\n")
+function resolveSkillPath(scope: SetupScope): string {
+  const base = scope === "user" ? homedir() : process.cwd()
+  return join(base, ".agents", "skill", "ghx", "SKILL.md")
 }
 
-async function pathExists(filePath: string): Promise<boolean> {
-  try {
-    await stat(filePath)
-    return true
-  } catch {
+function resolveTrackingPath(): string {
+  return join(homedir(), ".agents", "ghx", "setup-events.jsonl")
+}
+
+async function writeTrackingEvent(options: {
+  track: boolean
+  scope: SetupScope
+  mode: "apply"
+  success: boolean
+}): Promise<void> {
+  if (!options.track) {
+    return
+  }
+
+  const trackingPath = resolveTrackingPath()
+  await mkdir(join(homedir(), ".agents", "ghx"), { recursive: true })
+  await appendFile(
+    trackingPath,
+    `${JSON.stringify({
+      command: "setup",
+      scope: options.scope,
+      mode: options.mode,
+      success: options.success,
+      timestamp: new Date().toISOString()
+    })}\n`,
+    "utf8"
+  )
+}
+
+async function confirmOverwrite(skillPath: string): Promise<boolean> {
+  if (!process.stdin.isTTY || !process.stdout.isTTY) {
     return false
   }
+
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  })
+
+  try {
+    const answer = await rl.question(`Skill already exists at ${skillPath}. Overwrite? [y/N] `)
+    const normalized = answer.trim().toLowerCase()
+    return normalized === "y" || normalized === "yes"
+  } finally {
+    rl.close()
+  }
 }
 
-async function verifySetup(skillPath: string): Promise<{ ok: boolean; message: string }> {
-  const exists = await pathExists(skillPath)
-  if (!exists) {
-    return { ok: false, message: `VERIFY FAIL: missing ${skillPath}` }
-  }
-
-  const content = await readFile(skillPath, "utf8")
-  const requiredMarkers = ["name: ghx", "profile: pr-review-ci", "# ghx", "Use execute(capability_id, params)"]
-  const missingMarkers = requiredMarkers.filter((marker) => !content.includes(marker))
-  if (missingMarkers.length > 0) {
-    return {
-      ok: false,
-      message: `VERIFY FAIL: invalid ghx skill content in ${skillPath} (missing: ${missingMarkers.join(", ")})`
+async function verifySkill(skillPath: string): Promise<boolean> {
+  try {
+    const content = await readFile(skillPath, "utf8")
+    return content.includes("ghx capabilities")
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error) {
+      if ((error as { code?: string }).code === "ENOENT") {
+        return false
+      }
     }
-  }
 
-  return { ok: true, message: `VERIFY PASS: ${skillPath}` }
+    throw error
+  }
 }
 
-export async function setupCommand(argv: string[] = [], deps: SetupCommandDeps = DEFAULT_DEPS): Promise<number> {
-  const options = parseSetupArgs(argv)
-  const skillPath = resolveSkillPath(options, deps)
-  const skillContent = buildSkillContent(options.profile)
+async function skillFileExists(skillPath: string): Promise<boolean> {
+  try {
+    await access(skillPath)
+    return true
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error) {
+      if ((error as { code?: string }).code === "ENOENT") {
+        return false
+      }
+    }
 
-  if (options.verify) {
-    const result = await verifySetup(skillPath)
-    process.stdout.write(`${result.message}\n`)
-    return result.ok ? 0 : 1
+    throw error
+  }
+}
+
+export async function setupCommand(argv: string[] = []): Promise<number> {
+  const parsed = parseArgs(argv)
+  if (!parsed) {
+    process.stderr.write(`${usage()}\n`)
+    return 1
   }
 
-  if (options.dryRun) {
-    process.stdout.write(`DRY RUN: install profile ${options.profile} to ${skillPath}\n`)
-    return 0
-  }
+  const skillPath = resolveSkillPath(parsed.scope)
 
-  const exists = await pathExists(skillPath)
-  if (exists) {
-    const current = await readFile(skillPath, "utf8")
-    if (current === skillContent) {
-      process.stdout.write("Already configured: no changes required\n")
+  try {
+    if (parsed.verifyOnly) {
+      const ok = await verifySkill(skillPath)
+      if (!ok) {
+        process.stderr.write(`Verify failed: skill not installed at ${skillPath}\n`)
+        return 1
+      }
+
+      process.stdout.write(`Verify passed: skill installed at ${skillPath}\n`)
       return 0
     }
 
-    if (!options.yes) {
-      throw new Error(`Refusing to overwrite existing setup at ${skillPath}. Re-run with --yes to allow overwrite.`)
+    if (parsed.dryRun) {
+      process.stdout.write(`Dry run: would write ${skillPath}\n`)
+      return 0
     }
 
-    const backupPath = `${skillPath}.bak.${deps.nowMs()}`
-    await copyFile(skillPath, backupPath)
-    process.stdout.write(`Created backup: ${backupPath}\n`)
-  }
+    const alreadyExists = await skillFileExists(skillPath)
+    if (alreadyExists && !parsed.assumeYes) {
+      const approved = await confirmOverwrite(skillPath)
+      if (!approved) {
+        process.stderr.write(
+          `Skill already exists at ${skillPath}. Re-run with --yes or confirm overwrite interactively.\n`
+        )
+        await writeTrackingEvent({ track: parsed.track, scope: parsed.scope, mode: "apply", success: false })
+        return 1
+      }
+    }
 
-  await mkdir(dirname(skillPath), { recursive: true })
-  await writeFile(skillPath, skillContent, "utf8")
-  process.stdout.write(`Configured ghx setup at ${skillPath}\n`)
-  return 0
+    await mkdir(dirname(skillPath), { recursive: true })
+    await writeFile(skillPath, SKILL_CONTENT, "utf8")
+
+    process.stdout.write(`Setup complete: wrote ${skillPath}\n`)
+    process.stdout.write("Try: ghx capabilities list\n")
+    await writeTrackingEvent({ track: parsed.track, scope: parsed.scope, mode: "apply", success: true })
+    return 0
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    process.stderr.write(`Setup failed: ${message}\n`)
+    return 1
+  }
 }

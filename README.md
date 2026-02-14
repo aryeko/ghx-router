@@ -26,6 +26,14 @@ ghx capabilities explain pr.merge.execute
 pnpm exec ghx run repo.view --input '{"owner":"aryeko","name":"ghx"}'
 ```
 
+Setup skill (project scope) and discover capabilities:
+
+```bash
+pnpm exec ghx setup --scope project --yes
+pnpm exec ghx capabilities list
+pnpm exec ghx capabilities explain repo.view
+```
+
 Normalized output:
 
 ```json
@@ -67,6 +75,7 @@ Normalized output:
 ## Docs
 
 - Architecture overview: `docs/architecture/overview.md`
+- CLI subcommands design: `docs/architecture/cli-subcommands-design.md`
 - System design: `docs/architecture/system-design.md`
 - Contracts: `docs/architecture/contracts.md`
 - Routing policy: `docs/architecture/routing-policy.md`
@@ -102,6 +111,7 @@ pnpm run benchmark:check
 ghx prioritizes the following sequence:
 
 1. **Setup first:** ship `ghx setup` for fast, verifiable onboarding (`user` and `project` scope).
+   - include `ghx capabilities list` and `ghx capabilities explain <capability_id>` as discovery entrypoints
 2. **Capability batches A-D:** complete PR execution, issue lifecycle, release flow, and workflow/Projects v2 controls.
 3. **Adoption next:** package/public API hardening, compatibility matrix, public ROI benchmarks, and ecosystem templates.
 

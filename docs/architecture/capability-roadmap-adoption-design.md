@@ -61,15 +61,18 @@ This design defines a staged roadmap that keeps `ghx` deterministic and benchmar
 
 CLI surface:
 
-- `ghx setup --platform <claude-code|opencode> --scope <user|project> [--profile pr-review-ci] [--dry-run] [--verify] [--yes]`
+- `ghx setup --scope <user|project> [--yes] [--dry-run] [--verify] [--track]`
+- `ghx capabilities list`
+- `ghx capabilities explain <capability_id>`
 
 Behavior:
 
 - idempotent writes,
-- additive/merge-first config updates,
-- backup existing modified files,
+- skill-only installation under `.agents/skill/ghx/SKILL.md`,
+- explicit overwrite approval (or `--yes`) for existing skill files,
 - explicit dry-run plan,
-- explicit verify report.
+- explicit verify report,
+- opt-in setup telemetry with `--track`.
 
 ### 5.2 Batch A: PR execution completeness
 
@@ -162,6 +165,7 @@ If fallback cannot preserve required output schema, the operation must return `A
 5. Batch D must support Projects v2 operations only (no classic project support).
 6. `repo.labels.list` and `repo.issue_types.list` must be independently callable capabilities.
 7. `ghx setup` must support both user and project scope in v1.
+8. `ghx capabilities list` and `ghx capabilities explain <capability_id>` must be available as CLI discovery commands.
 
 ### 7.2 Quality requirements
 
@@ -176,7 +180,8 @@ If fallback cannot preserve required output schema, the operation must return `A
 1. No token/secret leakage in envelope payloads, telemetry, or errors.
 2. CLI executions continue to use safe-runner constraints (`shell: false`, timeout, output bound).
 3. Mutating operations require explicit inputs; no hidden mutation side effects.
-4. `ghx setup` never silently overwrites existing user configuration.
+4. `ghx setup` never silently overwrites an existing skill file.
+5. Setup telemetry is emitted only when `--track` is provided.
 
 ### 7.4 Adoption requirements
 
@@ -192,7 +197,7 @@ If fallback cannot preserve required output schema, the operation must return `A
 
 - Card schema validation tests for all added capabilities.
 - Adapter tests for each capability family (PR, issue, release, workflow, projects v2, repo metadata).
-- Setup command tests: argument parsing, scope path resolution, idempotency, dry-run, verify output.
+- Setup and discovery command tests: argument parsing, scope path resolution, overwrite behavior, dry-run, verify output, and setup telemetry gating.
 
 ### 8.2 Integration validation
 
@@ -255,8 +260,8 @@ Each stage requires:
 - **Route fallback contract mismatch**  
   Mitigation: explicit `ADAPTER_UNSUPPORTED` when shape cannot be preserved.
 
-- **Setup command config collisions**  
-  Mitigation: merge-first write policy, backups, and verify report.
+- **Setup overwrite prompts in non-interactive environments**  
+  Mitigation: require explicit `--yes` in non-interactive runs and provide actionable failure output.
 
 ### Low
 
