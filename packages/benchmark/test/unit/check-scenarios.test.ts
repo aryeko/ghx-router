@@ -98,7 +98,8 @@ describe("check-scenarios", () => {
       "pr-exec": ["repo-view-001"],
       "issues": ["repo-view-001"],
       "release-delivery": ["repo-view-001"],
-      "workflow-projects-v2": ["repo-view-001"],
+      workflows: ["repo-view-001"],
+      "projects-v2": ["repo-view-001"],
       all: ["repo-view-001"]
     })
 
@@ -125,7 +126,8 @@ describe("check-scenarios", () => {
       "pr-exec": [],
       "issues": [],
       "release-delivery": [],
-      "workflow-projects-v2": [],
+      workflows: [],
+      "projects-v2": [],
       all: []
     })
 
@@ -185,7 +187,8 @@ describe("check-scenarios", () => {
       "pr-exec": ["repo-view-001"],
       "issues": ["repo-view-001"],
       "release-delivery": ["repo-view-001"],
-      "workflow-projects-v2": ["repo-view-001"],
+      workflows: ["repo-view-001"],
+      "projects-v2": ["repo-view-001"],
       all: ["repo-view-001"]
     })
 
@@ -203,7 +206,8 @@ describe("check-scenarios", () => {
       "pr-exec": ["pr-review-submit-approve-001"],
       "issues": [],
       "release-delivery": [],
-      "workflow-projects-v2": [],
+      workflows: [],
+      "projects-v2": [],
       all: []
     })
 

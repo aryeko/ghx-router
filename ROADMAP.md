@@ -115,7 +115,7 @@ Exit criteria:
 Exit criteria:
 
 - Projects v2-only scope is preserved.
-- Benchmark set `workflow-projects-v2` passes.
+- Benchmark sets `workflows` and `projects-v2` pass.
 - Docs include workflow + project control examples.
 
 ## After A-D: Adoption-Prioritized Next Work

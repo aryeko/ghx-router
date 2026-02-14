@@ -10,7 +10,8 @@ export const REQUIRED_SCENARIO_SETS = [
   "pr-exec",
   "issues",
   "release-delivery",
-  "workflow-projects-v2",
+  "workflows",
+  "projects-v2",
   "all"
 ]
 
@@ -48,17 +49,19 @@ export const ROADMAP_CAPABILITIES_BY_SET: Record<string, string[]> = {
     "release.get",
     "release.create_draft",
     "release.update",
-    "release.publish_draft",
-    "workflow_dispatch.run",
-    "workflow_run.rerun_failed"
+    "release.publish_draft"
   ],
-  "workflow-projects-v2": [
+  workflows: [
+    "workflow_dispatch.run",
+    "workflow_run.rerun_failed",
     "workflow.list",
     "workflow.get",
     "workflow_run.get",
     "workflow_run.rerun_all",
     "workflow_run.cancel",
-    "workflow_run.artifacts.list",
+    "workflow_run.artifacts.list"
+  ],
+  "projects-v2": [
     "project_v2.org.get",
     "project_v2.user.get",
     "project_v2.fields.list",
@@ -120,7 +123,8 @@ function assertAllSetExactUnion(scenarioSets: Record<string, string[]>): void {
     ...(scenarioSets["pr-exec"] ?? []),
     ...(scenarioSets["issues"] ?? []),
     ...(scenarioSets["release-delivery"] ?? []),
-    ...(scenarioSets["workflow-projects-v2"] ?? [])
+    ...(scenarioSets.workflows ?? []),
+    ...(scenarioSets["projects-v2"] ?? [])
   ])
   const actualIds = new Set(scenarioSets["all"])
 

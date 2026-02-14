@@ -22,16 +22,21 @@ describe("scenario-sets manifest", () => {
     ])
   })
 
-  it("defines roadmap batch D workflow and projects v2 set", () => {
+  it("defines workflows and projects-v2 sets", () => {
     const scenarioSets = loadScenarioSets()
 
-    expect(scenarioSets["workflow-projects-v2"]).toEqual([
+    expect(scenarioSets.workflows).toEqual([
+      "workflow-dispatch-run-001",
+      "workflow-run-rerun-failed-001",
       "workflow-list-001",
       "workflow-get-001",
       "workflow-run-get-001",
       "workflow-run-rerun-all-001",
       "workflow-run-cancel-001",
-      "workflow-run-artifacts-list-001",
+      "workflow-run-artifacts-list-001"
+    ])
+
+    expect(scenarioSets["projects-v2"]).toEqual([
       "project-v2-org-get-001",
       "project-v2-user-get-001",
       "project-v2-fields-list-001",
@@ -51,9 +56,7 @@ describe("scenario-sets manifest", () => {
       "release-get-001",
       "release-create-draft-001",
       "release-update-001",
-      "release-publish-draft-001",
-      "workflow-dispatch-run-001",
-      "workflow-run-rerun-failed-001"
+      "release-publish-draft-001"
     ])
   })
 
@@ -98,7 +101,8 @@ describe("scenario-sets manifest", () => {
       ...(scenarioSets["pr-exec"] ?? []),
       ...(scenarioSets["issues"] ?? []),
       ...(scenarioSets["release-delivery"] ?? []),
-      ...(scenarioSets["workflow-projects-v2"] ?? [])
+      ...(scenarioSets.workflows ?? []),
+      ...(scenarioSets["projects-v2"] ?? [])
     ])
 
     expect(new Set(scenarioSets.all ?? [])).toEqual(expectedUnion)

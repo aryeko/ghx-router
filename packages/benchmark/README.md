@@ -8,7 +8,8 @@ Benchmark tooling for `ghx`.
 - `pnpm --filter @ghx/benchmark run run -- ghx_router 1 --scenario-set pr-exec`
 - `pnpm --filter @ghx/benchmark run run -- ghx_router 1 --scenario-set issues`
 - `pnpm --filter @ghx/benchmark run run -- ghx_router 1 --scenario-set release-delivery`
-- `pnpm --filter @ghx/benchmark run run -- ghx_router 1 --scenario-set workflow-projects-v2`
+- `pnpm --filter @ghx/benchmark run run -- ghx_router 1 --scenario-set workflows`
+- `pnpm --filter @ghx/benchmark run run -- ghx_router 1 --scenario-set projects-v2`
 - `pnpm --filter @ghx/benchmark run report`
 - `pnpm --filter @ghx/benchmark run report:gate`
 - `pnpm --filter @ghx/benchmark run test`
@@ -20,7 +21,8 @@ Benchmark tooling for `ghx`.
 - `pr-exec`
 - `issues`
 - `release-delivery`
-- `workflow-projects-v2`
+- `workflows`
+- `projects-v2`
 - `all` is the exact union of A-D
 
 ## Scope

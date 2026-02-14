@@ -46,7 +46,8 @@ Set definitions are maintained in `packages/benchmark/scenario-sets.json`.
 - `pr-exec`
 - `issues`
 - `release-delivery`
-- `workflow-projects-v2`
+- `workflows`
+- `projects-v2`
 - `all` (union of all roadmap batch sets)
 
 ### 4.2 Selection precedence
@@ -156,13 +157,12 @@ Assertions:
 - publish scenario validates transition from draft to published,
 - workflow dispatch/rerun returns run identifiers and queued/executing status fields.
 
-### 5.4 Batch D set (`workflow-projects-v2`)
+### 5.4 Batch D sets (`workflows`, `projects-v2`)
 
 Coverage targets:
 
-- workflow inspection/control operations,
-- Projects v2 operations only,
-- repo metadata operations (`repo.labels.list`, `repo.issue_types.list`).
+- `workflows`: workflow inspection/control operations, including dispatch/rerun.
+- `projects-v2`: Projects v2 operations only, plus repo metadata operations (`repo.labels.list`, `repo.issue_types.list`).
 
 Representative scenario IDs:
 
@@ -253,7 +253,8 @@ Optional batch run commands:
 pnpm --filter @ghx/benchmark run run -- ghx_router 1 --scenario-set pr-exec
 pnpm --filter @ghx/benchmark run run -- ghx_router 1 --scenario-set issues
 pnpm --filter @ghx/benchmark run run -- ghx_router 1 --scenario-set release-delivery
-pnpm --filter @ghx/benchmark run run -- ghx_router 1 --scenario-set workflow-projects-v2
+pnpm --filter @ghx/benchmark run run -- ghx_router 1 --scenario-set workflows
+pnpm --filter @ghx/benchmark run run -- ghx_router 1 --scenario-set projects-v2
 ```
 
 ---

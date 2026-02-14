@@ -30,13 +30,17 @@
   "ci-log-analysis": [
     "workflow-job-logs-analyze-001"
   ],
-  "workflow-projects-v2": [
+  "workflows": [
+    "workflow-dispatch-run-001",
+    "workflow-run-rerun-failed-001",
     "workflow-list-001",
     "workflow-get-001",
     "workflow-run-get-001",
     "workflow-run-rerun-all-001",
     "workflow-run-cancel-001",
-    "workflow-run-artifacts-list-001",
+    "workflow-run-artifacts-list-001"
+  ],
+  "projects-v2": [
     "project-v2-org-get-001",
     "project-v2-user-get-001",
     "project-v2-fields-list-001",
@@ -51,9 +55,7 @@
     "release-get-001",
     "release-create-draft-001",
     "release-update-001",
-    "release-publish-draft-001",
-    "workflow-dispatch-run-001",
-    "workflow-run-rerun-failed-001"
+    "release-publish-draft-001"
   ],
   "pr-operations-all": [
     "pr-comments-unresolved-001",
