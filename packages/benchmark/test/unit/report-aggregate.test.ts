@@ -85,7 +85,7 @@ describe("buildSummary", () => {
         row({ mode: "ghx_router", latency_ms_wall: 90, tool_calls: 8, tokens: { input: 0, output: 0, reasoning: 0, cache_read: 0, cache_write: 0, total: 95 } })
       ],
       {
-        minTokensReductionPct: 1,
+        minTokensActiveReductionPct: 1,
         minLatencyReductionPct: 1,
         minToolCallReductionPct: 1,
         maxSuccessRateDropPct: 5,

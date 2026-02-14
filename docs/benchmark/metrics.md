@@ -5,6 +5,7 @@
 - `success_rate`
 - `output_validity_rate`
 - `median_tokens_total`
+- `median_tokens_active` (`input + output + reasoning + cache_write`)
 - `median_latency_ms`
 - `median_tool_calls`
 

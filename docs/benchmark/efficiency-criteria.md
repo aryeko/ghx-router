@@ -4,7 +4,7 @@
 
 ## Validation Thresholds (v1)
 
-- >=25% median token reduction vs `agent_direct`
+- >=25% median active-token reduction vs `agent_direct` (`input + output + reasoning + cache_write`)
 - >=20% median latency reduction on common tasks
 - >=30% tool-call reduction
 - non-inferior success rate

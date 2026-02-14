@@ -83,7 +83,7 @@ const modePromptPrefix: Record<BenchmarkMode, string> = {
     "You are running a benchmark in agent_direct mode. Use GitHub CLI (`gh`) commands directly to complete the task. Do not use any `ghx` command.",
   mcp: "You are running a benchmark in mcp mode. Prefer MCP tools when available.",
   ghx_router:
-    "You are running a benchmark in ghx_router mode. Use `pnpm exec ghx run <task> --input '<json>'` as the primary execution path and do not use direct `gh` commands unless explicitly asked."
+    "You are running a benchmark in ghx_router mode. Use `node ../core/dist/cli/index.js run <task> --input '<json>'` as the primary execution path and do not use direct `gh` commands unless explicitly asked."
 }
 
 export function isObject(value: unknown): value is Record<string, unknown> {
@@ -595,6 +595,68 @@ export function ghOk(args: string[]): boolean {
   return result.status === 0
 }
 
+type CapabilityListItem = {
+  capability_id: string
+}
+
+function ghxCliPath(): string {
+  return join(process.cwd(), "../core/dist/cli/index.js")
+}
+
+function parseGhxCapabilities(raw: string): string[] {
+  const trimmed = raw.trim()
+  if (trimmed.length === 0) {
+    return []
+  }
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(trimmed)
+  } catch {
+    return []
+  }
+
+  if (!Array.isArray(parsed)) {
+    return []
+  }
+
+  return parsed
+    .map((item) => (isObject(item) ? (item as CapabilityListItem).capability_id : null))
+    .filter((item): item is string => typeof item === "string" && item.length > 0)
+}
+
+export function assertGhxRouterPreflight(scenarios: Scenario[]): void {
+  const result = spawnSync("node", [ghxCliPath(), "capabilities", "list", "--json"], {
+    encoding: "utf8"
+  })
+
+  if (result.status !== 0) {
+    const stderr = typeof result.stderr === "string" ? result.stderr.trim() : ""
+    const message = stderr.length > 0 ? stderr : "failed to list ghx capabilities"
+    throw new Error(`ghx_router_preflight_failed: ${message}`)
+  }
+
+  const stdout = typeof result.stdout === "string" ? result.stdout : ""
+  const capabilities = parseGhxCapabilities(stdout)
+  if (capabilities.length === 0) {
+    throw new Error(
+      "ghx_router_preflight_failed: ghx capabilities list returned no capabilities; run pnpm --filter @ghx-dev/core run build"
+    )
+  }
+
+  const capabilitySet = new Set(capabilities)
+  const missingTasks = scenarios
+    .map((scenario) => scenario.task)
+    .filter((task, index, all) => all.indexOf(task) === index)
+    .filter((task) => !capabilitySet.has(task))
+
+  if (missingTasks.length > 0) {
+    throw new Error(
+      `ghx_router_preflight_failed: missing capabilities for selected scenarios: ${missingTasks.join(", ")}`
+    )
+  }
+}
+
 function resolveGhTokenFromCli(): string | null {
   const result = spawnSync("gh", ["auth", "token"], { encoding: "utf8" })
   if (result.status !== 0) {
@@ -759,10 +821,14 @@ export function renderPrompt(scenario: Scenario, mode: BenchmarkMode, benchmarkN
     scopedAssertions.expected_route_used !== undefined
       ? `meta.route_used MUST be exactly "${scopedAssertions.expected_route_used}".`
       : ""
+  const failFastContract =
+    mode === "ghx_router"
+      ? "If the ghx command fails, return the final envelope JSON immediately. Do not run extra debugging commands."
+      : ""
 
   const nonceLine = benchmarkNonce ? `Benchmark nonce: ${benchmarkNonce}` : ""
 
-  return `${modePromptPrefix[mode]}\n${fixtureNote}\n${nonceLine}\nYou MUST use real tools to gather data. Do not fabricate outputs.\nReturn STRICT JSON only. No markdown fences.\nOutput must be exactly one JSON object with keys: ok, data, error, meta.\n${dataContract}\n${metaContract}\n${routeContract}\n\n${rendered}`
+  return `${modePromptPrefix[mode]}\n${fixtureNote}\n${nonceLine}\nYou MUST use real tools to gather data. Do not fabricate outputs.\nReturn STRICT JSON only. No markdown fences.\nOutput must be exactly one JSON object with keys: ok, data, error, meta.\n${dataContract}\n${metaContract}\n${routeContract}\n${failFastContract}\n\n${rendered}`
 }
 
 function buildOutputSchema(assertions: Scenario["assertions"]): Record<string, unknown> {
@@ -858,7 +924,7 @@ function forcedToolCommandHint(scenario: Scenario, mode: BenchmarkMode): string 
   const prNumber = typeof scenario.input.prNumber === "number" ? scenario.input.prNumber : 1
 
   if (mode === "ghx_router") {
-    return `pnpm exec ghx run ${scenario.task} --input '${JSON.stringify(scenario.input)}'`
+    return `node ../core/dist/cli/index.js run ${scenario.task} --input '${JSON.stringify(scenario.input)}'`
   }
 
   switch (scenario.task) {
@@ -1352,6 +1418,10 @@ export async function runSuite(options: RunSuiteOptions): Promise<void> {
 
   if (selectedScenarios.length === 0) {
     throw new Error(`No scenarios matched filter: ${scenarioFilter ?? scenarioSet ?? "default"}`)
+  }
+
+  if (mode === "ghx_router") {
+    assertGhxRouterPreflight(selectedScenarios)
   }
 
   const outFile = join(

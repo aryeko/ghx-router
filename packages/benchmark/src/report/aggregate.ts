@@ -7,11 +7,13 @@ type ModeSummary = {
   outputValidityRate: number
   medianLatencyMs: number
   medianTokensTotal: number
+  medianTokensActive: number
   medianToolCalls: number
 }
 
 type DeltaSummary = {
   tokensReductionPct: number
+  tokensActiveReductionPct: number
   latencyReductionPct: number
   toolCallReductionPct: number
   successRateDeltaPct: number
@@ -19,7 +21,7 @@ type DeltaSummary = {
 }
 
 export type GateThresholds = {
-  minTokensReductionPct: number
+  minTokensActiveReductionPct: number
   minLatencyReductionPct: number
   minToolCallReductionPct: number
   maxSuccessRateDropPct: number
@@ -37,7 +39,7 @@ export type BenchmarkSummary = {
 }
 
 const DEFAULT_THRESHOLDS: GateThresholds = {
-  minTokensReductionPct: 25,
+  minTokensActiveReductionPct: 25,
   minLatencyReductionPct: 20,
   minToolCallReductionPct: 30,
   maxSuccessRateDropPct: 1,
@@ -74,6 +76,7 @@ function summarizeMode(mode: BenchmarkMode, rows: BenchmarkRow[]): ModeSummary {
     outputValidityRate: pct(rows.filter((row) => row.output_valid).length, rows.length),
     medianLatencyMs: median(rows.map((row) => row.latency_ms_wall)),
     medianTokensTotal: median(rows.map((row) => row.tokens.total)),
+    medianTokensActive: median(rows.map((row) => row.tokens.total - row.tokens.cache_read)),
     medianToolCalls: median(rows.map((row) => row.tool_calls))
   }
 }
@@ -102,6 +105,7 @@ export function buildSummary(
   if (agentDirect && ghxRouter) {
     deltaVsAgentDirect = {
       tokensReductionPct: safeReductionPct(agentDirect.medianTokensTotal, ghxRouter.medianTokensTotal),
+      tokensActiveReductionPct: safeReductionPct(agentDirect.medianTokensActive, ghxRouter.medianTokensActive),
       latencyReductionPct: safeReductionPct(agentDirect.medianLatencyMs, ghxRouter.medianLatencyMs),
       toolCallReductionPct: safeReductionPct(agentDirect.medianToolCalls, ghxRouter.medianToolCalls),
       successRateDeltaPct: ghxRouter.successRate - agentDirect.successRate,
@@ -110,10 +114,10 @@ export function buildSummary(
 
     checks = [
       {
-        name: "tokens_reduction",
-        passed: deltaVsAgentDirect.tokensReductionPct >= thresholds.minTokensReductionPct,
-        value: deltaVsAgentDirect.tokensReductionPct,
-        threshold: thresholds.minTokensReductionPct
+        name: "tokens_active_reduction",
+        passed: deltaVsAgentDirect.tokensActiveReductionPct >= thresholds.minTokensActiveReductionPct,
+        value: deltaVsAgentDirect.tokensActiveReductionPct,
+        threshold: thresholds.minTokensActiveReductionPct
       },
       {
         name: "latency_reduction",
@@ -161,14 +165,14 @@ export function toMarkdown(summary: BenchmarkSummary): string {
   lines.push("")
   lines.push("## Mode Metrics")
   lines.push("")
-  lines.push("| Mode | Runs | Success % | Output Valid % | Median Latency (ms) | Median Tokens | Median Tool Calls |")
-  lines.push("|---|---:|---:|---:|---:|---:|---:|")
+  lines.push("| Mode | Runs | Success % | Output Valid % | Median Latency (ms) | Median Tokens (Total) | Median Tokens (Active) | Median Tool Calls |")
+  lines.push("|---|---:|---:|---:|---:|---:|---:|---:|")
 
   for (const mode of ["agent_direct", "mcp", "ghx_router"] as const) {
     const item = summary.modes[mode]
     if (!item) continue
     lines.push(
-      `| ${mode} | ${item.runs} | ${item.successRate.toFixed(2)} | ${item.outputValidityRate.toFixed(2)} | ${item.medianLatencyMs.toFixed(0)} | ${item.medianTokensTotal.toFixed(0)} | ${item.medianToolCalls.toFixed(1)} |`
+      `| ${mode} | ${item.runs} | ${item.successRate.toFixed(2)} | ${item.outputValidityRate.toFixed(2)} | ${item.medianLatencyMs.toFixed(0)} | ${item.medianTokensTotal.toFixed(0)} | ${item.medianTokensActive.toFixed(0)} | ${item.medianToolCalls.toFixed(1)} |`
     )
   }
 
