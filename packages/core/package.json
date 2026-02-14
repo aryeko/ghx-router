@@ -1,15 +1,39 @@
 {
   "name": "@ghx/core",
   "version": "0.1.0",
-  "private": true,
   "author": "Arye Kogan",
   "license": "MIT",
   "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "bin": {
     "ghx": "dist/cli/index.js"
   },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./agent": {
+      "import": "./dist/agent.js",
+      "types": "./dist/agent.d.ts"
+    },
+    "./cli": {
+      "import": "./dist/cli/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "scripts": {
-    "build": "tsup \"src/**/*.ts\" --format esm --out-dir dist --clean --no-dts --sourcemap && node scripts/copy-registry-cards.mjs",
+    "build": "tsup \"src/**/*.ts\" --format esm --out-dir dist --clean --dts --sourcemap && node scripts/copy-registry-cards.mjs",
+    "prepack": "pnpm run build",
     "lint": "eslint . --max-warnings=0",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage --coverage.reporter=text --coverage.reporter=text-summary --coverage.reporter=lcov",

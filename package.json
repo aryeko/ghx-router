@@ -25,6 +25,7 @@
     "benchmark:run": "nx run @ghx/benchmark:run",
     "benchmark:report": "nx run @ghx/benchmark:report",
     "benchmark:gate": "nx run @ghx/benchmark:\"report:gate\"",
+    "ghx:publish": "pnpm --filter @ghx/core run build && pnpm --filter @ghx/core publish --no-git-checks",
     "ghx:gql:check": "nx run @ghx/core:\"gql:check\"",
     "dep-graph": "nx graph",
     "cache:clean": "nx reset"
@@ -33,7 +34,17 @@
     "type": "git",
     "url": "git+https://github.com/aryeko/ghx.git"
   },
-  "keywords": ["github", "agent", "cli", "routing", "graphql", "ai", "llm", "agentic"],
+  "keywords": [
+    "github",
+    "agent",
+    "cli",
+    "routing",
+    "graphql",
+    "ai",
+    "llm",
+    "agentic",
+    "skills"
+  ],
   "author": "Arye Kogan",
   "license": "MIT",
   "type": "module",
