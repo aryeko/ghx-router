@@ -39,6 +39,17 @@ const CLI_ENV_CACHE_TTL_MS = 30_000
 const cliEnvironmentCache = new WeakMap<CliCommandRunner, { value: CliEnvironmentState; expiresAt: number }>()
 const cliEnvironmentInFlight = new WeakMap<CliCommandRunner, Promise<CliEnvironmentState>>()
 const defaultCliRunner = createSafeCliCommandRunner()
+const SKIP_CLI_PREFLIGHT_ENV = "GHX_SKIP_GH_PREFLIGHT"
+
+function shouldSkipCliPreflight(): boolean {
+  const value = process.env[SKIP_CLI_PREFLIGHT_ENV]
+  if (!value) {
+    return false
+  }
+
+  const normalized = value.trim().toLowerCase()
+  return normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on"
+}
 
 async function detectCliEnvironment(runner: CliCommandRunner): Promise<CliEnvironmentState> {
   try {
@@ -140,14 +151,24 @@ export async function executeTask(
         }
 
         if (preflightInput.ghCliAvailable === undefined || preflightInput.ghAuthenticated === undefined) {
-          const detected = await detectCliEnvironmentCached(cliRunner)
+          if (shouldSkipCliPreflight()) {
+            if (preflightInput.ghCliAvailable === undefined) {
+              preflightInput.ghCliAvailable = true
+            }
 
-          if (preflightInput.ghCliAvailable === undefined) {
-            preflightInput.ghCliAvailable = detected.ghCliAvailable
-          }
+            if (preflightInput.ghAuthenticated === undefined) {
+              preflightInput.ghAuthenticated = true
+            }
+          } else {
+            const detected = await detectCliEnvironmentCached(cliRunner)
 
-          if (preflightInput.ghAuthenticated === undefined) {
-            preflightInput.ghAuthenticated = detected.ghAuthenticated
+            if (preflightInput.ghCliAvailable === undefined) {
+              preflightInput.ghCliAvailable = detected.ghCliAvailable
+            }
+
+            if (preflightInput.ghAuthenticated === undefined) {
+              preflightInput.ghAuthenticated = detected.ghAuthenticated
+            }
           }
         }
       }

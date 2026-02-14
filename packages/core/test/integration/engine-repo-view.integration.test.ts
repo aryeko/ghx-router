@@ -460,6 +460,60 @@ describe("executeTask repo.view", () => {
     expect(calls.filter((call) => call === "auth status")).toHaveLength(1)
   })
 
+  it("skips cli preflight probes when GHX_SKIP_GH_PREFLIGHT is enabled", async () => {
+    const previousSkip = process.env.GHX_SKIP_GH_PREFLIGHT
+    process.env.GHX_SKIP_GH_PREFLIGHT = "1"
+
+    try {
+      const githubClient = createGithubClient({
+        async execute<TData>(): Promise<TData> {
+          return {} as TData
+        },
+      })
+
+      const calls: string[] = []
+      const cliRunner = {
+        run: async (_command: string, args: string[]) => {
+          calls.push(args.join(" "))
+
+          return {
+            stdout: JSON.stringify({
+              id: "repo-id",
+              name: "modkit",
+              nameWithOwner: "go-modkit/modkit",
+              isPrivate: false,
+              stargazerCount: 10,
+              forkCount: 2,
+              url: "https://github.com/go-modkit/modkit",
+              defaultBranchRef: { name: "main" },
+            }),
+            stderr: "",
+            exitCode: 0,
+          }
+        },
+      }
+
+      const request: TaskRequest = {
+        task: "repo.view",
+        input: { owner: "go-modkit", name: "modkit" },
+      }
+
+      const result = await executeTask(request, { githubClient, cliRunner })
+
+      expect(result.ok).toBe(true)
+      expect(result.meta.route_used).toBe("cli")
+      expect(calls.some((call) => call === "--version")).toBe(false)
+      expect(calls.some((call) => call === "auth status")).toBe(false)
+      expect(calls.some((call) => call.includes("repo view"))).toBe(true)
+    } finally {
+      if (previousSkip === undefined) {
+        delete process.env.GHX_SKIP_GH_PREFLIGHT
+      } else {
+        process.env.GHX_SKIP_GH_PREFLIGHT = previousSkip
+      }
+    }
+  })
+
   it("reuses in-flight cli environment detection for concurrent requests", async () => {
     const githubClient = createGithubClient({
       async execute<TData>(): Promise<TData> {
