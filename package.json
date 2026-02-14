@@ -16,6 +16,8 @@
     "test:affected": "nx affected -t test",
     "test:coverage": "nx run-many -t test:coverage",
     "test:coverage:affected": "nx affected -t test:coverage",
+    "test:e2e": "nx run-many -t test:e2e",
+    "test:e2e:affected": "nx run-many -t test:e2e",
     "typecheck": "nx run-many -t typecheck",
     "typecheck:affected": "nx affected -t typecheck",
     "ci": "nx run-many -t ci",

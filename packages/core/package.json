@@ -56,14 +56,14 @@
   },
   "scripts": {
     "build": "tsup \"src/**/*.ts\" --format esm --out-dir dist --clean --dts --sourcemap && node scripts/copy-registry-cards.mjs",
-    "prepack": "pnpm run build",
     "lint": "eslint . --max-warnings=0",
-    "test": "vitest run",
-    "test:e2e": "pnpm run test:e2e:local && pnpm run test:e2e:sdk",
-    "test:e2e:local": "vitest run test/e2e/setup-install-verify.e2e.test.ts",
-    "test:e2e:sdk": "vitest run test/e2e/setup-opencode-skill.e2e.test.ts",
-    "test:coverage": "vitest run --coverage --coverage.reporter=text --coverage.reporter=text-summary --coverage.reporter=lcov",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run --project unit",
+    "test:watch": "vitest run --project unit --watch",
+    "test:coverage": "vitest run --project unit --coverage",
+    "test:e2e:local": "vitest run --project e2e:local",
+    "test:e2e:sdk": "if [ -n \"$OPENAI_API_KEY\" ]; then vitest run --project e2e:sdk; else echo 'Skipping core SDK E2E: OPENAI_API_KEY not set'; fi",
+    "prepack": "pnpm run build",
     "gql:codegen": "tsx scripts/run-gql-codegen.ts",
     "gql:codegen:watch": "graphql-codegen --config codegen.ts --watch",
     "gql:check": "pnpm run gql:codegen && git diff --exit-code -- src/gql/generated src/gql/operations/*.generated.ts"
@@ -78,7 +78,8 @@
           "build",
           "gql:check"
         ]
-      }
+      },
+      "test:e2e": {}
     }
   },
   "dependencies": {

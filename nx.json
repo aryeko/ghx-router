@@ -1,6 +1,7 @@
 {
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
   "defaultBase": "main",
+  "parallel": 3,
   "targetDefaults": {
     "build": {
       "dependsOn": ["^build"],
@@ -22,6 +23,16 @@
     "ci": {
       "dependsOn": ["lint", "typecheck", "test", "build"],
       "cache": false
+    },
+    "test:e2e": {
+      "dependsOn": ["test:e2e:local", "test:e2e:sdk"],
+      "cache": false
+    },
+    "test:e2e:sdk": {
+      "dependsOn": ["build"]
+    },
+    "test:e2e:local": {
+      "dependsOn": ["build"]
     }
   },
   "plugins": [
