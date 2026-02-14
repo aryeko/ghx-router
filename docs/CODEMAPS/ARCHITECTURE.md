@@ -68,7 +68,10 @@ The core package provides a normalized `ResultEnvelope` contract and routes each
 
 ## Core Execution Data Flow
 
-1. CLI parses `task` and `--input` JSON in `packages/core/src/cli/commands/run.ts`.
+1. CLI dispatches one of three command families in `packages/core/src/cli/index.ts`:
+   - `run`: parse `task` + `--input` JSON in `packages/core/src/cli/commands/run.ts`
+   - `setup`: install/verify ghx profile in `packages/core/src/cli/commands/setup.ts`
+   - `capabilities`: list/explain capability contracts in `packages/core/src/cli/commands/capabilities.ts`
 2. `executeTask()` in `packages/core/src/core/routing/engine.ts` loads the operation card.
 3. `execute()` in `packages/core/src/core/execute/execute.ts` validates input schema and computes route plan.
 4. Per-route preflight runs (`token`, `gh` availability/auth checks, etc.).

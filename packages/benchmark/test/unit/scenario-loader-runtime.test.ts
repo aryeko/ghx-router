@@ -12,7 +12,7 @@ describe("loadScenarios", () => {
     await mkdir(root, { recursive: true })
 
     const s1 = {
-      id: "b",
+      id: "batch-z-loader-b-001",
       name: "Scenario B",
       task: "repo.view",
       input: { owner: "a", name: "b" },
@@ -22,14 +22,14 @@ describe("loadScenarios", () => {
       assertions: { must_succeed: true },
       tags: []
     }
-    const s2 = { ...s1, id: "a", name: "Scenario A" }
+    const s2 = { ...s1, id: "batch-z-loader-a-001", name: "Scenario A" }
 
     await writeFile(join(root, "b.json"), JSON.stringify(s1), "utf8")
     await writeFile(join(root, "a.json"), JSON.stringify(s2), "utf8")
     await writeFile(join(root, "README.txt"), "ignore", "utf8")
 
     const scenarios = await loadScenarios(root)
-    expect(scenarios.map((s) => s.id)).toEqual(["a", "b"])
+    expect(scenarios.map((s) => s.id)).toEqual(["batch-z-loader-a-001", "batch-z-loader-b-001"])
   })
 
   it("loads scenario sets manifest", async () => {

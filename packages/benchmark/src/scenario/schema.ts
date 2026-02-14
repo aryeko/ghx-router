@@ -32,7 +32,7 @@ const assertionsSchema = z
   })
 
 const scenarioSchema = z.object({
-  id: z.string().min(1),
+  id: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*-\d{3}$/),
   name: z.string().min(1),
   task: z.string().min(1),
   input: z.record(z.unknown()),

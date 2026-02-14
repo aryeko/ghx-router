@@ -19,6 +19,10 @@ ghx provides a **card-driven capability router** that gives agents a stable, typ
 # From the repo (CLI is in @ghx/core)
 pnpm install
 pnpm run build
+ghx setup --platform claude-code --scope project --yes
+ghx setup --platform claude-code --scope project --verify
+ghx capabilities list
+ghx capabilities explain pr.merge.execute
 pnpm exec ghx run repo.view --input '{"owner":"aryeko","name":"ghx"}'
 ```
 
@@ -80,6 +84,7 @@ Normalized output:
 - CI workflows: `docs/engineering/ci-workflows.md`
 - Nx commands: `docs/engineering/nx-commands.md`
 - Publishing guide: `docs/guides/publishing.md`
+- Roadmap golden flows: `docs/guides/roadmap-golden-flows.md`
 - Codecov coverage policy: `docs/quality/codecov-coverage-policy.md`
 
 ## Verification
@@ -112,6 +117,19 @@ Core capabilities currently include:
 - Pull request checks + mergeability: `pr.status.checks`, `pr.checks.get_failed`, `pr.mergeability.view`
 - Pull request thread mutations: `pr.comment.reply`, `pr.comment.resolve`, `pr.comment.unresolve`, `pr.ready_for_review.set`
 - CI diagnostics and logs: `check_run.annotations.list`, `workflow_runs.list`, `workflow_run.jobs.list`, `workflow_job.logs.get`, `workflow_job.logs.analyze`
+- Batch A PR execution: `pr.review.submit_approve`, `pr.review.submit_request_changes`, `pr.review.submit_comment`, `pr.merge.execute`, `pr.checks.rerun_failed`, `pr.checks.rerun_all`, `pr.reviewers.request`, `pr.assignees.update`, `pr.branch.update`
+- Batch B issue lifecycle: `issue.create`, `issue.update`, `issue.close`, `issue.reopen`, `issue.delete`, `issue.labels.update`, `issue.assignees.update`, `issue.milestone.set`, `issue.comments.create`, `issue.linked_prs.list`, `issue.relations.get`, `issue.parent.set`, `issue.parent.remove`, `issue.blocked_by.add`, `issue.blocked_by.remove`
+- Batch C release/delivery: `release.list`, `release.get`, `release.create_draft`, `release.update`, `release.publish_draft`, `workflow_dispatch.run`, `workflow_run.rerun_failed`
+- Batch D workflow/projects/repo metadata: `workflow.list`, `workflow.get`, `workflow_run.get`, `workflow_run.rerun_all`, `workflow_run.cancel`, `workflow_run.artifacts.list`, `project_v2.org.get`, `project_v2.user.get`, `project_v2.fields.list`, `project_v2.items.list`, `project_v2.item.add_issue`, `project_v2.item.field.update`, `repo.labels.list`, `repo.issue_types.list`
+
+## Golden Flows
+
+- Batch A (PR execution): review -> rerun checks -> merge -> branch update
+- Batch B (issue lifecycle): create/update -> assign/label -> set relations -> close/reopen/delete
+- Batch C (release delivery): list/get -> create_draft -> update -> publish_draft -> rerun failed workflow run
+- Batch D (workflow + Projects v2): inspect workflow/run -> control rerun/cancel -> inspect artifacts -> read/update Projects v2
+
+See `docs/guides/roadmap-golden-flows.md` for copy-paste command sequences.
 
 For exact routing/input/output contracts, see `packages/core/src/core/registry/cards/*.yaml`.
 

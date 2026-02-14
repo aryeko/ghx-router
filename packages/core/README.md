@@ -124,6 +124,10 @@ When installed globally (or executed via package manager), use:
 
 ```bash
 ghx run repo.view --input '{"owner":"aryeko","name":"ghx"}'
+ghx setup --platform claude-code --scope project --yes
+ghx setup --platform claude-code --scope project --verify
+ghx capabilities list
+ghx capabilities explain pr.merge.execute
 ```
 
 Environment variables used by the CLI path:
@@ -155,6 +159,13 @@ Environment variables used by the CLI path:
 - `workflow_run.jobs.list` - list jobs for a workflow run
 - `workflow_job.logs.get` - fetch workflow job logs
 - `workflow_job.logs.analyze` - analyze workflow job logs for error/warning summaries
+- `pr.review.submit_approve`, `pr.review.submit_request_changes`, `pr.review.submit_comment` - submit PR reviews
+- `pr.merge.execute`, `pr.checks.rerun_failed`, `pr.checks.rerun_all`, `pr.reviewers.request`, `pr.assignees.update`, `pr.branch.update` - complete PR execution operations
+- `issue.create`, `issue.update`, `issue.close`, `issue.reopen`, `issue.delete`, `issue.labels.update`, `issue.assignees.update`, `issue.milestone.set`, `issue.comments.create`, `issue.linked_prs.list`, `issue.relations.get`, `issue.parent.set`, `issue.parent.remove`, `issue.blocked_by.add`, `issue.blocked_by.remove` - issue lifecycle and dependency graph operations
+- `release.list`, `release.get`, `release.create_draft`, `release.update`, `release.publish_draft` - release lifecycle operations
+- `workflow.list`, `workflow.get`, `workflow_run.get`, `workflow_run.rerun_all`, `workflow_run.cancel`, `workflow_run.artifacts.list`, `workflow_dispatch.run`, `workflow_run.rerun_failed` - workflow control and delivery operations
+- `project_v2.org.get`, `project_v2.user.get`, `project_v2.fields.list`, `project_v2.items.list`, `project_v2.item.add_issue`, `project_v2.item.field.update` - Projects v2 operations
+- `repo.labels.list`, `repo.issue_types.list` - repository metadata operations
 
 ## Public Exports
 

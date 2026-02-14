@@ -56,4 +56,51 @@ describe("scenario-sets manifest", () => {
       "batch-c-workflow-run-rerun-failed-001"
     ])
   })
+
+  it("includes roadmap batch A and B sets", () => {
+    const scenarioSets = loadScenarioSets()
+
+    expect(scenarioSets["roadmap-batch-a-pr-exec"]).toEqual([
+      "batch-a-pr-review-submit-approve-001",
+      "batch-a-pr-review-submit-request-changes-001",
+      "batch-a-pr-review-submit-comment-001",
+      "batch-a-pr-merge-execute-001",
+      "batch-a-pr-checks-rerun-failed-001",
+      "batch-a-pr-checks-rerun-all-001",
+      "batch-a-pr-reviewers-request-001",
+      "batch-a-pr-assignees-update-001",
+      "batch-a-pr-branch-update-001"
+    ])
+
+    expect(scenarioSets["roadmap-batch-b-issues"]).toEqual([
+      "batch-b-issue-create-001",
+      "batch-b-issue-update-001",
+      "batch-b-issue-close-001",
+      "batch-b-issue-reopen-001",
+      "batch-b-issue-delete-001",
+      "batch-b-issue-labels-update-001",
+      "batch-b-issue-assignees-update-001",
+      "batch-b-issue-milestone-set-001",
+      "batch-b-issue-comments-create-001",
+      "batch-b-issue-linked-prs-list-001",
+      "batch-b-issue-relations-get-001",
+      "batch-b-issue-parent-set-001",
+      "batch-b-issue-parent-remove-001",
+      "batch-b-issue-blocked-by-add-001",
+      "batch-b-issue-blocked-by-remove-001"
+    ])
+  })
+
+  it("defines roadmap-all as exact union of roadmap A-D sets", () => {
+    const scenarioSets = loadScenarioSets()
+
+    const expectedUnion = new Set([
+      ...(scenarioSets["roadmap-batch-a-pr-exec"] ?? []),
+      ...(scenarioSets["roadmap-batch-b-issues"] ?? []),
+      ...(scenarioSets["roadmap-batch-c-release-delivery"] ?? []),
+      ...(scenarioSets["roadmap-batch-d-workflow-projects-v2"] ?? [])
+    ])
+
+    expect(new Set(scenarioSets["roadmap-all"] ?? [])).toEqual(expectedUnion)
+  })
 })

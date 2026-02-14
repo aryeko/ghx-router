@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 
+const USAGE = "Usage:\n  ghx run <task> --input '<json>'\n  ghx setup --platform <claude-code|opencode> --scope <user|project> [--profile pr-review-ci] [--dry-run] [--verify] [--yes]\n  ghx capabilities list\n  ghx capabilities explain <capability_id>"
+
 describe("cli index entrypoint", () => {
   const originalArgv = process.argv.slice()
   const originalExitCode = process.exitCode
@@ -16,9 +18,13 @@ describe("cli index entrypoint", () => {
 
     const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true)
 
-    vi.doMock("node:fs", () => ({
-      realpathSync: vi.fn(() => "/same/path")
-    }))
+    vi.doMock("node:fs", async (importOriginal) => {
+      const actual = await importOriginal<typeof import("node:fs")>()
+      return {
+        ...actual,
+        realpathSync: vi.fn(() => "/same/path")
+      }
+    })
     vi.doMock("../../src/cli/commands/run.js", () => ({
       runCommand: vi.fn(async () => 0)
     }))
@@ -27,7 +33,7 @@ describe("cli index entrypoint", () => {
     await new Promise((resolve) => setTimeout(resolve, 0))
 
     expect(process.exitCode).toBe(0)
-    expect(stdout).toHaveBeenCalledWith("Usage:\n  ghx run <task> --input '<json>'\n")
+    expect(stdout).toHaveBeenCalledWith(`${USAGE}\n`)
   })
 
   it("does not run main when argv[1] is missing", async () => {
@@ -52,11 +58,15 @@ describe("cli index entrypoint", () => {
 
     const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true)
 
-    vi.doMock("node:fs", () => ({
-      realpathSync: vi.fn(() => {
-        throw new Error("boom")
-      })
-    }))
+    vi.doMock("node:fs", async (importOriginal) => {
+      const actual = await importOriginal<typeof import("node:fs")>()
+      return {
+        ...actual,
+        realpathSync: vi.fn(() => {
+          throw new Error("boom")
+        })
+      }
+    })
     vi.doMock("../../src/cli/commands/run.js", () => ({
       runCommand: vi.fn(async () => 0)
     }))
@@ -76,9 +86,13 @@ describe("cli index entrypoint", () => {
       return undefined as never
     }) as never)
 
-    vi.doMock("node:fs", () => ({
-      realpathSync: vi.fn(() => "/same/path")
-    }))
+    vi.doMock("node:fs", async (importOriginal) => {
+      const actual = await importOriginal<typeof import("node:fs")>()
+      return {
+        ...actual,
+        realpathSync: vi.fn(() => "/same/path")
+      }
+    })
     vi.doMock("../../src/cli/commands/run.js", () => ({
       runCommand: vi.fn(async () => {
         throw new Error("boom")

@@ -76,8 +76,10 @@
 |---|---|---|---|
 | `index.ts` | Package entrypoint for npm consumers | `executeTask()`, `routePreferenceOrder`, adapters, registry helpers | `cli`, `core/*`, `gql/client` |
 | `agent.ts` | Package entrypoint for agent integration helpers | `listCapabilities()`, `createExecuteTool()` | `agent-interface/tools/*` |
-| `cli/index.ts` | CLI command router (`ghx run`) | `main()` | `cli/commands/run` |
+| `cli/index.ts` | CLI command router (`ghx run`, `ghx setup`, `ghx capabilities`) | `main()` | `cli/commands/run`, `cli/commands/setup`, `cli/commands/capabilities` |
 | `cli/commands/run.ts` | Parses args + invokes execution engine | `runCommand()` | `gql/client`, `routing/engine` |
+| `cli/commands/setup.ts` | Installs/verifies ghx skill profile by platform/scope | `setupCommand()` | `agent-interface/prompt/main-skill`, `node:fs/promises` |
+| `cli/commands/capabilities.ts` | CLI capability discovery (`list`/`explain`) | `capabilitiesCommand()` | `agent-interface/tools/*` |
 | `agent-interface/tools/list-capabilities-tool.ts` | Exposes card list to agents | `listCapabilities()` | `registry/index` |
 | `agent-interface/tools/execute-tool.ts` | Wraps `executeTask` for agent tool calls | `createExecuteTool()` | `contracts/envelope` |
 | `agent-interface/prompt/main-skill.ts` | Prompt guardrails for agent usage | `MAIN_SKILL_TEXT` | none |
