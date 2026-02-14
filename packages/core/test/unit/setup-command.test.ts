@@ -44,6 +44,26 @@ describe("setupCommand", () => {
     expect(stdout.mock.calls.map((call) => String(call[0])).join("")).toContain(".agents/skill/ghx/SKILL.md")
   })
 
+  it("supports inline scope format", async () => {
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true)
+
+    const code = await setupCommand(["--scope=user", "--dry-run"])
+
+    expect(code).toBe(0)
+    expect(stdout.mock.calls.map((call) => String(call[0])).join("")).toContain("Dry run")
+  })
+
+  it("prints usage for invalid inline scope", async () => {
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true)
+
+    const code = await setupCommand(["--scope=invalid"])
+
+    expect(code).toBe(1)
+    expect(stderr).toHaveBeenCalledWith(
+      "Usage: ghx setup --scope <user|project> [--yes] [--dry-run] [--verify] [--track]\n"
+    )
+  })
+
   it("writes skill file for user scope", async () => {
     const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true)
 
