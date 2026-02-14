@@ -22,4 +22,4 @@
 
 ## Contributing to the Roadmap
 
-Have ideas or want to influence priorities? Open a [Discussion](https://github.com/aryeko/ghx/discussions) or an [Issue](https://github.com/aryeko/ghx/issues).
+Have ideas or want to influence priorities? Open a [Discussion](https://github.com/aryeko/ghx-router/discussions) or an [Issue](https://github.com/aryeko/ghx-router/issues).

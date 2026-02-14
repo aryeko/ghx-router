@@ -13,7 +13,7 @@ Thank you for your interest in contributing to ghx. This document provides guide
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/aryeko/ghx.git
+   git clone https://github.com/aryeko/ghx-router.git
    cd ghx
    ```
 
@@ -79,4 +79,4 @@ pnpm run changeset
 
 ## Questions
 
-Open a [Discussion](https://github.com/aryeko/ghx/discussions) or an [Issue](https://github.com/aryeko/ghx/issues) if you have questions.
+Open a [Discussion](https://github.com/aryeko/ghx-router/discussions) or an [Issue](https://github.com/aryeko/ghx-router/issues) if you have questions.

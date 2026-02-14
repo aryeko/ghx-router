@@ -10,7 +10,7 @@
 
 If you discover a security vulnerability in ghx, please report it responsibly.
 
-**Preferred method:** Open a [GitHub Security Advisory](https://github.com/aryeko/ghx/security/advisories/new) (private by default).
+**Preferred method:** Open a [GitHub Security Advisory](https://github.com/aryeko/ghx-router/security/advisories/new) (private by default).
 
 **Alternative:** Email the maintainer with details. Include:
 
