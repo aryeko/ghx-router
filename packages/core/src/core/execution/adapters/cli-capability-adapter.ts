@@ -182,7 +182,7 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
       args.push("--repo", repo)
     }
 
-    args.push("--json", jsonFieldsFromCard(card, "name,state,workflow,link"))
+    args.push("--json", jsonFieldsFromCard(card, "name,state,bucket,workflow,link"))
     return args
   }
 
@@ -323,6 +323,7 @@ function normalizeCheckItem(item: unknown): Record<string, unknown> {
     return {
       name: null,
       state: null,
+      bucket: null,
       workflow: null,
       link: null
     }
@@ -332,36 +333,45 @@ function normalizeCheckItem(item: unknown): Record<string, unknown> {
   return {
     name: typeof input.name === "string" ? input.name : null,
     state: typeof input.state === "string" ? input.state : null,
+    bucket: typeof input.bucket === "string" ? input.bucket : null,
     workflow: typeof input.workflow === "string" ? input.workflow : null,
     link: typeof input.link === "string" ? input.link : null
   }
 }
 
-function isCheckFailureState(state: unknown): boolean {
-  if (typeof state !== "string") {
-    return false
+function normalizeCheckBucket(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null
   }
 
-  const normalized = state.toUpperCase()
-  return ["FAILURE", "ERROR", "TIMED_OUT", "ACTION_REQUIRED", "CANCELLED", "STARTUP_FAILURE"].includes(normalized)
+  return value.trim().toLowerCase()
 }
 
-function isCheckPendingState(state: unknown): boolean {
-  if (typeof state !== "string") {
+function isCheckFailureBucket(bucket: unknown): boolean {
+  const normalized = normalizeCheckBucket(bucket)
+  if (!normalized) {
     return false
   }
 
-  const normalized = state.toUpperCase()
-  return ["PENDING", "IN_PROGRESS", "QUEUED", "WAITING", "REQUESTED"].includes(normalized)
+  return normalized === "fail" || normalized === "cancel"
 }
 
-function isCheckPassState(state: unknown): boolean {
-  if (typeof state !== "string") {
+function isCheckPendingBucket(bucket: unknown): boolean {
+  const normalized = normalizeCheckBucket(bucket)
+  if (!normalized) {
     return false
   }
 
-  const normalized = state.toUpperCase()
-  return ["SUCCESS", "NEUTRAL", "SKIPPED"].includes(normalized)
+  return normalized === "pending"
+}
+
+function isCheckPassBucket(bucket: unknown): boolean {
+  const normalized = normalizeCheckBucket(bucket)
+  if (!normalized) {
+    return false
+  }
+
+  return normalized === "pass"
 }
 
 function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: Record<string, unknown>): unknown {
@@ -474,9 +484,9 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
 
   if (capabilityId === "pr.status.checks" || capabilityId === "pr.checks.get_failed") {
     const checks = Array.isArray(data) ? data.map((entry) => normalizeCheckItem(entry)) : []
-    const failed = checks.filter((entry) => isCheckFailureState(entry.state))
-    const pending = checks.filter((entry) => isCheckPendingState(entry.state))
-    const passed = checks.filter((entry) => isCheckPassState(entry.state))
+    const failed = checks.filter((entry) => isCheckFailureBucket(entry.bucket))
+    const pending = checks.filter((entry) => isCheckPendingBucket(entry.bucket))
+    const passed = checks.filter((entry) => isCheckPassBucket(entry.bucket))
 
     return {
       items: capabilityId === "pr.checks.get_failed" ? failed : checks,

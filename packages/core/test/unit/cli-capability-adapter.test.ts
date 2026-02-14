@@ -628,12 +628,14 @@ describe("runCliCapability", () => {
           {
             name: "unit-tests",
             state: "SUCCESS",
+            bucket: "pass",
             workflow: "ci",
             link: "https://example.com/check/1"
           },
           {
             name: "lint",
             state: "FAILURE",
+            bucket: "fail",
             workflow: "ci",
             link: "https://example.com/check/2"
           }
@@ -650,6 +652,11 @@ describe("runCliCapability", () => {
     })
 
     expect(result.ok).toBe(true)
+    expect(runner.run).toHaveBeenCalledWith(
+      "gh",
+      ["pr", "checks", "10", "--repo", "acme/modkit", "--json", "name,state,bucket,workflow,link"],
+      10_000
+    )
     expect(result.data).toEqual(
       expect.objectContaining({
         items: [expect.objectContaining({ name: "unit-tests" }), expect.objectContaining({ name: "lint" })],
@@ -665,12 +672,14 @@ describe("runCliCapability", () => {
           {
             name: "unit-tests",
             state: "SUCCESS",
+            bucket: "pass",
             workflow: "ci",
             link: "https://example.com/check/1"
           },
           {
             name: "lint",
             state: "FAILURE",
+            bucket: "fail",
             workflow: "ci",
             link: "https://example.com/check/2"
           }
@@ -1073,8 +1082,8 @@ describe("runCliCapability", () => {
     expect(checksResult.data).toEqual(
       expect.objectContaining({
         items: [
-          expect.objectContaining({ name: null, state: null, workflow: null, link: null }),
-          expect.objectContaining({ name: null, state: null, workflow: null, link: null })
+          expect.objectContaining({ name: null, state: null, bucket: null, workflow: null, link: null }),
+          expect.objectContaining({ name: null, state: null, bucket: null, workflow: null, link: null })
         ]
       })
     )
