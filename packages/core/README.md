@@ -140,6 +140,21 @@ Environment variables used by the CLI path:
 - `issue.comments.list` - list issue comments with pagination
 - `pr.view` - fetch a single pull request
 - `pr.list` - list pull requests
+- `pr.comments.list` - list pull request review threads/comments
+- `pr.reviews.list` - list pull request reviews
+- `pr.diff.list_files` - list changed files in a pull request
+- `pr.status.checks` - list pull request checks and summary counts
+- `pr.checks.get_failed` - list failed pull request checks
+- `pr.mergeability.view` - fetch mergeability and review decision signals
+- `pr.comment.reply` - reply to a pull request review thread
+- `pr.comment.resolve` - resolve a pull request review thread
+- `pr.comment.unresolve` - unresolve a pull request review thread
+- `pr.ready_for_review.set` - mark draft/ready-for-review state
+- `check_run.annotations.list` - list check run annotations
+- `workflow_runs.list` - list workflow runs for a repository
+- `workflow_run.jobs.list` - list jobs for a workflow run
+- `workflow_job.logs.get` - fetch workflow job logs
+- `workflow_job.logs.analyze` - analyze workflow job logs for error/warning summaries
 
 ## Public Exports
 

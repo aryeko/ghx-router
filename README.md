@@ -79,7 +79,7 @@ Normalized output:
 - Scenario assertions: `docs/benchmark/scenario-assertions.md`
 - CI workflows: `docs/engineering/ci-workflows.md`
 - Nx commands: `docs/engineering/nx-commands.md`
-- Changesets and publishing: `docs/release/changesets-and-publishing.md`
+- Publishing guide: `docs/guides/publishing.md`
 - Codecov coverage policy: `docs/quality/codecov-coverage-policy.md`
 
 ## Verification
@@ -92,16 +92,18 @@ pnpm run ghx:gql:check
 pnpm run benchmark:check
 ```
 
-## Capabilities (v1)
+## Capabilities
 
-| Capability           | Description       | Preferred Route |
-| -------------------- | ----------------- | --------------- |
-| `repo.view`          | Repository metadata | CLI             |
-| `issue.view`         | Single issue      | CLI             |
-| `issue.list`         | Issue list        | CLI             |
-| `issue.comments.list`| Issue comments    | GraphQL         |
-| `pr.view`            | Single PR         | CLI             |
-| `pr.list`            | PR list           | CLI             |
+Core capabilities currently include:
+
+- Repository + issues: `repo.view`, `issue.view`, `issue.list`, `issue.comments.list`
+- Pull request base: `pr.view`, `pr.list`
+- Pull request review reads: `pr.comments.list`, `pr.reviews.list`, `pr.diff.list_files`
+- Pull request checks + mergeability: `pr.status.checks`, `pr.checks.get_failed`, `pr.mergeability.view`
+- Pull request thread mutations: `pr.comment.reply`, `pr.comment.resolve`, `pr.comment.unresolve`, `pr.ready_for_review.set`
+- CI diagnostics and logs: `check_run.annotations.list`, `workflow_runs.list`, `workflow_run.jobs.list`, `workflow_job.logs.get`, `workflow_job.logs.analyze`
+
+For exact routing/input/output contracts, see `packages/core/src/core/registry/cards/*.yaml`.
 
 ## Contributing
 
