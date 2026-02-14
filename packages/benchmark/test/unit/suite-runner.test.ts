@@ -13,6 +13,7 @@ import {
   extractPromptResponseFromPromptResult,
   extractEnvelopeFromParts,
   extractSnapshotFromParts,
+  extractTimingBreakdown,
   fetchSessionMessages,
   getSessionApi,
   ghOk,
@@ -93,6 +94,37 @@ describe("suite-runner helpers", () => {
       cacheWrite: 0,
       cost: 0,
       completed: null
+    })
+  })
+
+  it("extracts timing breakdown from assistant messages", () => {
+    const breakdown = extractTimingBreakdown([
+      {
+        info: {
+          role: "assistant",
+          time: { created: 100, completed: 1000 }
+        },
+        parts: [
+          { type: "reasoning", time: { start: 250, end: 500 } },
+          {
+            type: "tool",
+            tool: "bash",
+            state: { time: { start: 550, end: 800 } }
+          }
+        ]
+      }
+    ] as unknown as Parameters<typeof extractTimingBreakdown>[0])
+
+    expect(breakdown).toEqual({
+      assistant_total_ms: 900,
+      assistant_pre_reasoning_ms: 150,
+      assistant_reasoning_ms: 250,
+      assistant_between_reasoning_and_tool_ms: 50,
+      assistant_post_tool_ms: 200,
+      tool_total_ms: 250,
+      tool_bash_ms: 250,
+      tool_structured_output_ms: 0,
+      observed_assistant_turns: 1
     })
   })
 

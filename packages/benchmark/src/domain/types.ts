@@ -47,6 +47,18 @@ export type SessionMessageEntry = {
   parts?: SessionMessagePart[]
 }
 
+export type BenchmarkTimingBreakdown = {
+  assistant_total_ms: number
+  assistant_pre_reasoning_ms: number
+  assistant_reasoning_ms: number
+  assistant_between_reasoning_and_tool_ms: number
+  assistant_post_tool_ms: number
+  tool_total_ms: number
+  tool_bash_ms: number
+  tool_structured_output_ms: number
+  observed_assistant_turns: number
+}
+
 export type BenchmarkRow = {
   timestamp: string
   run_id: string
@@ -59,6 +71,7 @@ export type BenchmarkRow = {
   output_valid: boolean
   latency_ms_wall: number
   sdk_latency_ms: number | null
+  timing_breakdown?: BenchmarkTimingBreakdown
   tokens: {
     input: number
     output: number

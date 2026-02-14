@@ -122,4 +122,44 @@ describe("buildSummary", () => {
     expect(summary.gateV2.profile).toBe("nightly_full")
     expect(summary.gateV2.checks.find((check) => check.name === "efficiency_coverage")?.passed).toBe(false)
   })
+
+  it("summarizes profiling timing when timing_breakdown is present", () => {
+    const summary = buildSummary([
+      row({
+        mode: "agent_direct",
+        timing_breakdown: {
+          assistant_total_ms: 6000,
+          assistant_pre_reasoning_ms: 2500,
+          assistant_reasoning_ms: 2000,
+          assistant_between_reasoning_and_tool_ms: 200,
+          assistant_post_tool_ms: 100,
+          tool_total_ms: 700,
+          tool_bash_ms: 650,
+          tool_structured_output_ms: 2,
+          observed_assistant_turns: 2
+        }
+      }),
+      row({
+        mode: "ghx_router",
+        timing_breakdown: {
+          assistant_total_ms: 9000,
+          assistant_pre_reasoning_ms: 4000,
+          assistant_reasoning_ms: 2800,
+          assistant_between_reasoning_and_tool_ms: 300,
+          assistant_post_tool_ms: 100,
+          tool_total_ms: 1600,
+          tool_bash_ms: 1500,
+          tool_structured_output_ms: 1,
+          observed_assistant_turns: 2
+        }
+      })
+    ])
+
+    expect(summary.profiling.agent_direct?.medianToolBashMs).toBe(650)
+    expect(summary.profiling.ghx_router?.medianAssistantReasoningMs).toBe(2800)
+
+    const markdown = toMarkdown(summary)
+    expect(markdown).toContain("## Profiling Snapshot")
+    expect(markdown).toContain("| ghx_router | 1 | 9000 | 2800")
+  })
 })

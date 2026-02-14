@@ -24,6 +24,16 @@ type ModeSummary = {
   medianToolCalls: number
 }
 
+type ProfilingSummary = {
+  runsWithProfiling: number
+  medianAssistantTotalMs: number
+  medianAssistantReasoningMs: number
+  medianAssistantBetweenReasoningAndToolMs: number
+  medianToolTotalMs: number
+  medianToolBashMs: number
+  medianAssistantPostToolMs: number
+}
+
 type DeltaSummary = {
   tokensReductionPct: number
   tokensActiveReductionPct: number
@@ -85,6 +95,7 @@ type GateV2Summary = {
 export type BenchmarkSummary = {
   generatedAt: string
   modes: Partial<Record<BenchmarkMode, ModeSummary>>
+  profiling: Partial<Record<BenchmarkMode, ProfilingSummary>>
   deltaVsAgentDirect: DeltaSummary | null
   gate: {
     passed: boolean
@@ -183,6 +194,31 @@ function summarizeMode(mode: BenchmarkMode, rows: BenchmarkRow[]): ModeSummary {
     medianTokensTotal: median(rows.map((row) => row.tokens.total)),
     medianTokensActive: median(rows.map((row) => activeTokens(row))),
     medianToolCalls: median(rows.map((row) => row.tool_calls)),
+  }
+}
+
+function summarizeProfiling(rows: BenchmarkRow[]): ProfilingSummary | null {
+  const profiledRows = rows.filter((row) => row.timing_breakdown !== undefined)
+  if (profiledRows.length === 0) {
+    return null
+  }
+
+  return {
+    runsWithProfiling: profiledRows.length,
+    medianAssistantTotalMs: median(
+      profiledRows.map((row) => row.timing_breakdown?.assistant_total_ms ?? 0),
+    ),
+    medianAssistantReasoningMs: median(
+      profiledRows.map((row) => row.timing_breakdown?.assistant_reasoning_ms ?? 0),
+    ),
+    medianAssistantBetweenReasoningAndToolMs: median(
+      profiledRows.map((row) => row.timing_breakdown?.assistant_between_reasoning_and_tool_ms ?? 0),
+    ),
+    medianToolTotalMs: median(profiledRows.map((row) => row.timing_breakdown?.tool_total_ms ?? 0)),
+    medianToolBashMs: median(profiledRows.map((row) => row.timing_breakdown?.tool_bash_ms ?? 0)),
+    medianAssistantPostToolMs: median(
+      profiledRows.map((row) => row.timing_breakdown?.assistant_post_tool_ms ?? 0),
+    ),
   }
 }
 
@@ -382,8 +418,14 @@ export function buildSummary(
   }
 
   const modeSummaries: Partial<Record<BenchmarkMode, ModeSummary>> = {}
+  const profilingSummaries: Partial<Record<BenchmarkMode, ProfilingSummary>> = {}
   for (const mode of Object.keys(grouped) as BenchmarkMode[]) {
-    modeSummaries[mode] = summarizeMode(mode, grouped[mode] ?? [])
+    const modeRows = grouped[mode] ?? []
+    modeSummaries[mode] = summarizeMode(mode, modeRows)
+    const profilingSummary = summarizeProfiling(modeRows)
+    if (profilingSummary) {
+      profilingSummaries[mode] = profilingSummary
+    }
   }
 
   const agentDirect = modeSummaries.agent_direct
@@ -444,6 +486,7 @@ export function buildSummary(
   return {
     generatedAt: new Date().toISOString(),
     modes: modeSummaries,
+    profiling: profilingSummaries,
     deltaVsAgentDirect,
     gate: {
       passed: checks.length > 0 && checks.every((check) => check.passed),
@@ -469,6 +512,20 @@ export function toMarkdown(summary: BenchmarkSummary): string {
     if (!item) continue
     lines.push(
       `| ${mode} | ${item.runs} | ${item.successRate.toFixed(2)} | ${item.outputValidityRate.toFixed(2)} | ${item.runnerFailureRate.toFixed(2)} | ${item.timeoutStallRate.toFixed(2)} | ${item.retryRate.toFixed(2)} | ${item.medianLatencyMs.toFixed(0)} | ${item.medianTokensTotal.toFixed(0)} | ${item.medianTokensActive.toFixed(0)} | ${item.medianToolCalls.toFixed(1)} |`,
+    )
+  }
+
+  lines.push("")
+  lines.push("## Profiling Snapshot")
+  lines.push("")
+  lines.push("| Mode | Profiled Runs | Assistant Total (ms) | Reasoning (ms) | Between Reasoning->Tool (ms) | Tool Total (ms) | Bash Tool (ms) | Post-Tool (ms) |")
+  lines.push("|---|---:|---:|---:|---:|---:|---:|---:|")
+
+  for (const mode of ["agent_direct", "mcp", "ghx_router"] as const) {
+    const item = summary.profiling[mode]
+    if (!item) continue
+    lines.push(
+      `| ${mode} | ${item.runsWithProfiling} | ${item.medianAssistantTotalMs.toFixed(0)} | ${item.medianAssistantReasoningMs.toFixed(0)} | ${item.medianAssistantBetweenReasoningAndToolMs.toFixed(0)} | ${item.medianToolTotalMs.toFixed(0)} | ${item.medianToolBashMs.toFixed(0)} | ${item.medianAssistantPostToolMs.toFixed(0)} |`,
     )
   }
 
