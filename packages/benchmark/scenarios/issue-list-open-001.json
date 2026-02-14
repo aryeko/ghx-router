@@ -21,7 +21,9 @@
     "max_tool_calls": 4,
     "required_fields": ["ok", "data", "error", "meta"],
     "required_data_fields": ["items", "pageInfo"],
-    "data_type": "object"
+    "data_type": "object",
+    "required_meta_fields": ["route_used"],
+    "expected_route_used": "cli"
   },
   "tags": ["issue", "list", "thin-slice"]
 }

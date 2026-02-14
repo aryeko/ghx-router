@@ -1,0 +1,32 @@
+capability_id: pr.view
+version: "1.0.0"
+description: Fetch one pull request by number.
+input_schema:
+  type: object
+  required: [owner, name, prNumber]
+  properties:
+    owner: { type: string, minLength: 1 }
+    name: { type: string, minLength: 1 }
+    prNumber: { type: integer, minimum: 1 }
+  additionalProperties: false
+output_schema:
+  type: object
+  required: [id, number, title, state, url]
+  properties:
+    id: { type: string, minLength: 1 }
+    number: { type: integer, minimum: 1 }
+    title: { type: string }
+    state: { type: string }
+    url: { type: string, minLength: 1 }
+  additionalProperties: false
+routing:
+  preferred: cli
+  fallbacks: [graphql]
+  notes:
+    - Prefer CLI for low-latency structured fetches when gh authentication is available.
+graphql:
+  operationName: PrView
+  documentPath: src/gql/operations/pr-view.graphql
+cli:
+  command: pr view
+  jsonFields: [id, number, title, state, url]

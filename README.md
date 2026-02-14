@@ -39,7 +39,7 @@ Normalized runtime envelope:
   "error": null,
   "meta": {
     "capability_id": "repo.view",
-    "route_used": "graphql",
+    "route_used": "cli",
     "reason": "CARD_PREFERRED"
   }
 }
@@ -47,9 +47,11 @@ Normalized runtime envelope:
 
 ## Routing (v1)
 
-- Capabilities are defined by operation cards in `packages/ghx-router/src/core/registry/cards.ts`.
+- Capabilities are defined by runtime-loaded operation cards in `packages/ghx-router/src/core/registry/cards/*.yaml`.
 - Route plan is deterministic: `preferred` then ordered `fallbacks`.
-- Current shipped cards prefer `graphql` with `cli`/`rest` fallbacks.
+- CLI-suitable capabilities (`repo.view`, `issue.view`, `issue.list`, `pr.view`, `pr.list`) prefer `cli` with `graphql` fallback.
+- `issue.comments.list` prefers `graphql` with `cli` fallback.
+- REST is not part of v1 route preference ordering.
 - Preflight checks gate route eligibility before execution.
 
 ## Runtime Guarantees

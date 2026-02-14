@@ -31,7 +31,12 @@ describe("executeTask pr.view", () => {
       input: { owner: "go-modkit", name: "modkit", prNumber: 232 }
     }
 
-    const result = await executeTask(request, { githubClient, githubToken: "test-token" })
+    const result = await executeTask(request, {
+      githubClient,
+      githubToken: "test-token",
+      ghCliAvailable: false,
+      ghAuthenticated: false
+    })
 
     expect(result.ok).toBe(true)
     expect(result.meta.route_used).toBe("graphql")
@@ -55,10 +60,16 @@ describe("executeTask pr.view", () => {
       input: { owner: "go-modkit", name: "modkit", prNumber: 0 }
     }
 
-    const result = await executeTask(request, { githubClient, githubToken: "test-token" })
+    const result = await executeTask(request, {
+      githubClient,
+      githubToken: "test-token",
+      ghCliAvailable: false,
+      ghAuthenticated: false
+    })
 
     expect(result.ok).toBe(false)
     expect(result.error?.code).toBe("VALIDATION")
-    expect(result.meta.reason).toBe("CARD_PREFERRED")
+    expect(result.meta.reason).toBe("INPUT_VALIDATION")
+    expect(result.meta.route_used).toBe("cli")
   })
 })

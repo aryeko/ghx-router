@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest"
 
 import { runCliCapability } from "../../src/core/execution/adapters/cli-capability-adapter.js"
+import type { OperationCard } from "../../src/core/registry/types.js"
 
 describe("runCliCapability", () => {
   it("builds gh args and parses json output", async () => {
@@ -37,6 +38,37 @@ describe("runCliCapability", () => {
     expect(runner.run).toHaveBeenCalledWith(
       "gh",
       expect.arrayContaining(["repo", "view", "acme/modkit", "--json"]),
+      10_000
+    )
+  })
+
+  it("uses card-provided CLI command and json fields when available", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: JSON.stringify({ id: "repo-id", name: "modkit", nameWithOwner: "acme/modkit", isPrivate: false, url: "u" }),
+        stderr: "",
+        exitCode: 0
+      }))
+    }
+
+    const card = {
+      capability_id: "repo.view",
+      version: "1.0.0",
+      description: "Repo",
+      input_schema: { type: "object" },
+      output_schema: { type: "object" },
+      routing: { preferred: "cli", fallbacks: ["graphql"] },
+      cli: {
+        command: "repo view",
+        jsonFields: ["id", "name", "nameWithOwner", "isPrivate", "url"]
+      }
+    } as unknown as OperationCard
+
+    await runCliCapability(runner, "repo.view", { owner: "acme", name: "modkit" }, card)
+
+    expect(runner.run).toHaveBeenCalledWith(
+      "gh",
+      ["repo", "view", "acme/modkit", "--json", "id,name,nameWithOwner,isPrivate,url"],
       10_000
     )
   })

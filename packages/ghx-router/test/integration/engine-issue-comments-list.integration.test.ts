@@ -41,7 +41,12 @@ describe("executeTask issue.comments.list", () => {
       input: { owner: "go-modkit", name: "modkit", issueNumber: 101, first: 10 }
     }
 
-    const result = await executeTask(request, { githubClient, githubToken: "test-token" })
+    const result = await executeTask(request, {
+      githubClient,
+      githubToken: "test-token",
+      ghCliAvailable: false,
+      ghAuthenticated: false
+    })
 
     expect(result.ok).toBe(true)
     expect(result.meta.route_used).toBe("graphql")

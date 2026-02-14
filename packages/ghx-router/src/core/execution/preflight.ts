@@ -20,21 +20,31 @@ export type PreflightResult =
     }
 
 export function preflightCheck(input: PreflightInput): PreflightResult {
-  if ((input.route === "cli" || input.route === "rest") && input.ghCliAvailable === false) {
+  if (input.route === "rest") {
     return {
       ok: false,
-      code: errorCodes.Validation,
-      message: "GitHub CLI is required for cli/rest routes",
+      code: errorCodes.AdapterUnsupported,
+      message: "REST route is planned but not implemented in v1",
       retryable: false,
       details: { route: input.route }
     }
   }
 
-  if ((input.route === "cli" || input.route === "rest") && input.ghAuthenticated === false) {
+  if (input.route === "cli" && input.ghCliAvailable === false) {
+    return {
+      ok: false,
+      code: errorCodes.Validation,
+      message: "GitHub CLI is required for cli route",
+      retryable: false,
+      details: { route: input.route }
+    }
+  }
+
+  if (input.route === "cli" && input.ghAuthenticated === false) {
     return {
       ok: false,
       code: errorCodes.Auth,
-      message: "GitHub CLI authentication is required for cli/rest routes",
+      message: "GitHub CLI authentication is required for cli route",
       retryable: false,
       details: { route: input.route }
     }

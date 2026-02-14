@@ -39,7 +39,12 @@ describe("executeTask pr.list", () => {
       input: { owner: "go-modkit", name: "modkit", first: 1 }
     }
 
-    const result = await executeTask(request, { githubClient, githubToken: "test-token" })
+    const result = await executeTask(request, {
+      githubClient,
+      githubToken: "test-token",
+      ghCliAvailable: false,
+      ghAuthenticated: false
+    })
 
     expect(result.ok).toBe(true)
     expect(result.meta.route_used).toBe("graphql")

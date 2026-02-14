@@ -41,6 +41,11 @@ Source:
 - Non-retryable non-adapter errors terminate route evaluation.
 - `ADAPTER_UNSUPPORTED` can trigger fallback to next route.
 
+## Schema Validation Mapping
+
+- Input JSON Schema validation failures are normalized as `VALIDATION` and are non-retryable.
+- Output JSON Schema validation failures are normalized as `SERVER` and are non-retryable.
+
 Source:
 
 - `packages/ghx-router/src/core/execute/execute.ts`

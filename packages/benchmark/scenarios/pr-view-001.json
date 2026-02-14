@@ -19,7 +19,9 @@
     "min_tool_calls": 1,
     "max_tool_calls": 4,
     "required_fields": ["ok", "data", "error", "meta"],
-    "required_data_fields": ["number", "title", "state"]
+    "required_data_fields": ["number", "title", "state"],
+    "required_meta_fields": ["route_used"],
+    "expected_route_used": "cli"
   },
   "tags": ["pr", "view", "thin-slice"]
 }

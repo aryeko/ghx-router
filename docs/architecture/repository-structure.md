@@ -4,7 +4,7 @@
 
 - `packages/ghx-router/src/core/contracts/` - result envelope + task contracts.
 - `packages/ghx-router/src/core/errors/` - error codes, mapping, retryability.
-- `packages/ghx-router/src/core/registry/` - operation-card types, cards, validation, lookup.
+- `packages/ghx-router/src/core/registry/` - operation-card types, YAML cards, schema validation, lookup.
 - `packages/ghx-router/src/core/execute/` - execute orchestration (validation, preflight, retry, fallback).
 - `packages/ghx-router/src/core/execution/adapters/` - GraphQL and CLI adapters.
 - `packages/ghx-router/src/core/routing/` - engine entrypoint and policy helpers.

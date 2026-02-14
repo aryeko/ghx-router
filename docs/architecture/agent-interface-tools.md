@@ -18,3 +18,15 @@ The runtime exposes a compact agent-facing tool surface.
 - `packages/ghx-router/src/agent-interface/tools/explain-tool.ts`
 - `packages/ghx-router/src/agent-interface/tools/list-capabilities-tool.ts`
 - `packages/ghx-router/src/agent-interface/prompt/main-skill.ts`
+
+## CLI Safety Defaults
+
+When `executeTask` is called without a custom CLI runner, the runtime uses a safe default runner that:
+
+- executes via `spawn(command, args, { shell: false })`
+- enforces per-command timeout
+- enforces bounded combined stdout/stderr size
+
+Source:
+
+- `packages/ghx-router/src/core/execution/cli/safe-runner.ts`

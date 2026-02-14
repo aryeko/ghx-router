@@ -26,10 +26,16 @@ Each capability is defined by an operation card with:
 - route preference/fallback policy
 - adapter-specific metadata (GraphQL and CLI)
 
+Runtime schema enforcement:
+
+- input params are validated against full `input_schema` JSON Schema before routing
+- adapter output is validated against full `output_schema` JSON Schema before returning success
+- input schema failures return `VALIDATION`; output schema failures return `SERVER`
+
 Source of truth:
 
 - `packages/ghx-router/src/core/registry/types.ts`
-- `packages/ghx-router/src/core/registry/cards.ts`
+- `packages/ghx-router/src/core/registry/cards/*.yaml`
 - `packages/ghx-router/src/core/registry/index.ts`
 
 ## Agent Tool Surface Contract

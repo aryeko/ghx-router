@@ -2,6 +2,7 @@ import { errorCodes } from "../../errors/codes.js"
 import { mapErrorToCode } from "../../errors/map-error.js"
 import { isRetryableErrorCode } from "../../errors/retryability.js"
 import type { ResultEnvelope } from "../../contracts/envelope.js"
+import type { OperationCard } from "../../registry/types.js"
 import { normalizeError, normalizeResult } from "../normalizer.js"
 
 export type CliCapabilityId = "repo.view" | "issue.view" | "issue.list" | "issue.comments.list" | "pr.view" | "pr.list"
@@ -27,18 +28,33 @@ function parseListFirst(value: unknown): number | null {
   return parseStrictPositiveInt(value)
 }
 
-function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown>): string[] {
+function commandTokens(card: OperationCard | undefined, fallbackCommand: string): string[] {
+  const fromCard = card?.cli?.command
+  const command = typeof fromCard === "string" && fromCard.trim().length > 0 ? fromCard : fallbackCommand
+  return command.trim().split(/\s+/)
+}
+
+function jsonFieldsFromCard(card: OperationCard | undefined, fallbackFields: string): string {
+  const fields = card?.cli?.jsonFields
+  if (Array.isArray(fields) && fields.length > 0) {
+    return fields.join(",")
+  }
+
+  return fallbackFields
+}
+
+function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown>, card?: OperationCard): string[] {
   const owner = String(params.owner ?? "")
   const name = String(params.name ?? "")
   const repo = owner && name ? `${owner}/${name}` : ""
 
   if (capabilityId === "repo.view") {
-    const args = ["repo", "view"]
+    const args = commandTokens(card, "repo view")
     if (repo) {
       args.push(repo)
     }
 
-    args.push("--json", "id,name,nameWithOwner,isPrivate,stargazerCount,forkCount,url,defaultBranchRef")
+    args.push("--json", jsonFieldsFromCard(card, "id,name,nameWithOwner,isPrivate,stargazerCount,forkCount,url,defaultBranchRef"))
     return args
   }
 
@@ -48,12 +64,12 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
       throw new Error("Missing or invalid issueNumber for issue.view")
     }
 
-    const args = ["issue", "view", String(issueNumber)]
+    const args = [...commandTokens(card, "issue view"), String(issueNumber)]
     if (repo) {
       args.push("--repo", repo)
     }
 
-    args.push("--json", "id,number,title,state,url")
+    args.push("--json", jsonFieldsFromCard(card, "id,number,title,state,url"))
     return args
   }
 
@@ -63,12 +79,12 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
       throw new Error("Missing or invalid first for issue.list")
     }
 
-    const args = ["issue", "list"]
+    const args = commandTokens(card, "issue list")
     if (repo) {
       args.push("--repo", repo)
     }
 
-    args.push("--limit", String(first), "--json", "id,number,title,state,url")
+    args.push("--limit", String(first), "--json", jsonFieldsFromCard(card, "id,number,title,state,url"))
     return args
   }
 
@@ -89,8 +105,7 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
     }
 
     const args = [
-      "api",
-      "graphql",
+      ...commandTokens(card, "api graphql"),
       "-f",
       `query=${ISSUE_COMMENTS_GRAPHQL_QUERY}`,
       "-f",
@@ -116,12 +131,12 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
       throw new Error("Missing or invalid prNumber for pr.view")
     }
 
-    const args = ["pr", "view", String(prNumber)]
+    const args = [...commandTokens(card, "pr view"), String(prNumber)]
     if (repo) {
       args.push("--repo", repo)
     }
 
-    args.push("--json", "id,number,title,state,url")
+    args.push("--json", jsonFieldsFromCard(card, "id,number,title,state,url"))
     return args
   }
 
@@ -131,12 +146,12 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
       throw new Error("Missing or invalid first for pr.list")
     }
 
-    const args = ["pr", "list"]
+    const args = commandTokens(card, "pr list")
     if (repo) {
       args.push("--repo", repo)
     }
 
-    args.push("--limit", String(first), "--json", "id,number,title,state,url")
+    args.push("--limit", String(first), "--json", jsonFieldsFromCard(card, "id,number,title,state,url"))
     return args
   }
 
@@ -285,10 +300,11 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
 export async function runCliCapability(
   runner: CliCommandRunner,
   capabilityId: CliCapabilityId,
-  params: Record<string, unknown>
+  params: Record<string, unknown>,
+  card?: OperationCard
 ): Promise<ResultEnvelope> {
   try {
-    const args = buildArgs(capabilityId, params)
+    const args = buildArgs(capabilityId, params, card)
     const result = await runner.run("gh", args, DEFAULT_TIMEOUT_MS)
 
     if (result.exitCode !== 0) {

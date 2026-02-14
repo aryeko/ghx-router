@@ -1,4 +1,6 @@
 export const routeReasonCodes = [
+  "INPUT_VALIDATION",
+  "OUTPUT_VALIDATION",
   "CARD_PREFERRED",
   "CARD_FALLBACK",
   "PREFLIGHT_FAILED",

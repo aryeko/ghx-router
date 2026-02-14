@@ -5,7 +5,10 @@ export type ScenarioAssertions = {
   expect_valid_output?: boolean
   required_fields?: string[]
   required_data_fields?: string[]
+  required_meta_fields?: string[]
   data_type?: "array" | "object"
+  expected_route_used?: "cli" | "graphql" | "rest"
+  expected_error_code?: string
   require_tool_calls?: boolean
   min_tool_calls?: number
   max_tool_calls?: number

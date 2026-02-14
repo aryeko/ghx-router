@@ -2,6 +2,7 @@ import type { ErrorCode } from "../errors/codes.js"
 import { errorCodes } from "../errors/codes.js"
 import type { ResultEnvelope, RouteSource } from "../contracts/envelope.js"
 import type { OperationCard } from "../registry/types.js"
+import { validateInput, validateOutput } from "../registry/schema-validator.js"
 import { normalizeError } from "../execution/normalizer.js"
 import { logMetric } from "../telemetry/logger.js"
 
@@ -12,6 +13,7 @@ type PreflightResult =
 type ExecuteOptions = {
   card: OperationCard
   params: Record<string, unknown>
+  routingContext?: Record<string, unknown>
   trace?: boolean
   retry?: {
     maxAttemptsPerRoute?: number
@@ -20,52 +22,105 @@ type ExecuteOptions = {
   routes: Record<RouteSource, (params: Record<string, unknown>) => Promise<ResultEnvelope>>
 }
 
-function getRequiredInputs(card: OperationCard): string[] {
-  const required = card.input_schema.required
-  if (!Array.isArray(required)) {
-    return []
+function parsePredicateValue(raw: string): unknown {
+  const value = raw.trim()
+  if (value === "true") {
+    return true
+  }
+  if (value === "false") {
+    return false
+  }
+  if (value === "null") {
+    return null
   }
 
-  return required.filter((item): item is string => typeof item === "string")
-}
-
-function validateRequiredParams(card: OperationCard, params: Record<string, unknown>): string[] {
-  const required = getRequiredInputs(card)
-  return required.filter((key) => params[key] === undefined || params[key] === null || params[key] === "")
-}
-
-function validateOutputSchema(card: OperationCard, data: unknown): string[] {
-  if (typeof data !== "object" || data === null || Array.isArray(data)) {
-    return ["data"]
+  const numeric = Number(value)
+  if (!Number.isNaN(numeric) && value.length > 0) {
+    return numeric
   }
 
-  const required = Array.isArray(card.output_schema.required)
-    ? card.output_schema.required.filter((entry): entry is string => typeof entry === "string")
-    : []
-
-  const payload = data as Record<string, unknown>
-  return required.filter((key) => !(key in payload))
+  return value.replace(/^['"]|['"]$/g, "")
 }
 
-function routePlan(card: OperationCard): RouteSource[] {
-  const planned = new Set<RouteSource>([card.routing.preferred, ...card.routing.fallbacks])
+function resolvePathValue(source: Record<string, unknown>, path: string): unknown {
+  const segments = path.split(".").filter((segment) => segment.length > 0)
+  let current: unknown = source
+
+  for (const segment of segments) {
+    if (typeof current !== "object" || current === null || Array.isArray(current)) {
+      return undefined
+    }
+
+    current = (current as Record<string, unknown>)[segment]
+  }
+
+  return current
+}
+
+function evaluateSuitabilityPreferred(
+  card: OperationCard,
+  params: Record<string, unknown>,
+  routingContext: Record<string, unknown>
+): RouteSource {
+  const rules = card.routing.suitability ?? []
+
+  for (const rule of rules) {
+    const alwaysMatch = /^(cli|graphql|rest)$/i.exec(rule.predicate.trim())
+    const alwaysRoute = alwaysMatch?.[1]
+    if (rule.when === "always" && alwaysRoute) {
+      return alwaysRoute.toLowerCase() as RouteSource
+    }
+
+    const conditionalMatch = /^(cli|graphql|rest)\s+if\s+([a-zA-Z0-9_.]+)\s*(==|!=)\s*(.+)$/i.exec(
+      rule.predicate.trim()
+    )
+
+    if (!conditionalMatch) {
+      continue
+    }
+
+    const [, targetRouteRaw = "", rawPath = "", operator = "==", rawExpected = ""] = conditionalMatch
+    const targetRoute = targetRouteRaw.toLowerCase() as RouteSource
+    const source = rule.when === "env" ? routingContext : params
+    const path = rawPath.startsWith("params.") || rawPath.startsWith("env.")
+      ? rawPath.split(".").slice(1).join(".")
+      : rawPath
+    const actual = resolvePathValue(source, path)
+    const expected = parsePredicateValue(rawExpected)
+    const matches = operator === "==" ? actual === expected : actual !== expected
+
+    if (matches) {
+      return targetRoute
+    }
+  }
+
+  return card.routing.preferred
+}
+
+function routePlan(
+  card: OperationCard,
+  params: Record<string, unknown>,
+  routingContext: Record<string, unknown>
+): RouteSource[] {
+  const preferred = evaluateSuitabilityPreferred(card, params, routingContext)
+  const planned = new Set<RouteSource>([preferred, ...card.routing.fallbacks])
   return [...planned]
 }
 
 export async function execute(options: ExecuteOptions): Promise<ResultEnvelope> {
-  const missing = validateRequiredParams(options.card, options.params)
-  if (missing.length > 0) {
+  const inputValidation = validateInput(options.card.input_schema, options.params)
+  if (!inputValidation.ok) {
     return normalizeError(
       {
         code: errorCodes.Validation,
-        message: `Missing required params: ${missing.join(", ")}`,
+        message: "Input schema validation failed",
         retryable: false,
-        details: { missing }
+        details: { ajvErrors: inputValidation.errors }
       },
       options.card.routing.preferred,
       {
         capabilityId: options.card.capability_id,
-        reason: "CAPABILITY_LIMIT"
+        reason: "INPUT_VALIDATION"
       }
     )
   }
@@ -75,7 +130,9 @@ export async function execute(options: ExecuteOptions): Promise<ResultEnvelope> 
   let lastError: ResultEnvelope["error"]
   let firstError: ResultEnvelope["error"]
 
-  for (const route of routePlan(options.card)) {
+  const routingContext = options.routingContext ?? {}
+
+  for (const route of routePlan(options.card, options.params, routingContext)) {
     logMetric("route.plan", 1, {
       capability_id: options.card.capability_id,
       route
@@ -136,19 +193,19 @@ export async function execute(options: ExecuteOptions): Promise<ResultEnvelope> 
       attempts.push(attemptRecord)
 
       if (result.ok) {
-        const outputMissing = validateOutputSchema(options.card, result.data)
-        if (outputMissing.length > 0) {
+        const outputValidation = validateOutput(options.card.output_schema, result.data)
+        if (!outputValidation.ok) {
           const envelope = normalizeError(
             {
               code: errorCodes.Server,
-              message: `Output schema mismatch: missing ${outputMissing.join(", ")}`,
+              message: "Output schema validation failed",
               retryable: false,
-              details: { missing: outputMissing }
+              details: { ajvErrors: outputValidation.errors }
             },
             route,
             {
               capabilityId: options.card.capability_id,
-              reason: "CAPABILITY_LIMIT"
+              reason: "OUTPUT_VALIDATION"
             }
           )
 
@@ -179,7 +236,7 @@ export async function execute(options: ExecuteOptions): Promise<ResultEnvelope> 
     }
   }
 
-  const finalError = firstError ?? lastError ?? {
+  const finalError = lastError ?? firstError ?? {
     code: errorCodes.Unknown,
     message: "No route produced a result",
     retryable: false

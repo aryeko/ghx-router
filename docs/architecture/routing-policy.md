@@ -24,12 +24,14 @@ Runtime reason codes:
 
 ## Current v1 Shape
 
-- shipped cards currently prefer `graphql`
-- fallback order is `cli`, then `rest`
+- CLI-suitable capabilities (`repo.view`, `issue.view`, `issue.list`, `pr.view`, `pr.list`) use `preferred=cli`, `fallbacks=[graphql]`
+- `issue.comments.list` uses `preferred=graphql`, `fallbacks=[cli]`
+- global route preference order is `cli`, then `graphql`
+- REST is planned but not part of v1 preference ordering
 - `execute` performs bounded per-route retries and then fallback
 
 Source of truth:
 
-- `packages/ghx-router/src/core/registry/cards.ts`
+- `packages/ghx-router/src/core/registry/cards/*.yaml`
 - `packages/ghx-router/src/core/execute/execute.ts`
 - `packages/ghx-router/src/core/execution/preflight.ts`

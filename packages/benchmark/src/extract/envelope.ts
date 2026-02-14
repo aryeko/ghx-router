@@ -99,5 +99,31 @@ export function validateEnvelope(assertions: ScenarioAssertions, payload: unknow
     }
   }
 
+  const meta = payload.meta
+  const requiredMetaFields = assertions.required_meta_fields ?? []
+  if (requiredMetaFields.length > 0) {
+    if (!isObject(meta)) {
+      return false
+    }
+
+    for (const field of requiredMetaFields) {
+      if (!(field in meta)) {
+        return false
+      }
+    }
+  }
+
+  if (assertions.expected_route_used !== undefined) {
+    if (!isObject(meta) || meta.route_used !== assertions.expected_route_used) {
+      return false
+    }
+  }
+
+  if (assertions.expected_error_code !== undefined) {
+    if (!isObject(payload.error) || payload.error.code !== assertions.expected_error_code) {
+      return false
+    }
+  }
+
   return true
 }

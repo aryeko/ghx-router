@@ -7,18 +7,18 @@ describe("capabilityRegistry", () => {
     expect(capabilityRegistry).toEqual([
       {
         task: "repo.view",
-        defaultRoute: "graphql",
-        fallbackRoutes: ["cli"]
+        defaultRoute: "cli",
+        fallbackRoutes: ["graphql"]
       },
       {
         task: "issue.view",
-        defaultRoute: "graphql",
-        fallbackRoutes: ["cli"]
+        defaultRoute: "cli",
+        fallbackRoutes: ["graphql"]
       },
       {
         task: "issue.list",
-        defaultRoute: "graphql",
-        fallbackRoutes: ["cli"]
+        defaultRoute: "cli",
+        fallbackRoutes: ["graphql"]
       },
       {
         task: "issue.comments.list",
@@ -27,13 +27,13 @@ describe("capabilityRegistry", () => {
       },
       {
         task: "pr.view",
-        defaultRoute: "graphql",
-        fallbackRoutes: ["cli"]
+        defaultRoute: "cli",
+        fallbackRoutes: ["graphql"]
       },
       {
         task: "pr.list",
-        defaultRoute: "graphql",
-        fallbackRoutes: ["cli"]
+        defaultRoute: "cli",
+        fallbackRoutes: ["graphql"]
       }
     ])
   })

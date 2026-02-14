@@ -46,11 +46,13 @@ Every capability returns:
 ## Current v1 Scope
 
 - `repo.view`, `issue.view`, `issue.list`, `pr.view`, `pr.list`
-- GraphQL preferred, CLI/REST fallback per shipped cards
+- CLI preferred with GraphQL fallback for those read capabilities
+- `issue.comments.list` prefers GraphQL with CLI fallback
+- REST is planned, not active in v1 route preference
 
 ## Source References
 
 - `packages/ghx-router/src/core/execute/execute.ts`
-- `packages/ghx-router/src/core/registry/cards.ts`
+- `packages/ghx-router/src/core/registry/cards/*.yaml`
 - `packages/ghx-router/src/core/contracts/envelope.ts`
 - `packages/ghx-router/src/agent-interface/tools/`

@@ -8,3 +8,6 @@ packages/*/coverage/
 packages/benchmark/results/*.jsonl
 packages/benchmark/reports/*.json
 packages/benchmark/reports/*.md
+
+# Local git worktrees
+.worktrees/
