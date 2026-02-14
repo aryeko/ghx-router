@@ -44,7 +44,7 @@ function row(overrides: Partial<BenchmarkRow>): BenchmarkRow {
 }
 
 describe("buildSummary", () => {
-  it("computes gate pass when ghx_router beats baseline", () => {
+  it("computes v2 gate pass when ghx_router beats baseline", () => {
     const rows: BenchmarkRow[] = [
       row({ mode: "agent_direct", latency_ms_wall: 100, tokens: { input: 0, output: 0, reasoning: 0, cache_read: 0, cache_write: 0, total: 100 }, tool_calls: 10, success: true, output_valid: true }),
       row({ mode: "ghx_router", latency_ms_wall: 70, tokens: { input: 0, output: 0, reasoning: 0, cache_read: 0, cache_write: 0, total: 70 }, tool_calls: 6, success: true, output_valid: true })
@@ -53,19 +53,32 @@ describe("buildSummary", () => {
     const summary = buildSummary(rows)
 
     expect(summary.deltaVsAgentDirect).not.toBeNull()
-    expect(summary.gate.passed).toBe(true)
+    expect(summary.gateV2.passed).toBe(true)
+    expect(summary.gateV2.checks.find((check) => check.name === "efficiency_tokens_active_reduction")?.passed).toBe(true)
   })
 
-  it("computes gate fail when thresholds not met", () => {
+  it("computes v2 gate fail when reliability regresses", () => {
     const rows: BenchmarkRow[] = [
       row({ mode: "agent_direct", latency_ms_wall: 100, tokens: { input: 0, output: 0, reasoning: 0, cache_read: 0, cache_write: 0, total: 100 }, tool_calls: 10, success: true, output_valid: true }),
-      row({ mode: "ghx_router", latency_ms_wall: 95, tokens: { input: 0, output: 0, reasoning: 0, cache_read: 0, cache_write: 0, total: 99 }, tool_calls: 9, success: false, output_valid: false })
+      row({ mode: "ghx_router", latency_ms_wall: 70, tokens: { input: 0, output: 0, reasoning: 0, cache_read: 0, cache_write: 0, total: 70 }, tool_calls: 6, success: true, output_valid: true }),
+      row({
+        mode: "ghx_router",
+        scenario_id: "repo-view-001",
+        success: false,
+        output_valid: false,
+        latency_ms_wall: 60000,
+        error: {
+          type: "runner_error",
+          message: "Timed out waiting for assistant message in session.messages"
+        }
+      })
     ]
 
     const summary = buildSummary(rows)
 
-    expect(summary.gate.passed).toBe(false)
-    expect(summary.gate.checks.some((check) => check.passed === false)).toBe(true)
+    expect(summary.gateV2.passed).toBe(false)
+    expect(summary.gateV2.checks.find((check) => check.name === "reliability_runner_failure_rate")?.passed).toBe(false)
+    expect(summary.gateV2.checks.find((check) => check.name === "reliability_timeout_stall_rate")?.passed).toBe(false)
   })
 
   it("handles missing comparison mode and renders markdown", () => {
@@ -78,14 +91,14 @@ describe("buildSummary", () => {
     expect(markdown).toContain("Insufficient data")
   })
 
-  it("supports custom thresholds", () => {
+  it("supports custom v1 thresholds", () => {
     const summary = buildSummary(
       [
         row({ mode: "agent_direct", latency_ms_wall: 100, tool_calls: 10, tokens: { input: 0, output: 0, reasoning: 0, cache_read: 0, cache_write: 0, total: 100 } }),
         row({ mode: "ghx_router", latency_ms_wall: 90, tool_calls: 8, tokens: { input: 0, output: 0, reasoning: 0, cache_read: 0, cache_write: 0, total: 95 } })
       ],
       {
-        minTokensActiveReductionPct: 1,
+        minTokensReductionPct: 1,
         minLatencyReductionPct: 1,
         minToolCallReductionPct: 1,
         maxSuccessRateDropPct: 5,
@@ -94,5 +107,19 @@ describe("buildSummary", () => {
     )
 
     expect(summary.gate.checks.length).toBeGreaterThan(0)
+  })
+
+  it("supports nightly profile with stricter sample requirements", () => {
+    const summary = buildSummary(
+      [
+        row({ mode: "agent_direct", scenario_id: "s1", latency_ms_wall: 100, tool_calls: 5, tokens: { input: 0, output: 0, reasoning: 0, cache_read: 0, cache_write: 0, total: 100 } }),
+        row({ mode: "ghx_router", scenario_id: "s1", latency_ms_wall: 70, tool_calls: 3, tokens: { input: 0, output: 0, reasoning: 0, cache_read: 0, cache_write: 0, total: 70 } })
+      ],
+      undefined,
+      "nightly_full"
+    )
+
+    expect(summary.gateV2.profile).toBe("nightly_full")
+    expect(summary.gateV2.checks.find((check) => check.name === "efficiency_coverage")?.passed).toBe(false)
   })
 })

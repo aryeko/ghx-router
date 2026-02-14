@@ -23,10 +23,20 @@ describe("report cli", () => {
     const report = await importReportModule(root)
 
     expect(report.parseArgs(["--gate"]).gate).toBe(true)
+    expect(report.parseArgs([]).gateProfile).toBe("pr_fast")
+    expect(report.parseArgs(["--gate-profile", "nightly_full"]).gateProfile).toBe("nightly_full")
+    expect(report.parseArgs(["--gate-profile=pr_fast"]).gateProfile).toBe("pr_fast")
     expect(report.modeFromFilename("x-agent_direct-suite.jsonl")).toBe("agent_direct")
     expect(report.modeFromFilename("x-mcp-suite.jsonl")).toBe("mcp")
     expect(report.modeFromFilename("x-ghx_router-suite.jsonl")).toBe("ghx_router")
     expect(report.modeFromFilename("x-unknown.jsonl")).toBeNull()
+  })
+
+  it("rejects unknown gate profiles", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ghx-bench-report-"))
+    const report = await importReportModule(root)
+
+    expect(() => report.parseArgs(["--gate-profile", "invalid"])).toThrow("Unknown gate profile")
   })
 
   it("loads latest rows and writes report outputs", async () => {

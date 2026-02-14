@@ -160,3 +160,37 @@ Remaining gate misses are now mostly attributable to:
 
 - one intermittent timeout reducing success/validity,
 - active-token reduction landing close to threshold but still below target in this run.
+
+## Latest Proof Run (default set, 1 repetition)
+
+After applying report/gate-v2 profile support and documentation updates, we ran a fresh proof sequence in this worktree:
+
+1. `pnpm --filter @ghx-dev/core run build`
+2. `pnpm --filter @ghx-dev/benchmark run run -- agent_direct 1 --scenario-set default`
+3. `pnpm --filter @ghx-dev/benchmark run run -- ghx_router 1 --scenario-set default`
+4. `pnpm --filter @ghx-dev/benchmark run report`
+5. `pnpm --filter @ghx-dev/benchmark exec tsx src/cli/report.ts --gate --gate-profile pr_fast`
+
+Artifacts:
+
+- `packages/benchmark/results/2026-02-14T12-35-30-776Z-agent_direct-suite.jsonl`
+- `packages/benchmark/results/2026-02-14T12-37-06-634Z-ghx_router-suite.jsonl`
+- `packages/benchmark/reports/latest-summary.json`
+
+Observed outcome:
+
+- Reliability remained clean in this run:
+  - success-rate delta: `0 pp`
+  - output validity: `100%`
+  - runner failure rate: `0%`
+  - timeout/stall rate: `0%`
+  - retry rate: `0%`
+- `pr_fast` gate v2 still failed due to efficiency checks:
+  - active-token reduction: `43.41%` (pass, threshold `>= 15%`)
+  - latency reduction: `0.32%` (fail, threshold `>= 15%`)
+  - tool-call reduction: `0%` (fail, threshold `>= 20%`)
+
+Interpretation:
+
+- The previous timeout/finalization stall issue is not present in this proof run.
+- Remaining blocker is efficiency composition for this sample, not reliability.

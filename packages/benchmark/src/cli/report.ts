@@ -4,13 +4,38 @@ import { pathToFileURL } from "node:url"
 
 import type { BenchmarkMode, BenchmarkRow } from "../domain/types.js"
 import { buildSummary, toMarkdown } from "../report/aggregate.js"
+import type { GateProfile } from "../report/aggregate.js"
 
 const RESULTS_DIR = join(process.cwd(), "results")
 const REPORTS_DIR = join(process.cwd(), "reports")
 
-export function parseArgs(args: string[]): { gate: boolean } {
+function parseGateProfile(args: string[]): GateProfile {
+  const inline = args.find((arg) => arg.startsWith("--gate-profile="))
+  if (inline) {
+    const value = inline.slice("--gate-profile=".length)
+    if (value === "pr_fast" || value === "nightly_full") {
+      return value
+    }
+    throw new Error("Unknown gate profile. Expected pr_fast or nightly_full")
+  }
+
+  const index = args.findIndex((arg) => arg === "--gate-profile")
+  if (index === -1) {
+    return "pr_fast"
+  }
+
+  const value = args[index + 1]
+  if (value === "pr_fast" || value === "nightly_full") {
+    return value
+  }
+
+  throw new Error("Unknown gate profile. Expected pr_fast or nightly_full")
+}
+
+export function parseArgs(args: string[]): { gate: boolean; gateProfile: GateProfile } {
   return {
-    gate: args.includes("--gate")
+    gate: args.includes("--gate"),
+    gateProfile: parseGateProfile(args)
   }
 }
 
@@ -51,14 +76,14 @@ export async function loadLatestRowsPerMode(): Promise<BenchmarkRow[]> {
 }
 
 export async function main(args: string[] = process.argv.slice(2)): Promise<void> {
-  const { gate } = parseArgs(args)
+  const { gate, gateProfile } = parseArgs(args)
   const rows = await loadLatestRowsPerMode()
 
   if (rows.length === 0) {
     throw new Error("No benchmark result rows found")
   }
 
-  const summary = buildSummary(rows)
+  const summary = buildSummary(rows, undefined, gateProfile)
   const markdown = toMarkdown(summary)
 
   await mkdir(REPORTS_DIR, { recursive: true })
@@ -68,8 +93,8 @@ export async function main(args: string[] = process.argv.slice(2)): Promise<void
   console.log(`Wrote reports/latest-summary.json`)
   console.log(`Wrote reports/latest-summary.md`)
 
-  if (gate && !summary.gate.passed) {
-    throw new Error("Benchmark gate failed")
+  if (gate && !summary.gateV2.passed) {
+    throw new Error(`Benchmark gate failed for profile ${gateProfile}`)
   }
 }
 

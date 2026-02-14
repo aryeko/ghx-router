@@ -1,10 +1,23 @@
 import type { BenchmarkMode, BenchmarkRow } from "../domain/types.js"
 
+export type GateProfile = "pr_fast" | "nightly_full"
+
+type GateCheck = {
+  name: string
+  passed: boolean
+  value: number
+  threshold: number
+  operator: ">=" | "<="
+}
+
 type ModeSummary = {
   mode: BenchmarkMode
   runs: number
   successRate: number
   outputValidityRate: number
+  runnerFailureRate: number
+  timeoutStallRate: number
+  retryRate: number
   medianLatencyMs: number
   medianTokensTotal: number
   medianTokensActive: number
@@ -21,11 +34,52 @@ type DeltaSummary = {
 }
 
 export type GateThresholds = {
-  minTokensActiveReductionPct: number
+  minTokensReductionPct: number
   minLatencyReductionPct: number
   minToolCallReductionPct: number
   maxSuccessRateDropPct: number
   minOutputValidityRatePct: number
+}
+
+type GateV2Thresholds = {
+  minTokensActiveReductionPct: number
+  minLatencyReductionPct: number
+  minToolCallReductionPct: number
+  minEfficiencyCoveragePct: number
+  maxSuccessRateDropPct: number
+  minOutputValidityRatePct: number
+  maxRunnerFailureRatePct: number
+  maxTimeoutStallRatePct: number
+  maxRetryRatePct: number
+  minSamplesPerScenarioPerMode: number
+}
+
+type GateV2Reliability = {
+  successRateDeltaPct: number
+  outputValidityRatePct: number
+  runnerFailureRatePct: number
+  timeoutStallRatePct: number
+  retryRatePct: number
+}
+
+type GateV2Efficiency = {
+  minSamplesPerScenarioPerMode: number
+  eligibleScenarioCount: number
+  totalScenarioCount: number
+  coveragePct: number
+  tokensComparableScenarioCount: number
+  tokensActiveReductionPct: number
+  latencyReductionPct: number
+  toolCallReductionPct: number
+  scenarioWinRateTokensActivePct: number
+}
+
+type GateV2Summary = {
+  profile: GateProfile
+  passed: boolean
+  reliability: GateV2Reliability | null
+  efficiency: GateV2Efficiency | null
+  checks: GateCheck[]
 }
 
 export type BenchmarkSummary = {
@@ -34,16 +88,44 @@ export type BenchmarkSummary = {
   deltaVsAgentDirect: DeltaSummary | null
   gate: {
     passed: boolean
-    checks: Array<{ name: string; passed: boolean; value: number; threshold: number }>
+    checks: GateCheck[]
   }
+  gateV2: GateV2Summary
 }
 
 const DEFAULT_THRESHOLDS: GateThresholds = {
-  minTokensActiveReductionPct: 25,
+  minTokensReductionPct: 25,
   minLatencyReductionPct: 20,
   minToolCallReductionPct: 30,
   maxSuccessRateDropPct: 1,
-  minOutputValidityRatePct: 99
+  minOutputValidityRatePct: 99,
+}
+
+const GATE_V2_THRESHOLDS: Record<GateProfile, GateV2Thresholds> = {
+  pr_fast: {
+    minTokensActiveReductionPct: 15,
+    minLatencyReductionPct: 15,
+    minToolCallReductionPct: 20,
+    minEfficiencyCoveragePct: 80,
+    maxSuccessRateDropPct: 3,
+    minOutputValidityRatePct: 97,
+    maxRunnerFailureRatePct: 5,
+    maxTimeoutStallRatePct: 2,
+    maxRetryRatePct: 15,
+    minSamplesPerScenarioPerMode: 1,
+  },
+  nightly_full: {
+    minTokensActiveReductionPct: 22,
+    minLatencyReductionPct: 20,
+    minToolCallReductionPct: 30,
+    minEfficiencyCoveragePct: 95,
+    maxSuccessRateDropPct: 1,
+    minOutputValidityRatePct: 99,
+    maxRunnerFailureRatePct: 2,
+    maxTimeoutStallRatePct: 1,
+    maxRetryRatePct: 8,
+    minSamplesPerScenarioPerMode: 2,
+  },
 }
 
 function median(values: number[]): number {
@@ -68,22 +150,230 @@ function safeReductionPct(baseline: number, target: number): number {
   return ((baseline - target) / baseline) * 100
 }
 
+function activeTokens(row: BenchmarkRow): number {
+  return row.tokens.total - row.tokens.cache_read
+}
+
+function isRunnerError(row: BenchmarkRow): boolean {
+  return row.error?.type === "runner_error"
+}
+
+function isTimeoutStallError(row: BenchmarkRow): boolean {
+  if (!isRunnerError(row) || !row.error) {
+    return false
+  }
+
+  return /\b(timeout|timed out|stalled?|stall)\b/i.test(row.error.message)
+}
+
+function isStableEfficiencyRow(row: BenchmarkRow): boolean {
+  return row.success && row.output_valid && !isRunnerError(row)
+}
+
 function summarizeMode(mode: BenchmarkMode, rows: BenchmarkRow[]): ModeSummary {
   return {
     mode,
     runs: rows.length,
     successRate: pct(rows.filter((row) => row.success).length, rows.length),
     outputValidityRate: pct(rows.filter((row) => row.output_valid).length, rows.length),
+    runnerFailureRate: pct(rows.filter((row) => isRunnerError(row)).length, rows.length),
+    timeoutStallRate: pct(rows.filter((row) => isTimeoutStallError(row)).length, rows.length),
+    retryRate: pct(rows.filter((row) => row.external_retry_count > 0).length, rows.length),
     medianLatencyMs: median(rows.map((row) => row.latency_ms_wall)),
     medianTokensTotal: median(rows.map((row) => row.tokens.total)),
-    medianTokensActive: median(rows.map((row) => row.tokens.total - row.tokens.cache_read)),
-    medianToolCalls: median(rows.map((row) => row.tool_calls))
+    medianTokensActive: median(rows.map((row) => activeTokens(row))),
+    medianToolCalls: median(rows.map((row) => row.tool_calls)),
+  }
+}
+
+function extractGateV2Efficiency(
+  agentDirectRows: BenchmarkRow[],
+  ghxRouterRows: BenchmarkRow[],
+  minSamplesPerScenarioPerMode: number,
+): GateV2Efficiency {
+  const totalScenarioCount = new Set([
+    ...agentDirectRows.map((row) => row.scenario_id),
+    ...ghxRouterRows.map((row) => row.scenario_id),
+  ]).size
+
+  const scenarioIds = new Set<string>([
+    ...agentDirectRows.map((row) => row.scenario_id),
+    ...ghxRouterRows.map((row) => row.scenario_id),
+  ])
+
+  const tokenReductions: number[] = []
+  const latencyReductions: number[] = []
+  const toolCallReductions: number[] = []
+  let tokensActiveWinCount = 0
+  let tokensComparableScenarioCount = 0
+  let eligibleScenarioCount = 0
+
+  for (const scenarioId of scenarioIds) {
+    const agentScenarioRows = agentDirectRows.filter(
+      (row) => row.scenario_id === scenarioId && isStableEfficiencyRow(row),
+    )
+    const ghxScenarioRows = ghxRouterRows.filter(
+      (row) => row.scenario_id === scenarioId && isStableEfficiencyRow(row),
+    )
+
+    if (
+      agentScenarioRows.length < minSamplesPerScenarioPerMode ||
+      ghxScenarioRows.length < minSamplesPerScenarioPerMode
+    ) {
+      continue
+    }
+
+    eligibleScenarioCount += 1
+
+    const agentTokensActiveMedian = median(agentScenarioRows.map((row) => activeTokens(row)))
+    const ghxTokensActiveMedian = median(ghxScenarioRows.map((row) => activeTokens(row)))
+    if (agentTokensActiveMedian > 0) {
+      const tokenReduction = safeReductionPct(agentTokensActiveMedian, ghxTokensActiveMedian)
+      tokenReductions.push(tokenReduction)
+      tokensComparableScenarioCount += 1
+      if (tokenReduction > 0) {
+        tokensActiveWinCount += 1
+      }
+    }
+
+    const agentLatencyMedian = median(agentScenarioRows.map((row) => row.latency_ms_wall))
+    const ghxLatencyMedian = median(ghxScenarioRows.map((row) => row.latency_ms_wall))
+    if (agentLatencyMedian > 0) {
+      latencyReductions.push(safeReductionPct(agentLatencyMedian, ghxLatencyMedian))
+    }
+
+    const agentToolCallsMedian = median(agentScenarioRows.map((row) => row.tool_calls))
+    const ghxToolCallsMedian = median(ghxScenarioRows.map((row) => row.tool_calls))
+    if (agentToolCallsMedian > 0) {
+      toolCallReductions.push(safeReductionPct(agentToolCallsMedian, ghxToolCallsMedian))
+    }
+  }
+
+  return {
+    minSamplesPerScenarioPerMode,
+    eligibleScenarioCount,
+    totalScenarioCount,
+    coveragePct: pct(eligibleScenarioCount, totalScenarioCount),
+    tokensComparableScenarioCount,
+    tokensActiveReductionPct: median(tokenReductions),
+    latencyReductionPct: median(latencyReductions),
+    toolCallReductionPct: median(toolCallReductions),
+    scenarioWinRateTokensActivePct: pct(tokensActiveWinCount, tokensComparableScenarioCount),
+  }
+}
+
+function buildGateV2(
+  modeSummaries: Partial<Record<BenchmarkMode, ModeSummary>>,
+  grouped: Partial<Record<BenchmarkMode, BenchmarkRow[]>>,
+  profile: GateProfile,
+): GateV2Summary {
+  const thresholds = GATE_V2_THRESHOLDS[profile]
+  const agentDirect = modeSummaries.agent_direct
+  const ghxRouter = modeSummaries.ghx_router
+
+  if (!agentDirect || !ghxRouter) {
+    return {
+      profile,
+      passed: false,
+      reliability: null,
+      efficiency: null,
+      checks: [],
+    }
+  }
+
+  const reliability: GateV2Reliability = {
+    successRateDeltaPct: ghxRouter.successRate - agentDirect.successRate,
+    outputValidityRatePct: ghxRouter.outputValidityRate,
+    runnerFailureRatePct: ghxRouter.runnerFailureRate,
+    timeoutStallRatePct: ghxRouter.timeoutStallRate,
+    retryRatePct: ghxRouter.retryRate,
+  }
+
+  const efficiency = extractGateV2Efficiency(
+    grouped.agent_direct ?? [],
+    grouped.ghx_router ?? [],
+    thresholds.minSamplesPerScenarioPerMode,
+  )
+
+  const checks: GateCheck[] = [
+    {
+      name: "reliability_success_rate_non_inferior",
+      passed: reliability.successRateDeltaPct >= -thresholds.maxSuccessRateDropPct,
+      value: reliability.successRateDeltaPct,
+      threshold: -thresholds.maxSuccessRateDropPct,
+      operator: ">=",
+    },
+    {
+      name: "reliability_output_validity",
+      passed: reliability.outputValidityRatePct >= thresholds.minOutputValidityRatePct,
+      value: reliability.outputValidityRatePct,
+      threshold: thresholds.minOutputValidityRatePct,
+      operator: ">=",
+    },
+    {
+      name: "reliability_runner_failure_rate",
+      passed: reliability.runnerFailureRatePct <= thresholds.maxRunnerFailureRatePct,
+      value: reliability.runnerFailureRatePct,
+      threshold: thresholds.maxRunnerFailureRatePct,
+      operator: "<=",
+    },
+    {
+      name: "reliability_timeout_stall_rate",
+      passed: reliability.timeoutStallRatePct <= thresholds.maxTimeoutStallRatePct,
+      value: reliability.timeoutStallRatePct,
+      threshold: thresholds.maxTimeoutStallRatePct,
+      operator: "<=",
+    },
+    {
+      name: "reliability_retry_rate",
+      passed: reliability.retryRatePct <= thresholds.maxRetryRatePct,
+      value: reliability.retryRatePct,
+      threshold: thresholds.maxRetryRatePct,
+      operator: "<=",
+    },
+    {
+      name: "efficiency_coverage",
+      passed: efficiency.coveragePct >= thresholds.minEfficiencyCoveragePct,
+      value: efficiency.coveragePct,
+      threshold: thresholds.minEfficiencyCoveragePct,
+      operator: ">=",
+    },
+    {
+      name: "efficiency_tokens_active_reduction",
+      passed: efficiency.tokensActiveReductionPct >= thresholds.minTokensActiveReductionPct,
+      value: efficiency.tokensActiveReductionPct,
+      threshold: thresholds.minTokensActiveReductionPct,
+      operator: ">=",
+    },
+    {
+      name: "efficiency_latency_reduction",
+      passed: efficiency.latencyReductionPct >= thresholds.minLatencyReductionPct,
+      value: efficiency.latencyReductionPct,
+      threshold: thresholds.minLatencyReductionPct,
+      operator: ">=",
+    },
+    {
+      name: "efficiency_tool_call_reduction",
+      passed: efficiency.toolCallReductionPct >= thresholds.minToolCallReductionPct,
+      value: efficiency.toolCallReductionPct,
+      threshold: thresholds.minToolCallReductionPct,
+      operator: ">=",
+    },
+  ]
+
+  return {
+    profile,
+    passed: checks.every((check) => check.passed),
+    reliability,
+    efficiency,
+    checks,
   }
 }
 
 export function buildSummary(
   rows: BenchmarkRow[],
-  thresholds: GateThresholds = DEFAULT_THRESHOLDS
+  thresholds: GateThresholds = DEFAULT_THRESHOLDS,
+  gateProfile: GateProfile = "pr_fast",
 ): BenchmarkSummary {
   const grouped: Partial<Record<BenchmarkMode, BenchmarkRow[]>> = {}
   for (const row of rows) {
@@ -100,7 +390,7 @@ export function buildSummary(
   const ghxRouter = modeSummaries.ghx_router
 
   let deltaVsAgentDirect: DeltaSummary | null = null
-  let checks: BenchmarkSummary["gate"]["checks"] = []
+  let checks: GateCheck[] = []
 
   if (agentDirect && ghxRouter) {
     deltaVsAgentDirect = {
@@ -109,40 +399,45 @@ export function buildSummary(
       latencyReductionPct: safeReductionPct(agentDirect.medianLatencyMs, ghxRouter.medianLatencyMs),
       toolCallReductionPct: safeReductionPct(agentDirect.medianToolCalls, ghxRouter.medianToolCalls),
       successRateDeltaPct: ghxRouter.successRate - agentDirect.successRate,
-      outputValidityRatePct: ghxRouter.outputValidityRate
+      outputValidityRatePct: ghxRouter.outputValidityRate,
     }
 
     checks = [
       {
-        name: "tokens_active_reduction",
-        passed: deltaVsAgentDirect.tokensActiveReductionPct >= thresholds.minTokensActiveReductionPct,
-        value: deltaVsAgentDirect.tokensActiveReductionPct,
-        threshold: thresholds.minTokensActiveReductionPct
+        name: "tokens_reduction",
+        passed: deltaVsAgentDirect.tokensReductionPct >= thresholds.minTokensReductionPct,
+        value: deltaVsAgentDirect.tokensReductionPct,
+        threshold: thresholds.minTokensReductionPct,
+        operator: ">=",
       },
       {
         name: "latency_reduction",
         passed: deltaVsAgentDirect.latencyReductionPct >= thresholds.minLatencyReductionPct,
         value: deltaVsAgentDirect.latencyReductionPct,
-        threshold: thresholds.minLatencyReductionPct
+        threshold: thresholds.minLatencyReductionPct,
+        operator: ">=",
       },
       {
         name: "tool_call_reduction",
         passed: deltaVsAgentDirect.toolCallReductionPct >= thresholds.minToolCallReductionPct,
         value: deltaVsAgentDirect.toolCallReductionPct,
-        threshold: thresholds.minToolCallReductionPct
+        threshold: thresholds.minToolCallReductionPct,
+        operator: ">=",
       },
       {
         name: "success_rate_non_inferior",
         passed: deltaVsAgentDirect.successRateDeltaPct >= -thresholds.maxSuccessRateDropPct,
         value: deltaVsAgentDirect.successRateDeltaPct,
-        threshold: -thresholds.maxSuccessRateDropPct
+        threshold: -thresholds.maxSuccessRateDropPct,
+        operator: ">=",
       },
       {
         name: "output_validity",
         passed: deltaVsAgentDirect.outputValidityRatePct >= thresholds.minOutputValidityRatePct,
         value: deltaVsAgentDirect.outputValidityRatePct,
-        threshold: thresholds.minOutputValidityRatePct
-      }
+        threshold: thresholds.minOutputValidityRatePct,
+        operator: ">=",
+      },
     ]
   }
 
@@ -152,8 +447,9 @@ export function buildSummary(
     deltaVsAgentDirect,
     gate: {
       passed: checks.length > 0 && checks.every((check) => check.passed),
-      checks
-    }
+      checks,
+    },
+    gateV2: buildGateV2(modeSummaries, grouped, gateProfile),
   }
 }
 
@@ -165,33 +461,76 @@ export function toMarkdown(summary: BenchmarkSummary): string {
   lines.push("")
   lines.push("## Mode Metrics")
   lines.push("")
-  lines.push("| Mode | Runs | Success % | Output Valid % | Median Latency (ms) | Median Tokens (Total) | Median Tokens (Active) | Median Tool Calls |")
-  lines.push("|---|---:|---:|---:|---:|---:|---:|---:|")
+  lines.push("| Mode | Runs | Success % | Output Valid % | Runner Error % | Timeout/Stall % | Retry % | Median Latency (ms) | Median Tokens (Total) | Median Tokens (Active) | Median Tool Calls |")
+  lines.push("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
 
   for (const mode of ["agent_direct", "mcp", "ghx_router"] as const) {
     const item = summary.modes[mode]
     if (!item) continue
     lines.push(
-      `| ${mode} | ${item.runs} | ${item.successRate.toFixed(2)} | ${item.outputValidityRate.toFixed(2)} | ${item.medianLatencyMs.toFixed(0)} | ${item.medianTokensTotal.toFixed(0)} | ${item.medianTokensActive.toFixed(0)} | ${item.medianToolCalls.toFixed(1)} |`
+      `| ${mode} | ${item.runs} | ${item.successRate.toFixed(2)} | ${item.outputValidityRate.toFixed(2)} | ${item.runnerFailureRate.toFixed(2)} | ${item.timeoutStallRate.toFixed(2)} | ${item.retryRate.toFixed(2)} | ${item.medianLatencyMs.toFixed(0)} | ${item.medianTokensTotal.toFixed(0)} | ${item.medianTokensActive.toFixed(0)} | ${item.medianToolCalls.toFixed(1)} |`,
     )
   }
 
   lines.push("")
-  lines.push("## Gate Results")
+  lines.push("## Legacy Gate (v1)")
   lines.push("")
 
   if (!summary.deltaVsAgentDirect) {
     lines.push("Insufficient data: need both agent_direct and ghx_router runs to evaluate gate.")
+  } else {
+    lines.push(`Overall Gate: **${summary.gate.passed ? "PASS" : "FAIL"}**`)
+    lines.push("")
+    lines.push("| Check | Value | Rule | Pass |")
+    lines.push("|---|---:|---:|:---:|")
+    for (const check of summary.gate.checks) {
+      lines.push(
+        `| ${check.name} | ${check.value.toFixed(2)} | ${check.operator} ${check.threshold.toFixed(2)} | ${check.passed ? "Y" : "N"} |`,
+      )
+    }
+  }
+
+  lines.push("")
+  lines.push("## Gate V2")
+  lines.push("")
+  lines.push(`Profile: ${summary.gateV2.profile}`)
+  lines.push(`Overall Gate: **${summary.gateV2.passed ? "PASS" : "FAIL"}**`)
+  lines.push("")
+
+  if (!summary.gateV2.reliability || !summary.gateV2.efficiency) {
+    lines.push("Insufficient data: need both agent_direct and ghx_router runs to evaluate gate v2.")
     return lines.join("\n")
   }
 
-  lines.push(`Overall Gate: **${summary.gate.passed ? "PASS" : "FAIL"}**`)
-  lines.push("")
-  lines.push("| Check | Value | Threshold | Pass |")
+  lines.push("| Check | Value | Rule | Pass |")
   lines.push("|---|---:|---:|:---:|")
-  for (const check of summary.gate.checks) {
-    lines.push(`| ${check.name} | ${check.value.toFixed(2)} | ${check.threshold.toFixed(2)} | ${check.passed ? "Y" : "N"} |`)
+  for (const check of summary.gateV2.checks) {
+    lines.push(
+      `| ${check.name} | ${check.value.toFixed(2)} | ${check.operator} ${check.threshold.toFixed(2)} | ${check.passed ? "Y" : "N"} |`,
+    )
   }
+
+  lines.push("")
+  lines.push("### Reliability Snapshot")
+  lines.push("")
+  lines.push(`- success delta: ${summary.gateV2.reliability.successRateDeltaPct.toFixed(2)} pp`)
+  lines.push(`- output validity: ${summary.gateV2.reliability.outputValidityRatePct.toFixed(2)}%`)
+  lines.push(`- runner failures: ${summary.gateV2.reliability.runnerFailureRatePct.toFixed(2)}%`)
+  lines.push(`- timeout/stalls: ${summary.gateV2.reliability.timeoutStallRatePct.toFixed(2)}%`)
+  lines.push(`- external retries: ${summary.gateV2.reliability.retryRatePct.toFixed(2)}%`)
+
+  lines.push("")
+  lines.push("### Efficiency Snapshot (Stable Sample)")
+  lines.push("")
+  lines.push(
+    `- scenario coverage: ${summary.gateV2.efficiency.coveragePct.toFixed(2)}% (${summary.gateV2.efficiency.eligibleScenarioCount}/${summary.gateV2.efficiency.totalScenarioCount})`,
+  )
+  lines.push(`- median active-token reduction: ${summary.gateV2.efficiency.tokensActiveReductionPct.toFixed(2)}%`)
+  lines.push(`- median latency reduction: ${summary.gateV2.efficiency.latencyReductionPct.toFixed(2)}%`)
+  lines.push(`- median tool-call reduction: ${summary.gateV2.efficiency.toolCallReductionPct.toFixed(2)}%`)
+  lines.push(
+    `- scenario win-rate (active tokens): ${summary.gateV2.efficiency.scenarioWinRateTokensActivePct.toFixed(2)}% (${summary.gateV2.efficiency.tokensComparableScenarioCount} comparable scenarios)`,
+  )
 
   return lines.join("\n")
 }
