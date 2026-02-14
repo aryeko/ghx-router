@@ -1,0 +1,10 @@
+mutation IssueParentSet($issueId: ID!, $parentIssueId: ID!) {
+  addSubIssue(input: { issueId: $parentIssueId, subIssueId: $issueId }) {
+    issue {
+      id
+    }
+    subIssue {
+      id
+    }
+  }
+}

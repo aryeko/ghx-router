@@ -1,0 +1,23 @@
+query IssueLinkedPrsList($owner: String!, $name: String!, $issueNumber: Int!) {
+  repository(owner: $owner, name: $name) {
+    issue(number: $issueNumber) {
+      timelineItems(first: 50, itemTypes: [CONNECTED_EVENT]) {
+        nodes {
+          __typename
+          ... on ConnectedEvent {
+            subject {
+              __typename
+              ... on PullRequest {
+                id
+                number
+                title
+                state
+                url
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

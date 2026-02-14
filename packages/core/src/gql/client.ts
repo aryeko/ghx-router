@@ -92,6 +92,65 @@ export type PrCommentsListInput = {
   includeOutdated?: boolean
 }
 
+export type IssueCreateInput = {
+  owner: string
+  name: string
+  title: string
+  body?: string
+}
+
+export type IssueUpdateInput = {
+  issueId: string
+  title?: string
+  body?: string
+}
+
+export type IssueMutationInput = {
+  issueId: string
+}
+
+export type IssueLabelsUpdateInput = {
+  issueId: string
+  labels: string[]
+}
+
+export type IssueAssigneesUpdateInput = {
+  issueId: string
+  assignees: string[]
+}
+
+export type IssueMilestoneSetInput = {
+  issueId: string
+  milestoneNumber: number | null
+}
+
+export type IssueCommentCreateInput = {
+  issueId: string
+  body: string
+}
+
+export type IssueLinkedPrsListInput = {
+  owner: string
+  name: string
+  issueNumber: number
+}
+
+export type IssueRelationsGetInput = IssueLinkedPrsListInput
+
+export type IssueParentSetInput = {
+  issueId: string
+  parentIssueId: string
+}
+
+export type IssueParentRemoveInput = {
+  issueId: string
+}
+
+export type IssueBlockedByInput = {
+  issueId: string
+  blockedByIssueId: string
+}
+
 export type RepoViewData = {
   id: string
   name: string
@@ -133,6 +192,78 @@ export type IssueCommentsListData = {
     endCursor: string | null
     hasNextPage: boolean
   }
+}
+
+export type IssueMutationData = {
+  id: string
+  number: number
+  title?: string
+  state?: string
+  url?: string
+  closed?: boolean
+  reopened?: boolean
+  deleted?: boolean
+}
+
+export type IssueLabelsUpdateData = {
+  id: string
+  labels: string[]
+}
+
+export type IssueAssigneesUpdateData = {
+  id: string
+  assignees: string[]
+}
+
+export type IssueMilestoneSetData = {
+  id: string
+  milestoneNumber: number | null
+}
+
+export type IssueCommentCreateData = {
+  id: string
+  body: string
+  url: string
+}
+
+export type IssueLinkedPrData = {
+  id: string
+  number: number
+  title: string
+  state: string
+  url: string
+}
+
+export type IssueLinkedPrsListData = {
+  items: Array<IssueLinkedPrData>
+}
+
+export type IssueRelationNodeData = {
+  id: string
+  number: number
+}
+
+export type IssueRelationsGetData = {
+  issue: IssueRelationNodeData
+  parent: IssueRelationNodeData | null
+  children: Array<IssueRelationNodeData>
+  blockedBy: Array<IssueRelationNodeData>
+}
+
+export type IssueParentSetData = {
+  issueId: string
+  parentIssueId: string
+}
+
+export type IssueParentRemoveData = {
+  issueId: string
+  parentRemoved: boolean
+}
+
+export type IssueBlockedByData = {
+  issueId: string
+  blockedByIssueId: string
+  removed?: boolean
 }
 
 export type PrViewData = {
@@ -240,6 +371,21 @@ export type ReviewThreadMutationData = {
 export interface GithubClient extends GraphqlClient {
   fetchRepoView(input: RepoViewInput): Promise<RepoViewData>
   fetchIssueCommentsList(input: IssueCommentsListInput): Promise<IssueCommentsListData>
+  createIssue(input: IssueCreateInput): Promise<IssueMutationData>
+  updateIssue(input: IssueUpdateInput): Promise<IssueMutationData>
+  closeIssue(input: IssueMutationInput): Promise<IssueMutationData>
+  reopenIssue(input: IssueMutationInput): Promise<IssueMutationData>
+  deleteIssue(input: IssueMutationInput): Promise<IssueMutationData>
+  updateIssueLabels(input: IssueLabelsUpdateInput): Promise<IssueLabelsUpdateData>
+  updateIssueAssignees(input: IssueAssigneesUpdateInput): Promise<IssueAssigneesUpdateData>
+  setIssueMilestone(input: IssueMilestoneSetInput): Promise<IssueMilestoneSetData>
+  createIssueComment(input: IssueCommentCreateInput): Promise<IssueCommentCreateData>
+  fetchIssueLinkedPrs(input: IssueLinkedPrsListInput): Promise<IssueLinkedPrsListData>
+  fetchIssueRelations(input: IssueRelationsGetInput): Promise<IssueRelationsGetData>
+  setIssueParent(input: IssueParentSetInput): Promise<IssueParentSetData>
+  removeIssueParent(input: IssueParentRemoveInput): Promise<IssueParentRemoveData>
+  addIssueBlockedBy(input: IssueBlockedByInput): Promise<IssueBlockedByData>
+  removeIssueBlockedBy(input: IssueBlockedByInput): Promise<IssueBlockedByData>
   fetchIssueList(input: IssueListInput): Promise<IssueListData>
   fetchIssueView(input: IssueViewInput): Promise<IssueViewData>
   fetchPrList(input: PrListInput): Promise<PrListData>
@@ -289,6 +435,101 @@ function assertIssueCommentsListInput(input: IssueCommentsListInput): void {
   if (input.after !== undefined && input.after !== null && typeof input.after !== "string") {
     throw new Error("After cursor must be a string")
   }
+}
+
+function assertNonEmptyString(value: unknown, fieldName: string): string {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new Error(`${fieldName} is required`)
+  }
+
+  return value
+}
+
+function assertOptionalString(value: unknown, fieldName: string): string | undefined {
+  if (value === undefined) {
+    return undefined
+  }
+
+  if (typeof value !== "string") {
+    throw new Error(`${fieldName} must be a string`)
+  }
+
+  return value
+}
+
+function assertStringArray(value: unknown, fieldName: string): string[] {
+  if (!Array.isArray(value) || value.some((entry) => typeof entry !== "string" || entry.trim().length === 0)) {
+    throw new Error(`${fieldName} must be an array of non-empty strings`)
+  }
+
+  return value
+}
+
+function assertIssueCreateInput(input: IssueCreateInput): void {
+  assertRepoInput({ owner: input.owner, name: input.name })
+  assertNonEmptyString(input.title, "Issue title")
+  assertOptionalString(input.body, "Issue body")
+}
+
+function assertIssueUpdateInput(input: IssueUpdateInput): void {
+  assertNonEmptyString(input.issueId, "Issue id")
+  if (input.title === undefined && input.body === undefined) {
+    throw new Error("Issue update requires at least one field")
+  }
+  if (input.title !== undefined) {
+    assertOptionalString(input.title, "Issue title")
+  }
+  if (input.body !== undefined) {
+    assertOptionalString(input.body, "Issue body")
+  }
+}
+
+function assertIssueMutationInput(input: IssueMutationInput): void {
+  assertNonEmptyString(input.issueId, "Issue id")
+}
+
+function assertIssueLabelsUpdateInput(input: IssueLabelsUpdateInput): void {
+  assertIssueMutationInput({ issueId: input.issueId })
+  assertStringArray(input.labels, "Labels")
+}
+
+function assertIssueAssigneesUpdateInput(input: IssueAssigneesUpdateInput): void {
+  assertIssueMutationInput({ issueId: input.issueId })
+  assertStringArray(input.assignees, "Assignees")
+}
+
+function assertIssueMilestoneSetInput(input: IssueMilestoneSetInput): void {
+  assertIssueMutationInput({ issueId: input.issueId })
+  if (input.milestoneNumber !== null && (!Number.isInteger(input.milestoneNumber) || input.milestoneNumber <= 0)) {
+    throw new Error("Milestone number must be a positive integer or null")
+  }
+}
+
+function assertIssueCommentCreateInput(input: IssueCommentCreateInput): void {
+  assertIssueMutationInput({ issueId: input.issueId })
+  assertNonEmptyString(input.body, "Issue comment body")
+}
+
+function assertIssueLinkedPrsListInput(input: IssueLinkedPrsListInput): void {
+  assertIssueInput(input)
+}
+
+function assertIssueRelationsGetInput(input: IssueRelationsGetInput): void {
+  assertIssueInput(input)
+}
+
+function assertIssueParentSetInput(input: IssueParentSetInput): void {
+  assertIssueMutationInput({ issueId: input.issueId })
+  assertNonEmptyString(input.parentIssueId, "Parent issue id")
+}
+
+function assertIssueParentRemoveInput(input: IssueParentRemoveInput): void {
+  assertIssueMutationInput({ issueId: input.issueId })
+}
+
+function assertIssueBlockedByInput(input: IssueBlockedByInput): void {
+  assertIssueMutationInput({ issueId: input.issueId })
+  assertNonEmptyString(input.blockedByIssueId, "Blocked-by issue id")
 }
 
 function assertPrInput(input: PrViewInput): void {
@@ -457,6 +698,281 @@ const REVIEW_THREAD_STATE_QUERY = `
   }
 `
 
+const ISSUE_CREATE_REPOSITORY_ID_QUERY = `
+  query IssueCreateRepositoryId($owner: String!, $name: String!) {
+    repository(owner: $owner, name: $name) {
+      id
+    }
+  }
+`
+
+const ISSUE_CREATE_MUTATION = `
+  mutation IssueCreate($repositoryId: ID!, $title: String!, $body: String) {
+    createIssue(input: { repositoryId: $repositoryId, title: $title, body: $body }) {
+      issue {
+        id
+        number
+        title
+        state
+        url
+      }
+    }
+  }
+`
+
+const ISSUE_UPDATE_MUTATION = `
+  mutation IssueUpdate($issueId: ID!, $title: String, $body: String) {
+    updateIssue(input: { id: $issueId, title: $title, body: $body }) {
+      issue {
+        id
+        number
+        title
+        state
+        url
+      }
+    }
+  }
+`
+
+const ISSUE_CLOSE_MUTATION = `
+  mutation IssueClose($issueId: ID!) {
+    closeIssue(input: { issueId: $issueId }) {
+      issue {
+        id
+        number
+        state
+      }
+    }
+  }
+`
+
+const ISSUE_REOPEN_MUTATION = `
+  mutation IssueReopen($issueId: ID!) {
+    reopenIssue(input: { issueId: $issueId }) {
+      issue {
+        id
+        number
+        state
+      }
+    }
+  }
+`
+
+const ISSUE_DELETE_MUTATION = `
+  mutation IssueDelete($issueId: ID!) {
+    deleteIssue(input: { issueId: $issueId }) {
+      clientMutationId
+    }
+  }
+`
+
+const ISSUE_LABELS_UPDATE_MUTATION = `
+  mutation IssueLabelsUpdate($issueId: ID!, $labelIds: [ID!]!) {
+    updateIssue(input: { id: $issueId, labelIds: $labelIds }) {
+      issue {
+        id
+        labels(first: 50) {
+          nodes {
+            name
+          }
+        }
+      }
+    }
+  }
+`
+
+const ISSUE_ASSIGNEES_UPDATE_MUTATION = `
+  mutation IssueAssigneesUpdate($issueId: ID!, $assigneeIds: [ID!]!) {
+    updateIssue(input: { id: $issueId, assigneeIds: $assigneeIds }) {
+      issue {
+        id
+        assignees(first: 50) {
+          nodes {
+            login
+          }
+        }
+      }
+    }
+  }
+`
+
+const ISSUE_MILESTONE_SET_MUTATION = `
+  mutation IssueMilestoneSet($issueId: ID!, $milestoneId: ID) {
+    updateIssue(input: { id: $issueId, milestoneId: $milestoneId }) {
+      issue {
+        id
+        milestone {
+          number
+        }
+      }
+    }
+  }
+`
+
+const ISSUE_LABELS_LOOKUP_QUERY = `
+  query IssueLabelsLookup($issueId: ID!) {
+    node(id: $issueId) {
+      ... on Issue {
+        repository {
+          labels(first: 100) {
+            nodes {
+              id
+              name
+            }
+          }
+        }
+      }
+    }
+  }
+`
+
+const ISSUE_ASSIGNEES_LOOKUP_QUERY = `
+  query IssueAssigneesLookup($issueId: ID!) {
+    node(id: $issueId) {
+      ... on Issue {
+        repository {
+          assignableUsers(first: 100) {
+            nodes {
+              id
+              login
+            }
+          }
+        }
+      }
+    }
+  }
+`
+
+const ISSUE_MILESTONE_LOOKUP_QUERY = `
+  query IssueMilestoneLookup($issueId: ID!, $milestoneNumber: Int!) {
+    node(id: $issueId) {
+      ... on Issue {
+        repository {
+          milestone(number: $milestoneNumber) {
+            id
+          }
+        }
+      }
+    }
+  }
+`
+
+const ISSUE_COMMENT_CREATE_MUTATION = `
+  mutation IssueCommentCreate($issueId: ID!, $body: String!) {
+    addComment(input: { subjectId: $issueId, body: $body }) {
+      commentEdge {
+        node {
+          id
+          body
+          url
+        }
+      }
+    }
+  }
+`
+
+const ISSUE_LINKED_PRS_LIST_QUERY = `
+  query IssueLinkedPrsList($owner: String!, $name: String!, $issueNumber: Int!) {
+    repository(owner: $owner, name: $name) {
+      issue(number: $issueNumber) {
+        timelineItems(first: 50, itemTypes: [CONNECTED_EVENT]) {
+          nodes {
+            __typename
+            ... on ConnectedEvent {
+              subject {
+                __typename
+                ... on PullRequest {
+                  id
+                  number
+                  title
+                  state
+                  url
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`
+
+const ISSUE_RELATIONS_GET_QUERY = `
+  query IssueRelationsGet($owner: String!, $name: String!, $issueNumber: Int!) {
+    repository(owner: $owner, name: $name) {
+      issue(number: $issueNumber) {
+        id
+        number
+        parent {
+          id
+          number
+        }
+        subIssues(first: 50) {
+          nodes {
+            id
+            number
+          }
+        }
+        blockedBy(first: 50) {
+          nodes {
+            id
+            number
+          }
+        }
+      }
+    }
+  }
+`
+
+const ISSUE_PARENT_LOOKUP_QUERY = `
+  query IssueParentLookup($issueId: ID!) {
+    node(id: $issueId) {
+      ... on Issue {
+        id
+        parent {
+          id
+        }
+      }
+    }
+  }
+`
+
+const ISSUE_PARENT_SET_MUTATION = `
+  mutation IssueParentSet($issueId: ID!, $parentIssueId: ID!) {
+    addSubIssue(input: { issueId: $parentIssueId, subIssueId: $issueId }) {
+      issue { id }
+      subIssue { id }
+    }
+  }
+`
+
+const ISSUE_PARENT_REMOVE_MUTATION = `
+  mutation IssueParentRemove($issueId: ID!, $parentIssueId: ID!) {
+    removeSubIssue(input: { issueId: $parentIssueId, subIssueId: $issueId }) {
+      issue { id }
+      subIssue { id }
+    }
+  }
+`
+
+const ISSUE_BLOCKED_BY_ADD_MUTATION = `
+  mutation IssueBlockedByAdd($issueId: ID!, $blockedByIssueId: ID!) {
+    addBlockedBy(input: { issueId: $issueId, blockingIssueId: $blockedByIssueId }) {
+      issue { id }
+      blockingIssue { id }
+    }
+  }
+`
+
+const ISSUE_BLOCKED_BY_REMOVE_MUTATION = `
+  mutation IssueBlockedByRemove($issueId: ID!, $blockedByIssueId: ID!) {
+    removeBlockedBy(input: { issueId: $issueId, blockingIssueId: $blockedByIssueId }) {
+      issue { id }
+      blockingIssue { id }
+    }
+  }
+`
+
 type SdkClients = {
   issueCommentsList: ReturnType<typeof getIssueCommentsListSdk>
   issueList: ReturnType<typeof getIssueListSdk>
@@ -600,6 +1116,446 @@ async function runIssueCommentsList(
       endCursor: comments.pageInfo.endCursor ?? null,
       hasNextPage: comments.pageInfo.hasNextPage
     }
+  }
+}
+
+function parseIssueNode(issue: unknown): IssueMutationData {
+  const issueRecord = asRecord(issue)
+  if (!issueRecord || typeof issueRecord.id !== "string" || typeof issueRecord.number !== "number") {
+    throw new Error("Issue mutation failed")
+  }
+
+  const result: IssueMutationData = {
+    id: issueRecord.id,
+    number: issueRecord.number,
+  }
+
+  if (typeof issueRecord.title === "string") {
+    result.title = issueRecord.title
+  }
+  if (typeof issueRecord.state === "string") {
+    result.state = issueRecord.state
+  }
+  if (typeof issueRecord.url === "string") {
+    result.url = issueRecord.url
+  }
+
+  return result
+}
+
+async function runIssueCreate(graphqlClient: GraphqlClient, input: IssueCreateInput): Promise<IssueMutationData> {
+  assertIssueCreateInput(input)
+
+  const repositoryLookupResult = await graphqlClient.query<unknown, GraphqlVariables>(ISSUE_CREATE_REPOSITORY_ID_QUERY, {
+    owner: input.owner,
+    name: input.name
+  })
+  const repositoryId = asRecord(asRecord(repositoryLookupResult)?.repository)?.id
+  if (typeof repositoryId !== "string" || repositoryId.length === 0) {
+    throw new Error("Repository not found")
+  }
+
+  const result = await graphqlClient.query<unknown, GraphqlVariables>(ISSUE_CREATE_MUTATION, {
+    repositoryId,
+    title: input.title,
+    body: input.body
+  })
+  const issue = asRecord(asRecord(result)?.createIssue)?.issue
+  return parseIssueNode(issue)
+}
+
+async function runIssueUpdate(graphqlClient: GraphqlClient, input: IssueUpdateInput): Promise<IssueMutationData> {
+  assertIssueUpdateInput(input)
+
+  const result = await graphqlClient.query<unknown, GraphqlVariables>(ISSUE_UPDATE_MUTATION, {
+    issueId: input.issueId,
+    title: input.title,
+    body: input.body
+  })
+  const issue = asRecord(asRecord(result)?.updateIssue)?.issue
+  return parseIssueNode(issue)
+}
+
+async function runIssueClose(graphqlClient: GraphqlClient, input: IssueMutationInput): Promise<IssueMutationData> {
+  assertIssueMutationInput(input)
+
+  const result = await graphqlClient.query<unknown, GraphqlVariables>(ISSUE_CLOSE_MUTATION, {
+    issueId: input.issueId
+  })
+  const issueData = parseIssueNode(asRecord(asRecord(result)?.closeIssue)?.issue)
+  return {
+    ...issueData,
+    closed: issueData.state === "CLOSED"
+  }
+}
+
+async function runIssueReopen(graphqlClient: GraphqlClient, input: IssueMutationInput): Promise<IssueMutationData> {
+  assertIssueMutationInput(input)
+
+  const result = await graphqlClient.query<unknown, GraphqlVariables>(ISSUE_REOPEN_MUTATION, {
+    issueId: input.issueId
+  })
+  const issueData = parseIssueNode(asRecord(asRecord(result)?.reopenIssue)?.issue)
+  return {
+    ...issueData,
+    reopened: issueData.state === "OPEN"
+  }
+}
+
+async function runIssueDelete(graphqlClient: GraphqlClient, input: IssueMutationInput): Promise<IssueMutationData> {
+  assertIssueMutationInput(input)
+
+  const result = await graphqlClient.query<unknown, GraphqlVariables>(ISSUE_DELETE_MUTATION, {
+    issueId: input.issueId
+  })
+  const mutation = asRecord(asRecord(result)?.deleteIssue)
+  if (!mutation) {
+    throw new Error("Issue deletion failed")
+  }
+
+  return {
+    id: input.issueId,
+    number: 0,
+    deleted: true
+  }
+}
+
+async function runIssueLabelsUpdate(
+  graphqlClient: GraphqlClient,
+  input: IssueLabelsUpdateInput
+): Promise<IssueLabelsUpdateData> {
+  assertIssueLabelsUpdateInput(input)
+
+  const lookupResult = await graphqlClient.query<unknown, GraphqlVariables>(ISSUE_LABELS_LOOKUP_QUERY, {
+    issueId: input.issueId
+  })
+  const availableLabels = Array.isArray(
+    asRecord(asRecord(asRecord(asRecord(lookupResult)?.node)?.repository)?.labels)?.nodes
+  )
+    ? asRecord(asRecord(asRecord(asRecord(lookupResult)?.node)?.repository)?.labels)?.nodes as unknown[]
+    : []
+  const labelIdsByName = new Map<string, string>()
+  for (const label of availableLabels) {
+    const labelRecord = asRecord(label)
+    if (typeof labelRecord?.name === "string" && typeof labelRecord?.id === "string") {
+      labelIdsByName.set(labelRecord.name.toLowerCase(), labelRecord.id)
+    }
+  }
+  const labelIds = input.labels.map((labelName) => {
+    const id = labelIdsByName.get(labelName.toLowerCase())
+    if (!id) {
+      throw new Error(`Label not found: ${labelName}`)
+    }
+    return id
+  })
+
+  const result = await graphqlClient.query<unknown, GraphqlVariables>(ISSUE_LABELS_UPDATE_MUTATION, {
+    issueId: input.issueId,
+    labelIds
+  })
+  const mutation = asRecord(asRecord(result)?.["updateIssue"])
+  const issue = asRecord(mutation?.["issue"])
+  const labels = asRecord(issue?.["labels"])
+  const labelNodes = Array.isArray(labels?.["nodes"]) ? labels["nodes"] : []
+
+  return {
+    id: assertNonEmptyString(issue?.["id"], "Issue id"),
+    labels: labelNodes
+      .map((label) => asRecord(label)?.["name"])
+      .filter((name): name is string => typeof name === "string")
+  }
+}
+
+async function runIssueAssigneesUpdate(
+  graphqlClient: GraphqlClient,
+  input: IssueAssigneesUpdateInput
+): Promise<IssueAssigneesUpdateData> {
+  assertIssueAssigneesUpdateInput(input)
+
+  const lookupResult = await graphqlClient.query<unknown, GraphqlVariables>(ISSUE_ASSIGNEES_LOOKUP_QUERY, {
+    issueId: input.issueId
+  })
+  const availableAssignees = Array.isArray(
+    asRecord(asRecord(asRecord(asRecord(lookupResult)?.node)?.repository)?.assignableUsers)?.nodes
+  )
+    ? asRecord(asRecord(asRecord(asRecord(lookupResult)?.node)?.repository)?.assignableUsers)?.nodes as unknown[]
+    : []
+  const assigneeIdsByLogin = new Map<string, string>()
+  for (const assignee of availableAssignees) {
+    const assigneeRecord = asRecord(assignee)
+    if (typeof assigneeRecord?.login === "string" && typeof assigneeRecord?.id === "string") {
+      assigneeIdsByLogin.set(assigneeRecord.login.toLowerCase(), assigneeRecord.id)
+    }
+  }
+  const assigneeIds = input.assignees.map((login) => {
+    const id = assigneeIdsByLogin.get(login.toLowerCase())
+    if (!id) {
+      throw new Error(`Assignee not found: ${login}`)
+    }
+    return id
+  })
+
+  const result = await graphqlClient.query<unknown, GraphqlVariables>(ISSUE_ASSIGNEES_UPDATE_MUTATION, {
+    issueId: input.issueId,
+    assigneeIds
+  })
+  const mutation = asRecord(asRecord(result)?.["updateIssue"])
+  const issue = asRecord(mutation?.["issue"])
+  const assignees = asRecord(issue?.["assignees"])
+  const assigneeNodes = Array.isArray(assignees?.["nodes"]) ? assignees["nodes"] : []
+
+  return {
+    id: assertNonEmptyString(issue?.["id"], "Issue id"),
+    assignees: assigneeNodes
+      .map((assignee) => asRecord(assignee)?.["login"])
+      .filter((login): login is string => typeof login === "string")
+  }
+}
+
+async function runIssueMilestoneSet(
+  graphqlClient: GraphqlClient,
+  input: IssueMilestoneSetInput
+): Promise<IssueMilestoneSetData> {
+  assertIssueMilestoneSetInput(input)
+
+  let milestoneId: string | null = null
+  if (input.milestoneNumber !== null) {
+    const lookupResult = await graphqlClient.query<unknown, GraphqlVariables>(ISSUE_MILESTONE_LOOKUP_QUERY, {
+      issueId: input.issueId,
+      milestoneNumber: input.milestoneNumber
+    })
+    const resolvedId = asRecord(asRecord(asRecord(asRecord(lookupResult)?.node)?.repository)?.milestone)?.id
+    if (typeof resolvedId !== "string" || resolvedId.length === 0) {
+      throw new Error(`Milestone not found: ${input.milestoneNumber}`)
+    }
+    milestoneId = resolvedId
+  }
+
+  const result = await graphqlClient.query<unknown, GraphqlVariables>(ISSUE_MILESTONE_SET_MUTATION, {
+    issueId: input.issueId,
+    milestoneId
+  })
+  const mutation = asRecord(asRecord(result)?.["updateIssue"])
+  const issue = asRecord(mutation?.["issue"])
+  const milestone = asRecord(issue?.["milestone"])
+
+  return {
+    id: assertNonEmptyString(issue?.["id"], "Issue id"),
+    milestoneNumber: typeof milestone?.["number"] === "number" ? milestone["number"] : null
+  }
+}
+
+async function runIssueCommentCreate(
+  graphqlClient: GraphqlClient,
+  input: IssueCommentCreateInput
+): Promise<IssueCommentCreateData> {
+  assertIssueCommentCreateInput(input)
+
+  const result = await graphqlClient.query<unknown, GraphqlVariables>(ISSUE_COMMENT_CREATE_MUTATION, {
+    issueId: input.issueId,
+    body: input.body
+  })
+  const mutation = asRecord(asRecord(result)?.["addComment"])
+  const commentEdge = asRecord(mutation?.["commentEdge"])
+  const node = asRecord(commentEdge?.["node"])
+  if (!node || typeof node["id"] !== "string" || typeof node["body"] !== "string") {
+    throw new Error("Issue comment creation failed")
+  }
+
+  return {
+    id: node["id"],
+    body: node["body"],
+    url: typeof node["url"] === "string" ? node["url"] : ""
+  }
+}
+
+async function runIssueLinkedPrsList(
+  graphqlClient: GraphqlClient,
+  input: IssueLinkedPrsListInput
+): Promise<IssueLinkedPrsListData> {
+  assertIssueLinkedPrsListInput(input)
+
+  const result = await graphqlClient.query<unknown, GraphqlVariables>(ISSUE_LINKED_PRS_LIST_QUERY, {
+    owner: input.owner,
+    name: input.name,
+    issueNumber: input.issueNumber
+  })
+  const issue = asRecord(asRecord(asRecord(result)?.repository)?.issue)
+  const timelineItems = asRecord(issue?.timelineItems)
+  const nodes = Array.isArray(timelineItems?.nodes) ? timelineItems.nodes : []
+
+  return {
+    items: nodes
+      .map((node) => asRecord(asRecord(node)?.["subject"]))
+      .filter((subject): subject is Record<string, unknown> => Boolean(subject) && subject?.["__typename"] === "PullRequest")
+      .flatMap((subject) => {
+        if (!subject) {
+          return []
+        }
+
+        if (
+          typeof subject["id"] !== "string"
+          || typeof subject["number"] !== "number"
+          || typeof subject["title"] !== "string"
+          || typeof subject["state"] !== "string"
+          || typeof subject["url"] !== "string"
+        ) {
+          return []
+        }
+
+        return [{
+          id: subject["id"],
+          number: subject["number"],
+          title: subject["title"],
+          state: subject["state"],
+          url: subject["url"]
+        }]
+      })
+  }
+}
+
+function parseIssueRelationNode(node: unknown): IssueRelationNodeData | null {
+  const record = asRecord(node)
+  if (!record || typeof record.id !== "string" || typeof record.number !== "number") {
+    return null
+  }
+
+  return {
+    id: record.id,
+    number: record.number
+  }
+}
+
+async function runIssueRelationsGet(
+  graphqlClient: GraphqlClient,
+  input: IssueRelationsGetInput
+): Promise<IssueRelationsGetData> {
+  assertIssueRelationsGetInput(input)
+
+  const result = await graphqlClient.query<unknown, GraphqlVariables>(ISSUE_RELATIONS_GET_QUERY, {
+    owner: input.owner,
+    name: input.name,
+    issueNumber: input.issueNumber
+  })
+  const issue = asRecord(asRecord(asRecord(result)?.repository)?.issue)
+  const currentIssue = parseIssueRelationNode(issue)
+  if (!currentIssue) {
+    throw new Error("Issue relations not found")
+  }
+
+  const parent = parseIssueRelationNode(issue?.parent)
+  const subIssues = asRecord(issue?.["subIssues"])
+  const blockedByConnection = asRecord(issue?.["blockedBy"])
+  const childrenNodes = Array.isArray(subIssues?.["nodes"]) ? subIssues["nodes"] : []
+  const blockedByNodes = Array.isArray(blockedByConnection?.["nodes"]) ? blockedByConnection["nodes"] : []
+
+  return {
+    issue: currentIssue,
+    parent,
+    children: childrenNodes
+      .map((node) => parseIssueRelationNode(node))
+      .flatMap((node) => (node ? [node] : [])),
+    blockedBy: blockedByNodes
+      .map((node) => parseIssueRelationNode(node))
+      .flatMap((node) => (node ? [node] : []))
+  }
+}
+
+async function runIssueParentSet(graphqlClient: GraphqlClient, input: IssueParentSetInput): Promise<IssueParentSetData> {
+  assertIssueParentSetInput(input)
+
+  const result = await graphqlClient.query<unknown, GraphqlVariables>(ISSUE_PARENT_SET_MUTATION, {
+    issueId: input.issueId,
+    parentIssueId: input.parentIssueId
+  })
+  const mutation = asRecord(asRecord(result)?.addSubIssue)
+  const parentIssue = asRecord(mutation?.issue)
+  const subIssue = asRecord(mutation?.subIssue)
+  if (typeof parentIssue?.id !== "string" || typeof subIssue?.id !== "string") {
+    throw new Error("Issue parent update failed")
+  }
+
+  return {
+    issueId: subIssue.id,
+    parentIssueId: parentIssue.id
+  }
+}
+
+async function runIssueParentRemove(
+  graphqlClient: GraphqlClient,
+  input: IssueParentRemoveInput
+): Promise<IssueParentRemoveData> {
+  assertIssueParentRemoveInput(input)
+
+  const lookupResult = await graphqlClient.query<unknown, GraphqlVariables>(ISSUE_PARENT_LOOKUP_QUERY, {
+    issueId: input.issueId
+  })
+  const parentIssueId = asRecord(asRecord(asRecord(lookupResult)?.node)?.parent)?.id
+  if (typeof parentIssueId !== "string" || parentIssueId.length === 0) {
+    throw new Error("Issue parent removal failed")
+  }
+
+  const result = await graphqlClient.query<unknown, GraphqlVariables>(ISSUE_PARENT_REMOVE_MUTATION, {
+    issueId: input.issueId,
+    parentIssueId
+  })
+  const mutation = asRecord(asRecord(result)?.removeSubIssue)
+  const parentIssue = asRecord(mutation?.issue)
+  const subIssue = asRecord(mutation?.subIssue)
+  if (typeof parentIssue?.id !== "string" || typeof subIssue?.id !== "string") {
+    throw new Error("Issue parent removal failed")
+  }
+
+  return {
+    issueId: subIssue.id,
+    parentRemoved: true
+  }
+}
+
+async function runIssueBlockedByAdd(
+  graphqlClient: GraphqlClient,
+  input: IssueBlockedByInput
+): Promise<IssueBlockedByData> {
+  assertIssueBlockedByInput(input)
+
+  const result = await graphqlClient.query<unknown, GraphqlVariables>(ISSUE_BLOCKED_BY_ADD_MUTATION, {
+    issueId: input.issueId,
+    blockedByIssueId: input.blockedByIssueId
+  })
+  const mutation = asRecord(asRecord(result)?.addBlockedBy)
+  const issue = asRecord(mutation?.issue)
+  const blockingIssue = asRecord(mutation?.blockingIssue)
+  if (typeof issue?.id !== "string" || typeof blockingIssue?.id !== "string") {
+    throw new Error("Issue dependency mutation failed")
+  }
+
+  return {
+    issueId: issue.id,
+    blockedByIssueId: blockingIssue.id
+  }
+}
+
+async function runIssueBlockedByRemove(
+  graphqlClient: GraphqlClient,
+  input: IssueBlockedByInput
+): Promise<IssueBlockedByData> {
+  assertIssueBlockedByInput(input)
+
+  const result = await graphqlClient.query<unknown, GraphqlVariables>(ISSUE_BLOCKED_BY_REMOVE_MUTATION, {
+    issueId: input.issueId,
+    blockedByIssueId: input.blockedByIssueId
+  })
+  const mutation = asRecord(asRecord(result)?.removeBlockedBy)
+  const issue = asRecord(mutation?.issue)
+  const blockingIssue = asRecord(mutation?.blockingIssue)
+  if (typeof issue?.id !== "string" || typeof blockingIssue?.id !== "string") {
+    throw new Error("Issue dependency mutation failed")
+  }
+
+  return {
+    issueId: issue.id,
+    blockedByIssueId: blockingIssue.id,
+    removed: true
   }
 }
 
@@ -994,6 +1950,21 @@ export function createGithubClient(transport: GraphqlTransport): GithubClient {
     query: (query, variables) => graphqlClient.query(query, variables),
     fetchRepoView: (input) => runRepoView(sdk.repo, input),
     fetchIssueCommentsList: (input) => runIssueCommentsList(sdk.issueCommentsList, input),
+    createIssue: (input) => runIssueCreate(graphqlClient, input),
+    updateIssue: (input) => runIssueUpdate(graphqlClient, input),
+    closeIssue: (input) => runIssueClose(graphqlClient, input),
+    reopenIssue: (input) => runIssueReopen(graphqlClient, input),
+    deleteIssue: (input) => runIssueDelete(graphqlClient, input),
+    updateIssueLabels: (input) => runIssueLabelsUpdate(graphqlClient, input),
+    updateIssueAssignees: (input) => runIssueAssigneesUpdate(graphqlClient, input),
+    setIssueMilestone: (input) => runIssueMilestoneSet(graphqlClient, input),
+    createIssueComment: (input) => runIssueCommentCreate(graphqlClient, input),
+    fetchIssueLinkedPrs: (input) => runIssueLinkedPrsList(graphqlClient, input),
+    fetchIssueRelations: (input) => runIssueRelationsGet(graphqlClient, input),
+    setIssueParent: (input) => runIssueParentSet(graphqlClient, input),
+    removeIssueParent: (input) => runIssueParentRemove(graphqlClient, input),
+    addIssueBlockedBy: (input) => runIssueBlockedByAdd(graphqlClient, input),
+    removeIssueBlockedBy: (input) => runIssueBlockedByRemove(graphqlClient, input),
     fetchIssueList: (input) => runIssueList(sdk.issueList, input),
     fetchIssueView: (input) => runIssueView(sdk.issue, input),
     fetchPrList: (input) => runPrList(sdk.prList, input),

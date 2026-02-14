@@ -1,0 +1,24 @@
+capability_id: issue.comments.create
+version: "1.0.0"
+description: Create an issue comment.
+input_schema:
+  type: object
+  required: [issueId, body]
+  properties:
+    issueId: { type: string, minLength: 1 }
+    body: { type: string, minLength: 1 }
+  additionalProperties: false
+output_schema:
+  type: object
+  required: [id, body, url]
+  properties:
+    id: { type: string, minLength: 1 }
+    body: { type: string }
+    url: { type: string }
+  additionalProperties: false
+routing:
+  preferred: graphql
+  fallbacks: []
+graphql:
+  operationName: IssueCommentCreate
+  documentPath: src/gql/operations/issue-comment-create.graphql

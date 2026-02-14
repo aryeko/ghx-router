@@ -401,6 +401,77 @@ describe("runGraphqlCapability", () => {
     expect(resolveResult.error?.code).toBe("VALIDATION")
   })
 
+  it("routes issue lifecycle and relation capabilities through the GraphQL client", async () => {
+    const client = {
+      fetchRepoView: vi.fn(),
+      fetchIssueView: vi.fn(),
+      fetchIssueList: vi.fn(),
+      fetchIssueCommentsList: vi.fn(),
+      createIssue: vi.fn(async () => ({ id: "issue-1", number: 501, title: "Created issue", state: "OPEN", url: "https://example.com/issues/501" })),
+      updateIssue: vi.fn(async () => ({ id: "issue-1", number: 501, title: "Updated issue", state: "OPEN", url: "https://example.com/issues/501" })),
+      closeIssue: vi.fn(async () => ({ id: "issue-1", number: 501, state: "CLOSED", closed: true })),
+      reopenIssue: vi.fn(async () => ({ id: "issue-1", number: 501, state: "OPEN", reopened: true })),
+      deleteIssue: vi.fn(async () => ({ id: "issue-1", deleted: true })),
+      updateIssueLabels: vi.fn(async () => ({ id: "issue-1", labels: ["bug", "batch-b"] })),
+      updateIssueAssignees: vi.fn(async () => ({ id: "issue-1", assignees: ["octocat"] })),
+      setIssueMilestone: vi.fn(async () => ({ id: "issue-1", milestoneNumber: 3 })),
+      createIssueComment: vi.fn(async () => ({ id: "comment-1", body: "ack", url: "https://example.com/comment/1" })),
+      fetchIssueLinkedPrs: vi.fn(async () => ({ items: [{ id: "pr-1", number: 42, title: "Fixes #501", state: "OPEN", url: "https://example.com/pull/42" }] })),
+      fetchIssueRelations: vi.fn(async () => ({
+        issue: { id: "issue-1", number: 501 },
+        parent: { id: "issue-parent", number: 500 },
+        children: [{ id: "issue-child", number: 502 }],
+        blockedBy: [{ id: "issue-blocker", number: 499 }]
+      })),
+      setIssueParent: vi.fn(async () => ({ issueId: "issue-1", parentIssueId: "issue-parent" })),
+      removeIssueParent: vi.fn(async () => ({ issueId: "issue-1", parentRemoved: true })),
+      addIssueBlockedBy: vi.fn(async () => ({ issueId: "issue-1", blockedByIssueId: "issue-blocker" })),
+      removeIssueBlockedBy: vi.fn(async () => ({ issueId: "issue-1", blockedByIssueId: "issue-blocker", removed: true })),
+      fetchPrView: vi.fn(),
+      fetchPrList: vi.fn(),
+      fetchPrCommentsList: vi.fn(),
+      fetchPrReviewsList: vi.fn(),
+      fetchPrDiffListFiles: vi.fn(),
+      replyToReviewThread: vi.fn(),
+      resolveReviewThread: vi.fn(),
+      unresolveReviewThread: vi.fn()
+    }
+
+    const createResult = await runGraphqlCapability(client, "issue.create", { owner: "acme", name: "modkit", title: "Created issue" })
+    const updateResult = await runGraphqlCapability(client, "issue.update", { issueId: "issue-1", title: "Updated issue" })
+    const closeResult = await runGraphqlCapability(client, "issue.close", { issueId: "issue-1" })
+    const reopenResult = await runGraphqlCapability(client, "issue.reopen", { issueId: "issue-1" })
+    const deleteResult = await runGraphqlCapability(client, "issue.delete", { issueId: "issue-1" })
+    const labelsResult = await runGraphqlCapability(client, "issue.labels.update", { issueId: "issue-1", labels: ["bug", "batch-b"] })
+    const assigneesResult = await runGraphqlCapability(client, "issue.assignees.update", { issueId: "issue-1", assignees: ["octocat"] })
+    const milestoneResult = await runGraphqlCapability(client, "issue.milestone.set", { issueId: "issue-1", milestoneNumber: 3 })
+    const commentResult = await runGraphqlCapability(client, "issue.comments.create", { issueId: "issue-1", body: "ack" })
+    const linkedPrsResult = await runGraphqlCapability(client, "issue.linked_prs.list", { owner: "acme", name: "modkit", issueNumber: 501 })
+    const relationsResult = await runGraphqlCapability(client, "issue.relations.get", { owner: "acme", name: "modkit", issueNumber: 501 })
+    const parentSetResult = await runGraphqlCapability(client, "issue.parent.set", { issueId: "issue-1", parentIssueId: "issue-parent" })
+    const parentRemoveResult = await runGraphqlCapability(client, "issue.parent.remove", { issueId: "issue-1" })
+    const blockedByAddResult = await runGraphqlCapability(client, "issue.blocked_by.add", { issueId: "issue-1", blockedByIssueId: "issue-blocker" })
+    const blockedByRemoveResult = await runGraphqlCapability(client, "issue.blocked_by.remove", { issueId: "issue-1", blockedByIssueId: "issue-blocker" })
+
+    expect(createResult.ok).toBe(true)
+    expect(updateResult.ok).toBe(true)
+    expect(closeResult.ok).toBe(true)
+    expect(reopenResult.ok).toBe(true)
+    expect(deleteResult.ok).toBe(true)
+    expect(labelsResult.ok).toBe(true)
+    expect(assigneesResult.ok).toBe(true)
+    expect(milestoneResult.ok).toBe(true)
+    expect(commentResult.ok).toBe(true)
+    expect(linkedPrsResult.ok).toBe(true)
+    expect(relationsResult.ok).toBe(true)
+    expect(parentSetResult.ok).toBe(true)
+    expect(parentRemoveResult.ok).toBe(true)
+    expect(blockedByAddResult.ok).toBe(true)
+    expect(blockedByRemoveResult.ok).toBe(true)
+    expect(client.createIssue).toHaveBeenCalledWith(expect.objectContaining({ owner: "acme", name: "modkit", title: "Created issue" }))
+    expect(client.fetchIssueRelations).toHaveBeenCalledWith(expect.objectContaining({ owner: "acme", name: "modkit", issueNumber: 501 }))
+  })
+
   it("returns capability limit error for unsupported capability id", async () => {
     const client = {
       fetchRepoView: vi.fn(),

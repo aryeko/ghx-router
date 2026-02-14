@@ -1,0 +1,11 @@
+mutation IssueCommentCreate($issueId: ID!, $body: String!) {
+  addComment(input: { subjectId: $issueId, body: $body }) {
+    commentEdge {
+      node {
+        id
+        body
+        url
+      }
+    }
+  }
+}

@@ -8,7 +8,22 @@ import { runCommand } from "../../src/cli/commands/run.js"
 import { formatJson } from "../../src/cli/formatters/json.js"
 import { formatTable } from "../../src/cli/formatters/table.js"
 import { issueCommentsListTask } from "../../src/core/contracts/tasks/issue.comments.list.js"
+import { issueCommentsCreateTask } from "../../src/core/contracts/tasks/issue.comments.create.js"
 import { issueListTask } from "../../src/core/contracts/tasks/issue.list.js"
+import { issueCreateTask } from "../../src/core/contracts/tasks/issue.create.js"
+import { issueUpdateTask } from "../../src/core/contracts/tasks/issue.update.js"
+import { issueCloseTask } from "../../src/core/contracts/tasks/issue.close.js"
+import { issueReopenTask } from "../../src/core/contracts/tasks/issue.reopen.js"
+import { issueDeleteTask } from "../../src/core/contracts/tasks/issue.delete.js"
+import { issueLabelsUpdateTask } from "../../src/core/contracts/tasks/issue.labels.update.js"
+import { issueAssigneesUpdateTask } from "../../src/core/contracts/tasks/issue.assignees.update.js"
+import { issueMilestoneSetTask } from "../../src/core/contracts/tasks/issue.milestone.set.js"
+import { issueLinkedPrsListTask } from "../../src/core/contracts/tasks/issue.linked_prs.list.js"
+import { issueRelationsGetTask } from "../../src/core/contracts/tasks/issue.relations.get.js"
+import { issueParentSetTask } from "../../src/core/contracts/tasks/issue.parent.set.js"
+import { issueParentRemoveTask } from "../../src/core/contracts/tasks/issue.parent.remove.js"
+import { issueBlockedByAddTask } from "../../src/core/contracts/tasks/issue.blocked_by.add.js"
+import { issueBlockedByRemoveTask } from "../../src/core/contracts/tasks/issue.blocked_by.remove.js"
 import { issueViewTask } from "../../src/core/contracts/tasks/issue.view.js"
 import { prListTask } from "../../src/core/contracts/tasks/pr.list.js"
 import { prViewTask } from "../../src/core/contracts/tasks/pr.view.js"
@@ -53,7 +68,22 @@ describe("scaffolds and constants", () => {
 
   it("exposes task identifiers and routing reasons", () => {
     expect(issueCommentsListTask.id).toBe("issue.comments.list")
+    expect(issueCommentsCreateTask.id).toBe("issue.comments.create")
     expect(issueListTask.id).toBe("issue.list")
+    expect(issueCreateTask.id).toBe("issue.create")
+    expect(issueUpdateTask.id).toBe("issue.update")
+    expect(issueCloseTask.id).toBe("issue.close")
+    expect(issueReopenTask.id).toBe("issue.reopen")
+    expect(issueDeleteTask.id).toBe("issue.delete")
+    expect(issueLabelsUpdateTask.id).toBe("issue.labels.update")
+    expect(issueAssigneesUpdateTask.id).toBe("issue.assignees.update")
+    expect(issueMilestoneSetTask.id).toBe("issue.milestone.set")
+    expect(issueLinkedPrsListTask.id).toBe("issue.linked_prs.list")
+    expect(issueRelationsGetTask.id).toBe("issue.relations.get")
+    expect(issueParentSetTask.id).toBe("issue.parent.set")
+    expect(issueParentRemoveTask.id).toBe("issue.parent.remove")
+    expect(issueBlockedByAddTask.id).toBe("issue.blocked_by.add")
+    expect(issueBlockedByRemoveTask.id).toBe("issue.blocked_by.remove")
     expect(issueViewTask.id).toBe("issue.view")
     expect(prListTask.id).toBe("pr.list")
     expect(prViewTask.id).toBe("pr.view")

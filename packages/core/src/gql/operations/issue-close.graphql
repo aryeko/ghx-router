@@ -1,0 +1,9 @@
+mutation IssueClose($issueId: ID!) {
+  closeIssue(input: { issueId: $issueId }) {
+    issue {
+      id
+      number
+      state
+    }
+  }
+}

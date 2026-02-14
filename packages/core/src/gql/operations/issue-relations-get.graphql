@@ -1,0 +1,24 @@
+query IssueRelationsGet($owner: String!, $name: String!, $issueNumber: Int!) {
+  repository(owner: $owner, name: $name) {
+    issue(number: $issueNumber) {
+      id
+      number
+      parent {
+        id
+        number
+      }
+      subIssues(first: 50) {
+        nodes {
+          id
+          number
+        }
+      }
+      blockedBy(first: 50) {
+        nodes {
+          id
+          number
+        }
+      }
+    }
+  }
+}

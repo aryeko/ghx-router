@@ -1,7 +1,19 @@
 import type {
   GithubClient,
+  IssueAssigneesUpdateInput,
+  IssueBlockedByInput,
+  IssueCommentCreateInput,
+  IssueCreateInput,
   IssueCommentsListInput,
+  IssueLabelsUpdateInput,
   IssueListInput,
+  IssueLinkedPrsListInput,
+  IssueMilestoneSetInput,
+  IssueMutationInput,
+  IssueParentRemoveInput,
+  IssueParentSetInput,
+  IssueRelationsGetInput,
+  IssueUpdateInput,
   IssueViewInput,
   PrCommentsListInput,
   PrDiffListFilesInput,
@@ -21,6 +33,21 @@ export type GraphqlCapabilityId =
   | "issue.view"
   | "issue.list"
   | "issue.comments.list"
+  | "issue.create"
+  | "issue.update"
+  | "issue.close"
+  | "issue.reopen"
+  | "issue.delete"
+  | "issue.labels.update"
+  | "issue.assignees.update"
+  | "issue.milestone.set"
+  | "issue.comments.create"
+  | "issue.linked_prs.list"
+  | "issue.relations.get"
+  | "issue.parent.set"
+  | "issue.parent.remove"
+  | "issue.blocked_by.add"
+  | "issue.blocked_by.remove"
   | "pr.view"
   | "pr.list"
   | "pr.comments.list"
@@ -58,7 +85,12 @@ export async function runGraphqlCapability(
     "fetchRepoView" | "fetchIssueView" | "fetchIssueList" | "fetchIssueCommentsList" | "fetchPrView" | "fetchPrList"
       | "fetchPrCommentsList" | "fetchPrReviewsList" | "fetchPrDiffListFiles" | "replyToReviewThread"
       | "resolveReviewThread" | "unresolveReviewThread"
-  >,
+  > & Partial<Pick<GithubClient,
+    "createIssue" | "updateIssue" | "closeIssue" | "reopenIssue" | "deleteIssue"
+      | "updateIssueLabels" | "updateIssueAssignees" | "setIssueMilestone" | "createIssueComment"
+      | "fetchIssueLinkedPrs" | "fetchIssueRelations" | "setIssueParent" | "removeIssueParent"
+      | "addIssueBlockedBy" | "removeIssueBlockedBy"
+  >>,
   capabilityId: GraphqlCapabilityId,
   params: Record<string, unknown>
 ): Promise<ResultEnvelope> {
@@ -80,6 +112,126 @@ export async function runGraphqlCapability(
 
     if (capabilityId === "issue.comments.list") {
       const data = await client.fetchIssueCommentsList(params as IssueCommentsListInput)
+      return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
+    }
+
+    if (capabilityId === "issue.create") {
+      if (!client.createIssue) {
+        throw new Error("Unsupported GraphQL capability: issue.create")
+      }
+      const data = await client.createIssue(params as IssueCreateInput)
+      return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
+    }
+
+    if (capabilityId === "issue.update") {
+      if (!client.updateIssue) {
+        throw new Error("Unsupported GraphQL capability: issue.update")
+      }
+      const data = await client.updateIssue(params as IssueUpdateInput)
+      return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
+    }
+
+    if (capabilityId === "issue.close") {
+      if (!client.closeIssue) {
+        throw new Error("Unsupported GraphQL capability: issue.close")
+      }
+      const data = await client.closeIssue(params as IssueMutationInput)
+      return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
+    }
+
+    if (capabilityId === "issue.reopen") {
+      if (!client.reopenIssue) {
+        throw new Error("Unsupported GraphQL capability: issue.reopen")
+      }
+      const data = await client.reopenIssue(params as IssueMutationInput)
+      return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
+    }
+
+    if (capabilityId === "issue.delete") {
+      if (!client.deleteIssue) {
+        throw new Error("Unsupported GraphQL capability: issue.delete")
+      }
+      const data = await client.deleteIssue(params as IssueMutationInput)
+      return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
+    }
+
+    if (capabilityId === "issue.labels.update") {
+      if (!client.updateIssueLabels) {
+        throw new Error("Unsupported GraphQL capability: issue.labels.update")
+      }
+      const data = await client.updateIssueLabels(params as IssueLabelsUpdateInput)
+      return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
+    }
+
+    if (capabilityId === "issue.assignees.update") {
+      if (!client.updateIssueAssignees) {
+        throw new Error("Unsupported GraphQL capability: issue.assignees.update")
+      }
+      const data = await client.updateIssueAssignees(params as IssueAssigneesUpdateInput)
+      return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
+    }
+
+    if (capabilityId === "issue.milestone.set") {
+      if (!client.setIssueMilestone) {
+        throw new Error("Unsupported GraphQL capability: issue.milestone.set")
+      }
+      const data = await client.setIssueMilestone(params as IssueMilestoneSetInput)
+      return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
+    }
+
+    if (capabilityId === "issue.comments.create") {
+      if (!client.createIssueComment) {
+        throw new Error("Unsupported GraphQL capability: issue.comments.create")
+      }
+      const data = await client.createIssueComment(params as IssueCommentCreateInput)
+      return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
+    }
+
+    if (capabilityId === "issue.linked_prs.list") {
+      if (!client.fetchIssueLinkedPrs) {
+        throw new Error("Unsupported GraphQL capability: issue.linked_prs.list")
+      }
+      const data = await client.fetchIssueLinkedPrs(params as IssueLinkedPrsListInput)
+      return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
+    }
+
+    if (capabilityId === "issue.relations.get") {
+      if (!client.fetchIssueRelations) {
+        throw new Error("Unsupported GraphQL capability: issue.relations.get")
+      }
+      const data = await client.fetchIssueRelations(params as IssueRelationsGetInput)
+      return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
+    }
+
+    if (capabilityId === "issue.parent.set") {
+      if (!client.setIssueParent) {
+        throw new Error("Unsupported GraphQL capability: issue.parent.set")
+      }
+      const data = await client.setIssueParent(params as IssueParentSetInput)
+      return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
+    }
+
+    if (capabilityId === "issue.parent.remove") {
+      if (!client.removeIssueParent) {
+        throw new Error("Unsupported GraphQL capability: issue.parent.remove")
+      }
+      const data = await client.removeIssueParent(params as IssueParentRemoveInput)
+      return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
+    }
+
+    if (capabilityId === "issue.blocked_by.add") {
+      if (!client.addIssueBlockedBy) {
+        throw new Error("Unsupported GraphQL capability: issue.blocked_by.add")
+      }
+      const data = await client.addIssueBlockedBy(params as IssueBlockedByInput)
+      return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
+    }
+
+    if (capabilityId === "issue.blocked_by.remove") {
+      if (!client.removeIssueBlockedBy) {
+        throw new Error("Unsupported GraphQL capability: issue.blocked_by.remove")
+      }
+      const data = await client.removeIssueBlockedBy(params as IssueBlockedByInput)
       return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
     }
 

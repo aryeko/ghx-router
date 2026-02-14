@@ -1,0 +1,23 @@
+capability_id: issue.blocked_by.add
+version: "1.0.0"
+description: Add a blocked-by relation for an issue.
+input_schema:
+  type: object
+  required: [issueId, blockedByIssueId]
+  properties:
+    issueId: { type: string, minLength: 1 }
+    blockedByIssueId: { type: string, minLength: 1 }
+  additionalProperties: false
+output_schema:
+  type: object
+  required: [issueId, blockedByIssueId]
+  properties:
+    issueId: { type: string, minLength: 1 }
+    blockedByIssueId: { type: string, minLength: 1 }
+  additionalProperties: false
+routing:
+  preferred: graphql
+  fallbacks: []
+graphql:
+  operationName: IssueBlockedByAdd
+  documentPath: src/gql/operations/issue-blocked-by-add.graphql

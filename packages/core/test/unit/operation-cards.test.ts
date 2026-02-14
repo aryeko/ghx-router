@@ -11,6 +11,21 @@ describe("operation cards registry", () => {
       "issue.view",
       "issue.list",
       "issue.comments.list",
+      "issue.create",
+      "issue.update",
+      "issue.close",
+      "issue.reopen",
+      "issue.delete",
+      "issue.labels.update",
+      "issue.assignees.update",
+      "issue.milestone.set",
+      "issue.comments.create",
+      "issue.linked_prs.list",
+      "issue.relations.get",
+      "issue.parent.set",
+      "issue.parent.remove",
+      "issue.blocked_by.add",
+      "issue.blocked_by.remove",
       "pr.view",
       "pr.list",
       "pr.comments.list",
@@ -32,11 +47,11 @@ describe("operation cards registry", () => {
   })
 
   it("resolves cards by capability id", () => {
-    const card = getOperationCard("issue.view")
+    const card = getOperationCard("issue.create")
 
     expect(card).toBeDefined()
-    expect(card?.routing.preferred).toBe("cli")
-    expect(card?.routing.fallbacks).toEqual(["graphql"])
+    expect(card?.routing.preferred).toBe("graphql")
+    expect(card?.routing.fallbacks).toEqual([])
   })
 
   it("requires explicit pagination input for issue.comments.list", () => {

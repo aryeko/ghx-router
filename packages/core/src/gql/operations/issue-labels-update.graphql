@@ -1,0 +1,12 @@
+mutation IssueLabelsUpdate($issueId: ID!, $labelIds: [ID!]!) {
+  updateIssue(input: { id: $issueId, labelIds: $labelIds }) {
+    issue {
+      id
+      labels(first: 50) {
+        nodes {
+          name
+        }
+      }
+    }
+  }
+}

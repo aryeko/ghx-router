@@ -1,0 +1,24 @@
+capability_id: issue.close
+version: "1.0.0"
+description: Close an issue.
+input_schema:
+  type: object
+  required: [issueId]
+  properties:
+    issueId: { type: string, minLength: 1 }
+  additionalProperties: false
+output_schema:
+  type: object
+  required: [id, number, state, closed]
+  properties:
+    id: { type: string, minLength: 1 }
+    number: { type: integer, minimum: 1 }
+    state: { type: string }
+    closed: { type: boolean }
+  additionalProperties: false
+routing:
+  preferred: graphql
+  fallbacks: []
+graphql:
+  operationName: IssueClose
+  documentPath: src/gql/operations/issue-close.graphql

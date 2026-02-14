@@ -1,0 +1,12 @@
+mutation IssueAssigneesUpdate($issueId: ID!, $assigneeIds: [ID!]!) {
+  updateIssue(input: { id: $issueId, assigneeIds: $assigneeIds }) {
+    issue {
+      id
+      assignees(first: 50) {
+        nodes {
+          login
+        }
+      }
+    }
+  }
+}

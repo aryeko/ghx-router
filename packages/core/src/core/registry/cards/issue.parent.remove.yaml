@@ -1,0 +1,22 @@
+capability_id: issue.parent.remove
+version: "1.0.0"
+description: Remove an issue parent relation.
+input_schema:
+  type: object
+  required: [issueId]
+  properties:
+    issueId: { type: string, minLength: 1 }
+  additionalProperties: false
+output_schema:
+  type: object
+  required: [issueId, parentRemoved]
+  properties:
+    issueId: { type: string, minLength: 1 }
+    parentRemoved: { type: boolean }
+  additionalProperties: false
+routing:
+  preferred: graphql
+  fallbacks: []
+graphql:
+  operationName: IssueParentRemove
+  documentPath: src/gql/operations/issue-parent-remove.graphql

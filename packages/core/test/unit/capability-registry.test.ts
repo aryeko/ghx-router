@@ -26,6 +26,81 @@ describe("capabilityRegistry", () => {
         fallbackRoutes: ["cli"]
       },
       {
+        task: "issue.create",
+        defaultRoute: "graphql",
+        fallbackRoutes: [],
+      },
+      {
+        task: "issue.update",
+        defaultRoute: "graphql",
+        fallbackRoutes: [],
+      },
+      {
+        task: "issue.close",
+        defaultRoute: "graphql",
+        fallbackRoutes: [],
+      },
+      {
+        task: "issue.reopen",
+        defaultRoute: "graphql",
+        fallbackRoutes: [],
+      },
+      {
+        task: "issue.delete",
+        defaultRoute: "graphql",
+        fallbackRoutes: [],
+      },
+      {
+        task: "issue.labels.update",
+        defaultRoute: "graphql",
+        fallbackRoutes: [],
+      },
+      {
+        task: "issue.assignees.update",
+        defaultRoute: "graphql",
+        fallbackRoutes: [],
+      },
+      {
+        task: "issue.milestone.set",
+        defaultRoute: "graphql",
+        fallbackRoutes: [],
+      },
+      {
+        task: "issue.comments.create",
+        defaultRoute: "graphql",
+        fallbackRoutes: [],
+      },
+      {
+        task: "issue.linked_prs.list",
+        defaultRoute: "graphql",
+        fallbackRoutes: [],
+      },
+      {
+        task: "issue.relations.get",
+        defaultRoute: "graphql",
+        fallbackRoutes: [],
+      },
+      {
+        task: "issue.parent.set",
+        defaultRoute: "graphql",
+        fallbackRoutes: [],
+      },
+      {
+        task: "issue.parent.remove",
+        defaultRoute: "graphql",
+        fallbackRoutes: [],
+      },
+      {
+        task: "issue.blocked_by.add",
+        defaultRoute: "graphql",
+        fallbackRoutes: [],
+      },
+      {
+        task: "issue.blocked_by.remove",
+        defaultRoute: "graphql",
+        fallbackRoutes: [],
+      },
+      {
         task: "pr.view",
         defaultRoute: "cli",
         fallbackRoutes: ["graphql"]

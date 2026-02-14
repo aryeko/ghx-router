@@ -1,0 +1,10 @@
+mutation IssueMilestoneSet($issueId: ID!, $milestoneId: ID) {
+  updateIssue(input: { id: $issueId, milestoneId: $milestoneId }) {
+    issue {
+      id
+      milestone {
+        number
+      }
+    }
+  }
+}
