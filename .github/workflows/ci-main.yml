@@ -72,6 +72,7 @@ jobs:
         id: changesets
         uses: changesets/action@v1
         with:
+          commitMode: github-api
           publish: pnpm run changeset:publish
           version: pnpm run changeset:version
           commit: "chore: version packages"
