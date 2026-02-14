@@ -1647,6 +1647,85 @@ describe("runCliCapability", () => {
     )
   })
 
+  it("validates repo metadata capability inputs", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "[]",
+        stderr: "",
+        exitCode: 0
+      }))
+    }
+
+    const labelsFirstInvalid = await runCliCapability(runner, "repo.labels.list", {
+      owner: "acme",
+      name: "modkit",
+      first: 0
+    })
+    const issueTypesFirstInvalid = await runCliCapability(runner, "repo.issue_types.list", {
+      owner: "acme",
+      name: "modkit",
+      first: 0
+    })
+    const issueTypesAfterInvalid = await runCliCapability(runner, "repo.issue_types.list", {
+      owner: "acme",
+      name: "modkit",
+      first: 20,
+      after: 123
+    })
+    const issueTypesMissingRepo = await runCliCapability(runner, "repo.issue_types.list", {
+      owner: "",
+      name: "",
+      first: 20
+    })
+
+    expect(labelsFirstInvalid.ok).toBe(false)
+    expect(labelsFirstInvalid.error?.message).toContain("Missing or invalid first for repo.labels.list")
+
+    expect(issueTypesFirstInvalid.ok).toBe(false)
+    expect(issueTypesFirstInvalid.error?.message).toContain("Missing or invalid first for repo.issue_types.list")
+
+    expect(issueTypesAfterInvalid.ok).toBe(false)
+    expect(issueTypesAfterInvalid.error?.message).toContain("Invalid after cursor for repo.issue_types.list")
+
+    expect(issueTypesMissingRepo.ok).toBe(false)
+    expect(issueTypesMissingRepo.error?.message).toContain("Missing owner/name for repo.issue_types.list")
+
+    expect(runner.run).not.toHaveBeenCalled()
+  })
+
+  it("passes repo.issue_types.list after cursor to gh api graphql args", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: JSON.stringify({
+          data: {
+            repository: {
+              issueTypes: {
+                nodes: [],
+                pageInfo: { hasNextPage: false, endCursor: null }
+              }
+            }
+          }
+        }),
+        stderr: "",
+        exitCode: 0
+      }))
+    }
+
+    const result = await runCliCapability(runner, "repo.issue_types.list", {
+      owner: "acme",
+      name: "modkit",
+      first: 20,
+      after: "cursor-123"
+    })
+
+    expect(result.ok).toBe(true)
+    expect(runner.run).toHaveBeenCalledWith(
+      "gh",
+      expect.arrayContaining(["-f", "after=cursor-123"]),
+      expect.any(Number)
+    )
+  })
+
   it("normalizes release list and get responses", async () => {
     const runner = {
       run: vi
