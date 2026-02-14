@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
 
-import { createGithubClient } from "../../src/gql/client.js"
+import { createGithubClient, createGithubClientFromToken } from "../../src/gql/client.js"
 
 describe("createGithubClient", () => {
   it("exposes typed repo.view helper", async () => {
@@ -1657,5 +1657,207 @@ describe("createGithubClient", () => {
     expect(relations.parent).toBeNull()
     expect(relations.children).toEqual([{ id: "issue-2", number: 11 }])
     expect(relations.blockedBy).toEqual([{ id: "issue-3", number: 7 }])
+  })
+})
+
+describe("createGithubClientFromToken", () => {
+  it("throws when token is empty", () => {
+    expect(() => createGithubClientFromToken("")).toThrow("GitHub token is required")
+  })
+
+  it("throws when token is whitespace", () => {
+    expect(() => createGithubClientFromToken("   ")).toThrow("GitHub token is required")
+  })
+
+  it("accepts a token string and returns a client with expected methods", () => {
+    const client = createGithubClientFromToken("ghp_test123")
+
+    expect(client).toBeDefined()
+    expect(typeof client.query).toBe("function")
+    expect(typeof client.fetchRepoView).toBe("function")
+    expect(typeof client.fetchIssueView).toBe("function")
+    expect(typeof client.fetchPrView).toBe("function")
+  })
+
+  it("accepts an options object with token", () => {
+    const client = createGithubClientFromToken({ token: "ghp_test123" })
+
+    expect(client).toBeDefined()
+    expect(typeof client.query).toBe("function")
+  })
+
+  it("accepts an options object with token and graphqlUrl", () => {
+    const client = createGithubClientFromToken({
+      token: "ghp_test123",
+      graphqlUrl: "https://ghe.example.com/api/graphql",
+    })
+
+    expect(client).toBeDefined()
+    expect(typeof client.query).toBe("function")
+  })
+
+  it("reads GITHUB_GRAPHQL_URL from env when no graphqlUrl provided", () => {
+    const originalEnv = process.env.GITHUB_GRAPHQL_URL
+    process.env.GITHUB_GRAPHQL_URL = "https://custom.example.com/graphql"
+
+    try {
+      const client = createGithubClientFromToken("ghp_test123")
+      expect(client).toBeDefined()
+    } finally {
+      if (originalEnv === undefined) {
+        delete process.env.GITHUB_GRAPHQL_URL
+      } else {
+        process.env.GITHUB_GRAPHQL_URL = originalEnv
+      }
+    }
+  })
+
+  it("reads GH_HOST from env when GITHUB_GRAPHQL_URL is not set", () => {
+    const originalGraphqlUrl = process.env.GITHUB_GRAPHQL_URL
+    const originalHost = process.env.GH_HOST
+    delete process.env.GITHUB_GRAPHQL_URL
+    process.env.GH_HOST = "ghe.corp.example.com"
+
+    try {
+      const client = createGithubClientFromToken("ghp_test123")
+      expect(client).toBeDefined()
+    } finally {
+      if (originalGraphqlUrl === undefined) {
+        delete process.env.GITHUB_GRAPHQL_URL
+      } else {
+        process.env.GITHUB_GRAPHQL_URL = originalGraphqlUrl
+      }
+      if (originalHost === undefined) {
+        delete process.env.GH_HOST
+      } else {
+        process.env.GH_HOST = originalHost
+      }
+    }
+  })
+
+  it("issues a fetch call when executing a query", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: {
+          repository: {
+            id: "R_123",
+            name: "test",
+            nameWithOwner: "owner/test",
+            isPrivate: false,
+            stargazerCount: 0,
+            forkCount: 0,
+            url: "https://github.com/owner/test",
+            defaultBranchRef: { name: "main" },
+          },
+        },
+      }),
+    })
+
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = mockFetch
+
+    try {
+      const client = createGithubClientFromToken("ghp_test_token")
+      const result = await client.fetchRepoView({ owner: "owner", name: "test" })
+
+      expect(result.name).toBe("test")
+      expect(result.nameWithOwner).toBe("owner/test")
+      expect(mockFetch).toHaveBeenCalledTimes(1)
+
+      const [url, options] = mockFetch.mock.calls[0] as [string, RequestInit]
+      expect(url).toBe("https://api.github.com/graphql")
+      expect((options.headers as Record<string, string>).authorization).toBe("Bearer ghp_test_token")
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  it("throws on non-ok HTTP response", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      json: async () => ({ message: "Bad credentials" }),
+    })
+
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = mockFetch
+
+    try {
+      const client = createGithubClientFromToken("ghp_bad_token")
+      await expect(client.fetchRepoView({ owner: "o", name: "r" })).rejects.toThrow("Bad credentials")
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  it("throws on GraphQL errors in response", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        errors: [{ message: "Field 'xyz' not found" }],
+      }),
+    })
+
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = mockFetch
+
+    try {
+      const client = createGithubClientFromToken("ghp_test")
+      await expect(client.fetchRepoView({ owner: "o", name: "r" })).rejects.toThrow("Field 'xyz' not found")
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  it("throws when GraphQL response has no data", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({}),
+    })
+
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = mockFetch
+
+    try {
+      const client = createGithubClientFromToken("ghp_test")
+      await expect(client.fetchRepoView({ owner: "o", name: "r" })).rejects.toThrow("GraphQL response missing data")
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  it("uses custom graphqlUrl when provided in options", async () => {
+    const customUrl = "https://ghe.corp.example.com/api/graphql"
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: {
+          repository: {
+            id: "R_1",
+            name: "test",
+            nameWithOwner: "o/test",
+            isPrivate: false,
+            stargazerCount: 0,
+            forkCount: 0,
+            url: "https://ghe.corp.example.com/o/test",
+            defaultBranchRef: null,
+          },
+        },
+      }),
+    })
+
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = mockFetch
+
+    try {
+      const client = createGithubClientFromToken({ token: "ghp_ent", graphqlUrl: customUrl })
+      await client.fetchRepoView({ owner: "o", name: "test" })
+
+      const [url] = mockFetch.mock.calls[0] as [string]
+      expect(url).toBe(customUrl)
+    } finally {
+      globalThis.fetch = originalFetch
+    }
   })
 })

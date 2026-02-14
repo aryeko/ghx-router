@@ -1942,6 +1942,77 @@ export function createGraphqlClient(transport: GraphqlTransport): GraphqlClient 
   }
 }
 
+const DEFAULT_GRAPHQL_URL = "https://api.github.com/graphql"
+
+function resolveGraphqlUrl(): string {
+  if (process.env.GITHUB_GRAPHQL_URL) {
+    return process.env.GITHUB_GRAPHQL_URL
+  }
+
+  if (process.env.GH_HOST) {
+    return `https://${process.env.GH_HOST}/api/graphql`
+  }
+
+  return DEFAULT_GRAPHQL_URL
+}
+
+function createTokenTransport(token: string, graphqlUrl?: string): GraphqlTransport {
+  const url = graphqlUrl ?? resolveGraphqlUrl()
+
+  return {
+    async execute<TData>(query: string, variables?: GraphqlVariables): Promise<TData> {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ query, variables: variables ?? {} }),
+      })
+
+      const payload = (await response.json()) as {
+        data?: TData
+        errors?: Array<{ message?: string }>
+        message?: string
+      }
+
+      if (!response.ok) {
+        throw new Error(payload.message ?? `GraphQL request failed (${response.status})`)
+      }
+
+      if (payload.errors?.length) {
+        throw new Error(payload.errors[0]?.message ?? "GraphQL returned errors")
+      }
+
+      if (payload.data === undefined) {
+        throw new Error("GraphQL response missing data")
+      }
+
+      return payload.data
+    },
+  }
+}
+
+export type TokenClientOptions = {
+  token: string
+  graphqlUrl?: string
+}
+
+/**
+ * Create a GithubClient from a token string or options object.
+ * Reads GITHUB_GRAPHQL_URL and GH_HOST from env for enterprise support.
+ */
+export function createGithubClientFromToken(tokenOrOptions: string | TokenClientOptions): GithubClient {
+  const token = typeof tokenOrOptions === "string" ? tokenOrOptions : tokenOrOptions.token
+  const graphqlUrl = typeof tokenOrOptions === "string" ? undefined : tokenOrOptions.graphqlUrl
+
+  if (!token || token.trim().length === 0) {
+    throw new Error("GitHub token is required")
+  }
+
+  return createGithubClient(createTokenTransport(token, graphqlUrl))
+}
+
 export function createGithubClient(transport: GraphqlTransport): GithubClient {
   const graphqlClient = createGraphqlClient(transport)
   const sdk = createSdkClients(transport)

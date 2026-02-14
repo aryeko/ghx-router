@@ -1,6 +1,6 @@
 # Module Codemap
 
-**Last Updated:** 2026-02-14
+**Last Updated:** 2026-02-15
 
 ## Core Package (`packages/core/src`)
 
@@ -28,6 +28,15 @@
 | `schema-validator.ts` | JSON schema validation wrappers | `validateInput()`, `validateOutput()` | `ajv` |
 | `operation-card-schema.ts` | AJV-compatible card schema | `operationCardSchema` | none |
 
+### Task Contracts
+
+**Purpose**: Capability/task identifier constants used by tooling and references.  
+**Location**: `packages/core/src/core/contracts/tasks/`
+
+| Module | Purpose | Key Exports | Depends On |
+|---|---|---|---|
+| `*.ts` task contract files | One lightweight constant per capability (`issue.*`, `pr.*`, `workflow_*`, `release.*`, `project_v2.*`, etc.) | per-file task constant (for example `repoViewTask`, `prMergeExecuteTask`) | none |
+
 ### Execution Pipeline
 
 **Purpose**: Validates input/output, executes per-route handlers, tracks attempts.  
@@ -40,6 +49,8 @@
 | `execution/normalizer.ts` | Envelope normalization helpers | `normalizeResult()`, `normalizeError()` | `contracts/envelope` |
 | `execution/adapters/cli-capability-adapter.ts` | Capability-to-`gh` command adapter | `runCliCapability()`, `CliCapabilityId` | `errors`, `normalizer` |
 | `execution/adapters/graphql-capability-adapter.ts` | Capability-to-GitHub GraphQL adapter | `runGraphqlCapability()`, `GraphqlCapabilityId` | `gql/client`, `errors`, `normalizer` |
+| `execution/adapters/cli-adapter.ts` | Generic CLI adapter wrapper (lower-level primitive) | `runCliAdapter()` | `normalizer`, `errors` |
+| `execution/adapters/graphql-adapter.ts` | Generic GraphQL adapter wrapper (lower-level primitive) | `runGraphqlAdapter()` | `normalizer`, `errors` |
 | `execution/adapters/rest-adapter.ts` | Placeholder REST adapter | `runRestAdapter()` | none |
 | `execution/cli/safe-runner.ts` | Safe process spawn wrapper for `gh` | `createSafeCliCommandRunner()` | `node:child_process` |
 
@@ -78,10 +89,13 @@
 | `agent.ts` | Package entrypoint for agent integration helpers | `listCapabilities()`, `createExecuteTool()` | `agent-interface/tools/*` |
 | `cli/index.ts` | CLI command router (`ghx run`, `ghx setup`, `ghx capabilities`) | `main()` | `cli/commands/run`, `cli/commands/setup`, `cli/commands/capabilities-list`, `cli/commands/capabilities-explain` |
 | `cli/commands/run.ts` | Parses args + invokes execution engine | `runCommand()` | `gql/client`, `routing/engine` |
-| `cli/commands/setup.ts` | Installs/verifies ghx skill profile by platform/scope | `setupCommand()` | `agent-interface/prompt/main-skill`, `node:fs/promises` |
+| `cli/commands/setup.ts` | Installs/verifies ghx skill profile under `.agents/skill/ghx/SKILL.md` | `setupCommand()` | `node:fs/promises`, `node:readline/promises`, `ajv` |
 | `cli/commands/capabilities-list.ts` | CLI capability discovery list command | `capabilitiesListCommand()` | `agent-interface/tools/list-capabilities-tool` |
 | `cli/commands/capabilities-explain.ts` | CLI capability discovery explain command | `capabilitiesExplainCommand()` | `agent-interface/tools/explain-tool` |
+| `cli/commands/doctor.ts` | Reserved diagnostics command scaffold (not wired in CLI parser yet) | `doctorCommand()` | none |
+| `cli/commands/routes.ts` | Reserved route inspection scaffold (not wired in CLI parser yet) | `routesCommand()` | none |
 | `agent-interface/tools/list-capabilities-tool.ts` | Exposes card list to agents | `listCapabilities()` | `registry/index` |
+| `agent-interface/tools/explain-tool.ts` | Explains one capability from card metadata | `explainCapability()` | `registry/index` |
 | `agent-interface/tools/execute-tool.ts` | Wraps `executeTask` for agent tool calls | `createExecuteTool()` | `contracts/envelope` |
 | `agent-interface/prompt/main-skill.ts` | Prompt guardrails for agent usage | `MAIN_SKILL_TEXT` | none |
 
@@ -117,7 +131,7 @@
 
 | Module | Purpose | Key Exports | Depends On |
 |---|---|---|---|
-| `report/aggregate.ts` | Per-mode summaries and gate checks | `buildSummary()`, `toMarkdown()` | `domain/types` |
+| `report/aggregate.ts` | Per-mode summaries + legacy gate and gate-v2 checks | `buildSummary()`, `toMarkdown()` | `domain/types` |
 | `cli/benchmark.ts` | Bench run command entrypoint (`--scenario`, `--scenario-set`) | `main()` | `cli/args`, `runner/suite-runner` |
-| `cli/check-scenarios.ts` | Scenario + set validation command | `main()` | `scenario/loader` |
-| `cli/report.ts` | Report and gate CLI | `main()` | `report/aggregate` |
+| `cli/check-scenarios.ts` | Scenario + set + registry coverage validation command | `main()` | `scenario/loader` |
+| `cli/report.ts` | Report + comparability + gate-profile CLI | `main()` | `report/aggregate` |

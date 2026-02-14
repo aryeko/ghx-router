@@ -1,17 +1,17 @@
 # Architecture Codemap
 
-**Last Updated:** 2026-02-14  
+**Last Updated:** 2026-02-15  
 **Workspace Type:** Nx + pnpm monorepo (`packages/*`)  
 **Primary Runtime:** Node.js + TypeScript (ESM)
 
 ## System Overview
 
-ghx is split into two main packages:
+ghx is split into two runtime packages:
 
-- `@ghx-dev/core` - capability router and CLI for GitHub tasks
-- `@ghx-dev/benchmark` - benchmark harness that measures success, cost, latency, and tool usage across execution modes
+- `@ghx-dev/core` - capability router + typed adapters + `ghx` CLI
+- `@ghx-dev/benchmark` - benchmark harness that compares `agent_direct`, `mcp`, and `ghx` execution modes
 
-The core package provides a normalized `ResultEnvelope` contract and routes each capability to CLI/GraphQL/REST adapters based on operation cards and preflight checks.
+The core package routes capability requests from operation cards (`core/registry/cards/*.yaml`) into CLI or GraphQL adapters, then normalizes responses to a stable `ResultEnvelope` contract. The benchmark package drives repeatable scenario runs against the same capability surface and computes verification gates.
 
 ## High-Level Architecture
 
@@ -19,34 +19,35 @@ The core package provides a normalized `ResultEnvelope` contract and routes each
 ┌──────────────────────────┐
 │ User / Agent / Script    │
 └────────────┬─────────────┘
-             │ ghx run <task> --input <json>
+             │ ghx run <capability_id> --input '<json>'
              ▼
 ┌──────────────────────────┐
-│ @ghx-dev/core CLI        │
+│ Core CLI / Agent Tools   │
 │ packages/core/src/cli/*  │
+│ packages/core/src/agent* │
 └────────────┬─────────────┘
              │ TaskRequest
              ▼
 ┌────────────────────────────────────────────────────┐
-│ Routing Engine                                     │
-│ packages/core/src/core/routing/engine.ts          │
+│ Routing Engine + Execute Pipeline                 │
+│ core/routing/engine.ts + core/execute/execute.ts │
 │ - loads operation card                            │
-│ - preflight route checks                          │
-│ - executes preferred + fallback routes            │
+│ - evaluates preflight + suitability               │
+│ - applies preferred and fallback routes           │
 └────────────┬───────────────────────────────────────┘
              │
       ┌──────┴─────────┬───────────────┐
       ▼                ▼               ▼
 ┌──────────────┐ ┌──────────────┐ ┌──────────────┐
 │ CLI Adapter  │ │ GraphQL Adpt │ │ REST Adapter │
-│ (gh cli)     │ │ (GitHub GQL) │ │ (stubbed v1) │
+│ (gh + gh api)│ │ (GitHub GQL) │ │ (stub only)  │
 └──────┬───────┘ └──────┬───────┘ └──────┬───────┘
        └────────────┬───┴───────────────┘
                     ▼
-         ┌────────────────────────┐
-         │ ResultEnvelope         │
-         │ { ok, data, error,meta }│
-         └────────────────────────┘
+         ┌────────────────────────────┐
+         │ ResultEnvelope             │
+         │ { ok, data, error, meta } │
+         └────────────────────────────┘
 ```
 
 ## Package Relationships
@@ -54,15 +55,16 @@ The core package provides a normalized `ResultEnvelope` contract and routes each
 ```text
 @ghx-dev/benchmark
   ├─ depends on @ghx-dev/core (workspace dependency)
-  ├─ runs scenarios against multiple modes:
+  ├─ runs scenario sets against modes:
   │   - agent_direct
   │   - mcp
   │   - ghx
-  └─ writes suite results + summary artifacts
+  ├─ writes `results/*-suite.jsonl`
+  └─ emits `reports/latest-summary.{json,md}`
 
 @ghx-dev/core
-  ├─ defines capability contracts and registry cards
-  ├─ executes route selection and fallback logic
+  ├─ defines operation-card contracts + task identifiers
+  ├─ executes route selection, retries, and normalization
   └─ exposes CLI binary: ghx
 ```
 
@@ -70,30 +72,31 @@ The core package provides a normalized `ResultEnvelope` contract and routes each
 
 1. CLI dispatches one of three command families in `packages/core/src/cli/index.ts`:
    - `run`: parse `task` + `--input` JSON in `packages/core/src/cli/commands/run.ts`
-   - `setup`: install/verify ghx profile in `packages/core/src/cli/commands/setup.ts`
+   - `setup`: install/verify `~/.agents/skill/ghx/SKILL.md` (or project-level `.agents/...`) in `packages/core/src/cli/commands/setup.ts`
    - `capabilities`: list/explain capability contracts in `packages/core/src/cli/commands/capabilities-list.ts` and `packages/core/src/cli/commands/capabilities-explain.ts`
-2. `executeTask()` in `packages/core/src/core/routing/engine.ts` loads the operation card.
-3. `execute()` in `packages/core/src/core/execute/execute.ts` validates input schema and computes route plan.
-4. Per-route preflight runs (`token`, `gh` availability/auth checks, etc.).
+2. `executeTask()` in `packages/core/src/core/routing/engine.ts` resolves card metadata and route dependencies.
+3. `execute()` in `packages/core/src/core/execute/execute.ts` validates input schema and computes the route plan from card suitability/fallbacks.
+4. Per-route preflight runs (`GITHUB_TOKEN` for GraphQL, `gh --version` and `gh auth status` for CLI unless preflight skip is explicitly enabled).
 5. Matching adapter executes capability:
-   - CLI: `runCliCapability()`
+   - CLI: `runCliCapability()` in `core/execution/adapters/cli-capability-adapter.ts`
    - GraphQL: `runGraphqlCapability()`
-   - REST: normalized unsupported error (v1)
+   - REST: normalized unsupported error
 6. Output schema is validated, then normalized envelope is returned.
 
 ## Benchmark Data Flow
 
-1. `packages/benchmark/src/cli/benchmark.ts` parses mode/repetitions and optional scenario selectors.
-2. `runSuite()` resolves scenario selection by precedence: `--scenario`, then `--scenario-set`, then implicit `default` from `packages/benchmark/scenario-sets.json`.
+1. `packages/benchmark/src/cli/benchmark.ts` parses mode/repetitions and optional selectors (`--scenario`, `--scenario-set`).
+2. `runSuite()` resolves scenario selection by precedence: explicit `--scenario`, then `--scenario-set`, then implicit `default` from `packages/benchmark/scenario-sets.json`.
 3. `runSuite()` loads JSON scenarios from `packages/benchmark/scenarios/`.
-4. `runScenario()` sends prompts through OpenCode SDK sessions and captures assistant output.
-5. Envelope extraction + assertion validation runs via `src/extract/*`.
-6. Result rows are appended to `packages/benchmark/results/*.jsonl`, including `scenario_set` metadata when set-based selection is used.
-7. `src/cli/report.ts` aggregates rows into summary markdown/json artifacts.
+4. `runScenario()` creates isolated OpenCode sessions, renders enforced prompt constraints, and captures assistant/tool traces.
+5. Envelope + tool + attempt extraction runs via `src/extract/*`, then assertions are validated against per-scenario schema.
+6. Result rows are appended to `packages/benchmark/results/*.jsonl`, including scenario set and timing breakdown metadata.
+7. `src/cli/report.ts` aggregates latest rows into summary artifacts and evaluates gate checks (`verify_pr` or `verify_release`).
 
 ## Entry Points
 
 - `packages/core/src/index.ts` - public `@ghx-dev/core` package API entrypoint
+- `packages/core/src/agent.ts` - public agent-facing exports (`listCapabilities`, `createExecuteTool`, `explainCapability`)
 - `packages/core/src/cli/index.ts` - `ghx` executable entrypoint
 - `packages/benchmark/src/cli/benchmark.ts` - benchmark runner CLI
 - `packages/benchmark/src/cli/check-scenarios.ts` - scenario validity check
