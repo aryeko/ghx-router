@@ -1,7 +1,7 @@
 {
   "name": "@ghx-dev/benchmark",
   "version": "0.1.0",
-  "description": "Internal benchmark harness for comparing ghx_router against agent_direct runs.",
+  "description": "Internal benchmark harness for comparing ghx against agent_direct runs.",
   "private": true,
   "author": "Arye Kogan",
   "license": "MIT",

@@ -21,7 +21,7 @@ describe("cli direct-run guards", () => {
   it("auto-runs benchmark main when file is executed directly", async () => {
     const parseCliArgsMock = vi.fn(() => ({
       command: "run",
-      mode: "ghx_router",
+      mode: "ghx",
       repetitions: 1,
       scenarioFilter: null
     }))
@@ -42,7 +42,7 @@ describe("cli direct-run guards", () => {
 
     expect(parseCliArgsMock).toHaveBeenCalled()
     expect(runSuiteMock).toHaveBeenCalledWith({
-      mode: "ghx_router",
+      mode: "ghx",
       repetitions: 1,
       scenarioFilter: null
     })
@@ -96,7 +96,7 @@ describe("cli direct-run guards", () => {
   it("does not auto-run benchmark main when argv[1] is missing", async () => {
     const parseCliArgsMock = vi.fn(() => ({
       command: "run",
-      mode: "ghx_router",
+      mode: "ghx",
       repetitions: 1,
       scenarioFilter: null
     }))

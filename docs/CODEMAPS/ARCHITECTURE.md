@@ -57,7 +57,7 @@ The core package provides a normalized `ResultEnvelope` contract and routes each
   ├─ runs scenarios against multiple modes:
   │   - agent_direct
   │   - mcp
-  │   - ghx_router
+  │   - ghx
   └─ writes suite results + summary artifacts
 
 @ghx-dev/core

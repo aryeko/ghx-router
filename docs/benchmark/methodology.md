@@ -4,7 +4,7 @@
 
 - `agent_direct`
 - `mcp`
-- `ghx_router`
+- `ghx`
 
 ## Run Controls
 
@@ -24,7 +24,7 @@ The benchmark uses a dual-gate model to separate reliability from efficiency.
 2. **Efficiency gate (stable sample):**
    - evaluates only rows that are `success=true`, `output_valid=true`, and not `runner_error`,
    - computes per-scenario medians per mode,
-   - compares `ghx_router` vs `agent_direct` on active tokens, latency, and tool calls,
+   - compares `ghx` vs `agent_direct` on active tokens, latency, and tool calls,
    - requires minimum scenario coverage so reductions are not computed from a tiny subset.
 
 This design keeps timeout/intermittent runner stalls from corrupting efficiency metrics while still failing reliability when those events become frequent.

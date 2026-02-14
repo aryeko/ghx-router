@@ -9,8 +9,8 @@ export type ParsedCliArgs = {
   scenarioSet: string | null
 }
 
-function isBenchmarkMode(value: string): value is BenchmarkMode {
-  return ["agent_direct", "mcp", "ghx_router"].includes(value)
+function isBenchmarkMode(value: string): boolean {
+  return ["agent_direct", "mcp", "ghx", "ghx_router"].includes(value)
 }
 
 function stripForwardingSeparator(args: string[]): string[] {
@@ -79,7 +79,7 @@ function parseScenarioSet(flags: string[]): string | null {
 const parsedCliArgsSchema = z
   .object({
     command: z.literal("run"),
-    mode: z.enum(["agent_direct", "mcp", "ghx_router"]),
+    mode: z.enum(["agent_direct", "mcp", "ghx"]),
     repetitions: z.number().int().min(1),
     scenarioFilter: z.string().min(1).nullable(),
     scenarioSet: z.string().min(1).nullable()
@@ -98,8 +98,8 @@ export function parseCliArgs(argv: string[]): ParsedCliArgs {
   }
 
   const { positional, flags } = splitPositionalAndFlags(rest)
-  const [modeRaw = "ghx_router", repetitionsRaw = "1"] = positional
-  const mode = modeRaw
+  const [modeRaw = "ghx", repetitionsRaw = "1"] = positional
+  const mode = modeRaw === "ghx_router" ? "ghx" : modeRaw
 
   if (!isBenchmarkMode(mode)) {
     throw new Error(`Unsupported mode: ${mode}`)

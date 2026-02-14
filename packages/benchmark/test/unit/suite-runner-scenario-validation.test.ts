@@ -145,7 +145,7 @@ describe("suite-runner scenario validation", () => {
         },
         tags: []
       },
-      "ghx_router",
+      "ghx",
       1
     )
 
@@ -202,7 +202,7 @@ describe("suite-runner scenario validation", () => {
         },
         tags: []
       },
-      "ghx_router",
+      "ghx",
       1
     )
 
@@ -253,7 +253,7 @@ describe("suite-runner scenario validation", () => {
         },
         tags: []
       },
-      "ghx_router",
+      "ghx",
       1
     )
 
@@ -268,7 +268,7 @@ describe("suite-runner scenario validation", () => {
       '{"ok":true,"data":{"items":[],"pageInfo":{"hasNextPage":false,"endCursor":null}}}'
     )
 
-    const result = await runScenario({ session }, issueCommentsScenario, "ghx_router", 1)
+    const result = await runScenario({ session }, issueCommentsScenario, "ghx", 1)
 
     expect(result.success).toBe(true)
   })
@@ -276,7 +276,7 @@ describe("suite-runner scenario validation", () => {
   it("wraps top-level array output into envelope with pagination defaults", async () => {
     const session = createSessionWithTextEnvelope('[{"id":"c1","body":"hello"}]')
 
-    const result = await runScenario({ session }, issueCommentsScenario, "ghx_router", 1)
+    const result = await runScenario({ session }, issueCommentsScenario, "ghx", 1)
 
     expect(result.success).toBe(true)
   })
@@ -286,7 +286,7 @@ describe("suite-runner scenario validation", () => {
       '{"data":{"repository":{"issues":{"nodes":[{"id":"i1"}],"pageInfo":{"hasNextPage":true,"endCursor":"abc"}}}}}'
     )
 
-    const result = await runScenario({ session }, issueCommentsScenario, "ghx_router", 1)
+    const result = await runScenario({ session }, issueCommentsScenario, "ghx", 1)
 
     expect(result.success).toBe(true)
   })
@@ -296,7 +296,7 @@ describe("suite-runner scenario validation", () => {
       '{"data":{"repository":{"pullRequests":{"nodes":[{"id":"pr1"}],"pageInfo":{"hasNextPage":false,"endCursor":null}}}}}'
     )
 
-    const result = await runScenario({ session }, issueCommentsScenario, "ghx_router", 1)
+    const result = await runScenario({ session }, issueCommentsScenario, "ghx", 1)
 
     expect(result.success).toBe(true)
   })
@@ -306,7 +306,7 @@ describe("suite-runner scenario validation", () => {
       '{"data":{"repository":{"issue":{"comments":{"nodes":[{"id":"c1"}],"pageInfo":{"hasNextPage":false,"endCursor":null}}}}}}'
     )
 
-    const result = await runScenario({ session }, issueCommentsScenario, "ghx_router", 1)
+    const result = await runScenario({ session }, issueCommentsScenario, "ghx", 1)
 
     expect(result.success).toBe(true)
   })

@@ -1,6 +1,6 @@
 # Efficiency Criteria
 
-`ghx_router` is validated when it meets all gate criteria against baseline modes on the same scenario set.
+`ghx` is validated when it meets all gate criteria against baseline modes on the same scenario set.
 
 ## Validation Thresholds (v2)
 
@@ -15,7 +15,7 @@ Both must pass.
 
 Reliability:
 
-- success-rate delta (`ghx_router - agent_direct`) >= -3 pp
+- success-rate delta (`ghx - agent_direct`) >= -3 pp
 - output validity >= 97%
 - runner failure rate <= 5%
 - timeout/stall rate <= 2%
@@ -32,7 +32,7 @@ Efficiency (stable sample):
 
 Reliability:
 
-- success-rate delta (`ghx_router - agent_direct`) >= -1 pp
+- success-rate delta (`ghx - agent_direct`) >= -1 pp
 - output validity >= 99%
 - runner failure rate <= 2%
 - timeout/stall rate <= 1%

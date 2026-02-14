@@ -42,7 +42,8 @@ export function parseArgs(args: string[]): { gate: boolean; gateProfile: GatePro
 export function modeFromFilename(name: string): BenchmarkMode | null {
   if (name.includes("-agent_direct-suite.jsonl")) return "agent_direct"
   if (name.includes("-mcp-suite.jsonl")) return "mcp"
-  if (name.includes("-ghx_router-suite.jsonl")) return "ghx_router"
+  if (name.includes("-ghx_router-suite.jsonl")) return "ghx"
+  if (name.includes("-ghx-suite.jsonl")) return "ghx"
   return null
 }
 

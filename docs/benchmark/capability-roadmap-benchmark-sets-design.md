@@ -250,11 +250,11 @@ pnpm --filter @ghx-dev/benchmark run lint
 Optional batch run commands:
 
 ```bash
-pnpm --filter @ghx-dev/benchmark run run -- ghx_router 1 --scenario-set pr-exec
-pnpm --filter @ghx-dev/benchmark run run -- ghx_router 1 --scenario-set issues
-pnpm --filter @ghx-dev/benchmark run run -- ghx_router 1 --scenario-set release-delivery
-pnpm --filter @ghx-dev/benchmark run run -- ghx_router 1 --scenario-set workflows
-pnpm --filter @ghx-dev/benchmark run run -- ghx_router 1 --scenario-set projects-v2
+pnpm --filter @ghx-dev/benchmark run run -- ghx 1 --scenario-set pr-exec
+pnpm --filter @ghx-dev/benchmark run run -- ghx 1 --scenario-set issues
+pnpm --filter @ghx-dev/benchmark run run -- ghx 1 --scenario-set release-delivery
+pnpm --filter @ghx-dev/benchmark run run -- ghx 1 --scenario-set workflows
+pnpm --filter @ghx-dev/benchmark run run -- ghx 1 --scenario-set projects-v2
 ```
 
 ---

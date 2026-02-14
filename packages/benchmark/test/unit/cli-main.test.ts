@@ -21,10 +21,10 @@ describe("benchmark cli mains", () => {
   })
 
   it("parses args and delegates benchmark main", async () => {
-    await benchmarkMain(["run", "ghx_router", "2", "--scenario-set", "pr-review-reads"])
+    await benchmarkMain(["run", "ghx", "2", "--scenario-set", "pr-review-reads"])
 
     expect(runSuite).toHaveBeenCalledWith({
-      mode: "ghx_router",
+      mode: "ghx",
       repetitions: 2,
       scenarioFilter: null,
       scenarioSet: "pr-review-reads"

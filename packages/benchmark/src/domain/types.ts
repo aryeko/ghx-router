@@ -1,4 +1,4 @@
-export type BenchmarkMode = "agent_direct" | "mcp" | "ghx_router"
+export type BenchmarkMode = "agent_direct" | "mcp" | "ghx"
 
 export type ScenarioAssertions = {
   must_succeed: boolean

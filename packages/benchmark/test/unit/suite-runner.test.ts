@@ -648,14 +648,14 @@ describe("suite-runner helpers", () => {
         assertions: { must_succeed: true, required_data_fields: ["id"] },
         tags: []
       },
-      "ghx_router"
+      "ghx"
     )
     expect(prompt).toContain("GHX_SKIP_GH_PREFLIGHT=1 node ../core/dist/cli/index.js run")
     expect(prompt).toContain("id")
     expect(prompt).toContain("If the ghx command fails")
   })
 
-  it("validates ghx_router preflight capabilities for selected scenarios", () => {
+  it("validates ghx preflight capabilities for selected scenarios", () => {
     spawnSyncMock
       .mockReturnValueOnce({
         status: 0,
@@ -696,7 +696,7 @@ describe("suite-runner helpers", () => {
     )
   })
 
-  it("fails ghx_router preflight when gh auth status fails", () => {
+  it("fails ghx preflight when gh auth status fails", () => {
     spawnSyncMock.mockReturnValue({
       status: 1,
       stdout: "",
@@ -717,10 +717,10 @@ describe("suite-runner helpers", () => {
           tags: []
         }
       ])
-    ).toThrow("ghx_router_preflight_failed: not logged in")
+    ).toThrow("ghx_preflight_failed: not logged in")
   })
 
-  it("fails ghx_router preflight when required capability is unavailable", () => {
+  it("fails ghx preflight when required capability is unavailable", () => {
     spawnSyncMock
       .mockReturnValueOnce({
         status: 0,
@@ -747,7 +747,7 @@ describe("suite-runner helpers", () => {
           tags: []
         }
       ])
-    ).toThrow("ghx_router_preflight_failed")
+    ).toThrow("ghx_preflight_failed")
   })
 
   it("returns false when gh command invocation fails", () => {
@@ -756,7 +756,7 @@ describe("suite-runner helpers", () => {
     expect(ghOk(["auth", "status"])).toBe(false)
   })
 
-  it("omits route_used assertions outside ghx_router mode", () => {
+  it("omits route_used assertions outside ghx mode", () => {
     const prompt = renderPrompt(
       {
         id: "s",
@@ -780,7 +780,7 @@ describe("suite-runner helpers", () => {
     expect(prompt).toContain("The JSON meta object can include optional diagnostic fields.")
   })
 
-  it("drops graphql route expectation in ghx_router mode when GITHUB_TOKEN is missing", () => {
+  it("drops graphql route expectation in ghx mode when GITHUB_TOKEN is missing", () => {
     const previousToken = process.env.GITHUB_TOKEN
     delete process.env.GITHUB_TOKEN
 
@@ -801,7 +801,7 @@ describe("suite-runner helpers", () => {
           },
           tags: []
         },
-        "ghx_router"
+        "ghx"
       )
 
       expect(prompt).not.toContain("meta.route_used MUST be exactly")
@@ -963,7 +963,7 @@ describe("suite-runner helpers", () => {
         },
         tags: []
       },
-      "ghx_router",
+      "ghx",
       1
     )
 
@@ -1018,7 +1018,7 @@ describe("suite-runner helpers", () => {
         },
         tags: []
       },
-      "ghx_router",
+      "ghx",
       1
     )
 
@@ -1112,7 +1112,7 @@ describe("suite-runner helpers", () => {
         },
         tags: []
       },
-      "ghx_router",
+      "ghx",
       1
     )
 
@@ -1166,7 +1166,7 @@ describe("suite-runner helpers", () => {
         },
         tags: []
       },
-      "ghx_router",
+      "ghx",
       1
     )
 
@@ -1220,7 +1220,7 @@ describe("suite-runner helpers", () => {
         },
         tags: []
       },
-      "ghx_router",
+      "ghx",
       1
     )
 
@@ -1268,14 +1268,14 @@ describe("suite-runner helpers", () => {
         },
         tags: []
       },
-      "ghx_router",
+      "ghx",
       1
     )
 
     expect(result.success).toBe(true)
   })
 
-  it("wraps raw data object into a valid envelope for ghx_router mode", async () => {
+  it("wraps raw data object into a valid envelope for ghx mode", async () => {
     const session = {
       create: vi.fn(async () => ({ data: { id: "s1" } })),
       promptAsync: vi.fn(async () => ({ data: {} })),
@@ -1315,7 +1315,7 @@ describe("suite-runner helpers", () => {
         },
         tags: []
       },
-      "ghx_router",
+      "ghx",
       1
     )
 
@@ -1378,7 +1378,7 @@ describe("suite-runner helpers", () => {
         },
         tags: []
       },
-      "ghx_router",
+      "ghx",
       1
     )
 
@@ -1426,7 +1426,7 @@ describe("suite-runner helpers", () => {
         },
         tags: []
       },
-      "ghx_router",
+      "ghx",
       1
     )
 
@@ -1458,7 +1458,7 @@ describe("suite-runner helpers", () => {
         assertions: { must_succeed: true },
         tags: []
       },
-      "ghx_router",
+      "ghx",
       1
     )
 
@@ -1490,7 +1490,7 @@ describe("suite-runner helpers", () => {
         assertions: { must_succeed: true },
         tags: []
       },
-      "ghx_router",
+      "ghx",
       1
     )
 

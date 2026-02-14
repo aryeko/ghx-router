@@ -28,7 +28,8 @@ describe("report cli", () => {
     expect(report.parseArgs(["--gate-profile=pr_fast"]).gateProfile).toBe("pr_fast")
     expect(report.modeFromFilename("x-agent_direct-suite.jsonl")).toBe("agent_direct")
     expect(report.modeFromFilename("x-mcp-suite.jsonl")).toBe("mcp")
-    expect(report.modeFromFilename("x-ghx_router-suite.jsonl")).toBe("ghx_router")
+    expect(report.modeFromFilename("x-ghx_router-suite.jsonl")).toBe("ghx")
+    expect(report.modeFromFilename("x-ghx-suite.jsonl")).toBe("ghx")
     expect(report.modeFromFilename("x-unknown.jsonl")).toBeNull()
   })
 
@@ -68,7 +69,7 @@ describe("report cli", () => {
     })
 
     await writeFile(join(results, "2026-01-01-agent_direct-suite.jsonl"), `${row}\n`, "utf8")
-    await writeFile(join(results, "2026-01-02-ghx_router-suite.jsonl"), `${row.replace('agent_direct', 'ghx_router')}\n`, "utf8")
+    await writeFile(join(results, "2026-01-02-ghx-suite.jsonl"), `${row.replace('agent_direct', 'ghx')}\n`, "utf8")
 
     const report = await importReportModule(root)
     const rows = await report.loadLatestRowsPerMode()

@@ -305,7 +305,7 @@ function buildGateV2(
 ): GateV2Summary {
   const thresholds = GATE_V2_THRESHOLDS[profile]
   const agentDirect = modeSummaries.agent_direct
-  const ghxRouter = modeSummaries.ghx_router
+  const ghxRouter = modeSummaries.ghx
 
   if (!agentDirect || !ghxRouter) {
     return {
@@ -327,7 +327,7 @@ function buildGateV2(
 
   const efficiency = extractGateV2Efficiency(
     grouped.agent_direct ?? [],
-    grouped.ghx_router ?? [],
+    grouped.ghx ?? [],
     thresholds.minSamplesPerScenarioPerMode,
   )
 
@@ -429,7 +429,7 @@ export function buildSummary(
   }
 
   const agentDirect = modeSummaries.agent_direct
-  const ghxRouter = modeSummaries.ghx_router
+  const ghxRouter = modeSummaries.ghx
 
   let deltaVsAgentDirect: DeltaSummary | null = null
   let checks: GateCheck[] = []
@@ -507,7 +507,7 @@ export function toMarkdown(summary: BenchmarkSummary): string {
   lines.push("| Mode | Runs | Success % | Output Valid % | Runner Error % | Timeout/Stall % | Retry % | Median Latency (ms) | Median Tokens (Total) | Median Tokens (Active) | Median Tool Calls |")
   lines.push("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
 
-  for (const mode of ["agent_direct", "mcp", "ghx_router"] as const) {
+  for (const mode of ["agent_direct", "mcp", "ghx"] as const) {
     const item = summary.modes[mode]
     if (!item) continue
     lines.push(
@@ -521,7 +521,7 @@ export function toMarkdown(summary: BenchmarkSummary): string {
   lines.push("| Mode | Profiled Runs | Assistant Total (ms) | Reasoning (ms) | Between Reasoning->Tool (ms) | Tool Total (ms) | Bash Tool (ms) | Post-Tool (ms) |")
   lines.push("|---|---:|---:|---:|---:|---:|---:|---:|")
 
-  for (const mode of ["agent_direct", "mcp", "ghx_router"] as const) {
+  for (const mode of ["agent_direct", "mcp", "ghx"] as const) {
     const item = summary.profiling[mode]
     if (!item) continue
     lines.push(
@@ -534,7 +534,7 @@ export function toMarkdown(summary: BenchmarkSummary): string {
   lines.push("")
 
   if (!summary.deltaVsAgentDirect) {
-    lines.push("Insufficient data: need both agent_direct and ghx_router runs to evaluate gate.")
+    lines.push("Insufficient data: need both agent_direct and ghx runs to evaluate gate.")
   } else {
     lines.push(`Overall Gate: **${summary.gate.passed ? "PASS" : "FAIL"}**`)
     lines.push("")
@@ -555,7 +555,7 @@ export function toMarkdown(summary: BenchmarkSummary): string {
   lines.push("")
 
   if (!summary.gateV2.reliability || !summary.gateV2.efficiency) {
-    lines.push("Insufficient data: need both agent_direct and ghx_router runs to evaluate gate v2.")
+    lines.push("Insufficient data: need both agent_direct and ghx runs to evaluate gate v2.")
     return lines.join("\n")
   }
 

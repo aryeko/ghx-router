@@ -2,7 +2,7 @@
 
 Internal benchmark harness for `ghx` maintainers.
 
-This package is intentionally **private** and is not published to npm. It compares baseline `agent_direct` runs against `ghx_router` runs for correctness, latency, token usage, and tool-call counts.
+This package is intentionally **private** and is not published to npm. It compares baseline `agent_direct` runs against `ghx` runs for correctness, latency, token usage, and tool-call counts.
 
 ## What It Covers
 
@@ -16,11 +16,11 @@ This package is intentionally **private** and is not published to npm. It compar
 ```bash
 pnpm --filter @ghx-dev/benchmark run run -- agent_direct 1 --scenario pr-view-001
 
-pnpm --filter @ghx-dev/benchmark run run -- ghx_router 1 --scenario-set pr-exec
-pnpm --filter @ghx-dev/benchmark run run -- ghx_router 1 --scenario-set issues
-pnpm --filter @ghx-dev/benchmark run run -- ghx_router 1 --scenario-set release-delivery
-pnpm --filter @ghx-dev/benchmark run run -- ghx_router 1 --scenario-set workflows
-pnpm --filter @ghx-dev/benchmark run run -- ghx_router 1 --scenario-set projects-v2
+pnpm --filter @ghx-dev/benchmark run run -- ghx 1 --scenario-set pr-exec
+pnpm --filter @ghx-dev/benchmark run run -- ghx 1 --scenario-set issues
+pnpm --filter @ghx-dev/benchmark run run -- ghx 1 --scenario-set release-delivery
+pnpm --filter @ghx-dev/benchmark run run -- ghx 1 --scenario-set workflows
+pnpm --filter @ghx-dev/benchmark run run -- ghx 1 --scenario-set projects-v2
 
 pnpm --filter @ghx-dev/benchmark run report
 pnpm --filter @ghx-dev/benchmark run report:gate

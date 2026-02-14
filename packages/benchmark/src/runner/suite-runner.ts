@@ -83,8 +83,8 @@ const modePromptPrefix: Record<BenchmarkMode, string> = {
   agent_direct:
     "You are running a benchmark in agent_direct mode. Use GitHub CLI (`gh`) commands directly to complete the task. Do not use any `ghx` command.",
   mcp: "You are running a benchmark in mcp mode. Prefer MCP tools when available.",
-  ghx_router:
-    "You are running a benchmark in ghx_router mode. Use `GHX_SKIP_GH_PREFLIGHT=1 node ../core/dist/cli/index.js run <task> --input '<json>'` as the primary execution path and do not use direct `gh` commands unless explicitly asked."
+  ghx:
+    "You are running a benchmark in ghx mode. Use `GHX_SKIP_GH_PREFLIGHT=1 node ../core/dist/cli/index.js run <task> --input '<json>'` as the primary execution path and do not use direct `gh` commands unless explicitly asked."
 }
 
 export function isObject(value: unknown): value is Record<string, unknown> {
@@ -720,7 +720,7 @@ export function assertGhxRouterPreflight(scenarios: Scenario[]): void {
   if (authStatus.status !== 0) {
     const stderr = typeof authStatus.stderr === "string" ? authStatus.stderr.trim() : ""
     const message = stderr.length > 0 ? stderr : "gh auth status failed"
-    throw new Error(`ghx_router_preflight_failed: ${message}`)
+    throw new Error(`ghx_preflight_failed: ${message}`)
   }
 
   const result = spawnSync("node", [ghxCliPath(), "capabilities", "list", "--json"], {
@@ -730,14 +730,14 @@ export function assertGhxRouterPreflight(scenarios: Scenario[]): void {
   if (result.status !== 0) {
     const stderr = typeof result.stderr === "string" ? result.stderr.trim() : ""
     const message = stderr.length > 0 ? stderr : "failed to list ghx capabilities"
-    throw new Error(`ghx_router_preflight_failed: ${message}`)
+    throw new Error(`ghx_preflight_failed: ${message}`)
   }
 
   const stdout = typeof result.stdout === "string" ? result.stdout : ""
   const capabilities = parseGhxCapabilities(stdout)
   if (capabilities.length === 0) {
     throw new Error(
-      "ghx_router_preflight_failed: ghx capabilities list returned no capabilities; run pnpm --filter @ghx-dev/core run build"
+      "ghx_preflight_failed: ghx capabilities list returned no capabilities; run pnpm --filter @ghx-dev/core run build"
     )
   }
 
@@ -749,7 +749,7 @@ export function assertGhxRouterPreflight(scenarios: Scenario[]): void {
 
   if (missingTasks.length > 0) {
     throw new Error(
-      `ghx_router_preflight_failed: missing capabilities for selected scenarios: ${missingTasks.join(", ")}`
+      `ghx_preflight_failed: missing capabilities for selected scenarios: ${missingTasks.join(", ")}`
     )
   }
 }
@@ -919,7 +919,7 @@ export function renderPrompt(scenario: Scenario, mode: BenchmarkMode, benchmarkN
       ? `meta.route_used MUST be exactly "${scopedAssertions.expected_route_used}".`
       : ""
   const failFastContract =
-    mode === "ghx_router"
+    mode === "ghx"
       ? "If the ghx command fails, return the final envelope JSON immediately. Do not run extra debugging commands."
       : ""
 
@@ -994,7 +994,7 @@ function buildOutputSchema(assertions: Scenario["assertions"]): Record<string, u
 }
 
 function modeScopedAssertions(scenario: Scenario, mode: BenchmarkMode): Scenario["assertions"] {
-  if (mode === "ghx_router") {
+  if (mode === "ghx") {
     if (scenario.assertions.expected_route_used === "graphql" && !process.env.GITHUB_TOKEN) {
       const { expected_route_used: _expectedRoute, ...base } = scenario.assertions
       return base
@@ -1020,7 +1020,7 @@ function forcedToolCommandHint(scenario: Scenario, mode: BenchmarkMode): string 
   const issueNumber = typeof scenario.input.issueNumber === "number" ? scenario.input.issueNumber : 1
   const prNumber = typeof scenario.input.prNumber === "number" ? scenario.input.prNumber : 1
 
-  if (mode === "ghx_router") {
+  if (mode === "ghx") {
     return `GHX_SKIP_GH_PREFLIGHT=1 node ../core/dist/cli/index.js run ${scenario.task} --input '${JSON.stringify(scenario.input)}'`
   }
 
@@ -1080,7 +1080,7 @@ function tryWrapRawDataAsEnvelope(
         }
       },
       error: null,
-      meta: mode === "ghx_router" ? { route_used: "cli" } : {}
+      meta: mode === "ghx" ? { route_used: "cli" } : {}
     }
   }
 
@@ -1107,7 +1107,7 @@ function tryWrapRawDataAsEnvelope(
           : { hasNextPage: false, endCursor: null }
       },
       error: null,
-      meta: mode === "ghx_router" ? { route_used: "cli" } : {}
+      meta: mode === "ghx" ? { route_used: "cli" } : {}
     }
   }
 
@@ -1125,7 +1125,7 @@ function tryWrapRawDataAsEnvelope(
           : { hasNextPage: false, endCursor: null }
       },
       error: null,
-      meta: mode === "ghx_router" ? { route_used: "cli" } : {}
+      meta: mode === "ghx" ? { route_used: "cli" } : {}
     }
   }
 
@@ -1143,7 +1143,7 @@ function tryWrapRawDataAsEnvelope(
           : { hasNextPage: false, endCursor: null }
       },
       error: null,
-      meta: mode === "ghx_router" ? { route_used: "cli" } : {}
+      meta: mode === "ghx" ? { route_used: "cli" } : {}
     }
   }
 
@@ -1151,7 +1151,7 @@ function tryWrapRawDataAsEnvelope(
     const nextEnvelope: Record<string, unknown> = { ...envelope }
 
     if (!("meta" in nextEnvelope) || !isObject(nextEnvelope.meta)) {
-      nextEnvelope.meta = mode === "ghx_router" ? { route_used: "cli" } : {}
+      nextEnvelope.meta = mode === "ghx" ? { route_used: "cli" } : {}
     }
 
     if (!("error" in nextEnvelope)) {
@@ -1171,7 +1171,7 @@ function tryWrapRawDataAsEnvelope(
   }
 
   const meta: Record<string, unknown> = {}
-  if (mode === "ghx_router") {
+  if (mode === "ghx") {
     meta.route_used = "cli"
   }
 
@@ -1519,7 +1519,7 @@ export async function runSuite(options: RunSuiteOptions): Promise<void> {
     throw new Error(`No scenarios matched filter: ${scenarioFilter ?? scenarioSet ?? "default"}`)
   }
 
-  if (mode === "ghx_router") {
+  if (mode === "ghx") {
     assertGhxRouterPreflight(selectedScenarios)
   }
 
