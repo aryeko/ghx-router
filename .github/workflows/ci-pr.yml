@@ -34,8 +34,19 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - uses: nrwl/nx-set-shas@v4
       - run: pnpm run ci:affected
-      - name: Upload coverage to Codecov (Node 24)
+      - name: Detect coverage reports (Node 24)
         if: ${{ always() && matrix.node-version == 24 && !cancelled() }}
+        id: coverage
+        run: |
+          shopt -s nullglob
+          files=(packages/*/coverage/lcov.info)
+          if [ ${#files[@]} -gt 0 ]; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Upload coverage to Codecov (Node 24)
+        if: ${{ always() && matrix.node-version == 24 && !cancelled() && steps.coverage.outputs.found == 'true' }}
         uses: codecov/codecov-action@v5
         with:
           files: packages/*/coverage/lcov.info

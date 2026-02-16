@@ -154,6 +154,7 @@ Tooling notes for local development:
 ```bash
 git clone https://github.com/aryeko/ghx.git && cd ghx
 ./scripts/setup-dev-env.sh
+pnpm install
 pnpm run build
 pnpm run ci
 ```

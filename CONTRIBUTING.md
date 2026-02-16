@@ -19,15 +19,21 @@ Thank you for your interest in contributing to ghx. This document provides guide
    cd ghx
    ```
 
-2. **Set up the local toolchain and install dependencies**
+2. **Set up the local toolchain**
 
    ```bash
    ./scripts/setup-dev-env.sh
    ```
 
-   This script enables Corepack, activates the repo's pinned pnpm version, and installs workspace dependencies.
+   This script enables Corepack and activates the repo's pinned pnpm version.
 
-3. **Build the project**
+3. **Install dependencies**
+
+   ```bash
+   pnpm install
+   ```
+
+4. **Build the project**
 
    ```bash
    pnpm run build
