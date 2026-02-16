@@ -43,16 +43,22 @@ const setupSkillAssetPathCandidates = [
   join(setupCommandDirectory, "cli", "assets", "skills", "ghx", "SKILL.md"),
 ]
 
+function isENOENT(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: string }).code === "ENOENT"
+  )
+}
+
 async function loadSetupSkillContent(): Promise<string> {
   for (const candidatePath of setupSkillAssetPathCandidates) {
     try {
-      await access(candidatePath)
-      return readFile(candidatePath, "utf8")
+      return await readFile(candidatePath, "utf8")
     } catch (error) {
-      if (typeof error === "object" && error !== null && "code" in error) {
-        if ((error as { code?: string }).code === "ENOENT") {
-          continue
-        }
+      if (isENOENT(error)) {
+        continue
       }
 
       throw error
@@ -170,10 +176,8 @@ async function verifySkill(skillPath: string): Promise<boolean> {
     const content = await readFile(skillPath, "utf8")
     return content.includes("ghx capabilities")
   } catch (error) {
-    if (typeof error === "object" && error !== null && "code" in error) {
-      if ((error as { code?: string }).code === "ENOENT") {
-        return false
-      }
+    if (isENOENT(error)) {
+      return false
     }
 
     throw error
@@ -185,10 +189,8 @@ async function skillFileExists(skillPath: string): Promise<boolean> {
     await access(skillPath)
     return true
   } catch (error) {
-    if (typeof error === "object" && error !== null && "code" in error) {
-      if ((error as { code?: string }).code === "ENOENT") {
-        return false
-      }
+    if (isENOENT(error)) {
+      return false
     }
 
     throw error

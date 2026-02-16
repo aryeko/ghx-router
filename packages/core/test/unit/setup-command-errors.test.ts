@@ -73,10 +73,15 @@ describe("setupCommand error handling", () => {
       const actual = await importOriginal<typeof import("node:fs/promises")>()
       return {
         ...actual,
-        access: vi.fn(async () => {
-          const error = new Error("missing") as Error & { code?: string }
-          error.code = "ENOENT"
-          throw error
+        readFile: vi.fn(async (path, encoding) => {
+          const normalizedPath = String(path)
+          if (normalizedPath.includes("/assets/skills/ghx/SKILL.md")) {
+            const error = new Error("missing") as Error & { code?: string }
+            error.code = "ENOENT"
+            throw error
+          }
+
+          return actual.readFile(path, encoding)
         }),
       }
     })
@@ -92,7 +97,7 @@ describe("setupCommand error handling", () => {
     expect(output).toContain("SKILL.md")
   })
 
-  it("surfaces non-ENOENT asset access errors while loading setup skill content", async () => {
+  it("surfaces non-ENOENT asset read errors while loading setup skill content", async () => {
     const tempRoot = mkdtempSync(join(tmpdir(), "ghx-setup-errors-"))
     process.env.HOME = tempRoot
 
@@ -100,21 +105,15 @@ describe("setupCommand error handling", () => {
       const actual = await importOriginal<typeof import("node:fs/promises")>()
       return {
         ...actual,
-        access: vi.fn(async (path) => {
+        readFile: vi.fn(async (path, encoding) => {
           const normalizedPath = String(path)
-          if (normalizedPath.includes(".agents/skill/ghx/SKILL.md")) {
-            const error = new Error("not installed") as Error & { code?: string }
-            error.code = "ENOENT"
-            throw error
-          }
-
           if (normalizedPath.includes("/assets/skills/ghx/SKILL.md")) {
             const error = new Error("asset access denied") as Error & { code?: string }
             error.code = "EACCES"
             throw error
           }
 
-          return actual.access(path)
+          return actual.readFile(path, encoding)
         }),
       }
     })
