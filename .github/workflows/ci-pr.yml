@@ -34,38 +34,35 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - uses: nrwl/nx-set-shas@v4
       - run: pnpm run ci:affected
-      - name: Detect coverage reports (Node 24)
+      - name: Detect Codecov report files (Node 24)
         if: ${{ always() && matrix.node-version == 24 && !cancelled() }}
-        id: coverage
+        id: reports
         run: |
           shopt -s nullglob
-          files=(packages/*/coverage/lcov.info)
-          if [ ${#files[@]} -gt 0 ]; then
-            echo "found=true" >> "$GITHUB_OUTPUT"
+          coverage_files=(packages/*/coverage/lcov.info)
+          junit_files=(packages/*/test-report.junit.xml)
+
+          if [ ${#coverage_files[@]} -gt 0 ]; then
+            echo "coverage_found=true" >> "$GITHUB_OUTPUT"
           else
-            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "coverage_found=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if [ ${#junit_files[@]} -gt 0 ]; then
+            echo "junit_found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "junit_found=false" >> "$GITHUB_OUTPUT"
           fi
       - name: Upload coverage to Codecov (Node 24)
-        if: ${{ always() && matrix.node-version == 24 && !cancelled() && steps.coverage.outputs.found == 'true' }}
+        if: ${{ always() && matrix.node-version == 24 && !cancelled() && steps.reports.outputs.coverage_found == 'true' }}
         uses: codecov/codecov-action@v5
         with:
           files: packages/*/coverage/lcov.info
           flags: pr
           use_oidc: true
           fail_ci_if_error: true
-      - name: Detect JUnit reports (Node 24)
-        if: ${{ always() && matrix.node-version == 24 && !cancelled() }}
-        id: junit
-        run: |
-          shopt -s nullglob
-          files=(packages/*/test-report.junit.xml)
-          if [ ${#files[@]} -gt 0 ]; then
-            echo "found=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "found=false" >> "$GITHUB_OUTPUT"
-          fi
       - name: Upload test results to Codecov (Node 24)
-        if: ${{ always() && matrix.node-version == 24 && !cancelled() && steps.junit.outputs.found == 'true' }}
+        if: ${{ always() && matrix.node-version == 24 && !cancelled() && steps.reports.outputs.junit_found == 'true' }}
         uses: codecov/codecov-action@v5
         with:
           files: packages/*/test-report.junit.xml
