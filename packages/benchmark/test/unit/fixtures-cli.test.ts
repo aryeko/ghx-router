@@ -206,11 +206,15 @@ describe("fixtures CLI", () => {
       await import("../../src/cli/fixtures.js")
       await new Promise((resolve) => setTimeout(resolve, 0))
     } finally {
-      process.argv[1] = previousArgv1
+      if (previousArgv1 === undefined) {
+        process.argv.splice(1, 1)
+      } else {
+        process.argv[1] = previousArgv1
+      }
     }
 
     expect(errorSpy).toHaveBeenCalledWith("manifest missing")
-    expect(exitSpy).toHaveBeenCalledWith(1)
-    expect(exitSpy).toHaveBeenCalledOnce()
+    expect(exitSpy).toHaveBeenCalledTimes(1)
+    expect(exitSpy).toHaveBeenNthCalledWith(1, 1)
   })
 })
