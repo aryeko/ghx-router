@@ -2,6 +2,7 @@ import { access, appendFile, mkdir, readFile, writeFile } from "node:fs/promises
 import { homedir } from "node:os"
 import { dirname, join } from "node:path"
 import readline from "node:readline/promises"
+import { fileURLToPath } from "node:url"
 
 import { Ajv } from "ajv"
 
@@ -35,23 +36,33 @@ const setupOptionsSchema = {
 
 const validateSetupOptions = ajv.compile(setupOptionsSchema)
 
-const SKILL_CONTENT = `# ghx skill
+const setupCommandDirectory = dirname(fileURLToPath(import.meta.url))
+const setupSkillAssetPathCandidates = [
+  join(setupCommandDirectory, "..", "assets", "skills", "ghx", "SKILL.md"),
+  join(setupCommandDirectory, "assets", "skills", "ghx", "SKILL.md"),
+  join(setupCommandDirectory, "cli", "assets", "skills", "ghx", "SKILL.md"),
+]
 
-Use ghx capabilities to execute GitHub operations through a stable capability interface.
+async function loadSetupSkillContent(): Promise<string> {
+  for (const candidatePath of setupSkillAssetPathCandidates) {
+    try {
+      await access(candidatePath)
+      return readFile(candidatePath, "utf8")
+    } catch (error) {
+      if (typeof error === "object" && error !== null && "code" in error) {
+        if ((error as { code?: string }).code === "ENOENT") {
+          continue
+        }
+      }
 
-Session bootstrap (run once at start):
-- gh auth status
+      throw error
+    }
+  }
 
-If bootstrap fails, stop and request authentication before continuing.
-
-Quick commands:
-- ghx capabilities list
-- ghx capabilities explain <capability_id>
-- GHX_SKIP_GH_PREFLIGHT=1 ghx run <capability_id> --input '<json>'
-
-Example:
-- GHX_SKIP_GH_PREFLIGHT=1 ghx run repo.view --input '{"owner":"aryeko","name":"ghx"}'
-`
+  throw new Error(
+    `Setup skill asset not found. Checked: ${setupSkillAssetPathCandidates.join(", ")}`,
+  )
+}
 
 function usage(): string {
   return "Usage: ghx setup --scope <user|project> [--yes] [--dry-run] [--verify] [--track]"
@@ -227,8 +238,9 @@ export async function setupCommand(argv: string[] = []): Promise<number> {
       }
     }
 
+    const skillContent = await loadSetupSkillContent()
     await mkdir(dirname(skillPath), { recursive: true })
-    await writeFile(skillPath, SKILL_CONTENT, "utf8")
+    await writeFile(skillPath, skillContent, "utf8")
 
     process.stdout.write(`Setup complete: wrote ${skillPath}\n`)
     process.stdout.write("Try: ghx capabilities list\n")

@@ -115,6 +115,18 @@ npx @ghx-dev/core setup --platform claude-code --scope project --yes
 npx @ghx-dev/core setup --platform claude-code --scope project --verify
 ```
 
+### Setup Skill Source
+
+The canonical setup skill content is stored in:
+
+- `src/cli/assets/skills/ghx/SKILL.md`
+
+During build/publish it is copied to:
+
+- `dist/cli/assets/skills/ghx/SKILL.md`
+
+`ghx setup` writes this content to `.agents/skill/ghx/SKILL.md` in user or project scope.
+
 ## Agent Tools (`@ghx-dev/core/agent`)
 
 ```ts

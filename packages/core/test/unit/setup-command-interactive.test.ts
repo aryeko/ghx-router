@@ -50,7 +50,7 @@ describe("setupCommand interactive overwrite", () => {
     const code = await setupCommand(["--scope", "user"])
 
     expect(code).toBe(0)
-    expect(readFileSync(skillPath, "utf8")).toContain("Use ghx capabilities")
+    expect(readFileSync(skillPath, "utf8")).toContain("## Result Handling Rules")
   })
 
   it("keeps existing skill when interactive prompt declines", async () => {

@@ -13,7 +13,7 @@ ghx solves this at the runtime layer -- typed capabilities, deterministic routin
 The setup command exists to close the **last-mile adoption gap**:
 
 1. **Discovery.** An agent landing in a repository has no reason to reach for `ghx` unless something in its context mentions it. A skill file placed in the agent's search path solves this passively.
-2. **Bootstrapping.** The skill file teaches the agent the three commands it needs (`capabilities list`, `capabilities explain`, `run`) and the `gh auth status` preflight check -- enough to be productive in one read.
+2. **Bootstrapping.** The skill file teaches the session bootstrap (`gh auth status` and `ghx capabilities list`) plus the execution flow (`capabilities explain`, `run`) -- enough to become productive in one read.
 3. **Zero-config onboarding.** Running a single command is faster and less error-prone than manually creating files, and it keeps the skill content versioned with the CLI itself.
 
 ## What it installs
@@ -23,9 +23,10 @@ The setup command exists to close the **last-mile adoption gap**:
 The skill content includes:
 
 - A purpose statement for ghx capability execution.
-- A session bootstrap step (`gh auth status`).
-- Quick-reference commands: `capabilities list`, `capabilities explain`, `run`.
-- A concrete invocation example.
+- A session bootstrap block (`gh auth status`, then `ghx capabilities list`).
+- A command workflow (`capabilities explain` before `run` when input shape is unclear).
+- Result-envelope handling rules (`ok`, `data`, `error`, `meta`) and retry guidance.
+- Neutral example invocations (`octocat` / `hello-world`).
 
 No binaries, no config files, no environment mutations -- just one Markdown file.
 
@@ -127,17 +128,9 @@ Use this in CI to assert the skill file is present and valid before running agen
 
 The current implementation is solid for v1. The following items are tracked for future iterations:
 
-### Skill content hardcodes a personal username
-
-The example in `SKILL_CONTENT` uses `"owner":"aryeko"`. For an OSS-facing artifact this should use a neutral placeholder (e.g. `"owner":"octocat","name":"hello-world"`) or the project's org.
-
 ### `--verify` does not detect stale skills
 
 Verification checks only that the file contains the substring `"ghx capabilities"`. It does not detect whether the installed skill matches the current CLI version. A content hash or embedded version marker would allow `--verify` to warn when the skill is outdated -- valuable for CI gates after upgrades.
-
-### `GHX_SKIP_GH_PREFLIGHT=1` in the skill is unexplained
-
-The skill tells agents to run `gh auth status` as a bootstrap step, then shows all `ghx run` examples with the preflight skip env var. The optimization rationale (preflight already passed, skip redundant check per-call) is not stated. A one-line comment in the skill content would prevent confusion.
 
 ### Duplicated ENOENT error-handling pattern
 
