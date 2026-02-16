@@ -3,6 +3,9 @@
 ## Purpose
 This workspace prepares publish-ready growth materials for `ghx` without touching benchmark implementation work. All benchmark metrics are imported later from finalized benchmark artifacts.
 
+## Plan Index
+See the high-level phase/status tracker in [INDEX.md](./INDEX.md).
+
 ## Positioning One-Liner
 `ghx` gives agents a stable, typed GitHub capability interface so they can execute real repo workflows without re-discovering CLI and API surface area each run.
 
