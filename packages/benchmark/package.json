@@ -8,7 +8,7 @@
   "type": "module",
   "scripts": {
     "build": "tsup",
-    "format": "biome format --write .",
+    "format": "biome check --write .",
     "format:check": "biome check .",
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
