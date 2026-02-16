@@ -5,7 +5,9 @@ vi.mock("node:child_process", () => ({
 }))
 
 import { spawnSync } from "node:child_process"
-
+import { validateFixture } from "../../src/runner/preflight/fixture-preflight.js"
+import { ghOk } from "../../src/runner/preflight/ghx-router-preflight.js"
+import { renderPrompt } from "../../src/runner/prompt/prompt-renderer.js"
 import {
   asNumber,
   assertGhxRouterPreflight,
@@ -16,16 +18,13 @@ import {
   extractTimingBreakdown,
   fetchSessionMessages,
   getSessionApi,
-  ghOk,
   hasAssistantMetadata,
   hasAssistantSignalParts,
   hasTextPart,
   isObject,
-  renderPrompt,
   runScenario,
   shouldRequestContinuation,
   unwrapData,
-  validateFixture,
   waitForAssistantFromMessages,
   withTimeout,
 } from "../../src/runner/suite-runner.js"

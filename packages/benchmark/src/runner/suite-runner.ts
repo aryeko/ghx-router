@@ -1,14 +1,15 @@
 import { spawnSync } from "node:child_process"
 import { randomUUID } from "node:crypto"
-import { access, appendFile, mkdir, mkdtemp, rm } from "node:fs/promises"
+import { lstatSync } from "node:fs"
+import { appendFile, lstat, mkdir, mkdtemp, readFile, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
-import { join } from "node:path"
+import { delimiter, join, resolve } from "node:path"
+import { fileURLToPath } from "node:url"
 import { createOpencode } from "@opencode-ai/sdk"
 import type {
   BenchmarkMode,
   BenchmarkRow,
   BenchmarkTimingBreakdown,
-  FixtureManifest,
   Scenario,
   SessionMessageEntry,
   SessionMessagePart,
@@ -16,21 +17,27 @@ import type {
 import { extractAttemptMetrics } from "../extract/attempts.js"
 import { extractFirstJsonObject, validateEnvelope } from "../extract/envelope.js"
 import { aggregateToolCounts } from "../extract/tool-usage.js"
-import { loadFixtureManifest, resolveScenarioFixtureBindings } from "../fixture/manifest.js"
-import { seedFixtureManifest } from "../fixture/seed.js"
 import { loadScenarioSets, loadScenarios } from "../scenario/loader.js"
+import {
+  AGENT_DIRECT_INSTRUCTION,
+  MCP_INSTRUCTION,
+  modeInstructions,
+} from "./mode/mode-instructions.js"
+import { validateFixture } from "./preflight/fixture-preflight.js"
+import * as ghxRouterPreflight from "./preflight/ghx-router-preflight.js"
+import {
+  buildOutputSchema,
+  forcedToolCommandHint,
+  modeScopedAssertions,
+  renderPrompt,
+} from "./prompt/prompt-renderer.js"
 
 type RunSuiteOptions = {
   mode: BenchmarkMode
   repetitions: number
   scenarioFilter: string | null
   scenarioSet?: string | null
-  fixtureManifestPath?: string | null
-  seedIfMissing?: boolean
 }
-
-const DEFAULT_FIXTURE_MANIFEST_PATH = "fixtures/latest.json"
-const BENCH_PROGRESS_EVENTS_MODE = "jsonl"
 
 type AssistantMessage = {
   id: string
@@ -85,26 +92,14 @@ const OPEN_CODE_MODE = process.env.BENCH_OPENCODE_MODE ?? null
 const GIT_REPO = process.env.BENCH_GIT_REPO ?? null
 const GIT_COMMIT = process.env.BENCH_GIT_COMMIT ?? null
 const OPENCODE_PORT = Number.parseInt(process.env.BENCH_OPENCODE_PORT ?? "3000", 10)
-const FIRST_ASSISTANT_TIMEOUT_MS = Number.parseInt(
-  process.env.BENCH_FIRST_ASSISTANT_TIMEOUT_MS ?? "15000",
-  10,
+const MODULE_DIR = fileURLToPath(new URL(".", import.meta.url))
+const BENCHMARK_PACKAGE_ROOT = resolve(MODULE_DIR, "..", "..")
+const BENCHMARK_BIN_DIR = join(BENCHMARK_PACKAGE_ROOT, "bin")
+const GHX_BENCHMARK_ALIAS_PATH = join(BENCHMARK_BIN_DIR, "ghx")
+const GHX_SKILL_ASSET_PATH = resolve(
+  BENCHMARK_PACKAGE_ROOT,
+  "../core/src/cli/assets/skills/ghx/SKILL.md",
 )
-const SESSION_STALL_TIMEOUT_MS = Number.parseInt(
-  process.env.BENCH_SESSION_STALL_TIMEOUT_MS ?? "10000",
-  10,
-)
-const MAX_RUNNER_RETRIES = Number.parseInt(process.env.BENCH_RUNNER_MAX_RETRIES ?? "1", 10)
-const RUNNER_RETRY_BACKOFF_MS = Number.parseInt(
-  process.env.BENCH_RUNNER_RETRY_BACKOFF_MS ?? "750",
-  10,
-)
-
-const modePromptPrefix: Record<BenchmarkMode, string> = {
-  agent_direct:
-    "You are running a benchmark in agent_direct mode. Use GitHub CLI (`gh`) commands directly to complete the task. Do not use any `ghx` command.",
-  mcp: "You are running a benchmark in mcp mode. Prefer MCP tools when available.",
-  ghx: "You are running a benchmark in ghx mode. Use `GHX_SKIP_GH_PREFLIGHT=1 node ../core/dist/cli/index.js run <task> --input '<json>'` as the primary execution path and do not use direct `gh` commands unless explicitly asked.",
-}
 
 export function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
@@ -565,32 +560,6 @@ export async function fetchSessionMessages(
   return unwrapData<SessionMessageEntry[]>(messagesResult, "session.messages")
 }
 
-function hasAssistantSignal(entry: SessionMessageEntry): boolean {
-  if (!entry.info) {
-    return false
-  }
-
-  return (
-    hasAssistantMetadata(entry.info) ||
-    hasStructuredOutput(entry.info) ||
-    (entry.info as { role?: unknown }).role === "assistant"
-  )
-}
-
-function messageProgressSignature(messages: SessionMessageEntry[]): string {
-  return messages
-    .map((entry) => {
-      const info = entry.info as { id?: unknown; role?: unknown } | undefined
-      const id = typeof info?.id === "string" ? info.id : "<no-id>"
-      const role = typeof info?.role === "string" ? info.role : "<no-role>"
-      const parts = entry.parts ?? []
-      const stepFinish = [...parts].reverse().find((part) => part.type === "step-finish")
-      const stepReason = typeof stepFinish?.reason === "string" ? stepFinish.reason : "<none>"
-      return `${id}:${role}:${parts.length}:${stepReason}`
-    })
-    .join("|")
-}
-
 export async function waitForAssistantFromMessages(
   sessionApi: ReturnType<typeof getSessionApi>,
   sessionId: string,
@@ -600,20 +569,6 @@ export async function waitForAssistantFromMessages(
 ): Promise<PromptResponse> {
   const started = Date.now()
   let lastWaitLogAt = started
-  let lastProgressAt = started
-  let lastSignature = ""
-  const firstAssistantBudgetMs = Math.min(
-    timeoutMs,
-    Number.isFinite(FIRST_ASSISTANT_TIMEOUT_MS) && FIRST_ASSISTANT_TIMEOUT_MS > 0
-      ? FIRST_ASSISTANT_TIMEOUT_MS
-      : timeoutMs,
-  )
-  const stallBudgetMs = Math.min(
-    timeoutMs,
-    Number.isFinite(SESSION_STALL_TIMEOUT_MS) && SESSION_STALL_TIMEOUT_MS > 0
-      ? SESSION_STALL_TIMEOUT_MS
-      : timeoutMs,
-  )
 
   const getCreatedAt = (entry: SessionMessageEntry): number => {
     if (!entry.info || !isObject(entry.info)) {
@@ -628,27 +583,7 @@ export async function waitForAssistantFromMessages(
   }
 
   while (Date.now() - started < timeoutMs) {
-    const now = Date.now()
     const messages = await fetchSessionMessages(sessionApi, sessionId, 50)
-    const signature = messageProgressSignature(messages)
-    if (signature !== lastSignature) {
-      lastSignature = signature
-      lastProgressAt = now
-    }
-
-    if (
-      !previousAssistantId &&
-      !messages.some((entry) => hasAssistantSignal(entry)) &&
-      now - started >= firstAssistantBudgetMs
-    ) {
-      throw new Error(
-        `No assistant message received in session.messages within ${firstAssistantBudgetMs}ms`,
-      )
-    }
-
-    if (messages.length > 0 && now - lastProgressAt >= stallBudgetMs) {
-      throw new Error(`Session message stream stalled in session.messages for ${stallBudgetMs}ms`)
-    }
 
     const candidates = previousAssistantId
       ? messages.filter((entry) => {
@@ -762,6 +697,7 @@ export async function waitForAssistantFromMessages(
       }
     }
 
+    const now = Date.now()
     if (now - lastWaitLogAt >= 5000) {
       console.log(
         `[benchmark] waiting: scenario=${scenarioId} session=${sessionId} elapsed_ms=${now - started}`,
@@ -806,80 +742,35 @@ export function extractPromptResponseFromPromptResult(value: unknown): PromptRes
   return null
 }
 
-export function ghOk(args: string[]): boolean {
-  const result = spawnSync("gh", args, { encoding: "utf8" })
-  return result.status === 0
-}
-
-type CapabilityListItem = {
-  capability_id: string
-}
-
-function ghxCliPath(): string {
-  return join(process.cwd(), "../core/dist/cli/index.js")
-}
-
-function parseGhxCapabilities(raw: string): string[] {
-  const trimmed = raw.trim()
-  if (trimmed.length === 0) {
-    return []
-  }
-
-  let parsed: unknown
+async function ensureBenchmarkGhxAliasReady(): Promise<void> {
   try {
-    parsed = JSON.parse(trimmed)
-  } catch (error) {
+    await lstat(GHX_BENCHMARK_ALIAS_PATH)
+  } catch {
     throw new Error(
-      `ghx capabilities JSON invalid: ${error instanceof Error ? error.message : String(error)}`,
+      "ghx_preflight_failed: benchmark ghx alias missing; run pnpm --filter @ghx-dev/core run build and ensure packages/benchmark/bin/ghx points to packages/core/dist/cli/index.js",
     )
   }
+}
 
-  if (!Array.isArray(parsed)) {
-    throw new Error(`ghx capabilities JSON invalid: expected array but got ${typeof parsed}`)
+function assertBenchmarkGhxAliasReady(): void {
+  try {
+    lstatSync(GHX_BENCHMARK_ALIAS_PATH)
+  } catch {
+    throw new Error(
+      "ghx_preflight_failed: benchmark ghx alias missing; run pnpm --filter @ghx-dev/core run build and ensure packages/benchmark/bin/ghx points to packages/core/dist/cli/index.js",
+    )
   }
-
-  return parsed
-    .map((item) => (isObject(item) ? (item as CapabilityListItem).capability_id : null))
-    .filter((item): item is string => typeof item === "string" && item.length > 0)
 }
 
 export function assertGhxRouterPreflight(scenarios: Scenario[]): void {
-  const authStatus = spawnSync("gh", ["auth", "status"], { encoding: "utf8" })
-  if (authStatus.status !== 0) {
-    const stderr = typeof authStatus.stderr === "string" ? authStatus.stderr.trim() : ""
-    const message = stderr.length > 0 ? stderr : "gh auth status failed"
-    throw new Error(`ghx_preflight_failed: ${message}`)
-  }
-
-  const result = spawnSync("node", [ghxCliPath(), "capabilities", "list", "--json"], {
-    encoding: "utf8",
+  ghxRouterPreflight.assertGhxRouterPreflight(scenarios, {
+    ghxCommand: GHX_BENCHMARK_ALIAS_PATH,
+    ensureGhxAliasReady: assertBenchmarkGhxAliasReady,
   })
+}
 
-  if (result.status !== 0) {
-    const stderr = typeof result.stderr === "string" ? result.stderr.trim() : ""
-    const message = stderr.length > 0 ? stderr : "failed to list ghx capabilities"
-    throw new Error(`ghx_preflight_failed: ${message}`)
-  }
-
-  const stdout = typeof result.stdout === "string" ? result.stdout : ""
-  const capabilities = parseGhxCapabilities(stdout)
-  if (capabilities.length === 0) {
-    throw new Error(
-      "ghx_preflight_failed: ghx capabilities list returned no capabilities; run pnpm --filter @ghx-dev/core run build",
-    )
-  }
-
-  const capabilitySet = new Set(capabilities)
-  const missingTasks = scenarios
-    .map((scenario) => scenario.task)
-    .filter((task, index, all) => all.indexOf(task) === index)
-    .filter((task) => !capabilitySet.has(task))
-
-  if (missingTasks.length > 0) {
-    throw new Error(
-      `ghx_preflight_failed: missing capabilities for selected scenarios: ${missingTasks.join(", ")}`,
-    )
-  }
+async function loadGhxSkillInstruction(): Promise<string> {
+  return readFile(GHX_SKILL_ASSET_PATH, "utf8")
 }
 
 function resolveGhTokenFromCli(): string | null {
@@ -892,8 +783,15 @@ function resolveGhTokenFromCli(): string | null {
   return token.length > 0 ? token : null
 }
 
-async function withIsolatedBenchmarkClient<T>(run: (client: unknown) => Promise<T>): Promise<T> {
+async function withIsolatedBenchmarkClient<T>(
+  mode: BenchmarkMode,
+  run: (client: unknown) => Promise<T>,
+): Promise<T> {
   const isolatedXdgConfigHome = await mkdtemp(join(tmpdir(), "ghx-benchmark-opencode-"))
+  const instructions = await modeInstructions(mode, loadGhxSkillInstruction)
+  if (mode === "ghx") {
+    await ensureBenchmarkGhxAliasReady()
+  }
 
   const previousEnv = {
     OPENCODE_CONFIG: process.env.OPENCODE_CONFIG,
@@ -901,6 +799,7 @@ async function withIsolatedBenchmarkClient<T>(run: (client: unknown) => Promise<
     XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME,
     GH_TOKEN: process.env.GH_TOKEN,
     GITHUB_TOKEN: process.env.GITHUB_TOKEN,
+    PATH: process.env.PATH,
   }
 
   const ghToken = previousEnv.GH_TOKEN ?? previousEnv.GITHUB_TOKEN ?? resolveGhTokenFromCli()
@@ -912,6 +811,12 @@ async function withIsolatedBenchmarkClient<T>(run: (client: unknown) => Promise<
     process.env.GH_TOKEN = ghToken
     process.env.GITHUB_TOKEN = ghToken
   }
+  if (mode === "ghx") {
+    process.env.PATH =
+      previousEnv.PATH && previousEnv.PATH.length > 0
+        ? `${BENCHMARK_BIN_DIR}${delimiter}${previousEnv.PATH}`
+        : BENCHMARK_BIN_DIR
+  }
 
   let server: { close: () => void } | null = null
 
@@ -920,7 +825,7 @@ async function withIsolatedBenchmarkClient<T>(run: (client: unknown) => Promise<
       port: Number.isInteger(OPENCODE_PORT) && OPENCODE_PORT > 0 ? OPENCODE_PORT : 3000,
       config: {
         model: `${PROVIDER_ID}/${MODEL_ID}`,
-        instructions: [],
+        instructions,
         plugin: [],
         mcp: {},
         agent: {},
@@ -939,7 +844,9 @@ async function withIsolatedBenchmarkClient<T>(run: (client: unknown) => Promise<
     const client = opencode.client
 
     const configApi = (
-      client as { config?: { get?: (args?: Record<string, unknown>) => Promise<unknown> } }
+      client as {
+        config?: { get?: (args?: Record<string, unknown>) => Promise<unknown> }
+      }
     ).config
     if (configApi?.get) {
       const configResponse = await configApi.get({ url: "/config" })
@@ -949,10 +856,29 @@ async function withIsolatedBenchmarkClient<T>(run: (client: unknown) => Promise<
         : []
       const configuredPlugins = Array.isArray(resolvedConfig.plugin) ? resolvedConfig.plugin : []
 
-      if (configuredInstructions.length > 0 || configuredPlugins.length > 0) {
-        throw new Error(
-          `benchmark_config_not_clean: expected empty instructions/plugins, got instructions=${configuredInstructions.length}, plugins=${configuredPlugins.length}`,
+      if (mode === "ghx") {
+        const hasGhxSkillInstruction = configuredInstructions.some(
+          (instruction) =>
+            typeof instruction === "string" && instruction.includes("# ghx CLI Skill"),
         )
+
+        if (!hasGhxSkillInstruction || configuredPlugins.length > 0) {
+          throw new Error(
+            `benchmark_config_invalid: expected ghx skill instruction and no plugins, got instructions=${configuredInstructions.length}, plugins=${configuredPlugins.length}`,
+          )
+        }
+      } else {
+        const expectedInstruction =
+          mode === "agent_direct" ? AGENT_DIRECT_INSTRUCTION : MCP_INSTRUCTION
+        const hasExpectedInstruction = configuredInstructions.some(
+          (instruction) => instruction === expectedInstruction,
+        )
+
+        if (!hasExpectedInstruction || configuredPlugins.length > 0) {
+          throw new Error(
+            `benchmark_config_invalid: expected ${mode} instruction and no plugins, got instructions=${configuredInstructions.length}, plugins=${configuredPlugins.length}`,
+          )
+        }
       }
     }
 
@@ -992,229 +918,13 @@ async function withIsolatedBenchmarkClient<T>(run: (client: unknown) => Promise<
       process.env.GITHUB_TOKEN = previousEnv.GITHUB_TOKEN
     }
 
+    if (previousEnv.PATH === undefined) {
+      delete process.env.PATH
+    } else {
+      process.env.PATH = previousEnv.PATH
+    }
+
     await rm(isolatedXdgConfigHome, { recursive: true, force: true })
-  }
-}
-
-export function validateFixture(scenario: Scenario): void {
-  const repo = scenario.fixture?.repo
-  if (!repo) return
-
-  if (!ghOk(["repo", "view", repo, "--json", "name"])) {
-    throw new Error(`fixture_invalid: repo not found or inaccessible: ${repo}`)
-  }
-
-  if (scenario.task === "issue.view") {
-    const issueNumber =
-      typeof scenario.input.issueNumber === "number"
-        ? scenario.input.issueNumber
-        : scenario.input.issue_number
-    if (typeof issueNumber !== "number") {
-      throw new Error("fixture_invalid: issue.view requires numeric input.issueNumber")
-    }
-    if (!ghOk(["issue", "view", String(issueNumber), "--repo", repo, "--json", "number"])) {
-      throw new Error(`fixture_invalid: issue #${issueNumber} not found in ${repo}`)
-    }
-  }
-
-  if (scenario.task === "pr.view") {
-    const prNumber =
-      typeof scenario.input.prNumber === "number"
-        ? scenario.input.prNumber
-        : scenario.input.pr_number
-    if (typeof prNumber !== "number") {
-      throw new Error("fixture_invalid: pr.view requires numeric input.prNumber")
-    }
-    if (!ghOk(["pr", "view", String(prNumber), "--repo", repo, "--json", "number"])) {
-      throw new Error(`fixture_invalid: pr #${prNumber} not found in ${repo}`)
-    }
-  }
-}
-
-export function renderPrompt(
-  scenario: Scenario,
-  mode: BenchmarkMode,
-  benchmarkNonce?: string,
-): string {
-  const scopedAssertions = modeScopedAssertions(scenario, mode)
-  const rendered = scenario.prompt_template
-    .replaceAll("{{task}}", scenario.task)
-    .replaceAll("{{scenario_id}}", scenario.id)
-    .replaceAll("{{input_json}}", JSON.stringify(scenario.input))
-    .replaceAll("{{fixture_repo}}", scenario.fixture?.repo ?? "")
-
-  const fixtureNote = scenario.fixture?.repo ? `Target repository: ${scenario.fixture.repo}.` : ""
-  const requiredDataFields = scopedAssertions.required_data_fields ?? []
-  const requiredMetaFields = scopedAssertions.required_meta_fields ?? []
-  const dataContract =
-    requiredDataFields.length > 0
-      ? `The JSON data object MUST include: ${requiredDataFields.join(", ")}.`
-      : "The JSON data field may be object or array based on task output."
-  const metaContract =
-    requiredMetaFields.length > 0
-      ? `The JSON meta object MUST include: ${requiredMetaFields.join(", ")}.`
-      : "The JSON meta object can include optional diagnostic fields."
-  const routeContract =
-    scopedAssertions.expected_route_used !== undefined
-      ? `meta.route_used MUST be exactly "${scopedAssertions.expected_route_used}".`
-      : ""
-  const failFastContract =
-    mode === "ghx"
-      ? "If the ghx command fails, return the final envelope JSON immediately. Do not run extra debugging commands."
-      : ""
-
-  const nonceLine = benchmarkNonce ? `Benchmark nonce: ${benchmarkNonce}` : ""
-
-  return `${modePromptPrefix[mode]}\n${fixtureNote}\n${nonceLine}\nYou MUST use real tools to gather data. Do not fabricate outputs.\nReturn STRICT JSON only. No markdown fences.\nOutput must be exactly one JSON object with keys: ok, data, error, meta.\n${dataContract}\n${metaContract}\n${routeContract}\n${failFastContract}\n\n${rendered}`
-}
-
-function buildOutputSchema(assertions: Scenario["assertions"]): Record<string, unknown> {
-  const requiredDataFields = assertions.required_data_fields ?? []
-  const requiredMetaFields = assertions.required_meta_fields ?? []
-
-  const dataProperties: Record<string, unknown> = {}
-  for (const field of requiredDataFields) {
-    if (field === "items") {
-      dataProperties.items = {
-        type: "array",
-        items: {},
-      }
-      continue
-    }
-    if (field === "pageInfo") {
-      dataProperties.pageInfo = {
-        type: "object",
-        properties: {
-          hasNextPage: { type: "boolean" },
-          endCursor: { type: ["string", "null"] },
-        },
-        required: ["hasNextPage", "endCursor"],
-        additionalProperties: true,
-      }
-      continue
-    }
-
-    dataProperties[field] = {}
-  }
-
-  const metaProperties: Record<string, unknown> = {}
-  for (const field of requiredMetaFields) {
-    if (field === "route_used") {
-      metaProperties.route_used =
-        assertions.expected_route_used !== undefined
-          ? { type: "string", const: assertions.expected_route_used }
-          : { type: "string" }
-      continue
-    }
-
-    metaProperties[field] = {}
-  }
-
-  return {
-    type: "object",
-    properties: {
-      ok: { type: "boolean" },
-      data: {
-        type: "object",
-        properties: dataProperties,
-        required: requiredDataFields,
-        additionalProperties: true,
-      },
-      error: { type: ["object", "null"] },
-      meta: {
-        type: "object",
-        properties: metaProperties,
-        required: requiredMetaFields,
-        additionalProperties: true,
-      },
-    },
-    required: ["ok", "data", "error", "meta"],
-    additionalProperties: false,
-  }
-}
-
-function modeScopedAssertions(scenario: Scenario, mode: BenchmarkMode): Scenario["assertions"] {
-  if (mode === "ghx") {
-    const hasGithubToken =
-      typeof process.env.GITHUB_TOKEN === "string" && process.env.GITHUB_TOKEN.trim().length > 0
-    const hasGhToken =
-      typeof process.env.GH_TOKEN === "string" && process.env.GH_TOKEN.trim().length > 0
-
-    if (scenario.assertions.expected_route_used === "graphql" && !hasGithubToken && !hasGhToken) {
-      const { expected_route_used: _expectedRoute, ...base } = scenario.assertions
-      return base
-    }
-
-    return scenario.assertions
-  }
-
-  const { expected_route_used: _ignoredExpectedRouteUsed, ...baseAssertions } = scenario.assertions
-
-  return {
-    ...baseAssertions,
-    required_meta_fields: (scenario.assertions.required_meta_fields ?? []).filter(
-      (field) => field !== "route_used",
-    ),
-  }
-}
-
-function expectedOutcomeFromAssertions(
-  assertions: Scenario["assertions"],
-): "success" | "expected_error" {
-  if (assertions.expected_outcome !== undefined) {
-    return assertions.expected_outcome
-  }
-
-  return assertions.must_succeed === false ? "expected_error" : "success"
-}
-
-function matchesExpectedOutcome(
-  envelope: unknown,
-  expectedOutcome: "success" | "expected_error",
-): boolean {
-  if (!isObject(envelope)) {
-    return false
-  }
-
-  const ok = envelope.ok === true
-  const error = envelope.error
-
-  if (expectedOutcome === "expected_error") {
-    return isObject(error)
-  }
-
-  return ok && error === null
-}
-
-function forcedToolCommandHint(scenario: Scenario, mode: BenchmarkMode): string {
-  const owner = String((scenario.input.owner ?? "").toString())
-  const name = String((scenario.input.name ?? "").toString())
-  const repo = owner && name ? `${owner}/${name}` : (scenario.fixture?.repo ?? "")
-  const first = typeof scenario.input.first === "number" ? scenario.input.first : 20
-  const state = String((scenario.input.state ?? "open").toString())
-  const issueNumber =
-    typeof scenario.input.issueNumber === "number" ? scenario.input.issueNumber : 1
-  const prNumber = typeof scenario.input.prNumber === "number" ? scenario.input.prNumber : 1
-
-  if (mode === "ghx") {
-    return `GHX_SKIP_GH_PREFLIGHT=1 node ../core/dist/cli/index.js run ${scenario.task} --input '${JSON.stringify(scenario.input)}'`
-  }
-
-  switch (scenario.task) {
-    case "issue.comments.list":
-      return `gh api repos/${repo}/issues/${issueNumber}/comments?per_page=${first}&page=1`
-    case "issue.list":
-      return `gh issue list --repo ${repo} --state ${state} --limit ${first} --json id,number,title,state,url`
-    case "pr.list":
-      return `gh pr list --repo ${repo} --state ${state} --limit ${first} --json id,number,title,state,url`
-    case "issue.view":
-      return `gh issue view ${issueNumber} --repo ${repo} --json id,number,title,state,url`
-    case "pr.view":
-      return `gh pr view ${prNumber} --repo ${repo} --json id,number,title,state,url`
-    case "repo.view":
-      return `gh repo view ${repo} --json id,name,nameWithOwner,isPrivate,stargazerCount,forkCount,url,defaultBranchRef`
-    default:
-      return "gh --version"
   }
 }
 
@@ -1381,52 +1091,128 @@ export async function runScenario(
   iteration: number,
   scenarioSet: string | null = null,
 ): Promise<BenchmarkRow> {
-  const scenarioStartedAt = Date.now()
-  let externalRetryCount = 0
+  const startedAt = Date.now()
+  let sessionId: string | null = null
 
-  const classifyRunnerFailure = (
-    error: unknown,
-  ): { type: string; message: string; retryable: boolean } => {
-    const message = error instanceof Error ? error.message : String(error)
-    if (message.includes("No assistant message received in session.messages")) {
-      return { type: "runner_timeout_no_first_assistant", message, retryable: true }
+  try {
+    const sessionApi = getSessionApi(client)
+    const scopedAssertions = modeScopedAssertions(scenario, mode)
+    const benchmarkNonce = randomUUID()
+    const sessionResult = await withTimeout(
+      sessionApi.create({ url: "/session" }),
+      scenario.timeout_ms,
+      "session.create",
+    )
+    const session = unwrapData<{ id: string }>(sessionResult, "session.create")
+    sessionId = session.id
+
+    const promptResult = await withTimeout(
+      sessionApi.promptAsync({
+        url: "/session/{id}/prompt_async",
+        path: { id: session.id },
+        body: {
+          model: { providerID: PROVIDER_ID, modelID: MODEL_ID },
+          agent: OPEN_CODE_MODE ?? undefined,
+          parts: [
+            {
+              type: "text",
+              text: renderPrompt(scenario, mode, benchmarkNonce),
+            },
+          ],
+          format: {
+            type: "json_schema",
+            retryCount: 2,
+            schema: buildOutputSchema(scopedAssertions),
+          },
+        },
+      }),
+      Math.min(15000, scenario.timeout_ms),
+      "session.promptAsync",
+    )
+
+    const remainingTimeoutMs = Math.max(1000, scenario.timeout_ms - (Date.now() - startedAt))
+    const immediatePrompt = extractPromptResponseFromPromptResult(promptResult)
+    const hydrated =
+      immediatePrompt ??
+      (await waitForAssistantFromMessages(sessionApi, session.id, remainingTimeoutMs, scenario.id))
+    let assistantAndParts = coercePromptResponse(hydrated)
+
+    let extracted = extractEnvelopeFromParts(assistantAndParts.parts)
+    if (
+      extracted.envelope === null &&
+      assistantAndParts.assistant.structured_output !== undefined
+    ) {
+      extracted = {
+        ...extracted,
+        envelope: assistantAndParts.assistant.structured_output,
+      }
     }
 
-    if (message.includes("Session message stream stalled in session.messages")) {
-      return { type: "runner_timeout_stalled_session", message, retryable: true }
-    }
+    let continuationCount = 0
+    while (extracted.envelope === null && continuationCount < 3) {
+      continuationCount += 1
+      const remaining = Math.max(1000, scenario.timeout_ms - (Date.now() - startedAt))
 
-    if (message.includes("Timed out waiting for assistant message in session.messages")) {
-      return { type: "runner_timeout_wait_for_assistant", message, retryable: true }
-    }
-
-    return { type: "runner_error", message, retryable: false }
-  }
-
-  while (true) {
-    const attemptStartedAt = Date.now()
-    let sessionId: string | null = null
-
-    try {
-      const sessionApi = getSessionApi(client)
-      const scopedAssertions = modeScopedAssertions(scenario, mode)
-      const benchmarkNonce = randomUUID()
-      const sessionResult = await withTimeout(
-        sessionApi.create({ url: "/session" }),
-        scenario.timeout_ms,
-        "session.create",
+      const continuationResult = await withTimeout(
+        sessionApi.promptAsync({
+          url: "/session/{id}/prompt_async",
+          path: { id: session.id },
+          body: {
+            messageID: assistantAndParts.assistant.id,
+            model: { providerID: PROVIDER_ID, modelID: MODEL_ID },
+            agent: OPEN_CODE_MODE ?? undefined,
+            parts: [
+              {
+                type: "text",
+                text: "Continue and return only one complete JSON object for the final envelope.",
+              },
+            ],
+          },
+        }),
+        Math.min(10000, remaining),
+        "session.promptAsync.continue",
       )
-      const session = unwrapData<{ id: string }>(sessionResult, "session.create")
-      sessionId = session.id
 
-      const promptResult = await withTimeout(
+      const immediateContinuation = extractPromptResponseFromPromptResult(continuationResult)
+      const next =
+        immediateContinuation ??
+        (await waitForAssistantFromMessages(
+          sessionApi,
+          session.id,
+          remaining,
+          scenario.id,
+          assistantAndParts.assistant.id,
+        ))
+
+      assistantAndParts = coercePromptResponse(next)
+      extracted = extractEnvelopeFromParts(assistantAndParts.parts)
+    }
+
+    let assistant = assistantAndParts.assistant
+    let envelope = tryWrapRawDataAsEnvelope(extracted.envelope, scopedAssertions, mode)
+
+    let allMessages = await fetchSessionMessages(sessionApi, session.id)
+    let toolCounts = aggregateToolCounts(allMessages)
+    const requireToolCalls = scopedAssertions.require_tool_calls ?? true
+
+    let forceToolAttempt = 0
+    while (requireToolCalls && toolCounts.toolCalls === 0 && forceToolAttempt < 3) {
+      forceToolAttempt += 1
+      const remaining = Math.max(1000, scenario.timeout_ms - (Date.now() - startedAt))
+      const forcedCommand = forcedToolCommandHint(scenario, mode)
+      const forcedPromptResult = await withTimeout(
         sessionApi.promptAsync({
           url: "/session/{id}/prompt_async",
           path: { id: session.id },
           body: {
             model: { providerID: PROVIDER_ID, modelID: MODEL_ID },
             agent: OPEN_CODE_MODE ?? undefined,
-            parts: [{ type: "text", text: renderPrompt(scenario, mode, benchmarkNonce) }],
+            parts: [
+              {
+                type: "text",
+                text: `You must execute at least one real tool call before producing the final JSON envelope. Run this exact command now: ${forcedCommand}. Then return the final envelope JSON only.`,
+              },
+            ],
             format: {
               type: "json_schema",
               retryCount: 2,
@@ -1434,26 +1220,24 @@ export async function runScenario(
             },
           },
         }),
-        Math.min(15000, scenario.timeout_ms),
-        "session.promptAsync",
+        Math.min(10000, remaining),
+        "session.promptAsync.tool-required",
       )
 
-      const remainingTimeoutMs = Math.max(
-        1000,
-        scenario.timeout_ms - (Date.now() - attemptStartedAt),
-      )
-      const immediatePrompt = extractPromptResponseFromPromptResult(promptResult)
-      const hydrated =
-        immediatePrompt ??
+      const immediateForcedResponse = extractPromptResponseFromPromptResult(forcedPromptResult)
+      const next =
+        immediateForcedResponse ??
         (await waitForAssistantFromMessages(
           sessionApi,
           session.id,
-          remainingTimeoutMs,
+          remaining,
           scenario.id,
+          assistant.id,
         ))
-      let assistantAndParts = coercePromptResponse(hydrated)
 
-      let extracted = extractEnvelopeFromParts(assistantAndParts.parts)
+      assistantAndParts = coercePromptResponse(next)
+      assistant = assistantAndParts.assistant
+      extracted = extractEnvelopeFromParts(assistantAndParts.parts)
       if (
         extracted.envelope === null &&
         assistantAndParts.assistant.structured_output !== undefined
@@ -1464,509 +1248,256 @@ export async function runScenario(
         }
       }
 
-      let continuationCount = 0
-      while (extracted.envelope === null && continuationCount < 3) {
-        continuationCount += 1
-        const remaining = Math.max(1000, scenario.timeout_ms - (Date.now() - attemptStartedAt))
+      envelope = tryWrapRawDataAsEnvelope(extracted.envelope, scopedAssertions, mode)
+      allMessages = await fetchSessionMessages(sessionApi, session.id)
+      toolCounts = aggregateToolCounts(allMessages)
+    }
 
-        const continuationResult = await withTimeout(
-          sessionApi.promptAsync({
-            url: "/session/{id}/prompt_async",
-            path: { id: session.id },
-            body: {
-              messageID: assistantAndParts.assistant.id,
-              model: { providerID: PROVIDER_ID, modelID: MODEL_ID },
-              agent: OPEN_CODE_MODE ?? undefined,
-              parts: [
-                {
-                  type: "text",
-                  text: "Continue and return only one complete JSON object for the final envelope.",
-                },
-              ],
-            },
-          }),
-          Math.min(10000, remaining),
-          "session.promptAsync.continue",
-        )
-
-        const immediateContinuation = extractPromptResponseFromPromptResult(continuationResult)
-        const next =
-          immediateContinuation ??
-          (await waitForAssistantFromMessages(
-            sessionApi,
-            session.id,
-            remaining,
-            scenario.id,
-            assistantAndParts.assistant.id,
-          ))
-
-        assistantAndParts = coercePromptResponse(next)
-        extracted = extractEnvelopeFromParts(assistantAndParts.parts)
+    if (!validateEnvelope(scopedAssertions, envelope)) {
+      const bestEnvelope = findBestEnvelopeFromMessages(allMessages, scopedAssertions, mode)
+      if (bestEnvelope !== null) {
+        envelope = bestEnvelope
+      } else {
+        const recoveredEnvelope = extractEnvelopeFromMessages(allMessages)
+        if (recoveredEnvelope !== null) {
+          envelope = tryWrapRawDataAsEnvelope(recoveredEnvelope, scopedAssertions, mode)
+        }
       }
+    }
 
-      let assistant = assistantAndParts.assistant
-      let envelope = tryWrapRawDataAsEnvelope(extracted.envelope, scopedAssertions, mode)
+    const outputValid = validateEnvelope(scopedAssertions, envelope)
 
-      let allMessages = await fetchSessionMessages(sessionApi, session.id)
-      let toolCounts = aggregateToolCounts(allMessages)
-      const requireToolCalls = scopedAssertions.require_tool_calls ?? true
+    const attemptMetrics = extractAttemptMetrics(envelope)
+    const latencyWall = Date.now() - startedAt
+    const sdkLatency =
+      typeof assistant.time.completed === "number"
+        ? Math.max(0, assistant.time.completed - assistant.time.created)
+        : null
 
-      let forceToolAttempt = 0
-      while (requireToolCalls && toolCounts.toolCalls === 0 && forceToolAttempt < 3) {
-        forceToolAttempt += 1
-        const remaining = Math.max(1000, scenario.timeout_ms - (Date.now() - attemptStartedAt))
-        const forcedCommand = forcedToolCommandHint(scenario, mode)
-        const forcedPromptResult = await withTimeout(
-          sessionApi.promptAsync({
-            url: "/session/{id}/prompt_async",
-            path: { id: session.id },
-            body: {
-              model: { providerID: PROVIDER_ID, modelID: MODEL_ID },
-              agent: OPEN_CODE_MODE ?? undefined,
-              parts: [
-                {
-                  type: "text",
-                  text: `You must execute at least one real tool call before producing the final JSON envelope. Run this exact command now: ${forcedCommand}. Then return the final envelope JSON only.`,
-                },
-              ],
-              format: {
-                type: "json_schema",
-                retryCount: 2,
-                schema: buildOutputSchema(scopedAssertions),
-              },
-            },
-          }),
-          Math.min(10000, remaining),
-          "session.promptAsync.tool-required",
-        )
+    const tokenTotal =
+      assistant.tokens.input +
+      assistant.tokens.output +
+      assistant.tokens.reasoning +
+      assistant.tokens.cache.read +
+      assistant.tokens.cache.write
+    const timingBreakdown = extractTimingBreakdown(allMessages)
 
-        const immediateForcedResponse = extractPromptResponseFromPromptResult(forcedPromptResult)
-        const next =
-          immediateForcedResponse ??
-          (await waitForAssistantFromMessages(
-            sessionApi,
-            session.id,
-            remaining,
-            scenario.id,
-            assistant.id,
-          ))
+    const minToolCalls = scopedAssertions.min_tool_calls ?? 1
+    const maxToolCalls = scopedAssertions.max_tool_calls
+    const hasRequiredToolCalls = requireToolCalls ? toolCounts.toolCalls >= minToolCalls : true
+    const hasValidMaxToolCalls =
+      maxToolCalls === undefined ? true : toolCounts.toolCalls <= maxToolCalls
+    const requiresAttemptTrace = scopedAssertions.require_attempt_trace ?? false
+    const hasAttemptTrace = !requiresAttemptTrace || attemptMetrics.totalAttempts > 0
+    const expectValidOutput = scopedAssertions.expect_valid_output ?? scopedAssertions.must_succeed
+    const outputExpectationMet = expectValidOutput ? outputValid : !outputValid
+    const errorReason = !outputExpectationMet
+      ? `Output validation failed: outputValid=${outputValid}, expectValidOutput=${expectValidOutput}`
+      : !hasRequiredToolCalls
+        ? `Expected at least ${minToolCalls} tool call(s), got ${toolCounts.toolCalls}`
+        : !hasValidMaxToolCalls
+          ? `Expected at most ${maxToolCalls} tool call(s), got ${toolCounts.toolCalls}`
+          : !hasAttemptTrace
+            ? "Expected attempt trace metadata in output envelope"
+            : null
 
-        assistantAndParts = coercePromptResponse(next)
-        assistant = assistantAndParts.assistant
-        extracted = extractEnvelopeFromParts(assistantAndParts.parts)
-        if (
-          extracted.envelope === null &&
-          assistantAndParts.assistant.structured_output !== undefined
-        ) {
-          extracted = {
-            ...extracted,
-            envelope: assistantAndParts.assistant.structured_output,
+    const success =
+      outputExpectationMet && hasRequiredToolCalls && hasValidMaxToolCalls && hasAttemptTrace
+
+    return {
+      timestamp: new Date().toISOString(),
+      run_id: randomUUID(),
+      mode,
+      scenario_id: scenario.id,
+      scenario_set: scenarioSet,
+      iteration,
+      session_id: sessionId,
+      success,
+      output_valid: outputValid,
+      latency_ms_wall: latencyWall,
+      sdk_latency_ms: sdkLatency,
+      timing_breakdown: timingBreakdown,
+      tokens: {
+        input: assistant.tokens.input,
+        output: assistant.tokens.output,
+        reasoning: assistant.tokens.reasoning,
+        cache_read: assistant.tokens.cache.read,
+        cache_write: assistant.tokens.cache.write,
+        total: tokenTotal,
+      },
+      cost: assistant.cost,
+      tool_calls: toolCounts.toolCalls,
+      api_calls: toolCounts.apiCalls,
+      internal_retry_count: attemptMetrics.retryCount,
+      external_retry_count: 0,
+      model: {
+        provider_id: PROVIDER_ID,
+        model_id: MODEL_ID,
+        mode: OPEN_CODE_MODE,
+      },
+      git: {
+        repo: GIT_REPO,
+        commit: GIT_COMMIT,
+      },
+      error: errorReason
+        ? {
+            type: "assertion_failed",
+            message: errorReason,
           }
-        }
+        : null,
+    }
+  } catch (error: unknown) {
+    if (sessionId) {
+      const sessionApi = getSessionApi(client)
+      await sessionApi
+        .abort({ url: "/session/{id}/abort", path: { id: sessionId } })
+        .catch(() => undefined)
+    }
 
-        envelope = tryWrapRawDataAsEnvelope(extracted.envelope, scopedAssertions, mode)
-        allMessages = await fetchSessionMessages(sessionApi, session.id)
-        toolCounts = aggregateToolCounts(allMessages)
-      }
-
-      if (!validateEnvelope(scopedAssertions, envelope)) {
-        const bestEnvelope = findBestEnvelopeFromMessages(allMessages, scopedAssertions, mode)
-        if (bestEnvelope !== null) {
-          envelope = bestEnvelope
-        } else {
-          const recoveredEnvelope = extractEnvelopeFromMessages(allMessages)
-          if (recoveredEnvelope !== null) {
-            envelope = tryWrapRawDataAsEnvelope(recoveredEnvelope, scopedAssertions, mode)
-          }
-        }
-      }
-
-      const outputValid = validateEnvelope(scopedAssertions, envelope)
-
-      const attemptMetrics = extractAttemptMetrics(envelope)
-      const latencyWall = Date.now() - scenarioStartedAt
-      const sdkLatency =
-        typeof assistant.time.completed === "number"
-          ? Math.max(0, assistant.time.completed - assistant.time.created)
-          : null
-
-      const tokenTotal =
-        assistant.tokens.input +
-        assistant.tokens.output +
-        assistant.tokens.reasoning +
-        assistant.tokens.cache.read +
-        assistant.tokens.cache.write
-      const timingBreakdown = extractTimingBreakdown(allMessages)
-
-      const minToolCalls = scopedAssertions.min_tool_calls ?? 1
-      const maxToolCalls = scopedAssertions.max_tool_calls
-      const hasRequiredToolCalls = requireToolCalls ? toolCounts.toolCalls >= minToolCalls : true
-      const hasValidMaxToolCalls =
-        maxToolCalls === undefined ? true : toolCounts.toolCalls <= maxToolCalls
-      const requiresAttemptTrace = scopedAssertions.require_attempt_trace ?? false
-      const hasAttemptTrace = !requiresAttemptTrace || attemptMetrics.totalAttempts > 0
-      const expectedOutcome = expectedOutcomeFromAssertions(scopedAssertions)
-      const expectValidOutput = scopedAssertions.expect_valid_output ?? true
-      const outputExpectationMet = expectValidOutput ? outputValid : !outputValid
-      const outcomeMatched = matchesExpectedOutcome(envelope, expectedOutcome)
-      const errorReason = !outputExpectationMet
-        ? `Output validation failed: outputValid=${outputValid}, expectValidOutput=${expectValidOutput}`
-        : !outcomeMatched
-          ? `Outcome validation failed: expected_outcome=${expectedOutcome}`
-          : !hasRequiredToolCalls
-            ? `Expected at least ${minToolCalls} tool call(s), got ${toolCounts.toolCalls}`
-            : !hasValidMaxToolCalls
-              ? `Expected at most ${maxToolCalls} tool call(s), got ${toolCounts.toolCalls}`
-              : !hasAttemptTrace
-                ? "Expected attempt trace metadata in output envelope"
-                : null
-
-      const success =
-        outputExpectationMet &&
-        outcomeMatched &&
-        hasRequiredToolCalls &&
-        hasValidMaxToolCalls &&
-        hasAttemptTrace
-
-      return {
-        timestamp: new Date().toISOString(),
-        run_id: randomUUID(),
-        mode,
-        scenario_id: scenario.id,
-        scenario_set: scenarioSet,
-        iteration,
-        session_id: sessionId,
-        success,
-        output_valid: outputValid,
-        latency_ms_wall: latencyWall,
-        sdk_latency_ms: sdkLatency,
-        timing_breakdown: timingBreakdown,
-        tokens: {
-          input: assistant.tokens.input,
-          output: assistant.tokens.output,
-          reasoning: assistant.tokens.reasoning,
-          cache_read: assistant.tokens.cache.read,
-          cache_write: assistant.tokens.cache.write,
-          total: tokenTotal,
-        },
-        cost: assistant.cost,
-        tool_calls: toolCounts.toolCalls,
-        api_calls: toolCounts.apiCalls,
-        internal_retry_count: attemptMetrics.retryCount,
-        external_retry_count: externalRetryCount,
-        model: {
-          provider_id: PROVIDER_ID,
-          model_id: MODEL_ID,
-          mode: OPEN_CODE_MODE,
-        },
-        git: {
-          repo: GIT_REPO,
-          commit: GIT_COMMIT,
-        },
-        error: errorReason
-          ? {
-              type: "assertion_failed",
-              message: errorReason,
-            }
-          : null,
-      }
-    } catch (error: unknown) {
-      if (sessionId) {
-        const sessionApi = getSessionApi(client)
-        await sessionApi
-          .abort({ url: "/session/{id}/abort", path: { id: sessionId } })
-          .catch(() => undefined)
-      }
-
-      const failure = classifyRunnerFailure(error)
-      const retriesAllowed = Number.isFinite(MAX_RUNNER_RETRIES)
-        ? Math.max(0, MAX_RUNNER_RETRIES)
-        : 0
-
-      if (failure.retryable && externalRetryCount < retriesAllowed) {
-        externalRetryCount += 1
-        const backoffMs =
-          (Number.isFinite(RUNNER_RETRY_BACKOFF_MS) ? Math.max(0, RUNNER_RETRY_BACKOFF_MS) : 0) *
-          externalRetryCount
-        if (backoffMs > 0) {
-          await new Promise((resolve) => setTimeout(resolve, backoffMs))
-        }
-        continue
-      }
-
-      return {
-        timestamp: new Date().toISOString(),
-        run_id: randomUUID(),
-        mode,
-        scenario_id: scenario.id,
-        scenario_set: scenarioSet,
-        iteration,
-        session_id: sessionId,
-        success: false,
-        output_valid: false,
-        latency_ms_wall: Date.now() - scenarioStartedAt,
-        sdk_latency_ms: null,
-        tokens: {
-          input: 0,
-          output: 0,
-          reasoning: 0,
-          cache_read: 0,
-          cache_write: 0,
-          total: 0,
-        },
-        cost: 0,
-        tool_calls: 0,
-        api_calls: 0,
-        internal_retry_count: 0,
-        external_retry_count: externalRetryCount,
-        model: {
-          provider_id: PROVIDER_ID,
-          model_id: MODEL_ID,
-          mode: OPEN_CODE_MODE,
-        },
-        git: {
-          repo: GIT_REPO,
-          commit: GIT_COMMIT,
-        },
-        error: {
-          type: failure.type,
-          message: failure.message,
-        },
-      }
+    return {
+      timestamp: new Date().toISOString(),
+      run_id: randomUUID(),
+      mode,
+      scenario_id: scenario.id,
+      scenario_set: scenarioSet,
+      iteration,
+      session_id: sessionId,
+      success: false,
+      output_valid: false,
+      latency_ms_wall: Date.now() - startedAt,
+      sdk_latency_ms: null,
+      tokens: {
+        input: 0,
+        output: 0,
+        reasoning: 0,
+        cache_read: 0,
+        cache_write: 0,
+        total: 0,
+      },
+      cost: 0,
+      tool_calls: 0,
+      api_calls: 0,
+      internal_retry_count: 0,
+      external_retry_count: 0,
+      model: {
+        provider_id: PROVIDER_ID,
+        model_id: MODEL_ID,
+        mode: OPEN_CODE_MODE,
+      },
+      git: {
+        repo: GIT_REPO,
+        commit: GIT_COMMIT,
+      },
+      error: {
+        type: "runner_error",
+        message: error instanceof Error ? error.message : String(error),
+      },
     }
   }
 }
 
 export async function runSuite(options: RunSuiteOptions): Promise<void> {
-  const {
-    mode,
-    repetitions,
-    scenarioFilter,
-    scenarioSet = null,
-    fixtureManifestPath: providedFixtureManifestPath = process.env.BENCH_FIXTURE_MANIFEST ?? null,
-    seedIfMissing = false,
-  } = options
-  const suiteRunId = randomUUID()
-  const progressEventsEnabled = process.env.BENCH_PROGRESS_EVENTS === BENCH_PROGRESS_EVENTS_MODE
-  const emitProgressEvent = (
-    event:
-      | "suite_started"
-      | "scenario_started"
-      | "scenario_finished"
-      | "suite_finished"
-      | "suite_error",
-    payload: Record<string, unknown> = {},
-  ): void => {
-    if (!progressEventsEnabled) {
-      return
-    }
+  const { mode, repetitions, scenarioFilter, scenarioSet = null } = options
 
-    console.log(
-      JSON.stringify({
-        event,
-        timestamp: new Date().toISOString(),
-        run_id: suiteRunId,
-        ...payload,
-      }),
+  await mkdir(RESULTS_DIR, { recursive: true })
+  const scenarios = await loadScenarios(SCENARIOS_DIR)
+
+  if (scenarios.length === 0) {
+    throw new Error(
+      scenarioFilter
+        ? `No scenarios matched filter: ${scenarioFilter}`
+        : "No benchmark scenarios found",
     )
   }
 
-  try {
-    await mkdir(RESULTS_DIR, { recursive: true })
-    const scenarios = await loadScenarios(SCENARIOS_DIR)
+  let selectedScenarios: Scenario[]
+  let resolvedScenarioSet: string | null
 
-    if (scenarios.length === 0) {
+  if (scenarioFilter) {
+    selectedScenarios = scenarios.filter((scenario) => scenario.id === scenarioFilter)
+    resolvedScenarioSet = null
+  } else {
+    const scenarioSets = await loadScenarioSets(process.cwd())
+    const selectedSetName = scenarioSet ?? "default"
+    const selectedScenarioIds = scenarioSets[selectedSetName]
+    if (!selectedScenarioIds) {
+      throw new Error(`Unknown scenario set: ${selectedSetName}`)
+    }
+
+    const unknownScenarioIds = selectedScenarioIds.filter(
+      (scenarioId) => !scenarios.some((scenario) => scenario.id === scenarioId),
+    )
+    if (unknownScenarioIds.length > 0) {
       throw new Error(
-        scenarioFilter
-          ? `No scenarios matched filter: ${scenarioFilter}`
-          : "No benchmark scenarios found",
+        `Scenario set '${selectedSetName}' references unknown scenario id(s): ${unknownScenarioIds.join(", ")}`,
       )
     }
 
-    let selectedScenarios: Scenario[]
-    let resolvedScenarioSet: string | null
-
-    if (scenarioFilter) {
-      selectedScenarios = scenarios.filter((scenario) => scenario.id === scenarioFilter)
-      resolvedScenarioSet = null
-    } else {
-      const scenarioSets = await loadScenarioSets(process.cwd())
-      const selectedSetName = scenarioSet ?? "default"
-      const selectedScenarioIds = scenarioSets[selectedSetName]
-      if (!selectedScenarioIds) {
-        throw new Error(`Unknown scenario set: ${selectedSetName}`)
-      }
-
-      const unknownScenarioIds = selectedScenarioIds.filter(
-        (scenarioId) => !scenarios.some((scenario) => scenario.id === scenarioId),
-      )
-      if (unknownScenarioIds.length > 0) {
+    selectedScenarios = selectedScenarioIds.map((scenarioId) => {
+      const matchedScenario = scenarios.find((scenario) => scenario.id === scenarioId)
+      if (!matchedScenario) {
         throw new Error(
-          `Scenario set '${selectedSetName}' references unknown scenario id(s): ${unknownScenarioIds.join(", ")}`,
+          `Scenario set '${selectedSetName}' references unknown scenario id(s): ${scenarioId}`,
         )
       }
 
-      selectedScenarios = selectedScenarioIds.map((scenarioId) => {
-        const matchedScenario = scenarios.find((scenario) => scenario.id === scenarioId)
-        if (!matchedScenario) {
-          throw new Error(
-            `Scenario set '${selectedSetName}' references unknown scenario id(s): ${scenarioId}`,
-          )
-        }
-
-        return matchedScenario
-      })
-      resolvedScenarioSet = selectedSetName
-    }
-
-    if (selectedScenarios.length === 0) {
-      throw new Error(`No scenarios matched filter: ${scenarioFilter ?? scenarioSet ?? "default"}`)
-    }
-    const totalScenarioExecutions = selectedScenarios.length * repetitions
-
-    const needsFixtureBindings = selectedScenarios.some((scenario) => {
-      const bindings = scenario.fixture?.bindings
-      return !!bindings && Object.keys(bindings).length > 0
+      return matchedScenario
     })
-
-    let fixtureManifestPath = providedFixtureManifestPath
-    if (!fixtureManifestPath && needsFixtureBindings) {
-      try {
-        await access(DEFAULT_FIXTURE_MANIFEST_PATH)
-        fixtureManifestPath = DEFAULT_FIXTURE_MANIFEST_PATH
-      } catch {
-        if (seedIfMissing) {
-          fixtureManifestPath = DEFAULT_FIXTURE_MANIFEST_PATH
-        } else {
-          throw new Error(
-            `Selected scenarios require fixture bindings but no fixture manifest was provided. Pass --fixture-manifest or create ${DEFAULT_FIXTURE_MANIFEST_PATH}.`,
-          )
-        }
-      }
-    }
-
-    let fixtureManifest: FixtureManifest | null = null
-    if (fixtureManifestPath) {
-      if (seedIfMissing) {
-        try {
-          await access(fixtureManifestPath)
-        } catch {
-          const fixtureRepo = process.env.BENCH_FIXTURE_REPO ?? "aryeko/ghx-bench-fixtures"
-          const seedId = process.env.BENCH_FIXTURE_SEED_ID ?? "default"
-          await seedFixtureManifest({
-            repo: fixtureRepo,
-            outFile: fixtureManifestPath,
-            seedId,
-          })
-        }
-      }
-
-      fixtureManifest = await loadFixtureManifest(fixtureManifestPath)
-      const resolvedManifest = fixtureManifest
-      selectedScenarios = selectedScenarios.map((scenario) =>
-        resolveScenarioFixtureBindings(scenario, resolvedManifest),
-      )
-    }
-
-    if (seedIfMissing && !fixtureManifestPath) {
-      throw new Error("--seed-if-missing requires --fixture-manifest")
-    }
-
-    if (mode === "ghx") {
-      assertGhxRouterPreflight(selectedScenarios)
-    }
-
-    const outFile = join(
-      RESULTS_DIR,
-      `${new Date().toISOString().replace(/[:.]/g, "-")}-${mode}-suite.jsonl`,
-    )
-
-    const selectedScenarioIds = selectedScenarios.map((scenario) => scenario.id)
-    console.log(
-      `[benchmark] start: mode=${mode} provider=${PROVIDER_ID} model=${MODEL_ID} opencode_mode=${OPEN_CODE_MODE ?? "<null>"}`,
-    )
-    console.log(
-      `[benchmark] config: repetitions=${repetitions} scenario_set=${resolvedScenarioSet ?? "<null>"} scenario_filter=${scenarioFilter ?? "<null>"} scenarios=${selectedScenarios.length}`,
-    )
-    console.log(`[benchmark] scenarios: ${selectedScenarioIds.join(",")}`)
-    console.log(
-      `[benchmark] context: opencode_port=${OPENCODE_PORT} git_repo=${GIT_REPO ?? "<null>"} git_commit=${GIT_COMMIT ?? "<null>"} out_file=${outFile}`,
-    )
-    console.log(
-      `[benchmark] fixtures: manifest=${fixtureManifestPath ?? "<none>"} seed_if_missing=${seedIfMissing ? "true" : "false"}`,
-    )
-    emitProgressEvent("suite_started", {
-      mode,
-      repetitions,
-      scenario_filter: scenarioFilter,
-      scenario_set: resolvedScenarioSet,
-      fixture_manifest_path: fixtureManifestPath ?? null,
-      seed_if_missing: seedIfMissing,
-      completed: 0,
-      total: totalScenarioExecutions,
-    })
-
-    let completedExecutions = 0
-    let successExecutions = 0
-
-    for (const scenario of selectedScenarios) {
-      validateFixture(scenario)
-
-      for (let iteration = 1; iteration <= repetitions; iteration += 1) {
-        let latestResult: BenchmarkRow | null = null
-        emitProgressEvent("scenario_started", {
-          mode,
-          scenario_id: scenario.id,
-          iteration,
-          completed: completedExecutions,
-          total: totalScenarioExecutions,
-        })
-
-        for (let attempt = 0; attempt <= scenario.allowed_retries; attempt += 1) {
-          const result = await withIsolatedBenchmarkClient((client) =>
-            runScenario(client, scenario, mode, iteration, resolvedScenarioSet),
-          )
-          latestResult = result
-
-          if (result.success || attempt === scenario.allowed_retries) {
-            break
-          }
-        }
-
-        if (!latestResult) {
-          throw new Error(`No benchmark result produced for scenario ${scenario.id}`)
-        }
-
-        await appendFile(outFile, `${JSON.stringify(latestResult)}\n`, "utf8")
-        completedExecutions += 1
-        if (latestResult.success) {
-          successExecutions += 1
-        }
-        emitProgressEvent("scenario_finished", {
-          mode,
-          scenario_id: scenario.id,
-          iteration,
-          success: latestResult.success,
-          completed: completedExecutions,
-          total: totalScenarioExecutions,
-        })
-      }
-    }
-
-    console.log(`Wrote benchmark suite results: ${outFile}`)
-    emitProgressEvent("suite_finished", {
-      mode,
-      out_file: outFile,
-      completed: completedExecutions,
-      total: totalScenarioExecutions,
-      success_count: successExecutions,
-      failure_count: completedExecutions - successExecutions,
-    })
-  } catch (error) {
-    emitProgressEvent("suite_error", {
-      mode,
-      message: error instanceof Error ? error.message : String(error),
-    })
-    throw error
+    resolvedScenarioSet = selectedSetName
   }
+
+  if (selectedScenarios.length === 0) {
+    throw new Error(`No scenarios matched filter: ${scenarioFilter ?? scenarioSet ?? "default"}`)
+  }
+
+  if (mode === "ghx") {
+    assertGhxRouterPreflight(selectedScenarios)
+  }
+
+  const outFile = join(
+    RESULTS_DIR,
+    `${new Date().toISOString().replace(/[:.]/g, "-")}-${mode}-suite.jsonl`,
+  )
+
+  const selectedScenarioIds = selectedScenarios.map((scenario) => scenario.id)
+  console.log(
+    `[benchmark] start: mode=${mode} provider=${PROVIDER_ID} model=${MODEL_ID} opencode_mode=${OPEN_CODE_MODE ?? "<null>"}`,
+  )
+  console.log(
+    `[benchmark] config: repetitions=${repetitions} scenario_set=${resolvedScenarioSet ?? "<null>"} scenario_filter=${scenarioFilter ?? "<null>"} scenarios=${selectedScenarios.length}`,
+  )
+  console.log(`[benchmark] scenarios: ${selectedScenarioIds.join(",")}`)
+  console.log(
+    `[benchmark] context: opencode_port=${OPENCODE_PORT} git_repo=${GIT_REPO ?? "<null>"} git_commit=${GIT_COMMIT ?? "<null>"} out_file=${outFile}`,
+  )
+
+  for (const scenario of selectedScenarios) {
+    validateFixture(scenario)
+
+    for (let iteration = 1; iteration <= repetitions; iteration += 1) {
+      let latestResult: BenchmarkRow | null = null
+
+      for (let attempt = 0; attempt <= scenario.allowed_retries; attempt += 1) {
+        const result = await withIsolatedBenchmarkClient(mode, (client) =>
+          runScenario(client, scenario, mode, iteration, resolvedScenarioSet),
+        )
+        latestResult = {
+          ...result,
+          external_retry_count: attempt,
+        }
+
+        if (result.success || attempt === scenario.allowed_retries) {
+          break
+        }
+      }
+
+      if (!latestResult) {
+        throw new Error(`No benchmark result produced for scenario ${scenario.id}`)
+      }
+
+      await appendFile(outFile, `${JSON.stringify(latestResult)}\n`, "utf8")
+    }
+  }
+
+  console.log(`Wrote benchmark suite results: ${outFile}`)
 }
