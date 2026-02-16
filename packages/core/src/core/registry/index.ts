@@ -2,11 +2,10 @@ import { readdirSync, readFileSync } from "node:fs"
 import { dirname, extname, join } from "node:path"
 import { fileURLToPath } from "node:url"
 
-import Ajv from "ajv"
+import { Ajv } from "ajv"
 import { load as parseYaml } from "js-yaml"
-
-import type { OperationCard } from "./types.js"
 import { operationCardSchema } from "./operation-card-schema.js"
+import type { OperationCard } from "./types.js"
 
 const ajv = new Ajv({ allErrors: true, strict: false })
 const validateCard = ajv.compile(operationCardSchema)
@@ -84,7 +83,7 @@ function loadCardsFromYaml(): OperationCard[] {
     "release.update",
     "release.publish_draft",
     "workflow_dispatch.run",
-    "workflow_run.rerun_failed"
+    "workflow_run.rerun_failed",
   ]
   const orderMap = new Map(preferredOrder.map((id, index) => [id, index]))
 

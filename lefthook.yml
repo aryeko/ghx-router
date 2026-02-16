@@ -1,0 +1,15 @@
+pre-commit:
+  parallel: true
+  commands:
+    format:
+      glob: "*.{ts,js,mjs,json,yaml,yml}"
+      run: pnpm biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+      stage_fixed: true
+    lint:
+      glob: "*.{ts,js,mjs}"
+      run: pnpm eslint --max-warnings=0 {staged_files}
+    typecheck:
+      env:
+        NX_DAEMON: "false"
+        NX_DEFAULT_OUTPUT_STYLE: "static"
+      run: pnpm run typecheck

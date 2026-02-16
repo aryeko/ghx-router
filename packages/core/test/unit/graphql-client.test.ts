@@ -7,7 +7,7 @@ describe("createGraphqlClient", () => {
     const client = createGraphqlClient({
       async execute<TData>(): Promise<TData> {
         return { ok: true } as TData
-      }
+      },
     })
 
     const result = await client.query<{ ok: boolean }>("query { viewer { login } }")
@@ -19,7 +19,7 @@ describe("createGraphqlClient", () => {
     const client = createGraphqlClient({
       async execute<TData>(): Promise<TData> {
         return {} as TData
-      }
+      },
     })
 
     await expect(client.query("   ")).rejects.toThrow("GraphQL query must be non-empty")

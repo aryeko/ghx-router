@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from "vitest"
 import { EventEmitter } from "node:events"
+import { describe, expect, it, vi } from "vitest"
 
 import { createSafeCliCommandRunner } from "../../src/core/execution/cli/safe-runner.js"
 
@@ -10,7 +10,7 @@ describe("createSafeCliCommandRunner", () => {
     const result = await runner.run(
       process.execPath,
       ["-e", "process.stdout.write('ok'); process.stderr.write('warn')"],
-      1000
+      1000,
     )
 
     expect(result.exitCode).toBe(0)
@@ -22,7 +22,7 @@ describe("createSafeCliCommandRunner", () => {
     const runner = createSafeCliCommandRunner()
 
     await expect(
-      runner.run(process.execPath, ["-e", "setTimeout(() => {}, 1000)"], 20)
+      runner.run(process.execPath, ["-e", "setTimeout(() => {}, 1000)"], 20),
     ).rejects.toThrow("timed out")
   })
 
@@ -30,7 +30,7 @@ describe("createSafeCliCommandRunner", () => {
     const runner = createSafeCliCommandRunner({ maxOutputBytes: 64 })
 
     await expect(
-      runner.run(process.execPath, ["-e", "process.stdout.write('x'.repeat(256))"], 1000)
+      runner.run(process.execPath, ["-e", "process.stdout.write('x'.repeat(256))"], 1000),
     ).rejects.toThrow("output exceeded")
   })
 
@@ -38,7 +38,7 @@ describe("createSafeCliCommandRunner", () => {
     const runner = createSafeCliCommandRunner({ maxOutputBytes: 64 })
 
     await expect(
-      runner.run(process.execPath, ["-e", "process.stderr.write('x'.repeat(256))"], 1000)
+      runner.run(process.execPath, ["-e", "process.stderr.write('x'.repeat(256))"], 1000),
     ).rejects.toThrow("output exceeded")
   })
 
@@ -61,9 +61,9 @@ describe("createSafeCliCommandRunner", () => {
   it("rejects when timeout is non-positive", async () => {
     const runner = createSafeCliCommandRunner()
 
-    await expect(runner.run(process.execPath, ["-e", "process.stdout.write('ok')"], 0)).rejects.toThrow(
-      "timeoutMs must be a positive number"
-    )
+    await expect(
+      runner.run(process.execPath, ["-e", "process.stdout.write('ok')"], 0),
+    ).rejects.toThrow("timeoutMs must be a positive number")
   })
 
   it("ignores duplicate settle signals and post-overflow stream chunks", async () => {
@@ -170,7 +170,7 @@ describe("createSafeCliCommandRunner", () => {
       await expect(pending).resolves.toEqual({
         stdout: "ok",
         stderr: "warn",
-        exitCode: 0
+        exitCode: 0,
       })
     } finally {
       vi.doUnmock("node:child_process")

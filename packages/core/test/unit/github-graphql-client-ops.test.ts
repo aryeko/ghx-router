@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from "vitest"
 import { parse } from "graphql"
+import { describe, expect, it, vi } from "vitest"
 
 import { createGithubClient } from "../../src/gql/client.js"
 
@@ -16,8 +16,8 @@ describe("createGithubClient", () => {
             stargazerCount: 10,
             forkCount: 2,
             url: "https://github.com/acme/ghx-router",
-            defaultBranchRef: { name: "main" }
-          }
+            defaultBranchRef: { name: "main" },
+          },
         }
       }
 
@@ -32,12 +32,12 @@ describe("createGithubClient", () => {
                   number: 10,
                   title: "Title",
                   state: "OPEN",
-                  url: "https://github.com/acme/ghx-router/issues/10"
-                }
+                  url: "https://github.com/acme/ghx-router/issues/10",
+                },
               ],
-              pageInfo: { endCursor: null, hasNextPage: false }
-            }
-          }
+              pageInfo: { endCursor: null, hasNextPage: false },
+            },
+          },
         }
       }
 
@@ -51,12 +51,12 @@ describe("createGithubClient", () => {
                   number: 5,
                   title: "PR",
                   state: "OPEN",
-                  url: "https://github.com/acme/ghx-router/pull/5"
-                }
+                  url: "https://github.com/acme/ghx-router/pull/5",
+                },
               ],
-              pageInfo: { endCursor: "cursor", hasNextPage: true }
-            }
-          }
+              pageInfo: { endCursor: "cursor", hasNextPage: true },
+            },
+          },
         }
       }
 
@@ -91,18 +91,23 @@ describe("createGithubClient", () => {
                   body: "hello",
                   author: null,
                   createdAt: "2025-01-01T00:00:00Z",
-                  url: "https://github.com/acme/ghx-router/issues/10#issuecomment-1"
-                }
+                  url: "https://github.com/acme/ghx-router/issues/10#issuecomment-1",
+                },
               ],
-              pageInfo: { endCursor: null, hasNextPage: false }
-            }
-          }
-        }
+              pageInfo: { endCursor: null, hasNextPage: false },
+            },
+          },
+        },
       }
     })
 
     const client = createGithubClient({ execute } as never)
-    const data = await client.fetchIssueCommentsList({ owner: "acme", name: "ghx-router", issueNumber: 10, first: 20 })
+    const data = await client.fetchIssueCommentsList({
+      owner: "acme",
+      name: "ghx-router",
+      issueNumber: 10,
+      first: 20,
+    })
 
     expect(data.items[0]?.authorLogin).toBeNull()
     expect(data.pageInfo.hasNextPage).toBe(false)
@@ -113,22 +118,28 @@ describe("createGithubClient", () => {
     const client = createGithubClient({ execute } as never)
 
     await expect(client.fetchRepoView({ owner: " ", name: "repo" })).rejects.toThrow(
-      "Repository owner and name are required"
-    )
-    await expect(client.fetchIssueView({ owner: "acme", name: "repo", issueNumber: 0 })).rejects.toThrow(
-      "Issue number must be a positive integer"
-    )
-    await expect(client.fetchIssueList({ owner: "acme", name: "repo", first: 0 })).rejects.toThrow(
-      "List page size must be a positive integer"
+      "Repository owner and name are required",
     )
     await expect(
-      client.fetchIssueCommentsList({ owner: "acme", name: "repo", issueNumber: 1, first: 10, after: 42 as never })
+      client.fetchIssueView({ owner: "acme", name: "repo", issueNumber: 0 }),
+    ).rejects.toThrow("Issue number must be a positive integer")
+    await expect(client.fetchIssueList({ owner: "acme", name: "repo", first: 0 })).rejects.toThrow(
+      "List page size must be a positive integer",
+    )
+    await expect(
+      client.fetchIssueCommentsList({
+        owner: "acme",
+        name: "repo",
+        issueNumber: 1,
+        first: 10,
+        after: 42 as never,
+      }),
     ).rejects.toThrow("After cursor must be a string")
     await expect(client.fetchPrView({ owner: "acme", name: "repo", prNumber: 0 })).rejects.toThrow(
-      "PR number must be a positive integer"
+      "PR number must be a positive integer",
     )
     await expect(client.fetchPrList({ owner: "acme", name: "repo", first: 0 })).rejects.toThrow(
-      "List page size must be a positive integer"
+      "List page size must be a positive integer",
     )
 
     expect(execute).not.toHaveBeenCalled()
@@ -159,25 +170,28 @@ describe("createGithubClient", () => {
 
     const client = createGithubClient({ execute } as never)
 
-    await expect(client.fetchRepoView({ owner: "acme", name: "repo" })).rejects.toThrow("Repository not found")
-    await expect(client.fetchIssueView({ owner: "acme", name: "repo", issueNumber: 1 })).rejects.toThrow("Issue not found")
-    await expect(client.fetchIssueList({ owner: "acme", name: "repo", first: 1 })).rejects.toThrow("Issues not found")
+    await expect(client.fetchRepoView({ owner: "acme", name: "repo" })).rejects.toThrow(
+      "Repository not found",
+    )
     await expect(
-      client.fetchIssueCommentsList({ owner: "acme", name: "repo", issueNumber: 1, first: 1 })
+      client.fetchIssueView({ owner: "acme", name: "repo", issueNumber: 1 }),
+    ).rejects.toThrow("Issue not found")
+    await expect(client.fetchIssueList({ owner: "acme", name: "repo", first: 1 })).rejects.toThrow(
+      "Issues not found",
+    )
+    await expect(
+      client.fetchIssueCommentsList({ owner: "acme", name: "repo", issueNumber: 1, first: 1 }),
     ).rejects.toThrow("Issue comments not found")
     await expect(client.fetchPrView({ owner: "acme", name: "repo", prNumber: 1 })).rejects.toThrow(
-      "Pull request not found"
+      "Pull request not found",
     )
     await expect(client.fetchPrList({ owner: "acme", name: "repo", first: 1 })).rejects.toThrow(
-      "Pull requests not found"
+      "Pull requests not found",
     )
   })
 
   it("supports raw query with DocumentNode and fallback query object", async () => {
-    const execute = vi
-      .fn()
-      .mockResolvedValueOnce({ ok: true })
-      .mockResolvedValueOnce({ ok: true })
+    const execute = vi.fn().mockResolvedValueOnce({ ok: true }).mockResolvedValueOnce({ ok: true })
 
     const client = createGithubClient({ execute } as never)
     const doc = parse("query Viewer { viewer { login } }")
@@ -201,13 +215,13 @@ describe("createGithubClient", () => {
                     body: "hello",
                     author: { login: "octocat" },
                     createdAt: "2025-01-01T00:00:00Z",
-                    url: "https://github.com/acme/ghx-router/issues/10#issuecomment-1"
-                  }
+                    url: "https://github.com/acme/ghx-router/issues/10#issuecomment-1",
+                  },
                 ],
-                pageInfo: { endCursor: null, hasNextPage: false }
-              }
-            }
-          }
+                pageInfo: { endCursor: null, hasNextPage: false },
+              },
+            },
+          },
         }
       }
 
@@ -216,9 +230,9 @@ describe("createGithubClient", () => {
           repository: {
             pullRequests: {
               nodes: [null],
-              pageInfo: { endCursor: null, hasNextPage: false }
-            }
-          }
+              pageInfo: { endCursor: null, hasNextPage: false },
+            },
+          },
         }
       }
 
@@ -226,7 +240,12 @@ describe("createGithubClient", () => {
     })
 
     const client = createGithubClient({ execute } as never)
-    const comments = await client.fetchIssueCommentsList({ owner: "acme", name: "ghx-router", issueNumber: 10, first: 20 })
+    const comments = await client.fetchIssueCommentsList({
+      owner: "acme",
+      name: "ghx-router",
+      issueNumber: 10,
+      first: 20,
+    })
     const prs = await client.fetchPrList({ owner: "acme", name: "ghx-router", first: 10 })
 
     expect(comments.items).toHaveLength(1)

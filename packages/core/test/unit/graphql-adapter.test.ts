@@ -8,13 +8,13 @@ describe("runGraphqlAdapter", () => {
     const client = createGraphqlClient({
       async execute<TData>(): Promise<TData> {
         return { repository: { name: "modkit" } } as TData
-      }
+      },
     })
 
     const result = await runGraphqlAdapter<{ repository: { name: string } }>(client, {
-      query: "query { repository(owner: \"go-modkit\", name: \"modkit\") { name } }",
+      query: 'query { repository(owner: "go-modkit", name: "modkit") { name } }',
       reason: "CARD_PREFERRED",
-      capabilityId: "repo.view"
+      capabilityId: "repo.view",
     })
 
     expect(result.ok).toBe(true)
@@ -27,12 +27,12 @@ describe("runGraphqlAdapter", () => {
     const client = createGraphqlClient({
       async execute(): Promise<never> {
         throw new Error("GraphQL timeout while fetching repository")
-      }
+      },
     })
 
     const result = await runGraphqlAdapter(client, {
-      query: "query { repository(owner: \"go-modkit\", name: \"modkit\") { name } }",
-      capabilityId: "repo.view"
+      query: 'query { repository(owner: "go-modkit", name: "modkit") { name } }',
+      capabilityId: "repo.view",
     })
 
     expect(result.ok).toBe(false)
@@ -44,11 +44,11 @@ describe("runGraphqlAdapter", () => {
     const client = createGraphqlClient({
       async execute(): Promise<never> {
         throw "forbidden"
-      }
+      },
     })
 
     const result = await runGraphqlAdapter(client, {
-      query: "query { viewer { login } }"
+      query: "query { viewer { login } }",
     })
 
     expect(result.ok).toBe(false)

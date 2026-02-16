@@ -1,16 +1,23 @@
-import { routePreferenceOrder } from "./policy.js"
+import type { GithubClient } from "../../gql/client.js"
 import type { ResultEnvelope, RouteSource } from "../contracts/envelope.js"
 import type { TaskRequest } from "../contracts/task.js"
 import { errorCodes } from "../errors/codes.js"
-import type { GithubClient } from "../../gql/client.js"
-import type { RouteReasonCode } from "./reason-codes.js"
-import { preflightCheck } from "../execution/preflight.js"
-import { normalizeError } from "../execution/normalizer.js"
 import { execute } from "../execute/execute.js"
-import { getOperationCard } from "../registry/index.js"
-import { runGraphqlCapability, type GraphqlCapabilityId } from "../execution/adapters/graphql-capability-adapter.js"
-import { runCliCapability, type CliCapabilityId, type CliCommandRunner } from "../execution/adapters/cli-capability-adapter.js"
+import {
+  type CliCapabilityId,
+  type CliCommandRunner,
+  runCliCapability,
+} from "../execution/adapters/cli-capability-adapter.js"
+import {
+  type GraphqlCapabilityId,
+  runGraphqlCapability,
+} from "../execution/adapters/graphql-capability-adapter.js"
 import { createSafeCliCommandRunner } from "../execution/cli/safe-runner.js"
+import { normalizeError } from "../execution/normalizer.js"
+import { preflightCheck } from "../execution/preflight.js"
+import { getOperationCard } from "../registry/index.js"
+import { routePreferenceOrder } from "./policy.js"
+import type { RouteReasonCode } from "./reason-codes.js"
 
 export function chooseRoute(): (typeof routePreferenceOrder)[number] {
   return routePreferenceOrder[0]
@@ -19,7 +26,18 @@ export function chooseRoute(): (typeof routePreferenceOrder)[number] {
 type ExecutionDeps = {
   githubClient: Pick<
     GithubClient,
-    "fetchRepoView" | "fetchIssueCommentsList" | "fetchIssueList" | "fetchIssueView" | "fetchPrList" | "fetchPrView" | "fetchPrCommentsList" | "fetchPrReviewsList" | "fetchPrDiffListFiles" | "replyToReviewThread" | "resolveReviewThread" | "unresolveReviewThread"
+    | "fetchRepoView"
+    | "fetchIssueCommentsList"
+    | "fetchIssueList"
+    | "fetchIssueView"
+    | "fetchPrList"
+    | "fetchPrView"
+    | "fetchPrCommentsList"
+    | "fetchPrReviewsList"
+    | "fetchPrDiffListFiles"
+    | "replyToReviewThread"
+    | "resolveReviewThread"
+    | "unresolveReviewThread"
   >
   githubToken?: string | null
   cliRunner?: CliCommandRunner
@@ -36,7 +54,10 @@ type CliEnvironmentState = {
 }
 
 const CLI_ENV_CACHE_TTL_MS = 30_000
-const cliEnvironmentCache = new WeakMap<CliCommandRunner, { value: CliEnvironmentState; expiresAt: number }>()
+const cliEnvironmentCache = new WeakMap<
+  CliCommandRunner,
+  { value: CliEnvironmentState; expiresAt: number }
+>()
 const cliEnvironmentInFlight = new WeakMap<CliCommandRunner, Promise<CliEnvironmentState>>()
 const defaultCliRunner = createSafeCliCommandRunner()
 const SKIP_CLI_PREFLIGHT_ENV = "GHX_SKIP_GH_PREFLIGHT"
@@ -57,19 +78,19 @@ async function detectCliEnvironment(runner: CliCommandRunner): Promise<CliEnviro
     if (version.exitCode !== 0) {
       return {
         ghCliAvailable: false,
-        ghAuthenticated: false
+        ghAuthenticated: false,
       }
     }
 
     const auth = await runner.run("gh", ["auth", "status"], 2_500)
     return {
       ghCliAvailable: true,
-      ghAuthenticated: auth.exitCode === 0
+      ghAuthenticated: auth.exitCode === 0,
     }
   } catch {
     return {
       ghCliAvailable: false,
-      ghAuthenticated: false
+      ghAuthenticated: false,
     }
   }
 }
@@ -90,7 +111,7 @@ async function detectCliEnvironmentCached(runner: CliCommandRunner): Promise<Cli
     .then((value) => {
       cliEnvironmentCache.set(runner, {
         value,
-        expiresAt: Date.now() + CLI_ENV_CACHE_TTL_MS
+        expiresAt: Date.now() + CLI_ENV_CACHE_TTL_MS,
       })
       cliEnvironmentInFlight.delete(runner)
       return value
@@ -106,7 +127,7 @@ async function detectCliEnvironmentCached(runner: CliCommandRunner): Promise<Cli
 
 export async function executeTask(
   request: TaskRequest,
-  deps: ExecutionDeps
+  deps: ExecutionDeps,
 ): Promise<ResultEnvelope> {
   const reason = deps.reason ?? DEFAULT_REASON
   const card = getOperationCard(request.task)
@@ -115,10 +136,10 @@ export async function executeTask(
       {
         code: errorCodes.Validation,
         message: `Unsupported task: ${request.task}`,
-        retryable: false
+        retryable: false,
       },
       chooseRoute(),
-      { capabilityId: request.task, reason }
+      { capabilityId: request.task, reason },
     )
   }
 
@@ -130,10 +151,10 @@ export async function executeTask(
     routingContext: {
       ghCliAvailable: deps.ghCliAvailable,
       ghAuthenticated: deps.ghAuthenticated,
-      githubTokenPresent: Boolean(deps.githubToken)
+      githubTokenPresent: Boolean(deps.githubToken),
     },
     retry: {
-      maxAttemptsPerRoute: 2
+      maxAttemptsPerRoute: 2,
     },
     preflight: async (route: RouteSource) => {
       const preflightInput: Parameters<typeof preflightCheck>[0] = { route }
@@ -150,7 +171,10 @@ export async function executeTask(
           preflightInput.ghAuthenticated = deps.ghAuthenticated
         }
 
-        if (preflightInput.ghCliAvailable === undefined || preflightInput.ghAuthenticated === undefined) {
+        if (
+          preflightInput.ghCliAvailable === undefined ||
+          preflightInput.ghAuthenticated === undefined
+        ) {
           if (shouldSkipCliPreflight()) {
             if (preflightInput.ghCliAvailable === undefined) {
               preflightInput.ghCliAvailable = true
@@ -177,9 +201,18 @@ export async function executeTask(
     },
     routes: {
       graphql: async () =>
-        runGraphqlCapability(deps.githubClient, request.task as GraphqlCapabilityId, request.input as Record<string, unknown>),
+        runGraphqlCapability(
+          deps.githubClient,
+          request.task as GraphqlCapabilityId,
+          request.input as Record<string, unknown>,
+        ),
       cli: async () => {
-        return runCliCapability(cliRunner, request.task as CliCapabilityId, request.input as Record<string, unknown>, card)
+        return runCliCapability(
+          cliRunner,
+          request.task as CliCapabilityId,
+          request.input as Record<string, unknown>,
+          card,
+        )
       },
       rest: async () =>
         normalizeError(
@@ -187,11 +220,11 @@ export async function executeTask(
             code: errorCodes.AdapterUnsupported,
             message: `Route 'rest' is not implemented for task '${request.task}'`,
             retryable: false,
-            details: { route: "rest", task: request.task }
+            details: { route: "rest", task: request.task },
           },
           "rest",
-          { capabilityId: request.task, reason }
-        )
-    }
+          { capabilityId: request.task, reason },
+        ),
+    },
   })
 }

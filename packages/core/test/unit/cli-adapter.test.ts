@@ -5,14 +5,14 @@ import { runCliAdapter } from "../../src/core/execution/adapters/cli-adapter.js"
 describe("runCliAdapter", () => {
   it("returns normalized success when command exits zero", async () => {
     const runner = {
-      run: vi.fn(async () => ({ stdout: "ok", stderr: "", exitCode: 0 }))
+      run: vi.fn(async () => ({ stdout: "ok", stderr: "", exitCode: 0 })),
     }
 
     const result = await runCliAdapter(runner, {
       command: "gh",
       args: ["repo", "view"],
       reason: "CARD_PREFERRED",
-      capabilityId: "repo.view"
+      capabilityId: "repo.view",
     })
 
     expect(result.ok).toBe(true)
@@ -23,13 +23,13 @@ describe("runCliAdapter", () => {
 
   it("returns normalized error when command exits non-zero", async () => {
     const runner = {
-      run: vi.fn(async () => ({ stdout: "", stderr: "invalid input", exitCode: 1 }))
+      run: vi.fn(async () => ({ stdout: "", stderr: "invalid input", exitCode: 1 })),
     }
 
     const result = await runCliAdapter(runner, {
       command: "gh",
       args: ["repo", "view"],
-      capabilityId: "repo.view"
+      capabilityId: "repo.view",
     })
 
     expect(result.ok).toBe(false)
@@ -37,18 +37,18 @@ describe("runCliAdapter", () => {
     expect(result.error?.details).toEqual(
       expect.objectContaining({
         adapter: "cli",
-        exitCode: 1
-      })
+        exitCode: 1,
+      }),
     )
   })
 
   it("uses default args and timeout when omitted", async () => {
     const runner = {
-      run: vi.fn(async () => ({ stdout: "ok", stderr: "", exitCode: 0 }))
+      run: vi.fn(async () => ({ stdout: "ok", stderr: "", exitCode: 0 })),
     }
 
     const result = await runCliAdapter(runner, {
-      command: "gh"
+      command: "gh",
     })
 
     expect(result.ok).toBe(true)
@@ -59,13 +59,13 @@ describe("runCliAdapter", () => {
     const runner = {
       run: vi.fn(async () => {
         throw new Error("network down")
-      })
+      }),
     }
 
     const result = await runCliAdapter(runner, {
       command: "gh",
       args: ["repo", "view"],
-      capabilityId: "repo.view"
+      capabilityId: "repo.view",
     })
 
     expect(result.ok).toBe(false)
@@ -73,19 +73,19 @@ describe("runCliAdapter", () => {
     expect(result.error?.details).toEqual(
       expect.objectContaining({
         adapter: "cli",
-        command: "gh"
-      })
+        command: "gh",
+      }),
     )
   })
 
   it("uses fallback message when stderr is empty", async () => {
     const runner = {
-      run: vi.fn(async () => ({ stdout: "", stderr: "", exitCode: 9 }))
+      run: vi.fn(async () => ({ stdout: "", stderr: "", exitCode: 9 })),
     }
 
     const result = await runCliAdapter(runner, {
       command: "gh",
-      capabilityId: "repo.view"
+      capabilityId: "repo.view",
     })
 
     expect(result.ok).toBe(false)
@@ -96,11 +96,11 @@ describe("runCliAdapter", () => {
     const runner = {
       run: vi.fn(async () => {
         throw "timeout while executing"
-      })
+      }),
     }
 
     const result = await runCliAdapter(runner, {
-      command: "gh"
+      command: "gh",
     })
 
     expect(result.ok).toBe(false)
@@ -109,8 +109,8 @@ describe("runCliAdapter", () => {
     expect(result.error?.details).toEqual(
       expect.objectContaining({
         adapter: "cli",
-        args: []
-      })
+        args: [],
+      }),
     )
   })
 })

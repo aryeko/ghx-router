@@ -1,10 +1,9 @@
-import { describe, expect, it } from "vitest"
-
 import { spawnSync } from "node:child_process"
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
+import { describe, expect, it } from "vitest"
 
 type CommandResult = {
   status: number
@@ -29,7 +28,12 @@ function runOrThrow(command: string, args: string[], cwd: string): CommandResult
   const result = run(command, args, cwd)
   if (result.status !== 0) {
     throw new Error(
-      [`Command failed: ${command} ${args.join(" ")}`, `cwd: ${cwd}`, result.stdout, result.stderr].join("\n")
+      [
+        `Command failed: ${command} ${args.join(" ")}`,
+        `cwd: ${cwd}`,
+        result.stdout,
+        result.stderr,
+      ].join("\n"),
     )
   }
 
@@ -52,22 +56,32 @@ describe("ghx setup e2e install/verify", () => {
       writeFileSync(
         join(projectDir, "package.json"),
         JSON.stringify({ name: "ghx-e2e-project", private: true, version: "0.0.0" }, null, 2),
-        "utf8"
+        "utf8",
       )
 
       runOrThrow("pnpm", ["--filter", "@ghx-dev/core", "run", "build"], workspacePath)
-      const packResult = runOrThrow("pnpm", ["--filter", "@ghx-dev/core", "pack", "--pack-destination", packDir], workspacePath)
+      const packResult = runOrThrow(
+        "pnpm",
+        ["--filter", "@ghx-dev/core", "pack", "--pack-destination", packDir],
+        workspacePath,
+      )
       const tarballName = packResult.stdout
         .split("\n")
         .map((line) => line.trim())
         .find((line) => line.endsWith(".tgz"))
 
       expect(tarballName).toBeDefined()
-      const tarballPath = (tarballName as string).startsWith("/") ? (tarballName as string) : join(packDir, tarballName as string)
+      const tarballPath = (tarballName as string).startsWith("/")
+        ? (tarballName as string)
+        : join(packDir, tarballName as string)
 
       runOrThrow("pnpm", ["add", tarballPath], projectDir)
 
-      const verifyBefore = run("pnpm", ["exec", "ghx", "setup", "--scope", "project", "--verify"], projectDir)
+      const verifyBefore = run(
+        "pnpm",
+        ["exec", "ghx", "setup", "--scope", "project", "--verify"],
+        projectDir,
+      )
       expect(verifyBefore.status).toBe(1)
       expect(verifyBefore.stderr).toContain("Verify failed")
 
@@ -75,11 +89,15 @@ describe("ghx setup e2e install/verify", () => {
       expect(setup.status).toBe(0)
       expect(setup.stdout).toContain("Setup complete")
 
-      const skillPath = join(projectDir, ".agents", "skill", "ghx", "SKILL.md")
+      const skillPath = join(projectDir, ".agents", "skills", "ghx", "SKILL.md")
       const skillContent = readFileSync(skillPath, "utf8")
-      expect(skillContent).toContain("ghx capabilities")
+      expect(skillContent).toContain("## Session Bootstrap (run once)")
 
-      const verifyAfter = run("pnpm", ["exec", "ghx", "setup", "--scope", "project", "--verify"], projectDir)
+      const verifyAfter = run(
+        "pnpm",
+        ["exec", "ghx", "setup", "--scope", "project", "--verify"],
+        projectDir,
+      )
       expect(verifyAfter.status).toBe(0)
       expect(verifyAfter.stdout).toContain("Verify passed")
     } finally {

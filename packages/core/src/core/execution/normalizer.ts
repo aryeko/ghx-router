@@ -7,13 +7,10 @@ type MetaInput = {
   pagination?: ResultEnvelope["meta"]["pagination"]
 }
 
-function buildMeta(
-  route: "cli" | "rest" | "graphql",
-  options: MetaInput
-): ResultEnvelope["meta"] {
+function buildMeta(route: "cli" | "rest" | "graphql", options: MetaInput): ResultEnvelope["meta"] {
   const meta: ResultEnvelope["meta"] = {
     capability_id: options.capabilityId,
-    route_used: route
+    route_used: route,
   }
 
   if (options.reason !== undefined) {
@@ -30,23 +27,23 @@ function buildMeta(
 export function normalizeResult<TData>(
   data: TData,
   route: "cli" | "rest" | "graphql",
-  options: MetaInput
+  options: MetaInput,
 ): ResultEnvelope<TData> {
   return {
     ok: true,
     data,
-    meta: buildMeta(route, options)
+    meta: buildMeta(route, options),
   }
 }
 
 export function normalizeError<TData = unknown>(
   error: NonNullable<ResultEnvelope["error"]>,
   route: "cli" | "rest" | "graphql",
-  options: MetaInput
+  options: MetaInput,
 ): ResultEnvelope<TData> {
   return {
     ok: false,
     error,
-    meta: buildMeta(route, options)
+    meta: buildMeta(route, options),
   }
 }

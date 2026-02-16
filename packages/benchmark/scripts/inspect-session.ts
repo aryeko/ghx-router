@@ -37,9 +37,9 @@ async function main(): Promise<void> {
         bash: "allow",
         webfetch: "allow",
         doom_loop: "deny",
-        external_directory: "deny"
-      }
-    }
+        external_directory: "deny",
+      },
+    },
   })
 
   try {

@@ -14,7 +14,7 @@ function usage(): string {
     "  ghx run <task> --input '<json>'",
     "  ghx setup --scope <user|project> [--yes] [--dry-run] [--verify] [--track]",
     "  ghx capabilities list",
-    "  ghx capabilities explain <capability_id>"
+    "  ghx capabilities explain <capability_id>",
   ].join("\n")
 }
 
@@ -81,6 +81,6 @@ if (isDirectRun) {
       const message = error instanceof Error ? error.message : String(error)
       process.stderr.write(`${message}\n`)
       process.exit(1)
-    }
+    },
   )
 }

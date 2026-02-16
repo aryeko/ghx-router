@@ -15,7 +15,7 @@ describe("roadmap issues benchmark scenarios", () => {
       "issue-list-open-001",
       "issue-comments-list-001",
       "pr-view-001",
-      "pr-list-open-001"
+      "pr-list-open-001",
     ])
 
     expect(scenarioSets["issues"]).toEqual([
@@ -33,7 +33,7 @@ describe("roadmap issues benchmark scenarios", () => {
       "issue-parent-set-001",
       "issue-parent-remove-001",
       "issue-blocked-by-add-001",
-      "issue-blocked-by-remove-001"
+      "issue-blocked-by-remove-001",
     ])
   })
 })

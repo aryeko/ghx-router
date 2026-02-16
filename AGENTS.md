@@ -22,6 +22,7 @@ If any of these are added later, treat them as required policy inputs.
 From repo root:
 
 ```bash
+./scripts/setup-dev-env.sh
 pnpm install
 ```
 
@@ -32,6 +33,7 @@ Primary entrypoints (CI parity):
 
 ```bash
 pnpm run build
+pnpm run format:check
 pnpm run lint
 pnpm run test
 pnpm run test:coverage
@@ -43,11 +45,19 @@ Affected-only variants:
 
 ```bash
 pnpm run build:affected
+pnpm run format:check:affected
 pnpm run lint:affected
 pnpm run test:affected
 pnpm run test:coverage:affected
 pnpm run typecheck:affected
 pnpm run ci:affected
+```
+
+Formatting (write mode):
+
+```bash
+pnpm run format
+pnpm run format:affected
 ```
 
 Useful extras:
@@ -89,22 +99,20 @@ pnpm --filter @ghx-dev/core exec vitest run test/unit/run-command.test.ts -t "pa
 ## Code Style Guidelines
 
 ### Formatting and Syntax
-- Match existing style:
+- **Biome** is the project formatter (`biome.json` at root). Run `pnpm run format` to auto-fix.
+- Enforced style:
   - double quotes
   - no semicolons
   - trailing commas where valid
   - 2-space indentation
+  - 100-char line width
 - Keep edits minimal and consistent with neighboring files.
-- No dedicated Prettier config is present; do not introduce new formatting conventions.
+- Do not introduce alternative formatters (Prettier, dprint, etc.).
 
 ### Imports
-- Group imports in stable order:
-  1. external packages
-  2. Node built-ins (`node:*`)
-  3. local relative imports
-- Separate groups with one blank line.
+- Biome's `organizeImports` assist handles import sorting automatically.
 - Use `import type` for type-only imports.
-- In ESM files, use explicit `.js` extension in relative imports.
+- In ESM files, use explicit `.js` extension in relative imports (enforced by `NodeNext` module resolution).
 
 ### Types and Validation
 - Preserve strict typing (`strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`).
@@ -137,13 +145,30 @@ pnpm --filter @ghx-dev/core exec vitest run test/unit/run-command.test.ts -t "pa
 - If GraphQL operations or generated artifacts may change, run `pnpm run ghx:gql:check`.
 
 ### Lint/TS Config Notes
+- ESLint uses the `strict` preset from `typescript-eslint`.
+- `@vitest/eslint-plugin` provides test-specific rules and globals (no manual global declarations needed).
+- E2E test files (`*.e2e.test.ts`) have relaxed `no-standalone-expect` and `no-conditional-expect` rules.
 - ESLint ignores generated GraphQL files under `packages/core/src/gql/generated/**` and `packages/core/src/gql/operations/*.generated.ts`.
 - Respect unused var conventions (`_` prefix is allowed by lint config).
+- Build config lives in `tsup.config.ts` per package (not inline in scripts).
 
 ### Generated Code
 - Treat these as generated artifacts; prefer regeneration over manual edits:
   - `packages/core/src/gql/generated/**`
   - `packages/core/src/gql/operations/*.generated.ts`
+- The codegen runner (`scripts/run-gql-codegen.ts`) post-processes generated files to add `.js` extensions to relative imports.
+
+### Pre-commit Hooks
+- **Lefthook** runs on pre-commit (`lefthook.yml` at root):
+  - Biome format + auto-stage fixed files
+  - ESLint on staged `.ts`/`.js`/`.mjs` files
+  - Full typecheck
+- Hooks are installed automatically via `pnpm install` (lefthook postinstall).
+
+### Dependency Management
+- Shared devDependencies are pinned in `pnpm-workspace.yaml` via **pnpm catalog** — use `"catalog:"` in package.json instead of version ranges for: `typescript`, `@types/node`, `tsup`, `tsx`, `vitest`, `@vitest/coverage-v8`.
+- **Dependabot** is configured (`.github/dependabot.yml`) for weekly npm and GitHub Actions updates with grouped PRs.
+- `.npmrc` enforces `strict-peer-dependencies=true` and `auto-install-peers=false`.
 
 ### Documentation Updates
 - If architecture/module/file layout changes, update codemaps:
@@ -156,8 +181,21 @@ pnpm --filter @ghx-dev/core exec vitest run test/unit/run-command.test.ts -t "pa
 Before final handoff on substantial changes, run:
 
 ```bash
-pnpm run ci:affected --parallel=3 --outputStyle=static
-pnpm run test:coverage --parallel=3 --outputStyle=static
+pnpm run ci
 ```
 
 Coverage expectation for touched files: >=90% (aim for 95% when practical).
+
+## PR Template Compliance
+Before opening a PR, review `.github/pull_request_template.md` and satisfy every applicable
+validation checkbox.
+
+Required checks from the template:
+
+```bash
+pnpm run ci
+```
+
+Conditional checks from the template:
+- Run `pnpm run ghx:gql:check` if GraphQL operations changed.
+- Confirm tests were added/updated as needed for behavior changes.

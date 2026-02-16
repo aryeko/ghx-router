@@ -26,7 +26,7 @@ export function preflightCheck(input: PreflightInput): PreflightResult {
       code: errorCodes.AdapterUnsupported,
       message: "REST route is planned but not implemented in v1",
       retryable: false,
-      details: { route: input.route }
+      details: { route: input.route },
     }
   }
 
@@ -36,7 +36,7 @@ export function preflightCheck(input: PreflightInput): PreflightResult {
       code: errorCodes.Validation,
       message: "GitHub CLI is required for cli route",
       retryable: false,
-      details: { route: input.route }
+      details: { route: input.route },
     }
   }
 
@@ -46,7 +46,7 @@ export function preflightCheck(input: PreflightInput): PreflightResult {
       code: errorCodes.Auth,
       message: "GitHub CLI authentication is required for cli route",
       retryable: false,
-      details: { route: input.route }
+      details: { route: input.route },
     }
   }
 
@@ -58,7 +58,7 @@ export function preflightCheck(input: PreflightInput): PreflightResult {
         code: errorCodes.Auth,
         message: "GitHub token is required for graphql route",
         retryable: false,
-        details: { route: input.route }
+        details: { route: input.route },
       }
     }
   }

@@ -12,8 +12,8 @@ describe("validateOperationCard", () => {
         description: "d",
         input_schema: {},
         output_schema: {},
-        routing: { preferred: "invalid", fallbacks: [] }
-      }).ok
+        routing: { preferred: "invalid", fallbacks: [] },
+      }).ok,
     ).toBe(false)
     expect(
       validateOperationCard({
@@ -22,8 +22,8 @@ describe("validateOperationCard", () => {
         description: "d",
         input_schema: {},
         output_schema: {},
-        routing: { preferred: "cli", fallbacks: "bad" }
-      }).ok
+        routing: { preferred: "cli", fallbacks: "bad" },
+      }).ok,
     ).toBe(false)
   })
 
@@ -36,8 +36,8 @@ describe("validateOperationCard", () => {
       output_schema: {},
       routing: {
         preferred: "graphql",
-        fallbacks: ["cli"]
-      }
+        fallbacks: ["cli"],
+      },
     })
 
     expect(result.ok).toBe(true)

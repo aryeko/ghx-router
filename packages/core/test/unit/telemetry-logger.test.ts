@@ -8,16 +8,16 @@ describe("telemetry logger", () => {
       token: "abc",
       nested: {
         authorization: "Bearer xyz",
-        ok: "value"
-      }
+        ok: "value",
+      },
     })
 
     expect(sanitized).toEqual({
       token: "[REDACTED]",
       nested: {
         authorization: "[REDACTED]",
-        ok: "value"
-      }
+        ok: "value",
+      },
     })
   })
 

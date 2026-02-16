@@ -4,9 +4,11 @@ Root scripts map to Nx targets and are the preferred local/CI entrypoints.
 
 ## Core Commands
 
-- `pnpm run ci` - run full package CI targets.
+- `pnpm run ci` - run full package CI targets (`format:check` + `lint` + `typecheck` + `test:coverage` + `build`).
 - `pnpm run ci:affected` - run CI targets only for affected projects.
 - `pnpm run build` / `pnpm run build:affected`
+- `pnpm run format` / `pnpm run format:affected` - auto-fix formatting + import sorting (Biome).
+- `pnpm run format:check` / `pnpm run format:check:affected` - verify formatting (CI mode).
 - `pnpm run lint` / `pnpm run lint:affected`
 - `pnpm run test` / `pnpm run test:affected`
 - `pnpm run test:coverage` / `pnpm run test:coverage:affected`

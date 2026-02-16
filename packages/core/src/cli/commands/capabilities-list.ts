@@ -2,7 +2,7 @@ import { listCapabilities } from "../../agent-interface/tools/list-capabilities-
 
 function parseArgs(argv: string[]): { asJson: boolean } {
   return {
-    asJson: argv.includes("--json")
+    asJson: argv.includes("--json"),
   }
 }
 
@@ -15,9 +15,7 @@ export async function capabilitiesListCommand(argv: string[] = []): Promise<numb
     return 0
   }
 
-  const lines = capabilities.map(
-    (item) => `${item.capability_id} - ${item.description}`
-  )
+  const lines = capabilities.map((item) => `${item.capability_id} - ${item.description}`)
   process.stdout.write(`${lines.join("\n")}\n`)
   return 0
 }

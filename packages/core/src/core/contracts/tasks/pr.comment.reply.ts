@@ -1,3 +1,3 @@
 export const prCommentReplyTask = {
-  id: "pr.comment.reply"
+  id: "pr.comment.reply",
 } as const

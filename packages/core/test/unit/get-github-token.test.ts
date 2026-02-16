@@ -6,7 +6,7 @@ describe("resolveGithubToken", () => {
   it("uses GITHUB_TOKEN from environment when present", async () => {
     const token = await resolveGithubToken({
       env: { GITHUB_TOKEN: " env-token " },
-      getToken: async () => "gh-token"
+      getToken: async () => "gh-token",
     })
 
     expect(token).toBe("env-token")
@@ -15,7 +15,7 @@ describe("resolveGithubToken", () => {
   it("falls back to gh token resolver when env token missing", async () => {
     const token = await resolveGithubToken({
       env: {},
-      getToken: async () => "gh-token"
+      getToken: async () => "gh-token",
     })
 
     expect(token).toBe("gh-token")
@@ -25,8 +25,8 @@ describe("resolveGithubToken", () => {
     await expect(
       resolveGithubToken({
         env: {},
-        getToken: async () => "   "
-      })
+        getToken: async () => "   ",
+      }),
     ).rejects.toThrow("GitHub token not available")
   })
 })

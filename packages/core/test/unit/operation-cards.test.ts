@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest"
 
-import { getOperationCard, listOperationCards, validateOperationCard } from "../../src/core/registry/index.js"
+import {
+  getOperationCard,
+  listOperationCards,
+  validateOperationCard,
+} from "../../src/core/registry/index.js"
 
 describe("operation cards registry", () => {
   it("lists all v1 thin-slice capabilities", () => {
@@ -72,7 +76,7 @@ describe("operation cards registry", () => {
       "release.update",
       "release.publish_draft",
       "workflow_dispatch.run",
-      "workflow_run.rerun_failed"
+      "workflow_run.rerun_failed",
     ])
   })
 
@@ -149,8 +153,8 @@ describe("operation cards registry", () => {
     const card = getOperationCard("issue.comments.list")
     expect(card?.cli).toEqual(
       expect.objectContaining({
-        command: "api graphql"
-      })
+        command: "api graphql",
+      }),
     )
   })
 
@@ -167,8 +171,8 @@ describe("operation cards registry", () => {
     expect(card?.routing.notes).toEqual(
       expect.arrayContaining([
         expect.stringContaining("gh api graphql"),
-        expect.stringContaining("cursor pagination")
-      ])
+        expect.stringContaining("cursor pagination"),
+      ]),
     )
   })
 
@@ -192,7 +196,7 @@ describe("operation cards registry", () => {
 
   it("fails validation for malformed cards", () => {
     const result = validateOperationCard({
-      capability_id: "broken.card"
+      capability_id: "broken.card",
     })
 
     expect(result.ok).toBe(false)
@@ -208,7 +212,7 @@ describe("operation cards registry", () => {
       "pr.checks.rerun_all",
       "pr.reviewers.request",
       "pr.assignees.update",
-      "pr.branch.update"
+      "pr.branch.update",
     ]
 
     for (const capabilityId of batchACapabilities) {

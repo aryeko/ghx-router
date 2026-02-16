@@ -20,11 +20,11 @@ describe("cli index entrypoint", () => {
       const actual = await importOriginal<typeof import("node:fs")>()
       return {
         ...actual,
-        realpathSync: vi.fn(() => "/same/path")
+        realpathSync: vi.fn(() => "/same/path"),
       }
     })
     vi.doMock("../../src/cli/commands/run.js", () => ({
-      runCommand: vi.fn(async () => 0)
+      runCommand: vi.fn(async () => 0),
     }))
 
     await import("../../src/cli/index.js")
@@ -32,7 +32,7 @@ describe("cli index entrypoint", () => {
 
     expect(process.exitCode).toBe(0)
     expect(stdout).toHaveBeenCalledWith(
-      "Usage:\n  ghx run <task> --input '<json>'\n  ghx setup --scope <user|project> [--yes] [--dry-run] [--verify] [--track]\n  ghx capabilities list\n  ghx capabilities explain <capability_id>\n"
+      "Usage:\n  ghx run <task> --input '<json>'\n  ghx setup --scope <user|project> [--yes] [--dry-run] [--verify] [--track]\n  ghx capabilities list\n  ghx capabilities explain <capability_id>\n",
     )
   })
 
@@ -43,7 +43,7 @@ describe("cli index entrypoint", () => {
     const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true)
 
     vi.doMock("../../src/cli/commands/run.js", () => ({
-      runCommand: vi.fn(async () => 0)
+      runCommand: vi.fn(async () => 0),
     }))
 
     await import("../../src/cli/index.js")
@@ -64,11 +64,11 @@ describe("cli index entrypoint", () => {
         ...actual,
         realpathSync: vi.fn(() => {
           throw new Error("boom")
-        })
+        }),
       }
     })
     vi.doMock("../../src/cli/commands/run.js", () => ({
-      runCommand: vi.fn(async () => 0)
+      runCommand: vi.fn(async () => 0),
     }))
 
     await import("../../src/cli/index.js")
@@ -90,13 +90,13 @@ describe("cli index entrypoint", () => {
       const actual = await importOriginal<typeof import("node:fs")>()
       return {
         ...actual,
-        realpathSync: vi.fn(() => "/same/path")
+        realpathSync: vi.fn(() => "/same/path"),
       }
     })
     vi.doMock("../../src/cli/commands/run.js", () => ({
       runCommand: vi.fn(async () => {
         throw new Error("boom")
-      })
+      }),
     }))
 
     await import("../../src/cli/index.js")

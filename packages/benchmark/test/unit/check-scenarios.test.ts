@@ -1,20 +1,19 @@
-import { beforeEach, describe, expect, it, vi } from "vitest"
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const { loadScenariosMock, loadScenarioSetsMock } = vi.hoisted(() => ({
   loadScenariosMock: vi.fn(),
-  loadScenarioSetsMock: vi.fn()
+  loadScenarioSetsMock: vi.fn(),
 }))
 
 vi.mock("../../src/scenario/loader.js", () => ({
   loadScenarios: loadScenariosMock,
-  loadScenarioSets: loadScenarioSetsMock
+  loadScenarioSets: loadScenarioSetsMock,
 }))
 
-import { main } from "../../src/cli/check-scenarios.js"
-import { ROADMAP_CAPABILITIES_BY_SET } from "../../src/cli/check-scenarios.js"
+import { main, ROADMAP_CAPABILITIES_BY_SET } from "../../src/cli/check-scenarios.js"
 
 function createScenario(id: string, task: string) {
   return {
@@ -26,7 +25,7 @@ function createScenario(id: string, task: string) {
     timeout_ms: 1000,
     allowed_retries: 0,
     assertions: { must_succeed: true },
-    tags: []
+    tags: [],
   }
 }
 
@@ -37,7 +36,7 @@ function createValidRoadmapFixture() {
     "issue-list-open-001",
     "issue-comments-list-001",
     "pr-view-001",
-    "pr-list-open-001"
+    "pr-list-open-001",
   ]
   const baseScenarios = [
     createScenario("repo-view-001", "repo.view"),
@@ -45,20 +44,26 @@ function createValidRoadmapFixture() {
     createScenario("issue-list-open-001", "issue.list"),
     createScenario("issue-comments-list-001", "issue.comments.list"),
     createScenario("pr-view-001", "pr.view"),
-    createScenario("pr-list-open-001", "pr.list")
+    createScenario("pr-list-open-001", "pr.list"),
   ]
 
   const roadmapSets = Object.fromEntries(
     Object.entries(ROADMAP_CAPABILITIES_BY_SET).map(([setName, capabilities]) => {
-      const ids = capabilities.map((capability, capabilityIndex) => `${setName}-${capabilityIndex + 1}-001`)
+      const ids = capabilities.map(
+        (capability, capabilityIndex) => `${setName}-${capabilityIndex + 1}-001`,
+      )
       return [setName, ids]
-    })
+    }),
   ) as Record<string, string[]>
 
-  const roadmapScenarios = Object.entries(ROADMAP_CAPABILITIES_BY_SET).flatMap(([setName, capabilities]) =>
-    capabilities.map((capability, capabilityIndex) =>
-      createScenario((roadmapSets[setName] ?? [])[capabilityIndex] ?? `${setName}-${capabilityIndex + 1}-001`, capability)
-    )
+  const roadmapScenarios = Object.entries(ROADMAP_CAPABILITIES_BY_SET).flatMap(
+    ([setName, capabilities]) =>
+      capabilities.map((capability, capabilityIndex) =>
+        createScenario(
+          (roadmapSets[setName] ?? [])[capabilityIndex] ?? `${setName}-${capabilityIndex + 1}-001`,
+          capability,
+        ),
+      ),
   )
 
   return {
@@ -71,10 +76,12 @@ function createValidRoadmapFixture() {
       "ci-diagnostics": [],
       "ci-log-analysis": [],
       ...roadmapSets,
-      all: Array.from(new Set(Object.values(roadmapSets).flat()))
+      all: Array.from(new Set(Object.values(roadmapSets).flat())),
     } as Record<string, string[]>,
     roadmapCapabilityIds: Object.values(ROADMAP_CAPABILITIES_BY_SET).flat(),
-    allScenarioCapabilityIds: Array.from(new Set([...baseScenarios, ...roadmapScenarios].map((scenario) => scenario.task)))
+    allScenarioCapabilityIds: Array.from(
+      new Set([...baseScenarios, ...roadmapScenarios].map((scenario) => scenario.task)),
+    ),
   }
 }
 
@@ -91,15 +98,19 @@ async function createBenchmarkRootWithCards(capabilityIds: string[], malformedCa
   await Promise.all(
     capabilityIds.map(async (capabilityId, index) => {
       const content = `capability_id: ${capabilityId}\nversion: 1.0.0\n`
-      await writeFile(join(cardsDir, `card-${String(index + 1).padStart(3, "0")}.yaml`), content, "utf8")
-    })
+      await writeFile(
+        join(cardsDir, `card-${String(index + 1).padStart(3, "0")}.yaml`),
+        content,
+        "utf8",
+      )
+    }),
   )
 
   return {
     benchmarkCwd,
     async cleanup() {
       await rm(tempRoot, { recursive: true, force: true })
-    }
+    },
   }
 }
 
@@ -127,18 +138,18 @@ describe("check-scenarios", () => {
         timeout_ms: 1000,
         allowed_retries: 0,
         assertions: { must_succeed: true },
-        tags: []
-      }
+        tags: [],
+      },
     ])
     loadScenarioSetsMock.mockResolvedValue({
       default: ["missing-001"],
       "pr-operations-all": ["repo-view-001"],
       "pr-exec": ["repo-view-001"],
-      "issues": ["repo-view-001"],
+      issues: ["repo-view-001"],
       "release-delivery": ["repo-view-001"],
       workflows: ["repo-view-001"],
       "projects-v2": ["repo-view-001"],
-      all: ["repo-view-001"]
+      all: ["repo-view-001"],
     })
 
     await expect(main("/tmp/benchmark")).rejects.toThrow("unknown scenario id")
@@ -155,18 +166,18 @@ describe("check-scenarios", () => {
         timeout_ms: 1000,
         allowed_retries: 0,
         assertions: { must_succeed: true },
-        tags: []
-      }
+        tags: [],
+      },
     ])
     loadScenarioSetsMock.mockResolvedValue({
       default: [],
       "pr-operations-all": [],
       "pr-exec": [],
-      "issues": [],
+      issues: [],
       "release-delivery": [],
       workflows: [],
       "projects-v2": [],
-      all: []
+      all: [],
     })
 
     await expect(main("/tmp/benchmark")).rejects.toThrow("orphan scenario")
@@ -183,12 +194,12 @@ describe("check-scenarios", () => {
         timeout_ms: 1000,
         allowed_retries: 0,
         assertions: { must_succeed: true },
-        tags: []
-      }
+        tags: [],
+      },
     ])
     loadScenarioSetsMock.mockResolvedValue({
       default: ["repo-view-001"],
-      "pr-operations-all": ["repo-view-001"]
+      "pr-operations-all": ["repo-view-001"],
     })
 
     await expect(main("/tmp/benchmark")).rejects.toThrow("Missing required scenario set")
@@ -205,7 +216,7 @@ describe("check-scenarios", () => {
         timeout_ms: 1000,
         allowed_retries: 0,
         assertions: { must_succeed: true },
-        tags: []
+        tags: [],
       },
       {
         id: "repo-view-001",
@@ -216,18 +227,18 @@ describe("check-scenarios", () => {
         timeout_ms: 1000,
         allowed_retries: 0,
         assertions: { must_succeed: true },
-        tags: []
-      }
+        tags: [],
+      },
     ])
     loadScenarioSetsMock.mockResolvedValue({
       default: ["repo-view-001"],
       "pr-operations-all": ["repo-view-001"],
       "pr-exec": ["repo-view-001"],
-      "issues": ["repo-view-001"],
+      issues: ["repo-view-001"],
       "release-delivery": ["repo-view-001"],
       workflows: ["repo-view-001"],
       "projects-v2": ["repo-view-001"],
-      all: ["repo-view-001"]
+      all: ["repo-view-001"],
     })
 
     await expect(main("/tmp/benchmark")).rejects.toThrow("Duplicate scenario id")
@@ -236,17 +247,17 @@ describe("check-scenarios", () => {
   it("fails when all is not exact union of roadmap batch sets", async () => {
     loadScenariosMock.mockResolvedValue([
       createScenario("repo-view-001", "repo.view"),
-      createScenario("pr-review-submit-approve-001", "pr.review.submit_approve")
+      createScenario("pr-review-submit-approve-001", "pr.review.submit_approve"),
     ])
     loadScenarioSetsMock.mockResolvedValue({
       default: ["repo-view-001"],
       "pr-operations-all": ["repo-view-001"],
       "pr-exec": ["pr-review-submit-approve-001"],
-      "issues": [],
+      issues: [],
       "release-delivery": [],
       workflows: [],
       "projects-v2": [],
-      all: []
+      all: [],
     })
 
     await expect(main("/tmp/benchmark")).rejects.toThrow("exact union")
@@ -258,11 +269,11 @@ describe("check-scenarios", () => {
       default: ["repo-view-001"],
       "pr-operations-all": ["repo-view-001"],
       "pr-exec": [],
-      "issues": [],
+      issues: [],
       "release-delivery": [],
       workflows: [],
       "projects-v2": [],
-      all: []
+      all: [],
     })
 
     await expect(main("/tmp/benchmark")).rejects.toThrow("missing capability coverage")
@@ -298,13 +309,18 @@ describe("check-scenarios", () => {
 
   it("fails when capability registry contains capabilities with no benchmark coverage", async () => {
     const fixture = createValidRoadmapFixture()
-    const temp = await createBenchmarkRootWithCards([...fixture.allScenarioCapabilityIds, "nonexistent.capability"])
+    const temp = await createBenchmarkRootWithCards([
+      ...fixture.allScenarioCapabilityIds,
+      "nonexistent.capability",
+    ])
 
     try {
       loadScenariosMock.mockResolvedValue(fixture.scenarios)
       loadScenarioSetsMock.mockResolvedValue(fixture.sets)
 
-      await expect(main(temp.benchmarkCwd)).rejects.toThrow("Missing benchmark coverage for capabilities")
+      await expect(main(temp.benchmarkCwd)).rejects.toThrow(
+        "Missing benchmark coverage for capabilities",
+      )
     } finally {
       await temp.cleanup()
     }
@@ -319,7 +335,9 @@ describe("check-scenarios", () => {
       loadScenariosMock.mockResolvedValue(fixture.scenarios)
       loadScenarioSetsMock.mockResolvedValue(fixture.sets)
 
-      await expect(main(temp.benchmarkCwd)).rejects.toThrow("Scenario tasks not present in capability registry")
+      await expect(main(temp.benchmarkCwd)).rejects.toThrow(
+        "Scenario tasks not present in capability registry",
+      )
     } finally {
       await temp.cleanup()
     }
@@ -329,7 +347,7 @@ describe("check-scenarios", () => {
     const fixture = createValidRoadmapFixture()
     const duplicateCapabilities = [
       ...fixture.allScenarioCapabilityIds,
-      fixture.allScenarioCapabilityIds[0] ?? "repo.view"
+      fixture.allScenarioCapabilityIds[0] ?? "repo.view",
     ]
     const temp = await createBenchmarkRootWithCards(duplicateCapabilities)
 
@@ -347,14 +365,14 @@ describe("check-scenarios", () => {
     const fixture = createValidRoadmapFixture()
     const mutationScenario = {
       ...createScenario("mutation-ci-001", "repo.view"),
-      tags: ["mutation"]
+      tags: ["mutation"],
     }
 
     loadScenariosMock.mockResolvedValue([...fixture.scenarios, mutationScenario])
     loadScenarioSetsMock.mockResolvedValue({
       ...fixture.sets,
       "ci-verify-pr": ["mutation-ci-001"],
-      "ci-verify-release": ["repo-view-001"]
+      "ci-verify-release": ["repo-view-001"],
     })
 
     await expect(main("/tmp/benchmark")).rejects.toThrow("must avoid mutation scenarios")

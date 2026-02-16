@@ -1,6 +1,6 @@
 # Architecture Codemap
 
-**Last Updated:** 2026-02-15  
+**Last Updated:** 2026-02-16  
 **Workspace Type:** Nx + pnpm monorepo (`packages/*`)  
 **Primary Runtime:** Node.js + TypeScript (ESM)
 
@@ -68,11 +68,19 @@ The core package routes capability requests from operation cards (`core/registry
   └─ exposes CLI binary: ghx
 ```
 
+## Core CLI Assets
+
+- `packages/core/src/cli/assets/skills/ghx/SKILL.md` is the canonical setup skill template.
+- `packages/core/scripts/copy-registry-cards.mjs` copies `src/cli/assets/skills/**` into
+  `dist/cli/assets/skills/**` so published builds can install the same template.
+
 ## Core Execution Data Flow
 
 1. CLI dispatches one of three command families in `packages/core/src/cli/index.ts`:
    - `run`: parse `task` + `--input` JSON in `packages/core/src/cli/commands/run.ts`
-   - `setup`: install/verify `~/.agents/skill/ghx/SKILL.md` (or project-level `.agents/...`) in `packages/core/src/cli/commands/setup.ts`
+   - `setup`: load `packages/core/src/cli/assets/skills/ghx/SKILL.md` (or copied dist asset), then
+     install/verify `~/.agents/skills/ghx/SKILL.md` (or project-level `.agents/...`) in
+     `packages/core/src/cli/commands/setup.ts`
    - `capabilities`: list/explain capability contracts in `packages/core/src/cli/commands/capabilities-list.ts` and `packages/core/src/cli/commands/capabilities-explain.ts`
 2. `executeTask()` in `packages/core/src/core/routing/engine.ts` resolves card metadata and route dependencies.
 3. `execute()` in `packages/core/src/core/execute/execute.ts` validates input schema and computes the route plan from card suitability/fallbacks.

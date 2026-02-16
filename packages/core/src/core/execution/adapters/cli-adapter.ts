@@ -1,8 +1,8 @@
 import type { ResultEnvelope } from "../../contracts/envelope.js"
 import { mapErrorToCode } from "../../errors/map-error.js"
 import { isRetryableErrorCode } from "../../errors/retryability.js"
-import { normalizeError, normalizeResult } from "../normalizer.js"
 import type { RouteReasonCode } from "../../routing/reason-codes.js"
+import { normalizeError, normalizeResult } from "../normalizer.js"
 
 export type CliAdapterRequest = {
   command: string
@@ -26,7 +26,7 @@ const DEFAULT_TIMEOUT_MS = 10_000
 
 export async function runCliAdapter(
   runner: CliCommandRunner,
-  request: CliAdapterRequest
+  request: CliAdapterRequest,
 ): Promise<ResultEnvelope<CliRunResult>> {
   try {
     const args = request.args ?? []
@@ -43,21 +43,21 @@ export async function runCliAdapter(
             adapter: "cli",
             exitCode: result.exitCode,
             command: request.command,
-            args
+            args,
           },
-          retryable: isRetryableErrorCode(code)
+          retryable: isRetryableErrorCode(code),
         },
         "cli",
         {
           capabilityId: request.capabilityId ?? "unknown",
-          reason: request.reason
-        }
+          reason: request.reason,
+        },
       )
     }
 
     return normalizeResult(result, "cli", {
       capabilityId: request.capabilityId ?? "unknown",
-      reason: request.reason
+      reason: request.reason,
     })
   } catch (error: unknown) {
     const code = mapErrorToCode(error)
@@ -68,15 +68,15 @@ export async function runCliAdapter(
         details: {
           adapter: "cli",
           command: request.command,
-          args: request.args ?? []
+          args: request.args ?? [],
         },
-        retryable: isRetryableErrorCode(code)
+        retryable: isRetryableErrorCode(code),
       },
       "cli",
       {
         capabilityId: request.capabilityId ?? "unknown",
-        reason: request.reason
-      }
+        reason: request.reason,
+      },
     )
   }
 }

@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from "vitest"
 
 const { getOperationCardMock } = vi.hoisted(() => ({
-  getOperationCardMock: vi.fn()
+  getOperationCardMock: vi.fn(),
 }))
 
 vi.mock("../../src/core/registry/index.js", () => ({
-  getOperationCard: getOperationCardMock
+  getOperationCard: getOperationCardMock,
 }))
 
 import { explainCapability } from "../../src/agent-interface/tools/explain-tool.js"
@@ -17,7 +17,7 @@ describe("explain tool edge cases", () => {
       description: "View repository",
       input_schema: { required: "owner" },
       output_schema: { properties: null },
-      routing: { preferred: "graphql", fallbacks: ["cli"] }
+      routing: { preferred: "graphql", fallbacks: ["cli"] },
     })
 
     const explained = explainCapability("repo.view")
@@ -31,7 +31,7 @@ describe("explain tool edge cases", () => {
       description: "View repository",
       input_schema: { required: ["owner", 1, null, "name"] },
       output_schema: { properties: { id: { type: "string" } } },
-      routing: { preferred: "graphql", fallbacks: ["cli"] }
+      routing: { preferred: "graphql", fallbacks: ["cli"] },
     })
 
     const explained = explainCapability("repo.view")
@@ -45,7 +45,7 @@ describe("explain tool edge cases", () => {
       description: "View repository",
       input_schema: null,
       output_schema: null,
-      routing: { preferred: "graphql", fallbacks: ["cli"] }
+      routing: { preferred: "graphql", fallbacks: ["cli"] },
     })
 
     const explained = explainCapability("repo.view")

@@ -9,5 +9,5 @@ export interface CapabilityEntry {
 export const capabilityRegistry: CapabilityEntry[] = listOperationCards().map((card) => ({
   task: card.capability_id,
   defaultRoute: card.routing.preferred,
-  fallbackRoutes: [...card.routing.fallbacks]
+  fallbackRoutes: [...card.routing.fallbacks],
 }))

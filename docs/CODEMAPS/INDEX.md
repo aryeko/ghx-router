@@ -1,6 +1,6 @@
 # Codemaps Index
 
-**Last Updated:** 2026-02-15
+**Last Updated:** 2026-02-16
 
 ## Codemap Documents
 
@@ -19,6 +19,7 @@
 - `docs/architecture/errors-and-retries.md` - error code and retry semantics.
 - `docs/architecture/agent-interface-tools.md` - agent tool entrypoints and usage.
 - `docs/architecture/telemetry.md` - logging and metric conventions.
+- `docs/guides/setup-command.md` - setup command options, scope targets, and rollout workflow.
 - `docs/benchmark/methodology.md` - benchmark methodology and assumptions.
 - `docs/benchmark/harness-design.md` - benchmark runner internals.
 - `docs/benchmark/scenario-assertions.md` - scenario assertion schema and semantics.

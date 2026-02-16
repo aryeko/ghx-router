@@ -11,17 +11,17 @@ export function createExecuteTool(deps: { executeTask: ExecuteTaskFn }) {
     execute(
       capabilityId: string,
       params: Record<string, unknown>,
-      options?: Record<string, unknown>
+      options?: Record<string, unknown>,
     ): Promise<ResultEnvelope> {
       const request = {
         task: capabilityId,
         input: params,
-        ...(options ? { options } : {})
+        ...(options ? { options } : {}),
       }
 
       return deps.executeTask({
-        ...request
+        ...request,
       })
-    }
+    },
   }
 }

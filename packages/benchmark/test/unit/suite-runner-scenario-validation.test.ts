@@ -18,9 +18,9 @@ describe("suite-runner scenario validation", () => {
       required_data_fields: ["items", "pageInfo"],
       required_meta_fields: ["route_used"],
       expected_route_used: "cli",
-      require_tool_calls: true
+      require_tool_calls: true,
     },
-    tags: []
+    tags: [],
   }
 
   const repoScenario: Scenario = {
@@ -36,9 +36,9 @@ describe("suite-runner scenario validation", () => {
       required_fields: ["ok", "data", "error", "meta"],
       required_data_fields: ["id"],
       required_meta_fields: [],
-      require_tool_calls: false
+      require_tool_calls: false,
     },
-    tags: []
+    tags: [],
   }
 
   function createSessionWithTextEnvelope(text: string) {
@@ -54,17 +54,17 @@ describe("suite-runner scenario validation", () => {
               role: "assistant",
               time: { created: 1, completed: 2 },
               tokens: { input: 1, output: 1, reasoning: 0, cache: { read: 0, write: 0 } },
-              cost: 0
+              cost: 0,
             },
             parts: [
               { type: "text", text },
               { type: "tool", tool: "api-client" },
-              { type: "step-finish", reason: "done" }
-            ]
-          }
-        ]
+              { type: "step-finish", reason: "done" },
+            ],
+          },
+        ],
       })),
-      abort: vi.fn(async () => ({ data: {} }))
+      abort: vi.fn(async () => ({ data: {} })),
     }
   }
 
@@ -86,11 +86,11 @@ describe("suite-runner scenario validation", () => {
                   role: "assistant",
                   time: { created: 1, completed: 2 },
                   tokens: { input: 1, output: 1, reasoning: 0, cache: { read: 0, write: 0 } },
-                  cost: 0
+                  cost: 0,
                 },
-                parts: [{ type: "step-finish", reason: "tool-calls" }]
-              }
-            ]
+                parts: [{ type: "step-finish", reason: "tool-calls" }],
+              },
+            ],
           }
         }
 
@@ -103,9 +103,9 @@ describe("suite-runner scenario validation", () => {
                 role: "assistant",
                 time: { created: 1, completed: 2 },
                 tokens: { input: 1, output: 1, reasoning: 0, cache: { read: 0, write: 0 } },
-                cost: 0
+                cost: 0,
               },
-              parts: [{ type: "step-finish", reason: "tool-calls" }]
+              parts: [{ type: "step-finish", reason: "tool-calls" }],
             },
             {
               info: {
@@ -114,18 +114,18 @@ describe("suite-runner scenario validation", () => {
                 role: "assistant",
                 time: { created: 3, completed: 4 },
                 tokens: { input: 1, output: 2, reasoning: 0, cache: { read: 0, write: 0 } },
-                cost: 0
+                cost: 0,
               },
               parts: [
                 { type: "text", text: '{"ok":true,"data":{"id":"repo"},"error":null,"meta":{}}' },
                 { type: "tool", tool: "api-client" },
-                { type: "step-finish", reason: "done" }
-              ]
-            }
-          ]
+                { type: "step-finish", reason: "done" },
+              ],
+            },
+          ],
         }
       }),
-      abort: vi.fn(async () => ({ data: {} }))
+      abort: vi.fn(async () => ({ data: {} })),
     }
 
     const result = await runScenario(
@@ -141,12 +141,12 @@ describe("suite-runner scenario validation", () => {
         assertions: {
           must_succeed: true,
           required_fields: ["ok", "data", "error", "meta"],
-          required_data_fields: ["id"]
+          required_data_fields: ["id"],
         },
-        tags: []
+        tags: [],
       },
       "ghx",
-      1
+      1,
     )
 
     expect(result.success).toBe(true)
@@ -166,7 +166,7 @@ describe("suite-runner scenario validation", () => {
               role: "assistant",
               time: { created: 1 },
               tokens: { input: 1, output: 2, reasoning: 3, cache: { read: 0, write: 0 } },
-              cost: 0
+              cost: 0,
             },
             parts: [
               { type: "text", text: '{"ok":true,"data":{},"error":null,"meta":{}}' },
@@ -175,13 +175,13 @@ describe("suite-runner scenario validation", () => {
                 type: "step-finish",
                 reason: "done",
                 tokens: { input: 1, output: 2, reasoning: 3, cache: { read: 0, write: 0 } },
-                cost: 0
-              }
-            ]
-          }
-        ]
+                cost: 0,
+              },
+            ],
+          },
+        ],
       })),
-      abort: vi.fn(async () => ({ data: {} }))
+      abort: vi.fn(async () => ({ data: {} })),
     }
 
     const result = await runScenario(
@@ -198,12 +198,12 @@ describe("suite-runner scenario validation", () => {
           must_succeed: true,
           required_fields: ["ok", "data", "error", "meta"],
           required_data_fields: ["id"],
-          require_tool_calls: true
+          require_tool_calls: true,
         },
-        tags: []
+        tags: [],
       },
       "ghx",
-      1
+      1,
     )
 
     expect(result.success).toBe(false)
@@ -222,17 +222,17 @@ describe("suite-runner scenario validation", () => {
             role: "assistant",
             time: { created: 1, completed: 2 },
             tokens: { input: 1, output: 2, reasoning: 0, cache: { read: 0, write: 0 } },
-            cost: 0
+            cost: 0,
           },
           parts: [
             { type: "text", text: '{"ok":true,"data":{"id":"repo"},"error":null,"meta":{}}' },
             { type: "tool", tool: "api-client" },
-            { type: "step-finish", reason: "done" }
-          ]
-        }
+            { type: "step-finish", reason: "done" },
+          ],
+        },
       })),
       messages: vi.fn(async () => ({ data: [] })),
-      abort: vi.fn(async () => ({ data: {} }))
+      abort: vi.fn(async () => ({ data: {} })),
     }
 
     const result = await runScenario(
@@ -249,12 +249,12 @@ describe("suite-runner scenario validation", () => {
           must_succeed: true,
           required_fields: ["ok", "data", "error", "meta"],
           required_data_fields: ["id"],
-          require_tool_calls: true
+          require_tool_calls: true,
         },
-        tags: []
+        tags: [],
       },
       "ghx",
-      1
+      1,
     )
 
     expect(result.error?.message ?? "").not.toContain("Timed out waiting for assistant message")
@@ -265,7 +265,7 @@ describe("suite-runner scenario validation", () => {
 
   it("backfills missing envelope fields when assistant already returns ok object", async () => {
     const session = createSessionWithTextEnvelope(
-      '{"ok":true,"data":{"items":[],"pageInfo":{"hasNextPage":false,"endCursor":null}}}'
+      '{"ok":true,"data":{"items":[],"pageInfo":{"hasNextPage":false,"endCursor":null}}}',
     )
 
     const result = await runScenario({ session }, issueCommentsScenario, "ghx", 1)
@@ -283,7 +283,7 @@ describe("suite-runner scenario validation", () => {
 
   it("wraps repository.issues GraphQL shape into benchmark envelope", async () => {
     const session = createSessionWithTextEnvelope(
-      '{"data":{"repository":{"issues":{"nodes":[{"id":"i1"}],"pageInfo":{"hasNextPage":true,"endCursor":"abc"}}}}}'
+      '{"data":{"repository":{"issues":{"nodes":[{"id":"i1"}],"pageInfo":{"hasNextPage":true,"endCursor":"abc"}}}}}',
     )
 
     const result = await runScenario({ session }, issueCommentsScenario, "ghx", 1)
@@ -293,7 +293,7 @@ describe("suite-runner scenario validation", () => {
 
   it("wraps repository.pullRequests GraphQL shape into benchmark envelope", async () => {
     const session = createSessionWithTextEnvelope(
-      '{"data":{"repository":{"pullRequests":{"nodes":[{"id":"pr1"}],"pageInfo":{"hasNextPage":false,"endCursor":null}}}}}'
+      '{"data":{"repository":{"pullRequests":{"nodes":[{"id":"pr1"}],"pageInfo":{"hasNextPage":false,"endCursor":null}}}}}',
     )
 
     const result = await runScenario({ session }, issueCommentsScenario, "ghx", 1)
@@ -303,7 +303,7 @@ describe("suite-runner scenario validation", () => {
 
   it("wraps repository.issue.comments GraphQL shape into benchmark envelope", async () => {
     const session = createSessionWithTextEnvelope(
-      '{"data":{"repository":{"issue":{"comments":{"nodes":[{"id":"c1"}],"pageInfo":{"hasNextPage":false,"endCursor":null}}}}}}'
+      '{"data":{"repository":{"issue":{"comments":{"nodes":[{"id":"c1"}],"pageInfo":{"hasNextPage":false,"endCursor":null}}}}}}',
     )
 
     const result = await runScenario({ session }, issueCommentsScenario, "ghx", 1)
@@ -325,17 +325,17 @@ describe("suite-runner scenario validation", () => {
               time: { created: 1, completed: 2 },
               tokens: { input: 1, output: 1, reasoning: 0, cache: { read: 0, write: 0 } },
               cost: 0,
-              structured_output: { ok: true, data: { id: "repo-1" }, error: null, meta: {} }
+              structured_output: { ok: true, data: { id: "repo-1" }, error: null, meta: {} },
             },
             parts: [
               { type: "text", text: "not-json" },
               { type: "tool", tool: "api-client" },
-              { type: "step-finish", reason: "done" }
-            ]
-          }
-        ]
+              { type: "step-finish", reason: "done" },
+            ],
+          },
+        ],
       })),
-      abort: vi.fn(async () => ({ data: {} }))
+      abort: vi.fn(async () => ({ data: {} })),
     }
 
     const result = await runScenario({ session }, repoScenario, "agent_direct", 1)
@@ -358,14 +358,14 @@ describe("suite-runner scenario validation", () => {
               role: "assistant",
               time: { created: 3, completed: 4 },
               tokens: { input: 1, output: 1, reasoning: 0, cache: { read: 0, write: 0 } },
-              cost: 0
+              cost: 0,
             },
             parts: [
               { type: "text", text: '{"ok":true,"data":{"id":"repo-2"},"error":null,"meta":{}}' },
               { type: "tool", tool: "api-client" },
-              { type: "step-finish", reason: "done" }
-            ]
-          }
+              { type: "step-finish", reason: "done" },
+            ],
+          },
         }),
       messages: vi.fn(async () => ({
         data: [
@@ -376,17 +376,17 @@ describe("suite-runner scenario validation", () => {
               role: "assistant",
               time: { created: 1, completed: 2 },
               tokens: { input: 1, output: 1, reasoning: 0, cache: { read: 0, write: 0 } },
-              cost: 0
+              cost: 0,
             },
             parts: [
               { type: "text", text: "still working" },
               { type: "tool", tool: "api-client" },
-              { type: "step-finish", reason: "done" }
-            ]
-          }
-        ]
+              { type: "step-finish", reason: "done" },
+            ],
+          },
+        ],
       })),
-      abort: vi.fn(async () => ({ data: {} }))
+      abort: vi.fn(async () => ({ data: {} })),
     }
 
     const result = await runScenario({ session }, repoScenario, "agent_direct", 1)
@@ -401,8 +401,8 @@ describe("suite-runner scenario validation", () => {
       ...repoScenario,
       assertions: {
         ...repoScenario.assertions,
-        required_data_fields: []
-      }
+        required_data_fields: [],
+      },
     }
     const session = createSessionWithTextEnvelope('{"ok":true,"meta":{}}')
 
@@ -420,5 +420,4 @@ describe("suite-runner scenario validation", () => {
     expect(result.success).toBe(false)
     expect(result.output_valid).toBe(false)
   })
-
 })

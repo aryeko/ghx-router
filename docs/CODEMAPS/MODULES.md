@@ -1,6 +1,6 @@
 # Module Codemap
 
-**Last Updated:** 2026-02-15
+**Last Updated:** 2026-02-16
 
 ## Core Package (`packages/core/src`)
 
@@ -89,7 +89,8 @@
 | `agent.ts` | Package entrypoint for agent integration helpers | `listCapabilities()`, `createExecuteTool()` | `agent-interface/tools/*` |
 | `cli/index.ts` | CLI command router (`ghx run`, `ghx setup`, `ghx capabilities`) | `main()` | `cli/commands/run`, `cli/commands/setup`, `cli/commands/capabilities-list`, `cli/commands/capabilities-explain` |
 | `cli/commands/run.ts` | Parses args + invokes execution engine | `runCommand()` | `gql/client`, `routing/engine` |
-| `cli/commands/setup.ts` | Installs/verifies ghx skill profile under `.agents/skill/ghx/SKILL.md` | `setupCommand()` | `node:fs/promises`, `node:readline/promises`, `ajv` |
+| `cli/commands/setup.ts` | Installs/verifies ghx skill profile under `.agents/skills/ghx/SKILL.md` | `setupCommand()` | `node:fs/promises`, `node:readline/promises`, `ajv` |
+| `cli/assets/skills/ghx/SKILL.md` | Canonical setup skill template copied to dist and written by setup | none (markdown asset) | `cli/commands/setup.ts`, `scripts/copy-registry-cards.mjs` |
 | `cli/commands/capabilities-list.ts` | CLI capability discovery list command | `capabilitiesListCommand()` | `agent-interface/tools/list-capabilities-tool` |
 | `cli/commands/capabilities-explain.ts` | CLI capability discovery explain command | `capabilitiesExplainCommand()` | `agent-interface/tools/explain-tool` |
 | `cli/commands/doctor.ts` | Reserved diagnostics command scaffold (not wired in CLI parser yet) | `doctorCommand()` | none |

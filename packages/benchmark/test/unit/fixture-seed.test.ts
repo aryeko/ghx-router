@@ -21,7 +21,10 @@ describe("fixture seed", () => {
 
       const joined = args.join(" ")
 
-      if (joined.includes("label create bench-fixture") || joined.includes("label create bench-seed:seedtest")) {
+      if (
+        joined.includes("label create bench-fixture") ||
+        joined.includes("label create bench-seed:seedtest")
+      ) {
         return { status: 0, stdout: "", stderr: "" }
       }
 
@@ -32,7 +35,11 @@ describe("fixture seed", () => {
       if (joined.includes("repos/aryeko/ghx-bench-fixtures/issues --method POST")) {
         return {
           status: 0,
-          stdout: JSON.stringify({ id: 12345, number: 42, html_url: "https://github.com/aryeko/ghx-bench-fixtures/issues/42" }),
+          stdout: JSON.stringify({
+            id: 12345,
+            number: 42,
+            html_url: "https://github.com/aryeko/ghx-bench-fixtures/issues/42",
+          }),
           stderr: "",
         }
       }
@@ -40,7 +47,11 @@ describe("fixture seed", () => {
       if (joined.includes("issue view 42 --repo aryeko/ghx-bench-fixtures --json id,number,url")) {
         return {
           status: 0,
-          stdout: JSON.stringify({ id: "I_seed", number: 42, url: "https://github.com/aryeko/ghx-bench-fixtures/issues/42" }),
+          stdout: JSON.stringify({
+            id: "I_seed",
+            number: 42,
+            url: "https://github.com/aryeko/ghx-bench-fixtures/issues/42",
+          }),
           stderr: "",
         }
       }
@@ -61,7 +72,11 @@ describe("fixture seed", () => {
         return { status: 0, stdout: "{}", stderr: "" }
       }
 
-      if (joined.includes("api repos/aryeko/ghx-bench-fixtures/contents/.bench/seed-seedtest.md --method PUT")) {
+      if (
+        joined.includes(
+          "api repos/aryeko/ghx-bench-fixtures/contents/.bench/seed-seedtest.md --method PUT",
+        )
+      ) {
         return { status: 0, stdout: "{}", stderr: "" }
       }
 
@@ -76,12 +91,46 @@ describe("fixture seed", () => {
       if (joined.includes("api graphql") && joined.includes("reviewThreads")) {
         return {
           status: 0,
-          stdout: JSON.stringify({ data: { repository: { pullRequest: { reviewThreads: { nodes: [{ id: "PRRT_seed" }] } } } } }),
+          stdout: JSON.stringify({
+            data: {
+              repository: { pullRequest: { reviewThreads: { nodes: [{ id: "PRRT_seed" }] } } },
+            },
+          }),
           stderr: "",
         }
       }
 
       if (joined.includes("run list") || joined.includes("run view")) {
+        if (joined.includes("run list") && joined.includes("databaseId,displayTitle,createdAt")) {
+          return {
+            status: 0,
+            stdout: JSON.stringify([
+              {
+                databaseId: 555,
+                displayTitle: "bench-rerun-failed seedtest",
+                createdAt: new Date().toISOString(),
+              },
+            ]),
+            stderr: "",
+          }
+        }
+
+        if (joined.includes("run view 555") && joined.includes("--json status,conclusion")) {
+          return {
+            status: 0,
+            stdout: JSON.stringify({ status: "completed", conclusion: "failure" }),
+            stderr: "",
+          }
+        }
+
+        if (joined.includes("run view 555") && joined.includes("--json jobs")) {
+          return {
+            status: 0,
+            stdout: JSON.stringify({ jobs: [{ databaseId: 777, conclusion: "failure" }] }),
+            stderr: "",
+          }
+        }
+
         return { status: 0, stdout: "[]", stderr: "" }
       }
 
@@ -97,7 +146,10 @@ describe("fixture seed", () => {
         }
       }
 
-      if (joined.includes("project create --owner aryeko --title") && joined.includes("--format json")) {
+      if (
+        joined.includes("project create --owner aryeko --title") &&
+        joined.includes("--format json")
+      ) {
         return {
           status: 0,
           stdout: JSON.stringify({ id: "PVT_seed", number: 9 }),
@@ -105,7 +157,11 @@ describe("fixture seed", () => {
         }
       }
 
-      if (joined.includes("project item-add 9 --owner aryeko") && joined.includes("/issues/42") && joined.includes("--format json")) {
+      if (
+        joined.includes("project item-add 9 --owner aryeko") &&
+        joined.includes("/issues/42") &&
+        joined.includes("--format json")
+      ) {
         return {
           status: 0,
           stdout: JSON.stringify({ id: "PVTI_seed" }),

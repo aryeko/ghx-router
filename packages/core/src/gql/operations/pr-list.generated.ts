@@ -1,17 +1,32 @@
-import type * as Types from '../generated/common-types';
+import type { GraphQLClient, RequestOptions } from "graphql-request"
+import type * as Types from "../generated/common-types.js"
 
-import type { GraphQLClient, RequestOptions } from 'graphql-request';
-type GraphQLClientRequestHeaders = RequestOptions['requestHeaders'];
+type GraphQLClientRequestHeaders = RequestOptions["requestHeaders"]
 export type PrListQueryVariables = Types.Exact<{
-  owner: Types.Scalars['String']['input'];
-  name: Types.Scalars['String']['input'];
-  first: Types.Scalars['Int']['input'];
-  after?: Types.InputMaybe<Types.Scalars['String']['input']>;
-}>;
+  owner: Types.Scalars["String"]["input"]
+  name: Types.Scalars["String"]["input"]
+  first: Types.Scalars["Int"]["input"]
+  after?: Types.InputMaybe<Types.Scalars["String"]["input"]>
+}>
 
-
-export type PrListQuery = { __typename?: 'Query', repository?: { __typename?: 'Repository', pullRequests: { __typename?: 'PullRequestConnection', nodes?: Array<{ __typename?: 'PullRequest', id: string, number: number, title: string, state: Types.PullRequestState, url: any } | null> | null, pageInfo: { __typename?: 'PageInfo', endCursor?: string | null, hasNextPage: boolean } } } | null };
-
+export type PrListQuery = {
+  __typename?: "Query"
+  repository?: {
+    __typename?: "Repository"
+    pullRequests: {
+      __typename?: "PullRequestConnection"
+      nodes?: Array<{
+        __typename?: "PullRequest"
+        id: string
+        number: number
+        title: string
+        state: Types.PullRequestState
+        url: any
+      } | null> | null
+      pageInfo: { __typename?: "PageInfo"; endCursor?: string | null; hasNextPage: boolean }
+    }
+  } | null
+}
 
 export const PrListDocument = `
     query PrList($owner: String!, $name: String!, $first: Int!, $after: String) {
@@ -35,18 +50,38 @@ export const PrListDocument = `
     }
   }
 }
-    `;
+    `
 
-export type SdkFunctionWrapper = <T>(action: (requestHeaders?:Record<string, string>) => Promise<T>, operationName: string, operationType?: string, variables?: any) => Promise<T>;
+export type SdkFunctionWrapper = <T>(
+  action: (requestHeaders?: Record<string, string>) => Promise<T>,
+  operationName: string,
+  operationType?: string,
+  variables?: any,
+) => Promise<T>
 
-
-const defaultWrapper: SdkFunctionWrapper = (action, _operationName, _operationType, _variables) => action();
+const defaultWrapper: SdkFunctionWrapper = (action, _operationName, _operationType, _variables) =>
+  action()
 
 export function getSdk(client: GraphQLClient, withWrapper: SdkFunctionWrapper = defaultWrapper) {
   return {
-    PrList(variables: PrListQueryVariables, requestHeaders?: GraphQLClientRequestHeaders, signal?: RequestInit['signal']): Promise<PrListQuery> {
-      return withWrapper((wrappedRequestHeaders) => client.request<PrListQuery>({ document: PrListDocument, variables, requestHeaders: { ...requestHeaders, ...wrappedRequestHeaders }, signal }), 'PrList', 'query', variables);
-    }
-  };
+    PrList(
+      variables: PrListQueryVariables,
+      requestHeaders?: GraphQLClientRequestHeaders,
+      signal?: RequestInit["signal"],
+    ): Promise<PrListQuery> {
+      return withWrapper(
+        (wrappedRequestHeaders) =>
+          client.request<PrListQuery>({
+            document: PrListDocument,
+            variables,
+            requestHeaders: { ...requestHeaders, ...wrappedRequestHeaders },
+            signal,
+          }),
+        "PrList",
+        "query",
+        variables,
+      )
+    },
+  }
 }
-export type Sdk = ReturnType<typeof getSdk>;
+export type Sdk = ReturnType<typeof getSdk>

@@ -3,6 +3,12 @@
   "defaultBase": "main",
   "parallel": 3,
   "targetDefaults": {
+    "format": {
+      "cache": false
+    },
+    "format:check": {
+      "cache": true
+    },
     "lint": {
       "dependsOn": ["^lint"],
       "cache": true
@@ -25,7 +31,7 @@
       "cache": false
     },
     "ci": {
-      "dependsOn": ["lint", "typecheck", "test:coverage", "build"],
+      "dependsOn": ["format:check", "lint", "typecheck", "test:coverage", "build"],
       "cache": false
     },
     "test:e2e": {

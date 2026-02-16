@@ -16,8 +16,8 @@ describe("createGithubClient sdk integration", () => {
         stargazerCount: 10,
         forkCount: 2,
         url: "https://github.com/go-modkit/modkit",
-        defaultBranchRef: { name: "main" }
-      }
+        defaultBranchRef: { name: "main" },
+      },
     }))
     const issueView = vi.fn(async () => ({
       repository: {
@@ -26,9 +26,9 @@ describe("createGithubClient sdk integration", () => {
           number: 42,
           title: "Issue title",
           state: "OPEN",
-          url: "https://github.com/go-modkit/modkit/issues/42"
-        }
-      }
+          url: "https://github.com/go-modkit/modkit/issues/42",
+        },
+      },
     }))
     const prView = vi.fn(async () => ({
       repository: {
@@ -37,16 +37,18 @@ describe("createGithubClient sdk integration", () => {
           number: 7,
           title: "PR title",
           state: "OPEN",
-          url: "https://github.com/go-modkit/modkit/pull/7"
-        }
-      }
+          url: "https://github.com/go-modkit/modkit/pull/7",
+        },
+      },
     }))
     const getRepoViewSdk = vi.fn(() => ({ RepoView: repoView }))
     const getIssueViewSdk = vi.fn(() => ({ IssueView: issueView }))
     const getPrViewSdk = vi.fn(() => ({ PrView: prView }))
 
     vi.doMock("../../src/gql/operations/repo-view.generated.js", () => ({ getSdk: getRepoViewSdk }))
-    vi.doMock("../../src/gql/operations/issue-view.generated.js", () => ({ getSdk: getIssueViewSdk }))
+    vi.doMock("../../src/gql/operations/issue-view.generated.js", () => ({
+      getSdk: getIssueViewSdk,
+    }))
     vi.doMock("../../src/gql/operations/pr-view.generated.js", () => ({ getSdk: getPrViewSdk }))
 
     const { createGithubClient } = await import("../../src/gql/client.js")
@@ -54,7 +56,7 @@ describe("createGithubClient sdk integration", () => {
     const client = createGithubClient({
       async execute<TData>(): Promise<TData> {
         return {} as TData
-      }
+      },
     })
 
     await client.fetchRepoView({ owner: "go-modkit", name: "modkit" })

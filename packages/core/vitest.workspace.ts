@@ -1,4 +1,4 @@
-import { defineWorkspace } from "vitest/config";
+import { defineWorkspace } from "vitest/config"
 
 export default defineWorkspace([
   {
@@ -23,4 +23,4 @@ export default defineWorkspace([
       include: ["test/e2e/setup-opencode-skill.e2e.test.ts"],
     },
   },
-]);
+])

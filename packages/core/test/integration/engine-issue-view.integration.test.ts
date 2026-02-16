@@ -16,26 +16,26 @@ describe("executeTask issue.view", () => {
                 number: 210,
                 title: "Fix parser edge case",
                 state: "OPEN",
-                url: "https://github.com/go-modkit/modkit/issues/210"
-              }
-            }
+                url: "https://github.com/go-modkit/modkit/issues/210",
+              },
+            },
           } as TData
         }
 
         throw new Error("Unexpected query")
-      }
+      },
     })
 
     const request: TaskRequest = {
       task: "issue.view",
-      input: { owner: "go-modkit", name: "modkit", issueNumber: 210 }
+      input: { owner: "go-modkit", name: "modkit", issueNumber: 210 },
     }
 
     const result = await executeTask(request, {
       githubClient,
       githubToken: "test-token",
       ghCliAvailable: false,
-      ghAuthenticated: false
+      ghAuthenticated: false,
     })
 
     expect(result.ok).toBe(true)
@@ -43,8 +43,8 @@ describe("executeTask issue.view", () => {
     expect(result.data).toEqual(
       expect.objectContaining({
         number: 210,
-        title: "Fix parser edge case"
-      })
+        title: "Fix parser edge case",
+      }),
     )
   })
 
@@ -54,25 +54,25 @@ describe("executeTask issue.view", () => {
         if (query.includes("query IssueView")) {
           return {
             repository: {
-              issue: null
-            }
+              issue: null,
+            },
           } as TData
         }
 
         throw new Error("Unexpected query")
-      }
+      },
     })
 
     const request: TaskRequest = {
       task: "issue.view",
-      input: { owner: "go-modkit", name: "modkit", issueNumber: 99999 }
+      input: { owner: "go-modkit", name: "modkit", issueNumber: 99999 },
     }
 
     const result = await executeTask(request, {
       githubClient,
       githubToken: "test-token",
       ghCliAvailable: false,
-      ghAuthenticated: false
+      ghAuthenticated: false,
     })
 
     expect(result.ok).toBe(false)

@@ -12,7 +12,11 @@ export function createSafeCliCommandRunner(options?: SafeRunnerOptions): CliComm
   const maxOutputBytes = options?.maxOutputBytes ?? DEFAULT_MAX_OUTPUT_BYTES
 
   return {
-    run(command: string, args: string[], timeoutMs: number): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+    run(
+      command: string,
+      args: string[],
+      timeoutMs: number,
+    ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
       if (timeoutMs <= 0) {
         return Promise.reject(new Error("timeoutMs must be a positive number"))
       }
@@ -20,7 +24,7 @@ export function createSafeCliCommandRunner(options?: SafeRunnerOptions): CliComm
       return new Promise((resolve, reject) => {
         const child = spawn(command, args, {
           shell: false,
-          stdio: ["ignore", "pipe", "pipe"]
+          stdio: ["ignore", "pipe", "pipe"],
         })
 
         const stdoutChunks: Buffer[] = []
@@ -119,10 +123,10 @@ export function createSafeCliCommandRunner(options?: SafeRunnerOptions): CliComm
           settleSuccess(
             Buffer.concat(stdoutChunks).toString("utf8"),
             Buffer.concat(stderrChunks).toString("utf8"),
-            code ?? 1
+            code ?? 1,
           )
         })
       })
-    }
+    },
   }
 }

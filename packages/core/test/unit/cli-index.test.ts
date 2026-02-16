@@ -6,19 +6,19 @@ const capabilitiesListCommandMock = vi.fn()
 const capabilitiesExplainCommandMock = vi.fn()
 
 vi.mock("../../src/cli/commands/run.js", () => ({
-  runCommand: (...args: unknown[]) => runCommandMock(...args)
+  runCommand: (...args: unknown[]) => runCommandMock(...args),
 }))
 
 vi.mock("../../src/cli/commands/setup.js", () => ({
-  setupCommand: (...args: unknown[]) => setupCommandMock(...args)
+  setupCommand: (...args: unknown[]) => setupCommandMock(...args),
 }))
 
 vi.mock("../../src/cli/commands/capabilities-list.js", () => ({
-  capabilitiesListCommand: (...args: unknown[]) => capabilitiesListCommandMock(...args)
+  capabilitiesListCommand: (...args: unknown[]) => capabilitiesListCommandMock(...args),
 }))
 
 vi.mock("../../src/cli/commands/capabilities-explain.js", () => ({
-  capabilitiesExplainCommand: (...args: unknown[]) => capabilitiesExplainCommandMock(...args)
+  capabilitiesExplainCommand: (...args: unknown[]) => capabilitiesExplainCommandMock(...args),
 }))
 
 import { main } from "../../src/cli/index.js"
@@ -43,7 +43,7 @@ describe("cli index main", () => {
 
     expect(code).toBe(0)
     expect(stdout).toHaveBeenCalledWith(
-      "Usage:\n  ghx run <task> --input '<json>'\n  ghx setup --scope <user|project> [--yes] [--dry-run] [--verify] [--track]\n  ghx capabilities list\n  ghx capabilities explain <capability_id>\n"
+      "Usage:\n  ghx run <task> --input '<json>'\n  ghx setup --scope <user|project> [--yes] [--dry-run] [--verify] [--track]\n  ghx capabilities list\n  ghx capabilities explain <capability_id>\n",
     )
   })
 
@@ -54,7 +54,7 @@ describe("cli index main", () => {
 
     expect(code).toBe(0)
     expect(stdout).toHaveBeenCalledWith(
-      "Usage:\n  ghx run <task> --input '<json>'\n  ghx setup --scope <user|project> [--yes] [--dry-run] [--verify] [--track]\n  ghx capabilities list\n  ghx capabilities explain <capability_id>\n"
+      "Usage:\n  ghx run <task> --input '<json>'\n  ghx setup --scope <user|project> [--yes] [--dry-run] [--verify] [--track]\n  ghx capabilities list\n  ghx capabilities explain <capability_id>\n",
     )
   })
 
@@ -101,7 +101,7 @@ describe("cli index main", () => {
 
     expect(code).toBe(1)
     expect(stderr).toHaveBeenCalledWith(
-      "Unknown capabilities subcommand: nope\nUsage:\n  ghx run <task> --input '<json>'\n  ghx setup --scope <user|project> [--yes] [--dry-run] [--verify] [--track]\n  ghx capabilities list\n  ghx capabilities explain <capability_id>\n"
+      "Unknown capabilities subcommand: nope\nUsage:\n  ghx run <task> --input '<json>'\n  ghx setup --scope <user|project> [--yes] [--dry-run] [--verify] [--track]\n  ghx capabilities list\n  ghx capabilities explain <capability_id>\n",
     )
   })
 
@@ -112,7 +112,7 @@ describe("cli index main", () => {
 
     expect(code).toBe(1)
     expect(stderr).toHaveBeenCalledWith(
-      "Missing capabilities subcommand.\nUsage:\n  ghx run <task> --input '<json>'\n  ghx setup --scope <user|project> [--yes] [--dry-run] [--verify] [--track]\n  ghx capabilities list\n  ghx capabilities explain <capability_id>\n"
+      "Missing capabilities subcommand.\nUsage:\n  ghx run <task> --input '<json>'\n  ghx setup --scope <user|project> [--yes] [--dry-run] [--verify] [--track]\n  ghx capabilities list\n  ghx capabilities explain <capability_id>\n",
     )
   })
 
@@ -123,7 +123,7 @@ describe("cli index main", () => {
 
     expect(code).toBe(1)
     expect(stderr).toHaveBeenCalledWith(
-      "Unknown command: nope\nUsage:\n  ghx run <task> --input '<json>'\n  ghx setup --scope <user|project> [--yes] [--dry-run] [--verify] [--track]\n  ghx capabilities list\n  ghx capabilities explain <capability_id>\n"
+      "Unknown command: nope\nUsage:\n  ghx run <task> --input '<json>'\n  ghx setup --scope <user|project> [--yes] [--dry-run] [--verify] [--track]\n  ghx capabilities list\n  ghx capabilities explain <capability_id>\n",
     )
   })
 })

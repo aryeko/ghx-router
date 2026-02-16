@@ -6,7 +6,7 @@ import { aggregateToolCounts } from "../../src/extract/tool-usage.js"
 describe("extractors", () => {
   it("extracts JSON object from plain text", () => {
     const payload = extractFirstJsonObject(
-      "prefix {\"ok\":true,\"data\":{},\"error\":null,\"meta\":{}} suffix"
+      'prefix {"ok":true,"data":{},"error":null,"meta":{}} suffix',
     )
 
     expect(payload).toBeTruthy()
@@ -14,7 +14,7 @@ describe("extractors", () => {
 
   it("extracts first balanced JSON object when extra braces exist later", () => {
     const payload = extractFirstJsonObject(
-      "prefix {\"ok\":true,\"data\":{\"message\":\"brace } in text\"},\"error\":null,\"meta\":{}} trailing {not-json}"
+      'prefix {"ok":true,"data":{"message":"brace } in text"},"error":null,"meta":{}} trailing {not-json}',
     ) as { ok?: boolean } | null
 
     expect(payload?.ok).toBe(true)
@@ -27,7 +27,7 @@ describe("extractors", () => {
 
   it("handles escaped characters inside JSON strings", () => {
     const payload = extractFirstJsonObject(
-      String.raw`prefix {"ok":true,"data":{"text":"quote: \" and slash: \\"},"error":null,"meta":{}} suffix`
+      String.raw`prefix {"ok":true,"data":{"text":"quote: \" and slash: \\"},"error":null,"meta":{}} suffix`,
     ) as { data?: { text?: string } } | null
 
     expect(payload?.data?.text).toBe('quote: " and slash: \\')
@@ -41,14 +41,14 @@ describe("extractors", () => {
     const valid = validateEnvelope(
       {
         must_succeed: true,
-        required_fields: ["ok", "data", "error", "meta"]
+        required_fields: ["ok", "data", "error", "meta"],
       },
       {
         ok: true,
         data: {},
         error: null,
-        meta: {}
-      }
+        meta: {},
+      },
     )
 
     expect(valid).toBe(true)
@@ -60,16 +60,20 @@ describe("extractors", () => {
     expect(
       validateEnvelope(
         { must_succeed: true, required_fields: ["meta"] },
-        { ok: true, data: {}, error: null }
-      )
+        { ok: true, data: {}, error: null },
+      ),
     ).toBe(false)
-    expect(validateEnvelope({ must_succeed: true, data_type: "array" }, { ok: true, data: {} })).toBe(false)
-    expect(validateEnvelope({ must_succeed: true, data_type: "object" }, { ok: true, data: [] })).toBe(false)
+    expect(
+      validateEnvelope({ must_succeed: true, data_type: "array" }, { ok: true, data: {} }),
+    ).toBe(false)
+    expect(
+      validateEnvelope({ must_succeed: true, data_type: "object" }, { ok: true, data: [] }),
+    ).toBe(false)
     expect(
       validateEnvelope(
         { must_succeed: true, required_data_fields: ["id"] },
-        { ok: true, data: [] }
-      )
+        { ok: true, data: [] },
+      ),
     ).toBe(false)
   })
 
@@ -79,81 +83,81 @@ describe("extractors", () => {
         {
           must_succeed: true,
           expected_route_used: "cli",
-          required_meta_fields: ["route_used"]
+          required_meta_fields: ["route_used"],
         },
         {
           ok: true,
           data: {},
           error: null,
           meta: {
-            route_used: "cli"
-          }
-        }
-      )
+            route_used: "cli",
+          },
+        },
+      ),
     ).toBe(true)
 
     expect(
       validateEnvelope(
         {
           must_succeed: true,
-          expected_route_used: "graphql"
+          expected_route_used: "graphql",
         },
         {
           ok: true,
           data: {},
           error: null,
           meta: {
-            route_used: "graphql"
-          }
-        }
-      )
+            route_used: "graphql",
+          },
+        },
+      ),
     ).toBe(true)
 
     expect(
       validateEnvelope(
         {
           must_succeed: true,
-          expected_route_used: "graphql"
+          expected_route_used: "graphql",
         },
         {
           ok: true,
           data: {},
           error: null,
           meta: {
-            route_used: "cli"
-          }
-        }
-      )
+            route_used: "cli",
+          },
+        },
+      ),
     ).toBe(false)
 
     expect(
       validateEnvelope(
         {
           must_succeed: true,
-          required_meta_fields: ["route_used"]
+          required_meta_fields: ["route_used"],
         },
         {
           ok: true,
           data: {},
           error: null,
-          meta: null
-        }
-      )
+          meta: null,
+        },
+      ),
     ).toBe(false)
 
     expect(
       validateEnvelope(
         {
           must_succeed: true,
-          required_meta_fields: ["route_used"]
+          required_meta_fields: ["route_used"],
         },
         {
           ok: true,
           data: {},
           error: null,
-          meta: {}
-        }
-      )
+          meta: {},
+        },
+      ),
     ).toBe(false)
   })
 
@@ -162,7 +166,7 @@ describe("extractors", () => {
       validateEnvelope(
         {
           must_succeed: false,
-          expected_error_code: "SERVER"
+          expected_error_code: "SERVER",
         },
         {
           ok: false,
@@ -170,18 +174,18 @@ describe("extractors", () => {
           error: {
             code: "SERVER",
             message: "Output schema validation failed",
-            retryable: false
+            retryable: false,
           },
-          meta: { route_used: "graphql" }
-        }
-      )
+          meta: { route_used: "graphql" },
+        },
+      ),
     ).toBe(true)
 
     expect(
       validateEnvelope(
         {
           must_succeed: false,
-          expected_error_code: "VALIDATION"
+          expected_error_code: "VALIDATION",
         },
         {
           ok: false,
@@ -189,18 +193,18 @@ describe("extractors", () => {
           error: {
             code: "VALIDATION",
             message: "Input schema validation failed",
-            retryable: false
+            retryable: false,
           },
-          meta: { route_used: "cli" }
-        }
-      )
+          meta: { route_used: "cli" },
+        },
+      ),
     ).toBe(true)
 
     expect(
       validateEnvelope(
         {
           must_succeed: false,
-          expected_error_code: "SERVER"
+          expected_error_code: "SERVER",
         },
         {
           ok: false,
@@ -208,26 +212,26 @@ describe("extractors", () => {
           error: {
             code: "VALIDATION",
             message: "Input schema validation failed",
-            retryable: false
+            retryable: false,
           },
-          meta: { route_used: "graphql" }
-        }
-      )
+          meta: { route_used: "graphql" },
+        },
+      ),
     ).toBe(false)
 
     expect(
       validateEnvelope(
         {
           must_succeed: false,
-          expected_error_code: "SERVER"
+          expected_error_code: "SERVER",
         },
         {
           ok: false,
           data: null,
           error: null,
-          meta: { route_used: "graphql" }
-        }
-      )
+          meta: { route_used: "graphql" },
+        },
+      ),
     ).toBe(false)
   })
 
@@ -237,9 +241,9 @@ describe("extractors", () => {
         parts: [
           { type: "tool", tool: "bash" },
           { type: "tool", tool: "api-client" },
-          { type: "text", text: "done" }
-        ]
-      }
+          { type: "text", text: "done" },
+        ],
+      },
     ])
 
     expect(counts.toolCalls).toBe(2)
@@ -259,9 +263,9 @@ describe("extractors", () => {
           { type: "tool", tool: "HTTP-FETCH" },
           { type: "tool", tool: "filesystem" },
           { type: "tool" },
-          { type: "text", text: "hello" }
-        ]
-      }
+          { type: "text", text: "hello" },
+        ],
+      },
     ])
 
     expect(counts.toolCalls).toBe(3)

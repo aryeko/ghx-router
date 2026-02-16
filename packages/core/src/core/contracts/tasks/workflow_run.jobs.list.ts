@@ -1,3 +1,3 @@
 export const workflowRunJobsListTask = {
-  id: "workflow_run.jobs.list"
+  id: "workflow_run.jobs.list",
 } as const

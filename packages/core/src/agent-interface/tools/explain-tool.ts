@@ -47,6 +47,6 @@ export function explainCapability(capabilityId: string): CapabilityExplanation {
     required_inputs: extractRequiredInputs(card.input_schema),
     preferred_route: card.routing.preferred,
     fallback_routes: [...card.routing.fallbacks],
-    output_fields: extractOutputFields(card.output_schema)
+    output_fields: extractOutputFields(card.output_schema),
   }
 }

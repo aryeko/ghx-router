@@ -1,5 +1,5 @@
-import { errorCodes } from "./codes.js"
 import type { ErrorCode } from "./codes.js"
+import { errorCodes } from "./codes.js"
 
 function toMessage(error: unknown): string {
   if (error instanceof Error) {
@@ -12,7 +12,11 @@ function toMessage(error: unknown): string {
 export function mapErrorToCode(error: unknown): ErrorCode {
   const message = toMessage(error).toLowerCase()
 
-  if (message.includes("rate limit") || message.includes(" 429") || message.includes("too many requests")) {
+  if (
+    message.includes("rate limit") ||
+    message.includes(" 429") ||
+    message.includes("too many requests")
+  ) {
     return errorCodes.RateLimit
   }
 
@@ -30,11 +34,20 @@ export function mapErrorToCode(error: unknown): ErrorCode {
     return errorCodes.Network
   }
 
-  if (message.includes(" 500") || message.includes(" 502") || message.includes(" 503") || message.includes(" 504")) {
+  if (
+    message.includes(" 500") ||
+    message.includes(" 502") ||
+    message.includes(" 503") ||
+    message.includes(" 504")
+  ) {
     return errorCodes.Server
   }
 
-  if (message.includes("auth") || message.includes("forbidden") || message.includes("unauthorized")) {
+  if (
+    message.includes("auth") ||
+    message.includes("forbidden") ||
+    message.includes("unauthorized")
+  ) {
     return errorCodes.Auth
   }
 

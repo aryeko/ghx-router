@@ -8,7 +8,7 @@ describe("capabilityRegistry", () => {
       {
         task: "repo.view",
         defaultRoute: "cli",
-        fallbackRoutes: ["graphql"]
+        fallbackRoutes: ["graphql"],
       },
       {
         task: "repo.labels.list",
@@ -23,17 +23,17 @@ describe("capabilityRegistry", () => {
       {
         task: "issue.view",
         defaultRoute: "cli",
-        fallbackRoutes: ["graphql"]
+        fallbackRoutes: ["graphql"],
       },
       {
         task: "issue.list",
         defaultRoute: "cli",
-        fallbackRoutes: ["graphql"]
+        fallbackRoutes: ["graphql"],
       },
       {
         task: "issue.comments.list",
         defaultRoute: "graphql",
-        fallbackRoutes: ["cli"]
+        fallbackRoutes: ["cli"],
       },
       {
         task: "issue.create",
@@ -113,12 +113,12 @@ describe("capabilityRegistry", () => {
       {
         task: "pr.view",
         defaultRoute: "cli",
-        fallbackRoutes: ["graphql"]
+        fallbackRoutes: ["graphql"],
       },
       {
         task: "pr.list",
         defaultRoute: "cli",
-        fallbackRoutes: ["graphql"]
+        fallbackRoutes: ["graphql"],
       },
       {
         task: "pr.comments.list",
@@ -334,7 +334,7 @@ describe("capabilityRegistry", () => {
         task: "workflow_run.rerun_failed",
         defaultRoute: "cli",
         fallbackRoutes: [],
-      }
+      },
     ])
   })
 })

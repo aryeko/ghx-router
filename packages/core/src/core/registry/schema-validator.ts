@@ -1,5 +1,5 @@
-import Ajv from "ajv"
 import type { ErrorObject, ValidateFunction } from "ajv"
+import { Ajv } from "ajv"
 
 type SchemaValidationError = {
   instancePath: string
@@ -17,7 +17,7 @@ type SchemaValidationResult =
 
 const ajv = new Ajv({
   allErrors: true,
-  strict: false
+  strict: false,
 })
 
 const validatorCache = new WeakMap<Record<string, unknown>, ValidateFunction>()
@@ -31,7 +31,7 @@ function mapAjvErrors(errors: ErrorObject[] | null | undefined): SchemaValidatio
     instancePath: error.instancePath,
     message: error.message ?? "schema validation failed",
     keyword: error.keyword,
-    params: error.params
+    params: error.params,
   }))
 }
 
@@ -56,14 +56,20 @@ function validate(schema: Record<string, unknown>, payload: unknown): SchemaVali
 
   return {
     ok: false,
-    errors: mapAjvErrors(validator.errors)
+    errors: mapAjvErrors(validator.errors),
   }
 }
 
-export function validateInput(inputSchema: Record<string, unknown>, params: Record<string, unknown>): SchemaValidationResult {
+export function validateInput(
+  inputSchema: Record<string, unknown>,
+  params: Record<string, unknown>,
+): SchemaValidationResult {
   return validate(inputSchema, params)
 }
 
-export function validateOutput(outputSchema: Record<string, unknown>, data: unknown): SchemaValidationResult {
+export function validateOutput(
+  outputSchema: Record<string, unknown>,
+  data: unknown,
+): SchemaValidationResult {
   return validate(outputSchema, data)
 }

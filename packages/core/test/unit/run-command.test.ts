@@ -4,11 +4,11 @@ const createGithubClientMock = vi.fn()
 const executeTaskMock = vi.fn()
 
 vi.mock("../../src/gql/client.js", () => ({
-  createGithubClient: (...args: unknown[]) => createGithubClientMock(...args)
+  createGithubClient: (...args: unknown[]) => createGithubClientMock(...args),
 }))
 
 vi.mock("../../src/core/routing/engine.js", () => ({
-  executeTask: (...args: unknown[]) => executeTaskMock(...args)
+  executeTask: (...args: unknown[]) => executeTaskMock(...args),
 }))
 
 import { runCommand } from "../../src/cli/commands/run.js"
@@ -43,33 +43,35 @@ describe("runCommand", () => {
   })
 
   it("throws for missing input flag", async () => {
-    await expect(runCommand(["repo.view"]))
-      .rejects.toThrow("Missing --input JSON")
+    await expect(runCommand(["repo.view"])).rejects.toThrow("Missing --input JSON")
   })
 
   it("throws for invalid input JSON", async () => {
-    await expect(runCommand(["repo.view", "--input", "not-json"]))
-      .rejects.toThrow("Invalid JSON for --input")
+    await expect(runCommand(["repo.view", "--input", "not-json"])).rejects.toThrow(
+      "Invalid JSON for --input",
+    )
   })
 
   it("throws when input JSON is not an object", async () => {
-    await expect(runCommand(["repo.view", "--input", "[1,2,3]"]))
-      .rejects.toThrow("--input must be a JSON object")
+    await expect(runCommand(["repo.view", "--input", "[1,2,3]"])).rejects.toThrow(
+      "--input must be a JSON object",
+    )
   })
 
   it("throws when both GitHub token env vars are missing", async () => {
     delete process.env.GITHUB_TOKEN
     delete process.env.GH_TOKEN
 
-    await expect(runCommand(["repo.view", "--input", "{}"]))
-      .rejects.toThrow("Missing GITHUB_TOKEN or GH_TOKEN")
+    await expect(runCommand(["repo.view", "--input", "{}"])).rejects.toThrow(
+      "Missing GITHUB_TOKEN or GH_TOKEN",
+    )
   })
 
   it("executes task and prints JSON result", async () => {
     const fetchMock = vi.fn(async () => ({
       ok: true,
       status: 200,
-      json: async () => ({ data: { repository: { id: "r1" } } })
+      json: async () => ({ data: { repository: { id: "r1" } } }),
     }))
     vi.stubGlobal("fetch", fetchMock)
 
@@ -91,7 +93,7 @@ describe("runCommand", () => {
     const fetchMock = vi.fn(async () => ({
       ok: false,
       status: 403,
-      json: async () => ({ message: "forbidden" })
+      json: async () => ({ message: "forbidden" }),
     }))
     vi.stubGlobal("fetch", fetchMock)
 
@@ -100,15 +102,14 @@ describe("runCommand", () => {
       return { ok: true }
     })
 
-    await expect(runCommand(["repo.view", "--input", "{}"]))
-      .rejects.toThrow("forbidden")
+    await expect(runCommand(["repo.view", "--input", "{}"])).rejects.toThrow("forbidden")
   })
 
   it("propagates GraphQL errors array responses", async () => {
     const fetchMock = vi.fn(async () => ({
       ok: true,
       status: 200,
-      json: async () => ({ errors: [{ message: "query failed" }] })
+      json: async () => ({ errors: [{ message: "query failed" }] }),
     }))
     vi.stubGlobal("fetch", fetchMock)
 
@@ -117,15 +118,14 @@ describe("runCommand", () => {
       return { ok: true }
     })
 
-    await expect(runCommand(["repo.view", "--input", "{}"]))
-      .rejects.toThrow("query failed")
+    await expect(runCommand(["repo.view", "--input", "{}"])).rejects.toThrow("query failed")
   })
 
   it("throws when GraphQL response omits data", async () => {
     const fetchMock = vi.fn(async () => ({
       ok: true,
       status: 200,
-      json: async () => ({})
+      json: async () => ({}),
     }))
     vi.stubGlobal("fetch", fetchMock)
 
@@ -134,7 +134,8 @@ describe("runCommand", () => {
       return { ok: true }
     })
 
-    await expect(runCommand(["repo.view", "--input", "{}"]))
-      .rejects.toThrow("response missing data")
+    await expect(runCommand(["repo.view", "--input", "{}"])).rejects.toThrow(
+      "response missing data",
+    )
   })
 })

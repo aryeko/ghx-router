@@ -111,9 +111,21 @@ Need a custom GraphQL transport? Use `createGithubClient(transport)` instead -- 
 Install ghx as a project skill for Claude Code:
 
 ```bash
-npx @ghx-dev/core setup --platform claude-code --scope project --yes
-npx @ghx-dev/core setup --platform claude-code --scope project --verify
+npx @ghx-dev/core setup --scope project --yes
+npx @ghx-dev/core setup --scope project --verify
 ```
+
+### Setup Skill Source
+
+The canonical setup skill content is stored in:
+
+- `src/cli/assets/skills/ghx/SKILL.md`
+
+During build/publish it is copied to:
+
+- `dist/cli/assets/skills/ghx/SKILL.md`
+
+`ghx setup` writes this content to `.agents/skills/ghx/SKILL.md` in user or project scope.
 
 ## Agent Tools (`@ghx-dev/core/agent`)
 

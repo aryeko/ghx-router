@@ -17,12 +17,12 @@ describe("codegen config", () => {
       expect(generatedOutput.presetConfig).toEqual(
         expect.objectContaining({
           extension: ".generated.ts",
-          baseTypesPath: "../generated/common-types.js"
-        })
+          baseTypesPath: "../generated/common-types.js",
+        }),
       )
       expect(generatedOutput.plugins).toEqual([
         "typescript-operations",
-        "typescript-graphql-request"
+        "typescript-graphql-request",
       ])
     } finally {
       process.env.GITHUB_TOKEN = originalToken

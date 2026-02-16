@@ -20,11 +20,17 @@ function redactValue(value: LogValue): LogValue {
   return value
 }
 
-export function sanitizeTelemetryContext(context: Record<string, LogValue>): Record<string, LogValue> {
+export function sanitizeTelemetryContext(
+  context: Record<string, LogValue>,
+): Record<string, LogValue> {
   return redactValue(context) as Record<string, LogValue>
 }
 
-export function logMetric(name: string, value: number, context: Record<string, LogValue> = {}): void {
+export function logMetric(
+  name: string,
+  value: number,
+  context: Record<string, LogValue> = {},
+): void {
   if (process.env.GHX_TELEMETRY_STDOUT !== "1") {
     return
   }
@@ -33,7 +39,7 @@ export function logMetric(name: string, value: number, context: Record<string, L
     timestamp: new Date().toISOString(),
     metric: name,
     value,
-    context: sanitizeTelemetryContext(context)
+    context: sanitizeTelemetryContext(context),
   }
 
   process.stdout.write(`${JSON.stringify(payload)}\n`)

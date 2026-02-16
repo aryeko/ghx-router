@@ -1,8 +1,8 @@
-import { access, readFile, readdir } from "node:fs/promises"
+import { access, readdir, readFile } from "node:fs/promises"
 import { resolve } from "node:path"
 import { pathToFileURL } from "node:url"
 
-import { loadScenarios, loadScenarioSets } from "../scenario/loader.js"
+import { loadScenarioSets, loadScenarios } from "../scenario/loader.js"
 
 export const REQUIRED_SCENARIO_SETS = [
   "default",
@@ -12,7 +12,7 @@ export const REQUIRED_SCENARIO_SETS = [
   "release-delivery",
   "workflows",
   "projects-v2",
-  "all"
+  "all",
 ]
 
 export const ROADMAP_CAPABILITIES_BY_SET: Record<string, string[]> = {
@@ -25,9 +25,9 @@ export const ROADMAP_CAPABILITIES_BY_SET: Record<string, string[]> = {
     "pr.checks.rerun_all",
     "pr.reviewers.request",
     "pr.assignees.update",
-    "pr.branch.update"
+    "pr.branch.update",
   ],
-  "issues": [
+  issues: [
     "issue.create",
     "issue.update",
     "issue.close",
@@ -42,14 +42,14 @@ export const ROADMAP_CAPABILITIES_BY_SET: Record<string, string[]> = {
     "issue.parent.set",
     "issue.parent.remove",
     "issue.blocked_by.add",
-    "issue.blocked_by.remove"
+    "issue.blocked_by.remove",
   ],
   "release-delivery": [
     "release.list",
     "release.get",
     "release.create_draft",
     "release.update",
-    "release.publish_draft"
+    "release.publish_draft",
   ],
   workflows: [
     "workflow_dispatch.run",
@@ -59,7 +59,7 @@ export const ROADMAP_CAPABILITIES_BY_SET: Record<string, string[]> = {
     "workflow_run.get",
     "workflow_run.rerun_all",
     "workflow_run.cancel",
-    "workflow_run.artifacts.list"
+    "workflow_run.artifacts.list",
   ],
   "projects-v2": [
     "project_v2.org.get",
@@ -69,8 +69,8 @@ export const ROADMAP_CAPABILITIES_BY_SET: Record<string, string[]> = {
     "project_v2.item.add_issue",
     "project_v2.item.field.update",
     "repo.labels.list",
-    "repo.issue_types.list"
-  ]
+    "repo.issue_types.list",
+  ],
 }
 
 function assertNoDuplicateScenarioIds(scenarioIds: string[]): void {
@@ -104,17 +104,22 @@ function assertRequiredScenarioSetsExist(scenarioSets: Record<string, string[]>)
 
 function assertSetReferencesAreKnown(
   scenarioSets: Record<string, string[]>,
-  knownScenarioIds: Set<string>
+  knownScenarioIds: Set<string>,
 ): void {
   for (const [setName, scenarioIds] of Object.entries(scenarioSets)) {
     const unknownScenarioIds = scenarioIds.filter((scenarioId) => !knownScenarioIds.has(scenarioId))
     if (unknownScenarioIds.length > 0) {
-      throw new Error(`Scenario set '${setName}' references unknown scenario id(s): ${unknownScenarioIds.join(", ")}`)
+      throw new Error(
+        `Scenario set '${setName}' references unknown scenario id(s): ${unknownScenarioIds.join(", ")}`,
+      )
     }
   }
 }
 
-function assertNoOrphanScenarios(scenarioSets: Record<string, string[]>, scenarioIds: string[]): void {
+function assertNoOrphanScenarios(
+  scenarioSets: Record<string, string[]>,
+  scenarioIds: string[],
+): void {
   const allReferencedIds = new Set(Object.values(scenarioSets).flat())
   const orphanIds = scenarioIds.filter((scenarioId) => !allReferencedIds.has(scenarioId))
 
@@ -129,7 +134,7 @@ function assertAllSetExactUnion(scenarioSets: Record<string, string[]>): void {
     ...(scenarioSets["issues"] ?? []),
     ...(scenarioSets["release-delivery"] ?? []),
     ...(scenarioSets.workflows ?? []),
-    ...(scenarioSets["projects-v2"] ?? [])
+    ...(scenarioSets["projects-v2"] ?? []),
   ])
   const actualIds = new Set(scenarioSets["all"])
 
@@ -138,7 +143,7 @@ function assertAllSetExactUnion(scenarioSets: Record<string, string[]>): void {
 
   if (missingIds.length > 0 || extraIds.length > 0) {
     throw new Error(
-      `Scenario set 'all' must be exact union of roadmap batch sets (missing: ${missingIds.join(", ") || "none"}; extra: ${extraIds.join(", ") || "none"})`
+      `Scenario set 'all' must be exact union of roadmap batch sets (missing: ${missingIds.join(", ") || "none"}; extra: ${extraIds.join(", ") || "none"})`,
     )
   }
 }
@@ -175,42 +180,52 @@ async function tryLoadRegistryCapabilityIds(benchmarkRoot: string): Promise<stri
 function assertNoDuplicateCapabilityIds(capabilityIds: string[]): void {
   const duplicates = findDuplicates(capabilityIds)
   if (duplicates.length > 0) {
-    throw new Error(`Duplicate capability_id entries found in registry cards: ${duplicates.join(", ")}`)
+    throw new Error(
+      `Duplicate capability_id entries found in registry cards: ${duplicates.join(", ")}`,
+    )
   }
 }
 
 function assertAllCapabilitiesCoveredByBenchmarks(
   scenarioTasks: Set<string>,
-  capabilityIds: string[]
+  capabilityIds: string[],
 ): void {
   const capabilitySet = new Set(capabilityIds)
-  const missingCapabilityIds = capabilityIds.filter((capabilityId) => !scenarioTasks.has(capabilityId))
+  const missingCapabilityIds = capabilityIds.filter(
+    (capabilityId) => !scenarioTasks.has(capabilityId),
+  )
   const unknownScenarioTasks = Array.from(scenarioTasks).filter((task) => !capabilitySet.has(task))
 
   if (missingCapabilityIds.length > 0) {
-    throw new Error(`Missing benchmark coverage for capabilities: ${missingCapabilityIds.join(", ")}`)
+    throw new Error(
+      `Missing benchmark coverage for capabilities: ${missingCapabilityIds.join(", ")}`,
+    )
   }
 
   if (unknownScenarioTasks.length > 0) {
-    throw new Error(`Scenario tasks not present in capability registry: ${unknownScenarioTasks.join(", ")}`)
+    throw new Error(
+      `Scenario tasks not present in capability registry: ${unknownScenarioTasks.join(", ")}`,
+    )
   }
 }
 
 function assertRoadmapBatchCoverage(
   scenarioSets: Record<string, string[]>,
-  scenariosById: Map<string, { task: string }>
+  scenariosById: Map<string, { task: string }>,
 ): void {
   for (const [setName, requiredCapabilities] of Object.entries(ROADMAP_CAPABILITIES_BY_SET)) {
     const coveredCapabilities = new Set(
       (scenarioSets[setName] ?? [])
         .map((scenarioId) => scenariosById.get(scenarioId)?.task)
-        .filter((task): task is string => typeof task === "string")
+        .filter((task): task is string => typeof task === "string"),
     )
 
-    const missingCapabilities = requiredCapabilities.filter((capability) => !coveredCapabilities.has(capability))
+    const missingCapabilities = requiredCapabilities.filter(
+      (capability) => !coveredCapabilities.has(capability),
+    )
     if (missingCapabilities.length > 0) {
       throw new Error(
-        `Scenario set '${setName}' is missing capability coverage for: ${missingCapabilities.join(", ")}`
+        `Scenario set '${setName}' is missing capability coverage for: ${missingCapabilities.join(", ")}`,
       )
     }
   }
@@ -218,7 +233,7 @@ function assertRoadmapBatchCoverage(
 
 function assertCiSetsAvoidMutationScenarios(
   scenarioSets: Record<string, string[]>,
-  scenariosById: Map<string, { tags: string[] }>
+  scenariosById: Map<string, { tags: string[] }>,
 ): void {
   const ciSetNames = ["ci-verify-pr", "ci-verify-release"]
 
@@ -231,19 +246,22 @@ function assertCiSetsAvoidMutationScenarios(
 
     if (mutationScenarioIds.length > 0) {
       throw new Error(
-        `Scenario set '${setName}' must avoid mutation scenarios: ${mutationScenarioIds.join(", ")}`
+        `Scenario set '${setName}' must avoid mutation scenarios: ${mutationScenarioIds.join(", ")}`,
       )
     }
   }
 }
 
 function assertExpectedOutcomeCoverage(
-  scenariosById: Map<string, { expectedOutcome: "success" | "expected_error"; expectedErrorCode: string | undefined }>
+  scenariosById: Map<
+    string,
+    { expectedOutcome: "success" | "expected_error"; expectedErrorCode: string | undefined }
+  >,
 ): void {
   for (const [scenarioId, scenario] of scenariosById.entries()) {
     if (scenario.expectedOutcome === "expected_error" && !scenario.expectedErrorCode) {
       throw new Error(
-        `Scenario '${scenarioId}' uses expected_outcome=expected_error but has no expected_error_code`
+        `Scenario '${scenarioId}' uses expected_outcome=expected_error but has no expected_error_code`,
       )
     }
   }
@@ -251,15 +269,17 @@ function assertExpectedOutcomeCoverage(
 
 function assertRoadmapSetsExpectSuccessOutcomes(
   scenarioSets: Record<string, string[]>,
-  scenariosById: Map<string, { expectedOutcome: "success" | "expected_error" }>
+  scenariosById: Map<string, { expectedOutcome: "success" | "expected_error" }>,
 ): void {
   const roadmapSets = ["pr-exec", "issues", "release-delivery", "workflows", "projects-v2"]
   for (const setName of roadmapSets) {
     const ids = scenarioSets[setName] ?? []
-    const nonSuccess = ids.filter((scenarioId) => scenariosById.get(scenarioId)?.expectedOutcome !== "success")
+    const nonSuccess = ids.filter(
+      (scenarioId) => scenariosById.get(scenarioId)?.expectedOutcome !== "success",
+    )
     if (nonSuccess.length > 0) {
       throw new Error(
-        `Roadmap set '${setName}' contains non-success expected outcomes: ${nonSuccess.join(", ")}`
+        `Roadmap set '${setName}' contains non-success expected outcomes: ${nonSuccess.join(", ")}`,
       )
     }
   }
@@ -285,10 +305,11 @@ export async function main(cwd: string = process.cwd()): Promise<void> {
         task: scenario.task,
         tags: scenario.tags,
         expectedOutcome:
-          scenario.assertions.expected_outcome ?? (scenario.assertions.must_succeed === false ? "expected_error" : "success"),
+          scenario.assertions.expected_outcome ??
+          (scenario.assertions.must_succeed === false ? "expected_error" : "success"),
         expectedErrorCode: scenario.assertions.expected_error_code,
       },
-    ])
+    ]),
   )
 
   assertNoDuplicateScenarioIds(scenarioIds)
@@ -307,7 +328,9 @@ export async function main(cwd: string = process.cwd()): Promise<void> {
     assertAllCapabilitiesCoveredByBenchmarks(scenarioTasks, registryCapabilityIds)
   }
 
-  console.log(`Validated ${scenarios.length} benchmark scenarios across ${Object.keys(scenarioSets).length} sets`)
+  console.log(
+    `Validated ${scenarios.length} benchmark scenarios across ${Object.keys(scenarioSets).length} sets`,
+  )
 }
 
 const isDirectRun = process.argv[1]

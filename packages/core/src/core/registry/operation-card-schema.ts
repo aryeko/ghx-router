@@ -15,7 +15,7 @@ export const operationCardSchema = {
         preferred: { enum: ["cli", "graphql", "rest"] },
         fallbacks: {
           type: "array",
-          items: { enum: ["cli", "graphql", "rest"] }
+          items: { enum: ["cli", "graphql", "rest"] },
         },
         suitability: {
           type: "array",
@@ -25,17 +25,17 @@ export const operationCardSchema = {
             properties: {
               when: { enum: ["always", "env", "params"] },
               predicate: { type: "string", minLength: 1 },
-              reason: { type: "string", minLength: 1 }
+              reason: { type: "string", minLength: 1 },
             },
-            additionalProperties: false
-          }
+            additionalProperties: false,
+          },
         },
         notes: {
           type: "array",
-          items: { type: "string" }
-        }
+          items: { type: "string" },
+        },
       },
-      additionalProperties: false
+      additionalProperties: false,
     },
     graphql: {
       type: "object",
@@ -47,12 +47,12 @@ export const operationCardSchema = {
         limits: {
           type: "object",
           properties: {
-            maxPageSize: { type: "number" }
+            maxPageSize: { type: "number" },
           },
-          additionalProperties: false
-        }
+          additionalProperties: false,
+        },
       },
-      additionalProperties: false
+      additionalProperties: false,
     },
     cli: {
       type: "object",
@@ -61,18 +61,18 @@ export const operationCardSchema = {
         command: { type: "string", minLength: 1 },
         jsonFields: {
           type: "array",
-          items: { type: "string", minLength: 1 }
+          items: { type: "string", minLength: 1 },
         },
         jq: { type: "string" },
         limits: {
           type: "object",
           properties: {
-            maxItemsPerCall: { type: "number" }
+            maxItemsPerCall: { type: "number" },
           },
-          additionalProperties: false
-        }
+          additionalProperties: false,
+        },
       },
-      additionalProperties: false
+      additionalProperties: false,
     },
     rest: {
       type: "object",
@@ -85,13 +85,13 @@ export const operationCardSchema = {
             required: ["method", "path"],
             properties: {
               method: { type: "string" },
-              path: { type: "string" }
+              path: { type: "string" },
             },
-            additionalProperties: false
-          }
-        }
+            additionalProperties: false,
+          },
+        },
       },
-      additionalProperties: false
+      additionalProperties: false,
     },
     examples: {
       type: "array",
@@ -100,11 +100,11 @@ export const operationCardSchema = {
         required: ["title", "input"],
         properties: {
           title: { type: "string" },
-          input: { type: "object" }
+          input: { type: "object" },
         },
-        additionalProperties: false
-      }
-    }
+        additionalProperties: false,
+      },
+    },
   },
-  additionalProperties: false
+  additionalProperties: false,
 } as const

@@ -28,7 +28,13 @@
 ## Tooling and CI
 
 - `nx.json` - workspace target defaults and Nx plugin wiring.
-- `.github/workflows/ci-pr.yml` - PR checks (affected CI, GraphQL drift check, benchmark scenario check, coverage upload).
-- `.github/workflows/ci-main.yml` - main checks plus release workflow.
+- `biome.json` - Biome formatter configuration (formatting + import sorting).
+- `lefthook.yml` - pre-commit hooks (format, lint, typecheck).
+- `.npmrc` - pnpm settings (`strict-peer-dependencies`, `auto-install-peers`).
+- `pnpm-workspace.yaml` - workspace package discovery + pnpm catalog for shared devDependencies.
+- `packages/core/tsup.config.ts` / `packages/benchmark/tsup.config.ts` - per-package build configuration.
+- `.github/workflows/ci-pr.yml` - PR checks (affected CI, audit, GraphQL drift check, benchmark scenario check, coverage upload).
+- `.github/workflows/ci-main.yml` - main checks, audit, plus release workflow.
+- `.github/dependabot.yml` - automated dependency update PRs (npm + GitHub Actions).
 - `.changeset/` - changesets configuration and release metadata.
 - `codecov.yml` - Codecov status configuration and generated-file ignore rules.

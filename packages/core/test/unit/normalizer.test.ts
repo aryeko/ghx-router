@@ -6,7 +6,7 @@ describe("normalizer", () => {
   it("normalizes success payloads", () => {
     const result = normalizeResult({ id: 1 }, "graphql", {
       capabilityId: "issue.view",
-      reason: "CARD_PREFERRED"
+      reason: "CARD_PREFERRED",
     })
 
     expect(result).toEqual({
@@ -15,8 +15,8 @@ describe("normalizer", () => {
       meta: {
         capability_id: "issue.view",
         route_used: "graphql",
-        reason: "CARD_PREFERRED"
-      }
+        reason: "CARD_PREFERRED",
+      },
     })
   })
 
@@ -25,13 +25,13 @@ describe("normalizer", () => {
       {
         code: "UNKNOWN",
         message: "boom",
-        retryable: false
+        retryable: false,
       },
       "cli",
       {
         capabilityId: "issue.view",
-        reason: "CARD_FALLBACK"
-      }
+        reason: "CARD_FALLBACK",
+      },
     )
 
     expect(result).toEqual({
@@ -39,13 +39,13 @@ describe("normalizer", () => {
       error: {
         code: "UNKNOWN",
         message: "boom",
-        retryable: false
+        retryable: false,
       },
       meta: {
         capability_id: "issue.view",
         route_used: "cli",
-        reason: "CARD_FALLBACK"
-      }
+        reason: "CARD_FALLBACK",
+      },
     })
   })
 })

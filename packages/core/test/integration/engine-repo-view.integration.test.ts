@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest"
 
 import type { TaskRequest } from "../../src/core/contracts/task.js"
-import { executeTask } from "../../src/core/routing/engine.js"
 import { capabilityRegistry } from "../../src/core/routing/capability-registry.js"
+import { executeTask } from "../../src/core/routing/engine.js"
 import { createGithubClient } from "../../src/gql/client.js"
 
 describe("executeTask repo.view", () => {
@@ -10,12 +10,12 @@ describe("executeTask repo.view", () => {
     const githubClient = createGithubClient({
       async execute<TData>(): Promise<TData> {
         return {} as TData
-      }
+      },
     })
 
     const request: TaskRequest = {
       task: "repo.view",
-      input: { owner: "go-modkit", name: "modkit" }
+      input: { owner: "go-modkit", name: "modkit" },
     }
 
     const result = await executeTask(request, {
@@ -32,12 +32,12 @@ describe("executeTask repo.view", () => {
             stargazerCount: 10,
             forkCount: 2,
             url: "https://github.com/go-modkit/modkit",
-            defaultBranchRef: { name: "main" }
+            defaultBranchRef: { name: "main" },
           }),
           stderr: "",
-          exitCode: 0
-        })
-      }
+          exitCode: 0,
+        }),
+      },
     })
 
     expect(result.ok).toBe(true)
@@ -48,12 +48,12 @@ describe("executeTask repo.view", () => {
     const githubClient = createGithubClient({
       async execute<TData>(): Promise<TData> {
         return {} as TData
-      }
+      },
     })
 
     const request: TaskRequest = {
       task: "repo.view",
-      input: { owner: "go-modkit", name: "modkit" }
+      input: { owner: "go-modkit", name: "modkit" },
     }
 
     const result = await executeTask(request, {
@@ -77,13 +77,13 @@ describe("executeTask repo.view", () => {
               stargazerCount: 10,
               forkCount: 2,
               url: "https://github.com/go-modkit/modkit",
-              defaultBranchRef: { name: "main" }
+              defaultBranchRef: { name: "main" },
             }),
             stderr: "",
-            exitCode: 0
+            exitCode: 0,
           }
-        }
-      }
+        },
+      },
     })
 
     expect(result.ok).toBe(true)
@@ -103,25 +103,25 @@ describe("executeTask repo.view", () => {
               stargazerCount: 10,
               forkCount: 2,
               url: "https://github.com/go-modkit/modkit",
-              defaultBranchRef: { name: "main" }
-            }
+              defaultBranchRef: { name: "main" },
+            },
           } as TData
         }
 
         throw new Error("Unexpected query")
-      }
+      },
     })
 
     const request: TaskRequest = {
       task: "repo.view",
-      input: { owner: "go-modkit", name: "modkit" }
+      input: { owner: "go-modkit", name: "modkit" },
     }
 
     const result = await executeTask(request, {
       githubClient,
       githubToken: "test-token",
       ghCliAvailable: false,
-      ghAuthenticated: false
+      ghAuthenticated: false,
     })
 
     expect(result.ok).toBe(true)
@@ -130,8 +130,8 @@ describe("executeTask repo.view", () => {
     expect(result.data).toEqual(
       expect.objectContaining({
         nameWithOwner: "go-modkit/modkit",
-        defaultBranch: "main"
-      })
+        defaultBranch: "main",
+      }),
     )
   })
 
@@ -139,19 +139,19 @@ describe("executeTask repo.view", () => {
     const githubClient = createGithubClient({
       async execute<TData>(): Promise<TData> {
         return {} as TData
-      }
+      },
     })
 
     const request: TaskRequest = {
       task: "repo.view",
-      input: { owner: "", name: "modkit" }
+      input: { owner: "", name: "modkit" },
     }
 
     const result = await executeTask(request, {
       githubClient,
       githubToken: "test-token",
       ghCliAvailable: false,
-      ghAuthenticated: false
+      ghAuthenticated: false,
     })
 
     expect(result.ok).toBe(false)
@@ -164,19 +164,19 @@ describe("executeTask repo.view", () => {
     const githubClient = createGithubClient({
       async execute<TData>(): Promise<TData> {
         return {} as TData
-      }
+      },
     })
 
     const request: TaskRequest = {
       task: "repo.delete",
-      input: { owner: "go-modkit", name: "modkit" }
+      input: { owner: "go-modkit", name: "modkit" },
     }
 
     const result = await executeTask(request, {
       githubClient,
       githubToken: "test-token",
       ghCliAvailable: false,
-      ghAuthenticated: false
+      ghAuthenticated: false,
     })
 
     expect(result.ok).toBe(false)
@@ -188,19 +188,19 @@ describe("executeTask repo.view", () => {
     const githubClient = createGithubClient({
       async execute<TData>(): Promise<TData> {
         return {} as TData
-      }
+      },
     })
 
     const request: TaskRequest = {
       task: "repo.view",
-      input: { owner: "go-modkit", name: "modkit" }
+      input: { owner: "go-modkit", name: "modkit" },
     }
 
     const result = await executeTask(request, {
       githubClient,
       githubToken: "",
       ghCliAvailable: false,
-      ghAuthenticated: false
+      ghAuthenticated: false,
     })
 
     expect(result.ok).toBe(false)
@@ -233,18 +233,18 @@ describe("executeTask repo.view", () => {
                 stargazerCount: 10,
                 forkCount: 2,
                 url: "https://github.com/go-modkit/modkit",
-                defaultBranchRef: { name: "main" }
-              }
+                defaultBranchRef: { name: "main" },
+              },
             } as TData
           }
 
           throw new Error("Unexpected query")
-        }
+        },
       })
 
       const request: TaskRequest = {
         task: "repo.view",
-        input: { owner: "go-modkit", name: "modkit" }
+        input: { owner: "go-modkit", name: "modkit" },
       }
 
       const result = await executeTask(request, {
@@ -253,8 +253,8 @@ describe("executeTask repo.view", () => {
         ghCliAvailable: true,
         ghAuthenticated: true,
         cliRunner: {
-          run: async () => ({ stdout: "", stderr: "network error", exitCode: 1 })
-        }
+          run: async () => ({ stdout: "", stderr: "network error", exitCode: 1 }),
+        },
       })
 
       expect(result.ok).toBe(true)
@@ -290,25 +290,25 @@ describe("executeTask repo.view", () => {
                 stargazerCount: 10,
                 forkCount: 2,
                 url: "https://github.com/go-modkit/modkit",
-                defaultBranchRef: { name: "main" }
-              }
+                defaultBranchRef: { name: "main" },
+              },
             } as TData
           }
 
           throw new Error("Unexpected query")
-        }
+        },
       })
 
       const request: TaskRequest = {
         task: "repo.view",
-        input: { owner: "go-modkit", name: "modkit" }
+        input: { owner: "go-modkit", name: "modkit" },
       }
 
       const result = await executeTask(request, {
         githubClient,
         githubToken: "test-token",
         ghCliAvailable: false,
-        ghAuthenticated: false
+        ghAuthenticated: false,
       })
 
       expect(result.ok).toBe(true)
@@ -332,18 +332,18 @@ describe("executeTask repo.view", () => {
               stargazerCount: 10,
               forkCount: 2,
               url: "https://github.com/go-modkit/modkit",
-              defaultBranchRef: { name: "main" }
-            }
+              defaultBranchRef: { name: "main" },
+            },
           } as TData
         }
 
         throw new Error("Unexpected query")
-      }
+      },
     })
 
     const request: TaskRequest = {
       task: "repo.view",
-      input: { owner: "go-modkit", name: "modkit" }
+      input: { owner: "go-modkit", name: "modkit" },
     }
 
     const result = await executeTask(request, {
@@ -356,8 +356,8 @@ describe("executeTask repo.view", () => {
           }
 
           return { stdout: "", stderr: "", exitCode: 0 }
-        }
-      }
+        },
+      },
     })
 
     expect(result.ok).toBe(true)
@@ -377,18 +377,18 @@ describe("executeTask repo.view", () => {
               stargazerCount: 10,
               forkCount: 2,
               url: "https://github.com/go-modkit/modkit",
-              defaultBranchRef: { name: "main" }
-            }
+              defaultBranchRef: { name: "main" },
+            },
           } as TData
         }
 
         throw new Error("Unexpected query")
-      }
+      },
     })
 
     const request: TaskRequest = {
       task: "repo.view",
-      input: { owner: "go-modkit", name: "modkit" }
+      input: { owner: "go-modkit", name: "modkit" },
     }
 
     const result = await executeTask(request, {
@@ -401,8 +401,8 @@ describe("executeTask repo.view", () => {
           }
 
           return { stdout: "", stderr: "", exitCode: 0 }
-        }
-      }
+        },
+      },
     })
 
     expect(result.ok).toBe(true)
@@ -413,7 +413,7 @@ describe("executeTask repo.view", () => {
     const githubClient = createGithubClient({
       async execute<TData>(): Promise<TData> {
         return {} as TData
-      }
+      },
     })
 
     const calls: string[] = []
@@ -438,17 +438,17 @@ describe("executeTask repo.view", () => {
             stargazerCount: 10,
             forkCount: 2,
             url: "https://github.com/go-modkit/modkit",
-            defaultBranchRef: { name: "main" }
+            defaultBranchRef: { name: "main" },
           }),
           stderr: "",
-          exitCode: 0
+          exitCode: 0,
         }
-      }
+      },
     }
 
     const request: TaskRequest = {
       task: "repo.view",
-      input: { owner: "go-modkit", name: "modkit" }
+      input: { owner: "go-modkit", name: "modkit" },
     }
 
     const first = await executeTask(request, { githubClient, cliRunner })
@@ -574,7 +574,7 @@ describe("executeTask repo.view", () => {
     const githubClient = createGithubClient({
       async execute<TData>(): Promise<TData> {
         return {} as TData
-      }
+      },
     })
 
     let releaseVersionProbe: (() => void) | undefined
@@ -605,17 +605,17 @@ describe("executeTask repo.view", () => {
             stargazerCount: 10,
             forkCount: 2,
             url: "https://github.com/go-modkit/modkit",
-            defaultBranchRef: { name: "main" }
+            defaultBranchRef: { name: "main" },
           }),
           stderr: "",
-          exitCode: 0
+          exitCode: 0,
         }
-      }
+      },
     }
 
     const request: TaskRequest = {
       task: "repo.view",
-      input: { owner: "go-modkit", name: "modkit" }
+      input: { owner: "go-modkit", name: "modkit" },
     }
 
     const first = executeTask(request, { githubClient, cliRunner })
@@ -646,19 +646,19 @@ describe("executeTask repo.view", () => {
       const githubClient = createGithubClient({
         async execute<TData>(): Promise<TData> {
           return {} as TData
-        }
+        },
       })
 
       const request: TaskRequest = {
         task: "repo.view",
-        input: { owner: "go-modkit", name: "modkit" }
+        input: { owner: "go-modkit", name: "modkit" },
       }
 
       const result = await executeTask(request, {
         githubClient,
         githubToken: "test-token",
         ghCliAvailable: true,
-        ghAuthenticated: true
+        ghAuthenticated: true,
       })
 
       expect(result.ok).toBe(false)

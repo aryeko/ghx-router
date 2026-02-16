@@ -45,11 +45,23 @@ Thank you for your interest in contributing to ghx. This document provides guide
 - Run tests with coverage: `pnpm run test:coverage`
 - Run tests for a specific package: `pnpm --filter @ghx-dev/core run test` or `pnpm --filter @ghx-dev/benchmark run test`
 
-## Linting and Type Checking
+## Formatting, Linting, and Type Checking
 
+- Format (auto-fix): `pnpm run format`
+- Format (verify): `pnpm run format:check`
 - Lint: `pnpm run lint`
 - Type check: `pnpm run typecheck`
-- Full CI suite (lint, typecheck, test, build): `pnpm run ci`
+- Full CI suite (format:check, lint, typecheck, test, build): `pnpm run ci`
+
+## Pre-commit Hooks
+
+[Lefthook](https://github.com/evilmartians/lefthook) runs automatically on commit:
+
+- **Format** - Biome formatting + import sorting (auto-stages fixed files)
+- **Lint** - ESLint on staged files
+- **Typecheck** - full type check
+
+Hooks are installed automatically by `pnpm install`.
 
 ## Additional Checks
 

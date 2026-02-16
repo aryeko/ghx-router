@@ -9,7 +9,7 @@ function countToolParts(parts: SessionMessagePart[]): { toolCalls: number; apiCa
 
   return {
     toolCalls: toolParts.length,
-    apiCalls
+    apiCalls,
   }
 }
 

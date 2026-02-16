@@ -16,26 +16,26 @@ describe("executeTask pr.view", () => {
                 number: 232,
                 title: "Add benchmark improvements",
                 state: "OPEN",
-                url: "https://github.com/go-modkit/modkit/pull/232"
-              }
-            }
+                url: "https://github.com/go-modkit/modkit/pull/232",
+              },
+            },
           } as TData
         }
 
         throw new Error("Unexpected query")
-      }
+      },
     })
 
     const request: TaskRequest = {
       task: "pr.view",
-      input: { owner: "go-modkit", name: "modkit", prNumber: 232 }
+      input: { owner: "go-modkit", name: "modkit", prNumber: 232 },
     }
 
     const result = await executeTask(request, {
       githubClient,
       githubToken: "test-token",
       ghCliAvailable: false,
-      ghAuthenticated: false
+      ghAuthenticated: false,
     })
 
     expect(result.ok).toBe(true)
@@ -43,8 +43,8 @@ describe("executeTask pr.view", () => {
     expect(result.data).toEqual(
       expect.objectContaining({
         number: 232,
-        title: "Add benchmark improvements"
-      })
+        title: "Add benchmark improvements",
+      }),
     )
   })
 
@@ -52,19 +52,19 @@ describe("executeTask pr.view", () => {
     const githubClient = createGithubClient({
       async execute<TData>(): Promise<TData> {
         return {} as TData
-      }
+      },
     })
 
     const request: TaskRequest = {
       task: "pr.view",
-      input: { owner: "go-modkit", name: "modkit", prNumber: 0 }
+      input: { owner: "go-modkit", name: "modkit", prNumber: 0 },
     }
 
     const result = await executeTask(request, {
       githubClient,
       githubToken: "test-token",
       ghCliAvailable: false,
-      ghAuthenticated: false
+      ghAuthenticated: false,
     })
 
     expect(result.ok).toBe(false)

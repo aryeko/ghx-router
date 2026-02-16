@@ -1,11 +1,10 @@
-import { createOpencode } from "@opencode-ai/sdk"
-import { describe, expect, it } from "vitest"
-
 import { spawnSync } from "node:child_process"
 import { mkdtempSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
+import { createOpencode } from "@opencode-ai/sdk"
+import { describe, expect, it } from "vitest"
 
 type CommandResult = {
   status: number
@@ -30,7 +29,12 @@ function runOrThrow(command: string, args: string[], cwd: string): CommandResult
   const result = run(command, args, cwd)
   if (result.status !== 0) {
     throw new Error(
-      [`Command failed: ${command} ${args.join(" ")}`, `cwd: ${cwd}`, result.stdout, result.stderr].join("\n")
+      [
+        `Command failed: ${command} ${args.join(" ")}`,
+        `cwd: ${cwd}`,
+        result.stdout,
+        result.stderr,
+      ].join("\n"),
     )
   }
 
@@ -49,11 +53,20 @@ function asMessageArray(value: unknown): Array<{
   info?: { role?: string }
   parts?: Array<{ type?: string; text?: string }>
 }> {
-  const isMessageLikeArray = (candidate: unknown): candidate is Array<{ info?: { role?: string }; parts?: Array<{ type?: string; text?: string }> }> =>
-    Array.isArray(candidate) && candidate.every((entry) => typeof entry === "object" && entry !== null)
+  const isMessageLikeArray = (
+    candidate: unknown,
+  ): candidate is Array<{
+    info?: { role?: string }
+    parts?: Array<{ type?: string; text?: string }>
+  }> =>
+    Array.isArray(candidate) &&
+    candidate.every((entry) => typeof entry === "object" && entry !== null)
 
   if (Array.isArray(value)) {
-    return value as Array<{ info?: { role?: string }; parts?: Array<{ type?: string; text?: string }> }>
+    return value as Array<{
+      info?: { role?: string }
+      parts?: Array<{ type?: string; text?: string }>
+    }>
   }
 
   const queue: unknown[] = [value]
@@ -97,7 +110,10 @@ function extractAssistantTextFromPromptResult(value: unknown): string {
       ? root.message.parts
       : []
 
-  return parts.filter((part) => part.type === "text").map((part) => part.text ?? "").join("\n")
+  return parts
+    .filter((part) => part.type === "text")
+    .map((part) => part.text ?? "")
+    .join("\n")
 }
 
 function getSessionApi(client: unknown): {
@@ -114,24 +130,37 @@ function getSessionApi(client: unknown): {
   const promptAsync = session.promptAsync
   const messages = session.messages
 
-  if (typeof create !== "function" || typeof promptAsync !== "function" || typeof messages !== "function") {
+  if (
+    typeof create !== "function" ||
+    typeof promptAsync !== "function" ||
+    typeof messages !== "function"
+  ) {
     throw new Error("SDK session API missing required methods")
   }
 
   return {
     create: (options: Record<string, unknown>) =>
-      (create as (this: unknown, options: Record<string, unknown>) => Promise<unknown>).call(session, options),
+      (create as (this: unknown, options: Record<string, unknown>) => Promise<unknown>).call(
+        session,
+        options,
+      ),
     promptAsync: (options: Record<string, unknown>) =>
-      (promptAsync as (this: unknown, options: Record<string, unknown>) => Promise<unknown>).call(session, options),
+      (promptAsync as (this: unknown, options: Record<string, unknown>) => Promise<unknown>).call(
+        session,
+        options,
+      ),
     messages: (options: Record<string, unknown>) =>
-      (messages as (this: unknown, options: Record<string, unknown>) => Promise<unknown>).call(session, options),
+      (messages as (this: unknown, options: Record<string, unknown>) => Promise<unknown>).call(
+        session,
+        options,
+      ),
   }
 }
 
 async function waitForMessages(
   sessionApi: { messages: (options: Record<string, unknown>) => Promise<unknown> },
   sessionId: string,
-  timeoutMs: number
+  timeoutMs: number,
 ): Promise<unknown> {
   const startedAt = Date.now()
   while (Date.now() - startedAt < timeoutMs) {
@@ -155,114 +184,126 @@ async function waitForMessages(
 const maybeIt = process.env.OPENAI_API_KEY ? it : it.skip
 
 describe("ghx setup OpenCode skill e2e", () => {
-  maybeIt("uses SDK agent session in isolated config and runs ghx capabilities list", async () => {
-    const workspacePath = fileURLToPath(new URL("../../../../", import.meta.url))
-    const tempRoot = mkdtempSync(join(tmpdir(), "ghx-e2e-sdk-"))
-    const packDir = join(tempRoot, "pack")
-    const projectDir = join(tempRoot, "project")
-    const isolatedXdgConfig = mkdtempSync(join(tmpdir(), "ghx-e2e-sdk-xdg-"))
-    const originalCwd = process.cwd()
-    const originalXdg = process.env.XDG_CONFIG_HOME
+  maybeIt(
+    "uses SDK agent session in isolated config and runs ghx capabilities list",
+    async () => {
+      const workspacePath = fileURLToPath(new URL("../../../../", import.meta.url))
+      const tempRoot = mkdtempSync(join(tmpdir(), "ghx-e2e-sdk-"))
+      const packDir = join(tempRoot, "pack")
+      const projectDir = join(tempRoot, "project")
+      const isolatedXdgConfig = mkdtempSync(join(tmpdir(), "ghx-e2e-sdk-xdg-"))
+      const originalCwd = process.cwd()
+      const originalXdg = process.env.XDG_CONFIG_HOME
 
-    runOrThrow("mkdir", ["-p", packDir, projectDir], workspacePath)
-    writeFileSync(
-      join(projectDir, "package.json"),
-      JSON.stringify({ name: "ghx-e2e-sdk-project", private: true, version: "0.0.0" }, null, 2),
-      "utf8"
-    )
+      runOrThrow("mkdir", ["-p", packDir, projectDir], workspacePath)
+      writeFileSync(
+        join(projectDir, "package.json"),
+        JSON.stringify({ name: "ghx-e2e-sdk-project", private: true, version: "0.0.0" }, null, 2),
+        "utf8",
+      )
 
-    runOrThrow("pnpm", ["--filter", "@ghx-dev/core", "run", "build"], workspacePath)
-    const packResult = runOrThrow("pnpm", ["--filter", "@ghx-dev/core", "pack", "--pack-destination", packDir], workspacePath)
-    const tarballName = packResult.stdout
-      .split("\n")
-      .map((line) => line.trim())
-      .find((line) => line.endsWith(".tgz"))
+      runOrThrow("pnpm", ["--filter", "@ghx-dev/core", "run", "build"], workspacePath)
+      const packResult = runOrThrow(
+        "pnpm",
+        ["--filter", "@ghx-dev/core", "pack", "--pack-destination", packDir],
+        workspacePath,
+      )
+      const tarballName = packResult.stdout
+        .split("\n")
+        .map((line) => line.trim())
+        .find((line) => line.endsWith(".tgz"))
 
-    expect(tarballName).toBeDefined()
-    const tarballPath = (tarballName as string).startsWith("/") ? (tarballName as string) : join(packDir, tarballName as string)
-    runOrThrow("pnpm", ["add", tarballPath], projectDir)
+      if (!tarballName) {
+        throw new Error("pnpm pack did not produce a .tgz tarball")
+      }
+      const tarballPath = tarballName.startsWith("/") ? tarballName : join(packDir, tarballName)
+      runOrThrow("pnpm", ["add", tarballPath], projectDir)
 
-    let opencode: Awaited<ReturnType<typeof createOpencode>> | null = null
-    try {
-      process.env.XDG_CONFIG_HOME = isolatedXdgConfig
-      process.chdir(projectDir)
-      runOrThrow("pnpm", ["exec", "ghx", "setup", "--scope", "project", "--yes"], projectDir)
+      let opencode: Awaited<ReturnType<typeof createOpencode>> | null = null
+      try {
+        process.env.XDG_CONFIG_HOME = isolatedXdgConfig
+        process.chdir(projectDir)
+        runOrThrow("pnpm", ["exec", "ghx", "setup", "--scope", "project", "--yes"], projectDir)
 
-      const providerID = process.env.BENCH_PROVIDER_ID ?? "openai"
-      const modelID = process.env.BENCH_MODEL_ID ?? "gpt-5.3-codex"
+        const providerID = process.env.BENCH_PROVIDER_ID ?? "openai"
+        const modelID = process.env.BENCH_MODEL_ID ?? "gpt-5.3-codex"
 
-      opencode = await createOpencode({
-        port: 3000,
-        config: {
-          model: `${providerID}/${modelID}`,
-          instructions: [],
-          plugin: [],
-          mcp: {},
-          agent: {},
-          command: {},
-          permission: {
-            edit: "deny",
-            bash: "allow",
-            webfetch: "deny",
-            doom_loop: "deny",
-            external_directory: "deny",
-          },
-        },
-      })
-
-      const sessionApi = getSessionApi(opencode.client)
-
-      const sessionResult = await sessionApi.create({ url: "/session" })
-      const session = unwrapData<{ id: string }>(sessionResult)
-
-      const promptResult = await sessionApi.promptAsync({
-        url: "/session/{id}/prompt_async",
-        path: { id: session.id },
-        body: {
-          model: { providerID, modelID },
-          parts: [
-            {
-              type: "text",
-              text: [
-                "Run this exact command: pnpm exec ghx capabilities list.",
-                "Then return plain text containing only the command output.",
-              ].join(" "),
+        opencode = await createOpencode({
+          port: 3000,
+          config: {
+            model: `${providerID}/${modelID}`,
+            instructions: [],
+            plugin: [],
+            mcp: {},
+            agent: {},
+            command: {},
+            permission: {
+              edit: "deny",
+              bash: "allow",
+              webfetch: "deny",
+              doom_loop: "deny",
+              external_directory: "deny",
             },
-          ],
-        },
-      })
+          },
+        })
 
-      const messagesPayload = await waitForMessages(sessionApi, session.id, 20000)
-      const messages = asMessageArray(messagesPayload)
+        const sessionApi = getSessionApi(opencode.client)
 
-      const assistantTextFromMessages = messages
-        .filter((message) => message.info?.role === "assistant")
-        .flatMap((message) => message.parts ?? [])
-        .filter((part) => part.type === "text")
-        .map((part) => part.text ?? "")
-        .join("\n")
+        const sessionResult = await sessionApi.create({ url: "/session" })
+        const session = unwrapData<{ id: string }>(sessionResult)
 
-      const assistantTextFromPrompt = extractAssistantTextFromPromptResult(promptResult)
-      const assistantText = [assistantTextFromPrompt, assistantTextFromMessages].filter((chunk) => chunk.length > 0).join("\n")
+        const promptResult = await sessionApi.promptAsync({
+          url: "/session/{id}/prompt_async",
+          path: { id: session.id },
+          body: {
+            model: { providerID, modelID },
+            parts: [
+              {
+                type: "text",
+                text: [
+                  "Run this exact command: pnpm exec ghx capabilities list.",
+                  "Then return plain text containing only the command output.",
+                ].join(" "),
+              },
+            ],
+          },
+        })
 
-      const assistantMessages = messages.filter((message) => message.info?.role === "assistant")
-      const rawMessages = JSON.stringify(messages)
-      const rawPrompt = JSON.stringify(promptResult)
-      const combinedEvidence = `${assistantText}\n${rawMessages}\n${rawPrompt}`
+        const messagesPayload = await waitForMessages(sessionApi, session.id, 20000)
+        const messages = asMessageArray(messagesPayload)
 
-      expect(rawPrompt.length).toBeGreaterThan(2)
-      expect(combinedEvidence).toContain("repo.view")
-      if (assistantMessages.length > 0) {
-        expect(combinedEvidence).toContain("ghx capabilities list")
+        const assistantTextFromMessages = messages
+          .filter((message) => message.info?.role === "assistant")
+          .flatMap((message) => message.parts ?? [])
+          .filter((part) => part.type === "text")
+          .map((part) => part.text ?? "")
+          .join("\n")
+
+        const assistantTextFromPrompt = extractAssistantTextFromPromptResult(promptResult)
+        const assistantText = [assistantTextFromPrompt, assistantTextFromMessages]
+          .filter((chunk) => chunk.length > 0)
+          .join("\n")
+
+        const assistantMessages = messages.filter((message) => message.info?.role === "assistant")
+        const rawMessages = JSON.stringify(messages)
+        const rawPrompt = JSON.stringify(promptResult)
+        const combinedEvidence = `${assistantText}\n${rawMessages}\n${rawPrompt}`
+
+        expect(rawPrompt.length).toBeGreaterThan(2)
+        expect(combinedEvidence).toContain("repo.view")
+        if (assistantMessages.length > 0) {
+          expect(combinedEvidence).toContain("ghx capabilities list")
+        }
+      } finally {
+        opencode?.server.close()
+        process.chdir(originalCwd)
+        if (originalXdg === undefined) {
+          delete process.env.XDG_CONFIG_HOME
+        } else {
+          process.env.XDG_CONFIG_HOME = originalXdg
+        }
       }
-    } finally {
-      opencode?.server.close()
-      process.chdir(originalCwd)
-      if (originalXdg === undefined) {
-        delete process.env.XDG_CONFIG_HOME
-      } else {
-        process.env.XDG_CONFIG_HOME = originalXdg
-      }
-    }
-  }, 120000)
+    },
+    120000,
+  )
 })

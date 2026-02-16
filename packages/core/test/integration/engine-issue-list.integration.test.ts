@@ -18,39 +18,39 @@ describe("executeTask issue.list", () => {
                     number: 101,
                     title: "First issue",
                     state: "OPEN",
-                    url: "https://github.com/go-modkit/modkit/issues/101"
+                    url: "https://github.com/go-modkit/modkit/issues/101",
                   },
                   {
                     id: "issue-2",
                     number: 102,
                     title: "Second issue",
                     state: "OPEN",
-                    url: "https://github.com/go-modkit/modkit/issues/102"
-                  }
+                    url: "https://github.com/go-modkit/modkit/issues/102",
+                  },
                 ],
                 pageInfo: {
                   endCursor: "cursor-2",
-                  hasNextPage: false
-                }
-              }
-            }
+                  hasNextPage: false,
+                },
+              },
+            },
           } as TData
         }
 
         throw new Error("Unexpected query")
-      }
+      },
     })
 
     const request: TaskRequest = {
       task: "issue.list",
-      input: { owner: "go-modkit", name: "modkit", first: 2 }
+      input: { owner: "go-modkit", name: "modkit", first: 2 },
     }
 
     const result = await executeTask(request, {
       githubClient,
       githubToken: "test-token",
       ghCliAvailable: false,
-      ghAuthenticated: false
+      ghAuthenticated: false,
     })
 
     expect(result.ok).toBe(true)
@@ -59,13 +59,13 @@ describe("executeTask issue.list", () => {
       expect.objectContaining({
         items: expect.arrayContaining([
           expect.objectContaining({ number: 101 }),
-          expect.objectContaining({ number: 102 })
+          expect.objectContaining({ number: 102 }),
         ]),
         pageInfo: {
           endCursor: "cursor-2",
-          hasNextPage: false
-        }
-      })
+          hasNextPage: false,
+        },
+      }),
     )
   })
 })

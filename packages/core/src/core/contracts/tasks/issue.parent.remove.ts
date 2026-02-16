@@ -1,3 +1,3 @@
 export const issueParentRemoveTask = {
-  id: "issue.parent.remove"
+  id: "issue.parent.remove",
 } as const

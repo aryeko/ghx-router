@@ -5,8 +5,8 @@ This guide provides one end-to-end reference flow per roadmap batch.
 ## Setup + Discovery (Track 0)
 
 ```bash
-ghx setup --platform claude-code --scope project --yes
-ghx setup --platform claude-code --scope project --verify
+ghx setup --scope project --yes
+ghx setup --scope project --verify
 ghx capabilities list
 ghx capabilities explain pr.merge.execute
 ```

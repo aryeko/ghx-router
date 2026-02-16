@@ -1,3 +1,3 @@
 export const issueUpdateTask = {
-  id: "issue.update"
+  id: "issue.update",
 } as const

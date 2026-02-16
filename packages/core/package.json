@@ -55,7 +55,9 @@
     "provenance": true
   },
   "scripts": {
-    "build": "tsup \"src/**/*.ts\" --format esm --out-dir dist --clean --dts --sourcemap && node scripts/copy-registry-cards.mjs",
+    "build": "tsup && node scripts/copy-registry-cards.mjs",
+    "format": "biome check --write .",
+    "format:check": "biome check .",
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --project unit",
@@ -66,7 +68,7 @@
     "prepack": "pnpm run build",
     "gql:codegen": "tsx scripts/run-gql-codegen.ts",
     "gql:codegen:watch": "graphql-codegen --config codegen.ts --watch",
-    "gql:check": "pnpm run gql:codegen && git diff --exit-code -- src/gql/generated src/gql/operations/*.generated.ts"
+    "gql:check": "pnpm run gql:codegen && biome check --write --no-errors-on-unmatched src/gql/generated src/gql/operations && git diff --exit-code -- src/gql/generated src/gql/operations/*.generated.ts"
   },
   "nx": {
     "targets": {
@@ -91,17 +93,17 @@
   },
   "devDependencies": {
     "@opencode-ai/sdk": "^1.1.64",
-    "@vitest/coverage-v8": "^2.1.8",
+    "@vitest/coverage-v8": "catalog:",
     "@graphql-codegen/cli": "^5.0.7",
     "@graphql-codegen/near-operation-file-preset": "^3.1.0",
     "@graphql-codegen/typescript": "^4.1.6",
     "@graphql-codegen/typescript-graphql-request": "^6.3.0",
     "@graphql-codegen/typescript-operations": "^4.6.1",
     "@types/js-yaml": "^4.0.9",
-    "@types/node": "^25.2.3",
-    "tsup": "^8.5.0",
-    "tsx": "^4.21.0",
-    "typescript": "^5.9.3",
-    "vitest": "^2.1.8"
+    "@types/node": "catalog:",
+    "tsup": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

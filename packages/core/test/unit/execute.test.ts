@@ -1,8 +1,7 @@
 import { describe, expect, it, vi } from "vitest"
-
+import type { ResultEnvelope, RouteSource } from "../../src/core/contracts/envelope.js"
 import { execute } from "../../src/core/execute/execute.js"
 import type { OperationCard } from "../../src/core/registry/types.js"
-import type { ResultEnvelope, RouteSource } from "../../src/core/contracts/envelope.js"
 
 const baseCard: OperationCard = {
   capability_id: "repo.view",
@@ -13,17 +12,17 @@ const baseCard: OperationCard = {
     required: ["owner", "name"],
     properties: {
       owner: { type: "string", minLength: 1 },
-      name: { type: "string", minLength: 1 }
+      name: { type: "string", minLength: 1 },
     },
-    additionalProperties: false
+    additionalProperties: false,
   },
   output_schema: {
-    type: "object"
+    type: "object",
   },
   routing: {
     preferred: "graphql",
-    fallbacks: ["cli"]
-  }
+    fallbacks: ["cli"],
+  },
 }
 
 const alwaysPassPreflight = vi.fn(async (_route: RouteSource) => ({ ok: true as const }))
@@ -37,16 +36,16 @@ describe("execute", () => {
       routes: {
         graphql: vi.fn(),
         cli: vi.fn(),
-        rest: vi.fn()
-      }
+        rest: vi.fn(),
+      },
     })
 
     expect(result.ok).toBe(false)
     expect(result.error?.code).toBe("VALIDATION")
     expect(result.error?.details).toEqual(
       expect.objectContaining({
-        ajvErrors: expect.any(Array)
-      })
+        ajvErrors: expect.any(Array),
+      }),
     )
   })
 
@@ -58,8 +57,8 @@ describe("execute", () => {
       routes: {
         graphql: vi.fn(),
         cli: vi.fn(),
-        rest: vi.fn()
-      }
+        rest: vi.fn(),
+      },
     })
 
     expect(result.ok).toBe(false)
@@ -72,12 +71,12 @@ describe("execute", () => {
       .mockResolvedValueOnce({
         ok: false,
         error: { code: "NETWORK", message: "offline", retryable: true },
-        meta: { capability_id: "repo.view", route_used: "graphql" }
+        meta: { capability_id: "repo.view", route_used: "graphql" },
       })
       .mockResolvedValueOnce({
         ok: true,
         data: { id: "repo-id" },
-        meta: { capability_id: "repo.view", route_used: "graphql" }
+        meta: { capability_id: "repo.view", route_used: "graphql" },
       })
 
     const result = await execute({
@@ -88,9 +87,9 @@ describe("execute", () => {
       routes: {
         graphql,
         cli: vi.fn(),
-        rest: vi.fn()
+        rest: vi.fn(),
       },
-      trace: true
+      trace: true,
     })
 
     expect(result.ok).toBe(true)
@@ -104,24 +103,29 @@ describe("execute", () => {
       params: { owner: "acme", name: "modkit" },
       preflight: vi
         .fn()
-        .mockResolvedValueOnce({ ok: false as const, code: "AUTH", message: "missing token", retryable: false })
+        .mockResolvedValueOnce({
+          ok: false as const,
+          code: "AUTH",
+          message: "missing token",
+          retryable: false,
+        })
         .mockResolvedValueOnce({ ok: true as const }),
       routes: {
         graphql: vi.fn(),
         cli: vi.fn(async () => ({
           ok: true,
           data: { id: "repo-id" },
-          meta: { capability_id: "repo.view", route_used: "cli" as const }
+          meta: { capability_id: "repo.view", route_used: "cli" as const },
         })),
-        rest: vi.fn()
+        rest: vi.fn(),
       },
-      trace: true
+      trace: true,
     })
 
     expect(result.ok).toBe(true)
     expect(result.meta.route_used).toBe("cli")
     expect(result.meta.attempts?.[0]).toEqual(
-      expect.objectContaining({ route: "graphql", status: "skipped", error_code: "AUTH" })
+      expect.objectContaining({ route: "graphql", status: "skipped", error_code: "AUTH" }),
     )
   })
 
@@ -133,9 +137,9 @@ describe("execute", () => {
       routes: {
         graphql: undefined as unknown as never,
         cli: undefined as unknown as never,
-        rest: vi.fn()
+        rest: vi.fn(),
       },
-      trace: true
+      trace: true,
     })
 
     expect(result.ok).toBe(false)
@@ -148,8 +152,8 @@ describe("execute", () => {
       ...baseCard,
       output_schema: {
         type: "object",
-        required: ["id"]
-      }
+        required: ["id"],
+      },
     }
 
     const result = await execute({
@@ -160,11 +164,11 @@ describe("execute", () => {
         graphql: vi.fn(async () => ({
           ok: true,
           data: {},
-          meta: { capability_id: "repo.view", route_used: "graphql" as const }
+          meta: { capability_id: "repo.view", route_used: "graphql" as const },
         })),
         cli: vi.fn(),
-        rest: vi.fn()
-      }
+        rest: vi.fn(),
+      },
     })
 
     expect(result.ok).toBe(false)
@@ -172,8 +176,8 @@ describe("execute", () => {
     expect(result.error?.message).toContain("Output schema validation failed")
     expect(result.error?.details).toEqual(
       expect.objectContaining({
-        ajvErrors: expect.any(Array)
-      })
+        ajvErrors: expect.any(Array),
+      }),
     )
   })
 
@@ -186,18 +190,18 @@ describe("execute", () => {
         graphql: vi.fn(async () => ({
           ok: false,
           error: { code: "VALIDATION" as const, message: "bad input", retryable: false },
-          meta: { capability_id: "repo.view", route_used: "graphql" as const }
+          meta: { capability_id: "repo.view", route_used: "graphql" as const },
         })),
         cli: vi.fn(),
-        rest: vi.fn()
+        rest: vi.fn(),
       },
-      trace: true
+      trace: true,
     })
 
     expect(result.ok).toBe(false)
     expect(result.error?.code).toBe("VALIDATION")
     expect(result.meta.attempts).toEqual([
-      expect.objectContaining({ route: "graphql", status: "error", error_code: "VALIDATION" })
+      expect.objectContaining({ route: "graphql", status: "error", error_code: "VALIDATION" }),
     ])
   })
 
@@ -211,21 +215,21 @@ describe("execute", () => {
           {
             when: "params",
             predicate: "cli if owner == acme",
-            reason: "Prefer CLI for acme repos"
-          }
-        ]
-      }
+            reason: "Prefer CLI for acme repos",
+          },
+        ],
+      },
     }
 
     const cli = vi.fn(async () => ({
       ok: true,
       data: { id: "repo-id" },
-      meta: { capability_id: "repo.view", route_used: "cli" as const }
+      meta: { capability_id: "repo.view", route_used: "cli" as const },
     }))
     const graphql = vi.fn(async () => ({
       ok: true,
       data: { id: "repo-id" },
-      meta: { capability_id: "repo.view", route_used: "graphql" as const }
+      meta: { capability_id: "repo.view", route_used: "graphql" as const },
     }))
 
     const result = await execute({
@@ -235,8 +239,8 @@ describe("execute", () => {
       routes: {
         graphql,
         cli,
-        rest: vi.fn()
-      }
+        rest: vi.fn(),
+      },
     })
 
     expect(result.ok).toBe(true)
@@ -254,26 +258,26 @@ describe("execute", () => {
           {
             when: "env",
             predicate: "graphql if env.githubTokenPresent == true",
-            reason: "Prefer GraphQL when token exists"
+            reason: "Prefer GraphQL when token exists",
           },
           {
             when: "params",
             predicate: "cli if params.owner != octocat",
-            reason: "Use CLI for non-octocat repos"
-          }
-        ]
-      }
+            reason: "Use CLI for non-octocat repos",
+          },
+        ],
+      },
     }
 
     const cli = vi.fn(async () => ({
       ok: true,
       data: { id: "repo-id" },
-      meta: { capability_id: "repo.view", route_used: "cli" as const }
+      meta: { capability_id: "repo.view", route_used: "cli" as const },
     }))
     const graphql = vi.fn(async () => ({
       ok: true,
       data: { id: "repo-id" },
-      meta: { capability_id: "repo.view", route_used: "graphql" as const }
+      meta: { capability_id: "repo.view", route_used: "graphql" as const },
     }))
 
     const result = await execute({
@@ -284,8 +288,8 @@ describe("execute", () => {
       routes: {
         graphql,
         cli,
-        rest: vi.fn()
-      }
+        rest: vi.fn(),
+      },
     })
 
     expect(result.ok).toBe(true)
@@ -297,12 +301,12 @@ describe("execute", () => {
     const cli = vi.fn(async () => ({
       ok: true,
       data: { id: "repo-id" },
-      meta: { capability_id: "repo.view", route_used: "cli" as const }
+      meta: { capability_id: "repo.view", route_used: "cli" as const },
     }))
     const graphql = vi.fn(async () => ({
       ok: true,
       data: { id: "repo-id" },
-      meta: { capability_id: "repo.view", route_used: "graphql" as const }
+      meta: { capability_id: "repo.view", route_used: "graphql" as const },
     }))
 
     const alwaysCard: OperationCard = {
@@ -310,15 +314,15 @@ describe("execute", () => {
       routing: {
         preferred: "graphql",
         fallbacks: ["cli"],
-        suitability: [{ when: "always", predicate: "CLI", reason: "Always prefer cli" }]
-      }
+        suitability: [{ when: "always", predicate: "CLI", reason: "Always prefer cli" }],
+      },
     }
 
     const alwaysResult = await execute({
       card: alwaysCard,
       params: { owner: "acme", name: "modkit" },
       preflight: alwaysPassPreflight,
-      routes: { graphql, cli, rest: vi.fn() }
+      routes: { graphql, cli, rest: vi.fn() },
     })
 
     expect(alwaysResult.ok).toBe(true)
@@ -330,11 +334,15 @@ describe("execute", () => {
         preferred: "graphql",
         fallbacks: ["cli"],
         suitability: [
-          { when: "env", predicate: "cli if env.featureFlag == false", reason: "False boolean parse" },
+          {
+            when: "env",
+            predicate: "cli if env.featureFlag == false",
+            reason: "False boolean parse",
+          },
           { when: "env", predicate: "cli if env.selected == null", reason: "Null parse" },
-          { when: "env", predicate: "cli if env.batchSize == 2", reason: "Number parse" }
-        ]
-      }
+          { when: "env", predicate: "cli if env.batchSize == 2", reason: "Number parse" },
+        ],
+      },
     }
 
     const conditionalResult = await execute({
@@ -342,11 +350,15 @@ describe("execute", () => {
       params: { owner: "acme", name: "modkit" },
       routingContext: { featureFlag: false, selected: null, batchSize: 2 },
       preflight: alwaysPassPreflight,
-      routes: { graphql: vi.fn(), cli: vi.fn(async () => ({
-        ok: true,
-        data: { id: "repo-id" },
-        meta: { capability_id: "repo.view", route_used: "cli" as const }
-      })), rest: vi.fn() }
+      routes: {
+        graphql: vi.fn(),
+        cli: vi.fn(async () => ({
+          ok: true,
+          data: { id: "repo-id" },
+          meta: { capability_id: "repo.view", route_used: "cli" as const },
+        })),
+        rest: vi.fn(),
+      },
     })
 
     expect(conditionalResult.ok).toBe(true)
@@ -357,7 +369,7 @@ describe("execute", () => {
     const graphql = vi.fn(async () => ({
       ok: true,
       data: { id: "repo-id" },
-      meta: { capability_id: "repo.view", route_used: "graphql" as const }
+      meta: { capability_id: "repo.view", route_used: "graphql" as const },
     }))
 
     const result = await execute({
@@ -370,18 +382,18 @@ describe("execute", () => {
             {
               when: "params",
               predicate: "cli if params.owner.name == octocat",
-              reason: "owner is a string, nested path is unresolved"
-            }
-          ]
-        }
+              reason: "owner is a string, nested path is unresolved",
+            },
+          ],
+        },
       },
       params: { owner: "acme", name: "modkit" },
       preflight: alwaysPassPreflight,
       routes: {
         graphql,
         cli: vi.fn(),
-        rest: vi.fn()
-      }
+        rest: vi.fn(),
+      },
     })
 
     expect(result.ok).toBe(true)
@@ -398,16 +410,16 @@ describe("execute", () => {
           {
             when: "params",
             predicate: "this is not parseable",
-            reason: "Ignore invalid rule"
-          }
-        ]
-      }
+            reason: "Ignore invalid rule",
+          },
+        ],
+      },
     }
 
     const graphql = vi.fn(async () => ({
       ok: true,
       data: { id: "repo-id" },
-      meta: { capability_id: "repo.view", route_used: "graphql" as const }
+      meta: { capability_id: "repo.view", route_used: "graphql" as const },
     }))
 
     const result = await execute({
@@ -417,8 +429,8 @@ describe("execute", () => {
       routes: {
         graphql,
         cli: vi.fn(),
-        rest: vi.fn()
-      }
+        rest: vi.fn(),
+      },
     })
 
     expect(result.ok).toBe(true)
@@ -431,8 +443,8 @@ describe("execute", () => {
         ...baseCard,
         routing: {
           preferred: "cli",
-          fallbacks: ["graphql"]
-        }
+          fallbacks: ["graphql"],
+        },
       },
       params: { owner: "acme", name: "modkit" },
       preflight: alwaysPassPreflight,
@@ -440,19 +452,23 @@ describe("execute", () => {
         graphql: vi.fn(async () => ({
           ok: true,
           data: { id: "repo-id" },
-          meta: { capability_id: "repo.view", route_used: "graphql" as const }
+          meta: { capability_id: "repo.view", route_used: "graphql" as const },
         })),
         cli: undefined as unknown as (params: Record<string, unknown>) => Promise<ResultEnvelope>,
-        rest: vi.fn()
+        rest: vi.fn(),
       },
-      trace: true
+      trace: true,
     })
 
     expect(result.ok).toBe(true)
     expect(result.meta.attempts).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ route: "cli", status: "skipped", error_code: "ADAPTER_UNSUPPORTED" })
-      ])
+        expect.objectContaining({
+          route: "cli",
+          status: "skipped",
+          error_code: "ADAPTER_UNSUPPORTED",
+        }),
+      ]),
     )
   })
 
@@ -462,8 +478,8 @@ describe("execute", () => {
         ...baseCard,
         routing: {
           preferred: "cli",
-          fallbacks: ["graphql"]
-        }
+          fallbacks: ["graphql"],
+        },
       },
       params: { owner: "acme", name: "modkit" },
       preflight: alwaysPassPreflight,
@@ -471,24 +487,28 @@ describe("execute", () => {
         graphql: vi.fn(async () => ({
           ok: true,
           data: { id: "repo-id" },
-          meta: { capability_id: "repo.view", route_used: "graphql" as const }
+          meta: { capability_id: "repo.view", route_used: "graphql" as const },
         })),
         cli: vi.fn(async () => ({
           ok: false,
           error: { code: "ADAPTER_UNSUPPORTED" as const, message: "unsupported", retryable: false },
-          meta: { capability_id: "repo.view", route_used: "cli" as const }
+          meta: { capability_id: "repo.view", route_used: "cli" as const },
         })),
-        rest: vi.fn()
+        rest: vi.fn(),
       },
-      trace: true
+      trace: true,
     })
 
     expect(result.ok).toBe(true)
     expect(result.meta.attempts).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ route: "cli", status: "error", error_code: "ADAPTER_UNSUPPORTED" }),
-        expect.objectContaining({ route: "graphql", status: "success" })
-      ])
+        expect.objectContaining({
+          route: "cli",
+          status: "error",
+          error_code: "ADAPTER_UNSUPPORTED",
+        }),
+        expect.objectContaining({ route: "graphql", status: "success" }),
+      ]),
     )
   })
 
@@ -497,8 +517,8 @@ describe("execute", () => {
       ...baseCard,
       output_schema: {
         type: "object",
-        required: ["id"]
-      }
+        required: ["id"],
+      },
     }
 
     const result = await execute({
@@ -510,16 +530,16 @@ describe("execute", () => {
         graphql: vi.fn(async () => ({
           ok: true,
           data: {},
-          meta: { capability_id: "repo.view", route_used: "graphql" as const }
+          meta: { capability_id: "repo.view", route_used: "graphql" as const },
         })),
         cli: vi.fn(),
-        rest: vi.fn()
-      }
+        rest: vi.fn(),
+      },
     })
 
     expect(result.ok).toBe(false)
     expect(result.meta.attempts).toEqual([
-      expect.objectContaining({ route: "graphql", status: "success" })
+      expect.objectContaining({ route: "graphql", status: "success" }),
     ])
   })
 })

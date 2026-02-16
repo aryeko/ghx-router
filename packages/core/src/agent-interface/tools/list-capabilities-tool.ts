@@ -8,6 +8,6 @@ export type CapabilityListItem = {
 export function listCapabilities(): CapabilityListItem[] {
   return listOperationCards().map((card) => ({
     capability_id: card.capability_id,
-    description: card.description
+    description: card.description,
   }))
 }

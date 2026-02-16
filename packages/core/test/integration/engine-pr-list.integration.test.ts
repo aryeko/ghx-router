@@ -18,32 +18,32 @@ describe("executeTask pr.list", () => {
                     number: 201,
                     title: "First PR",
                     state: "OPEN",
-                    url: "https://github.com/go-modkit/modkit/pull/201"
-                  }
+                    url: "https://github.com/go-modkit/modkit/pull/201",
+                  },
                 ],
                 pageInfo: {
                   endCursor: "cursor-pr-1",
-                  hasNextPage: true
-                }
-              }
-            }
+                  hasNextPage: true,
+                },
+              },
+            },
           } as TData
         }
 
         throw new Error("Unexpected query")
-      }
+      },
     })
 
     const request: TaskRequest = {
       task: "pr.list",
-      input: { owner: "go-modkit", name: "modkit", first: 1 }
+      input: { owner: "go-modkit", name: "modkit", first: 1 },
     }
 
     const result = await executeTask(request, {
       githubClient,
       githubToken: "test-token",
       ghCliAvailable: false,
-      ghAuthenticated: false
+      ghAuthenticated: false,
     })
 
     expect(result.ok).toBe(true)
@@ -53,9 +53,9 @@ describe("executeTask pr.list", () => {
         items: [expect.objectContaining({ number: 201 })],
         pageInfo: {
           endCursor: "cursor-pr-1",
-          hasNextPage: true
-        }
-      })
+          hasNextPage: true,
+        },
+      }),
     )
   })
 })

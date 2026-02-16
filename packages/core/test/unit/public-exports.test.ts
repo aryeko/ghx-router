@@ -1,7 +1,18 @@
 import { describe, expect, it } from "vitest"
 
-import { MAIN_SKILL_TEXT, createExecuteTool, explainCapability, listCapabilities } from "../../src/agent.js"
-import { createGithubClient, createGithubClientFromToken, createGraphqlClient, createSafeCliCommandRunner, executeTask } from "../../src/index.js"
+import {
+  createExecuteTool,
+  explainCapability,
+  listCapabilities,
+  MAIN_SKILL_TEXT,
+} from "../../src/agent.js"
+import {
+  createGithubClient,
+  createGithubClientFromToken,
+  createGraphqlClient,
+  createSafeCliCommandRunner,
+  executeTask,
+} from "../../src/index.js"
 
 describe("public exports", () => {
   it("exports root api surface", () => {

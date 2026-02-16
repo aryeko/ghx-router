@@ -1,0 +1,38 @@
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      nx:
+        patterns:
+          - "nx"
+          - "@nx/*"
+      eslint:
+        patterns:
+          - "eslint"
+          - "@eslint/*"
+          - "typescript-eslint"
+          - "@vitest/eslint-plugin"
+      vitest:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
+      graphql-codegen:
+        patterns:
+          - "@graphql-codegen/*"
+      typescript:
+        patterns:
+          - "typescript"
+          - "@types/*"
+    open-pull-requests-limit: 10
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5

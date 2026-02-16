@@ -1,3 +1,3 @@
 export const repoViewTask = {
-  id: "repo.view"
+  id: "repo.view",
 } as const

@@ -6,7 +6,7 @@ export const errorCodes = {
   Network: "NETWORK",
   Server: "SERVER",
   AdapterUnsupported: "ADAPTER_UNSUPPORTED",
-  Unknown: "UNKNOWN"
+  Unknown: "UNKNOWN",
 } as const
 
 export type ErrorCode = (typeof errorCodes)[keyof typeof errorCodes]

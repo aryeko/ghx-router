@@ -1,3 +1,3 @@
 export const issueReopenTask = {
-  id: "issue.reopen"
+  id: "issue.reopen",
 } as const

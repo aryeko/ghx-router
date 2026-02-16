@@ -1,14 +1,20 @@
+import type { ResultEnvelope, RouteSource } from "../contracts/envelope.js"
 import type { ErrorCode } from "../errors/codes.js"
 import { errorCodes } from "../errors/codes.js"
-import type { ResultEnvelope, RouteSource } from "../contracts/envelope.js"
-import type { OperationCard } from "../registry/types.js"
-import { validateInput, validateOutput } from "../registry/schema-validator.js"
 import { normalizeError } from "../execution/normalizer.js"
+import { validateInput, validateOutput } from "../registry/schema-validator.js"
+import type { OperationCard } from "../registry/types.js"
 import { logMetric } from "../telemetry/logger.js"
 
 type PreflightResult =
   | { ok: true }
-  | { ok: false; code: ErrorCode; message: string; retryable: boolean; details?: Record<string, unknown> }
+  | {
+      ok: false
+      code: ErrorCode
+      message: string
+      retryable: boolean
+      details?: Record<string, unknown>
+    }
 
 type ExecuteOptions = {
   card: OperationCard
@@ -60,7 +66,7 @@ function resolvePathValue(source: Record<string, unknown>, path: string): unknow
 function evaluateSuitabilityPreferred(
   card: OperationCard,
   params: Record<string, unknown>,
-  routingContext: Record<string, unknown>
+  routingContext: Record<string, unknown>,
 ): RouteSource {
   const rules = card.routing.suitability ?? []
 
@@ -72,19 +78,21 @@ function evaluateSuitabilityPreferred(
     }
 
     const conditionalMatch = /^(cli|graphql|rest)\s+if\s+([a-zA-Z0-9_.]+)\s*(==|!=)\s*(.+)$/i.exec(
-      rule.predicate.trim()
+      rule.predicate.trim(),
     )
 
     if (!conditionalMatch) {
       continue
     }
 
-    const [, targetRouteRaw = "", rawPath = "", operator = "==", rawExpected = ""] = conditionalMatch
+    const [, targetRouteRaw = "", rawPath = "", operator = "==", rawExpected = ""] =
+      conditionalMatch
     const targetRoute = targetRouteRaw.toLowerCase() as RouteSource
     const source = rule.when === "env" ? routingContext : params
-    const path = rawPath.startsWith("params.") || rawPath.startsWith("env.")
-      ? rawPath.split(".").slice(1).join(".")
-      : rawPath
+    const path =
+      rawPath.startsWith("params.") || rawPath.startsWith("env.")
+        ? rawPath.split(".").slice(1).join(".")
+        : rawPath
     const actual = resolvePathValue(source, path)
     const expected = parsePredicateValue(rawExpected)
     const matches = operator === "==" ? actual === expected : actual !== expected
@@ -100,7 +108,7 @@ function evaluateSuitabilityPreferred(
 function routePlan(
   card: OperationCard,
   params: Record<string, unknown>,
-  routingContext: Record<string, unknown>
+  routingContext: Record<string, unknown>,
 ): RouteSource[] {
   const preferred = evaluateSuitabilityPreferred(card, params, routingContext)
   const planned = new Set<RouteSource>([preferred, ...card.routing.fallbacks])
@@ -115,13 +123,13 @@ export async function execute(options: ExecuteOptions): Promise<ResultEnvelope> 
         code: errorCodes.Validation,
         message: "Input schema validation failed",
         retryable: false,
-        details: { ajvErrors: inputValidation.errors }
+        details: { ajvErrors: inputValidation.errors },
       },
       options.card.routing.preferred,
       {
         capabilityId: options.card.capability_id,
-        reason: "INPUT_VALIDATION"
-      }
+        reason: "INPUT_VALIDATION",
+      },
     )
   }
 
@@ -135,7 +143,7 @@ export async function execute(options: ExecuteOptions): Promise<ResultEnvelope> 
   for (const route of routePlan(options.card, options.params, routingContext)) {
     logMetric("route.plan", 1, {
       capability_id: options.card.capability_id,
-      route
+      route,
     })
 
     const preflight = await options.preflight(route)
@@ -143,14 +151,14 @@ export async function execute(options: ExecuteOptions): Promise<ResultEnvelope> 
       logMetric("route.preflight_skipped", 1, {
         capability_id: options.card.capability_id,
         route,
-        error_code: preflight.code
+        error_code: preflight.code,
       })
       attempts.push({ route, status: "skipped", error_code: preflight.code })
       lastError = {
         code: preflight.code,
         message: preflight.message,
         retryable: preflight.retryable,
-        ...(preflight.details ? { details: preflight.details } : {})
+        ...(preflight.details ? { details: preflight.details } : {}),
       }
       firstError ??= lastError
       continue
@@ -160,14 +168,14 @@ export async function execute(options: ExecuteOptions): Promise<ResultEnvelope> 
     if (typeof routeHandler !== "function") {
       logMetric("route.missing_handler", 1, {
         capability_id: options.card.capability_id,
-        route
+        route,
       })
 
       const handlerError = {
         code: errorCodes.AdapterUnsupported,
         message: `No route handler configured for '${route}'`,
         retryable: false,
-        details: { route }
+        details: { route },
       }
 
       attempts.push({ route, status: "skipped", error_code: errorCodes.AdapterUnsupported })
@@ -181,11 +189,15 @@ export async function execute(options: ExecuteOptions): Promise<ResultEnvelope> 
       logMetric("route.attempt", 1, {
         capability_id: options.card.capability_id,
         route,
-        ok: result.ok
+        ok: result.ok,
       })
-      const attemptRecord: { route: RouteSource; status: "success" | "error"; error_code?: ErrorCode } = {
+      const attemptRecord: {
+        route: RouteSource
+        status: "success" | "error"
+        error_code?: ErrorCode
+      } = {
         route,
-        status: result.ok ? "success" : "error"
+        status: result.ok ? "success" : "error",
       }
       if (result.error?.code) {
         attemptRecord.error_code = result.error.code
@@ -200,13 +212,13 @@ export async function execute(options: ExecuteOptions): Promise<ResultEnvelope> 
               code: errorCodes.Server,
               message: "Output schema validation failed",
               retryable: false,
-              details: { ajvErrors: outputValidation.errors }
+              details: { ajvErrors: outputValidation.errors },
             },
             route,
             {
               capabilityId: options.card.capability_id,
-              reason: "OUTPUT_VALIDATION"
-            }
+              reason: "OUTPUT_VALIDATION",
+            },
           )
 
           if (options.trace) {
@@ -236,15 +248,16 @@ export async function execute(options: ExecuteOptions): Promise<ResultEnvelope> 
     }
   }
 
-  const finalError = lastError ?? firstError ?? {
-    code: errorCodes.Unknown,
-    message: "No route produced a result",
-    retryable: false
-  }
+  const finalError = lastError ??
+    firstError ?? {
+      code: errorCodes.Unknown,
+      message: "No route produced a result",
+      retryable: false,
+    }
 
   const envelope = normalizeError(finalError, options.card.routing.preferred, {
     capabilityId: options.card.capability_id,
-    reason: "CARD_FALLBACK"
+    reason: "CARD_FALLBACK",
   })
 
   if (options.trace) {

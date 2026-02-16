@@ -29,6 +29,6 @@ export function extractAttemptMetrics(payload: unknown): ExtractedAttempts {
   return {
     totalAttempts: attempts.length,
     routeUsed,
-    retryCount: errorAttempts
+    retryCount: errorAttempts,
   }
 }

@@ -1,6 +1,6 @@
 # File Codemap
 
-**Last Updated:** 2026-02-15
+**Last Updated:** 2026-02-16
 
 ## Repository Layout
 
@@ -35,6 +35,12 @@ ghx/
 │       ├── results/
 │       ├── reports/
 │       └── test/
+├── .github/
+│   ├── dependabot.yml
+│   └── workflows/
+├── .npmrc
+├── biome.json
+├── lefthook.yml
 ├── nx.json
 ├── package.json
 └── pnpm-workspace.yaml
@@ -44,10 +50,16 @@ ghx/
 
 ### Workspace + Build System
 
-- `package.json` - root scripts for build/lint/test/typecheck/benchmark
-- `pnpm-workspace.yaml` - workspace package discovery (`packages/*`)
+- `package.json` - root scripts for build/format/lint/test/typecheck/benchmark
+- `pnpm-workspace.yaml` - workspace package discovery (`packages/*`) + pnpm catalog for shared devDependencies
 - `nx.json` - Nx task orchestration configuration
+- `biome.json` - Biome formatter configuration (formatting + import sorting)
+- `lefthook.yml` - pre-commit hooks (format, lint, typecheck)
+- `.npmrc` - pnpm settings (`strict-peer-dependencies`, `auto-install-peers`)
+- `.github/dependabot.yml` - automated dependency update PRs (npm + GitHub Actions)
 - `.changeset/*.md` - release notes/versioning entries for publish flow
+- `packages/core/tsup.config.ts` - core package build configuration
+- `packages/benchmark/tsup.config.ts` - benchmark package build configuration
 
 ### Core Router Package (`packages/core`)
 
@@ -55,7 +67,8 @@ ghx/
 - `packages/core/src/agent.ts` - package public agent-interface exports (`listCapabilities`, `createExecuteTool`)
 - `packages/core/src/cli/index.ts` - `ghx` executable entrypoint
 - `packages/core/src/cli/commands/run.ts` - task parsing + execution entry
-- `packages/core/src/cli/commands/setup.ts` - setup/verify skill profile installation in `.agents/skill/ghx/SKILL.md`
+- `packages/core/src/cli/commands/setup.ts` - setup/verify skill profile installation in `.agents/skills/ghx/SKILL.md`
+- `packages/core/src/cli/assets/skills/ghx/` - bundled setup skill asset directory (contains canonical `SKILL.md`)
 - `packages/core/src/cli/commands/capabilities-list.ts` - CLI capability list command
 - `packages/core/src/cli/commands/capabilities-explain.ts` - CLI capability explain command
 - `packages/core/src/cli/commands/doctor.ts` - diagnostics command scaffold (reserved)
@@ -75,6 +88,10 @@ ghx/
 - `packages/core/src/agent-interface/tools/execute-tool.ts` - capability execution wrapper for agent tooling
 - `packages/core/README.md` - npm-facing package usage and API surface overview
 - `packages/core/LICENSE` - package-level MIT license for publish artifacts
+
+### Documentation
+
+- `docs/guides/setup-command.md` - setup command behavior, scopes, verification flow, and team rollout guidance
 
 ### Benchmark Package (`packages/benchmark`)
 

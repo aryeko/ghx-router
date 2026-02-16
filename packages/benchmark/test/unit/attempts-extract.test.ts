@@ -10,15 +10,15 @@ describe("extractAttemptMetrics", () => {
         route_used: "graphql",
         attempts: [
           { route: "graphql", status: "error", error_code: "NETWORK" },
-          { route: "graphql", status: "success" }
-        ]
-      }
+          { route: "graphql", status: "success" },
+        ],
+      },
     })
 
     expect(metrics).toEqual({
       totalAttempts: 2,
       routeUsed: "graphql",
-      retryCount: 1
+      retryCount: 1,
     })
   })
 
@@ -30,14 +30,14 @@ describe("extractAttemptMetrics", () => {
     const metrics = extractAttemptMetrics({
       meta: {
         route_used: 42,
-        attempts: [null, "bad", { status: "success" }, { status: "error" }]
-      }
+        attempts: [null, "bad", { status: "success" }, { status: "error" }],
+      },
     })
 
     expect(metrics).toEqual({
       totalAttempts: 2,
       routeUsed: null,
-      retryCount: 1
+      retryCount: 1,
     })
   })
 })

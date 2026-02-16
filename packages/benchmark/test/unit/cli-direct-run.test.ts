@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, it, vi } from "vitest"
 import { fileURLToPath } from "node:url"
+import { afterEach, describe, expect, it, vi } from "vitest"
 
 const benchmarkEntry = "../../src/cli/benchmark" + ".ts"
 const checkScenariosEntry = "../../src/cli/check-scenarios" + ".ts"
@@ -23,15 +23,15 @@ describe("cli direct-run guards", () => {
       command: "run",
       mode: "ghx",
       repetitions: 1,
-      scenarioFilter: null
+      scenarioFilter: null,
     }))
     const runSuiteMock = vi.fn(async () => undefined)
 
     vi.doMock("../../src/cli/args.js", () => ({
-      parseCliArgs: parseCliArgsMock
+      parseCliArgs: parseCliArgsMock,
     }))
     vi.doMock("../../src/runner/suite-runner.js", () => ({
-      runSuite: runSuiteMock
+      runSuite: runSuiteMock,
     }))
 
     process.argv = [...originalArgv]
@@ -44,7 +44,7 @@ describe("cli direct-run guards", () => {
     expect(runSuiteMock).toHaveBeenCalledWith({
       mode: "ghx",
       repetitions: 1,
-      scenarioFilter: null
+      scenarioFilter: null,
     })
   })
 
@@ -54,10 +54,10 @@ describe("cli direct-run guards", () => {
     })
 
     vi.doMock("../../src/cli/args.js", () => ({
-      parseCliArgs: parseCliArgsMock
+      parseCliArgs: parseCliArgsMock,
     }))
     vi.doMock("../../src/runner/suite-runner.js", () => ({
-      runSuite: vi.fn(async () => undefined)
+      runSuite: vi.fn(async () => undefined),
     }))
 
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined)
@@ -77,7 +77,7 @@ describe("cli direct-run guards", () => {
     vi.doMock("../../src/scenario/loader.js", () => ({
       loadScenarios: vi.fn(async () => {
         throw new Error("scenario load failed")
-      })
+      }),
     }))
 
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined)
@@ -98,15 +98,15 @@ describe("cli direct-run guards", () => {
       command: "run",
       mode: "ghx",
       repetitions: 1,
-      scenarioFilter: null
+      scenarioFilter: null,
     }))
     const runSuiteMock = vi.fn(async () => undefined)
 
     vi.doMock("../../src/cli/args.js", () => ({
-      parseCliArgs: parseCliArgsMock
+      parseCliArgs: parseCliArgsMock,
     }))
     vi.doMock("../../src/runner/suite-runner.js", () => ({
-      runSuite: runSuiteMock
+      runSuite: runSuiteMock,
     }))
 
     process.argv = [...originalArgv]
@@ -127,7 +127,7 @@ describe("cli direct-run guards", () => {
         readdir: vi.fn(async () => []),
         readFile: vi.fn(async () => ""),
         mkdir: vi.fn(async () => undefined),
-        writeFile: vi.fn(async () => undefined)
+        writeFile: vi.fn(async () => undefined),
       }
     })
 

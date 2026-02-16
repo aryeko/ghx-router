@@ -10,13 +10,15 @@ export type GithubTokenResolverOptions = {
 
 export async function getTokenFromGhCli(): Promise<string> {
   const { stdout } = await execFileAsync("gh", ["auth", "token"], {
-    encoding: "utf8"
+    encoding: "utf8",
   })
 
   return String(stdout).trim()
 }
 
-export async function resolveGithubToken(options: GithubTokenResolverOptions = {}): Promise<string> {
+export async function resolveGithubToken(
+  options: GithubTokenResolverOptions = {},
+): Promise<string> {
   const env = options.env ?? process.env
   const envToken = env.GITHUB_TOKEN?.trim()
   if (envToken) {

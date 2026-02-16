@@ -166,7 +166,11 @@ function isStableEfficiencyRow(row: BenchmarkRow): boolean {
 
 function summarizeMode(mode: BenchmarkMode, rows: BenchmarkRow[]): ModeSummary {
   const modelSignature = Array.from(
-    new Set(rows.map((row) => `${row.model.provider_id}/${row.model.model_id}/${row.model.mode ?? "<null>"}`)),
+    new Set(
+      rows.map(
+        (row) => `${row.model.provider_id}/${row.model.model_id}/${row.model.mode ?? "<null>"}`,
+      ),
+    ),
   )
     .sort()
     .join(",")
@@ -425,10 +429,19 @@ export function buildSummary(
   let deltaVsAgentDirect: DeltaSummary | null = null
   if (agentDirect && ghxRouter) {
     deltaVsAgentDirect = {
-      tokensReductionPct: safeReductionPct(agentDirect.medianTokensTotal, ghxRouter.medianTokensTotal),
-      tokensActiveReductionPct: safeReductionPct(agentDirect.medianTokensActive, ghxRouter.medianTokensActive),
+      tokensReductionPct: safeReductionPct(
+        agentDirect.medianTokensTotal,
+        ghxRouter.medianTokensTotal,
+      ),
+      tokensActiveReductionPct: safeReductionPct(
+        agentDirect.medianTokensActive,
+        ghxRouter.medianTokensActive,
+      ),
       latencyReductionPct: safeReductionPct(agentDirect.medianLatencyMs, ghxRouter.medianLatencyMs),
-      toolCallReductionPct: safeReductionPct(agentDirect.medianToolCalls, ghxRouter.medianToolCalls),
+      toolCallReductionPct: safeReductionPct(
+        agentDirect.medianToolCalls,
+        ghxRouter.medianToolCalls,
+      ),
       successRateDeltaPct: ghxRouter.successRate - agentDirect.successRate,
       outputValidityRatePct: ghxRouter.outputValidityRate,
     }
@@ -451,7 +464,9 @@ export function toMarkdown(summary: BenchmarkSummary): string {
   lines.push("")
   lines.push("## Mode Metrics")
   lines.push("")
-  lines.push("| Mode | Model | Runs | Success % | Output Valid % | Runner Error % | Timeout/Stall % | Retry % | Median Latency (ms) | Median Tokens (Total) | Median Tokens (Active) | Median Tool Calls |")
+  lines.push(
+    "| Mode | Model | Runs | Success % | Output Valid % | Runner Error % | Timeout/Stall % | Retry % | Median Latency (ms) | Median Tokens (Total) | Median Tokens (Active) | Median Tool Calls |",
+  )
   lines.push("|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
 
   for (const mode of ["agent_direct", "mcp", "ghx"] as const) {
@@ -465,7 +480,9 @@ export function toMarkdown(summary: BenchmarkSummary): string {
   lines.push("")
   lines.push("## Profiling Snapshot")
   lines.push("")
-  lines.push("| Mode | Profiled Runs | Assistant Total (ms) | Reasoning (ms) | Between Reasoning->Tool (ms) | Tool Total (ms) | Bash Tool (ms) | Post-Tool (ms) |")
+  lines.push(
+    "| Mode | Profiled Runs | Assistant Total (ms) | Reasoning (ms) | Between Reasoning->Tool (ms) | Tool Total (ms) | Bash Tool (ms) | Post-Tool (ms) |",
+  )
   lines.push("|---|---:|---:|---:|---:|---:|---:|---:|")
 
   for (const mode of ["agent_direct", "mcp", "ghx"] as const) {
@@ -511,9 +528,15 @@ export function toMarkdown(summary: BenchmarkSummary): string {
   lines.push(
     `- scenario coverage: ${summary.gateV2.efficiency.coveragePct.toFixed(2)}% (${summary.gateV2.efficiency.eligibleScenarioCount}/${summary.gateV2.efficiency.totalScenarioCount})`,
   )
-  lines.push(`- median active-token reduction: ${summary.gateV2.efficiency.tokensActiveReductionPct.toFixed(2)}%`)
-  lines.push(`- median latency reduction: ${summary.gateV2.efficiency.latencyReductionPct.toFixed(2)}%`)
-  lines.push(`- median tool-call reduction: ${summary.gateV2.efficiency.toolCallReductionPct.toFixed(2)}%`)
+  lines.push(
+    `- median active-token reduction: ${summary.gateV2.efficiency.tokensActiveReductionPct.toFixed(2)}%`,
+  )
+  lines.push(
+    `- median latency reduction: ${summary.gateV2.efficiency.latencyReductionPct.toFixed(2)}%`,
+  )
+  lines.push(
+    `- median tool-call reduction: ${summary.gateV2.efficiency.toolCallReductionPct.toFixed(2)}%`,
+  )
   lines.push(
     `- scenario win-rate (active tokens): ${summary.gateV2.efficiency.scenarioWinRateTokensActivePct.toFixed(2)}% (${summary.gateV2.efficiency.tokensComparableScenarioCount} comparable scenarios)`,
   )

@@ -15,10 +15,10 @@ describe("createGithubClient", () => {
             stargazerCount: 10,
             forkCount: 2,
             url: "https://github.com/go-modkit/modkit",
-            defaultBranchRef: { name: "main" }
-          }
+            defaultBranchRef: { name: "main" },
+          },
         } as TData
-      }
+      },
     })
 
     const result = await client.fetchRepoView({ owner: "go-modkit", name: "modkit" })
@@ -37,14 +37,18 @@ describe("createGithubClient", () => {
               number: 210,
               title: "Fix parser edge case",
               state: "OPEN",
-              url: "https://github.com/go-modkit/modkit/issues/210"
-            }
-          }
+              url: "https://github.com/go-modkit/modkit/issues/210",
+            },
+          },
         } as TData
-      }
+      },
     })
 
-    const issue = await client.fetchIssueView({ owner: "go-modkit", name: "modkit", issueNumber: 210 })
+    const issue = await client.fetchIssueView({
+      owner: "go-modkit",
+      name: "modkit",
+      issueNumber: 210,
+    })
 
     expect(issue.number).toBe(210)
     expect(issue.title).toContain("parser")
@@ -62,17 +66,17 @@ describe("createGithubClient", () => {
                   number: 210,
                   title: "Fix parser edge case",
                   state: "OPEN",
-                  url: "https://github.com/go-modkit/modkit/issues/210"
-                }
+                  url: "https://github.com/go-modkit/modkit/issues/210",
+                },
               ],
               pageInfo: {
                 endCursor: "cursor-1",
-                hasNextPage: false
-              }
-            }
-          }
+                hasNextPage: false,
+              },
+            },
+          },
         } as TData
-      }
+      },
     })
 
     const list = await client.fetchIssueList({ owner: "go-modkit", name: "modkit", first: 1 })
@@ -94,25 +98,25 @@ describe("createGithubClient", () => {
                     body: "Looks good",
                     createdAt: "2025-01-01T00:00:00Z",
                     url: "https://github.com/go-modkit/modkit/issues/210#issuecomment-1",
-                    author: { login: "octocat" }
-                  }
+                    author: { login: "octocat" },
+                  },
                 ],
                 pageInfo: {
                   endCursor: "cursor-1",
-                  hasNextPage: true
-                }
-              }
-            }
-          }
+                  hasNextPage: true,
+                },
+              },
+            },
+          },
         } as TData
-      }
+      },
     })
 
     const list = await client.fetchIssueCommentsList({
       owner: "go-modkit",
       name: "modkit",
       issueNumber: 210,
-      first: 1
+      first: 1,
     })
 
     expect(list.items[0]?.id).toBe("comment-id")
@@ -126,10 +130,10 @@ describe("createGithubClient", () => {
       async execute<TData>(): Promise<TData> {
         return {
           repository: {
-            issue: null
-          }
+            issue: null,
+          },
         } as TData
-      }
+      },
     })
 
     await expect(
@@ -137,8 +141,8 @@ describe("createGithubClient", () => {
         owner: "go-modkit",
         name: "modkit",
         issueNumber: 210,
-        first: 1
-      })
+        first: 1,
+      }),
     ).rejects.toThrow("Issue comments not found")
   })
 
@@ -152,13 +156,13 @@ describe("createGithubClient", () => {
                 nodes: [],
                 pageInfo: {
                   endCursor: null,
-                  hasNextPage: false
-                }
-              }
-            }
-          }
+                  hasNextPage: false,
+                },
+              },
+            },
+          },
         } as TData
-      }
+      },
     })
 
     await expect(
@@ -167,8 +171,8 @@ describe("createGithubClient", () => {
         name: "modkit",
         issueNumber: 210,
         first: 1,
-        after: 123 as unknown as string
-      })
+        after: 123 as unknown as string,
+      }),
     ).rejects.toThrow("After cursor must be a string")
   })
 
@@ -182,11 +186,11 @@ describe("createGithubClient", () => {
               number: 232,
               title: "Add benchmark improvements",
               state: "OPEN",
-              url: "https://github.com/go-modkit/modkit/pull/232"
-            }
-          }
+              url: "https://github.com/go-modkit/modkit/pull/232",
+            },
+          },
         } as TData
-      }
+      },
     })
 
     const pr = await client.fetchPrView({ owner: "go-modkit", name: "modkit", prNumber: 232 })
@@ -207,17 +211,17 @@ describe("createGithubClient", () => {
                   number: 232,
                   title: "Add benchmark improvements",
                   state: "OPEN",
-                  url: "https://github.com/go-modkit/modkit/pull/232"
-                }
+                  url: "https://github.com/go-modkit/modkit/pull/232",
+                },
               ],
               pageInfo: {
                 endCursor: "cursor-pr-1",
-                hasNextPage: true
-              }
-            }
-          }
+                hasNextPage: true,
+              },
+            },
+          },
         } as TData
-      }
+      },
     })
 
     const list = await client.fetchPrList({ owner: "go-modkit", name: "modkit", first: 1 })
@@ -227,7 +231,10 @@ describe("createGithubClient", () => {
   })
 
   it("exposes typed pr.comments.list helper with unresolved filtering", async () => {
-    const execute = async <TData>(_query: string, variables?: Record<string, unknown>): Promise<TData> => {
+    const execute = async <TData>(
+      _query: string,
+      variables?: Record<string, unknown>,
+    ): Promise<TData> => {
       const after = (variables?.after as string | null | undefined) ?? null
       if (after === null) {
         return {
@@ -257,20 +264,20 @@ describe("createGithubClient", () => {
                             body: "resolved",
                             createdAt: "2025-01-01T00:00:00Z",
                             url: "https://example.com/comment-1",
-                            author: { login: "octocat" }
-                          }
-                        ]
-                      }
-                    }
-                  }
+                            author: { login: "octocat" },
+                          },
+                        ],
+                      },
+                    },
+                  },
                 ],
                 pageInfo: {
                   endCursor: "cursor-1",
-                  hasNextPage: true
-                }
-              }
-            }
-          }
+                  hasNextPage: true,
+                },
+              },
+            },
+          },
         } as TData
       }
 
@@ -301,20 +308,20 @@ describe("createGithubClient", () => {
                           body: "needs work",
                           createdAt: "2025-01-02T00:00:00Z",
                           url: "https://example.com/comment-2",
-                          author: { login: "hubot" }
-                        }
-                      ]
-                    }
-                  }
-                }
+                          author: { login: "hubot" },
+                        },
+                      ],
+                    },
+                  },
+                },
               ],
               pageInfo: {
                 endCursor: null,
-                hasNextPage: false
-              }
-            }
-          }
-        }
+                hasNextPage: false,
+              },
+            },
+          },
+        },
       } as TData
     }
 
@@ -325,7 +332,7 @@ describe("createGithubClient", () => {
       prNumber: 232,
       first: 1,
       unresolvedOnly: true,
-      includeOutdated: false
+      includeOutdated: false,
     })
 
     expect(list.items).toHaveLength(1)
@@ -358,19 +365,19 @@ describe("createGithubClient", () => {
                       viewerCanResolve: false,
                       viewerCanUnresolve: false,
                       resolvedBy: null,
-                      comments: { nodes: [] }
-                    }
-                  }
+                      comments: { nodes: [] },
+                    },
+                  },
                 ],
                 pageInfo: {
                   endCursor: null,
-                  hasNextPage: false
-                }
-              }
-            }
-          }
+                  hasNextPage: false,
+                },
+              },
+            },
+          },
         } as TData
-      }
+      },
     })
 
     const list = await client.fetchPrCommentsList({
@@ -379,7 +386,7 @@ describe("createGithubClient", () => {
       prNumber: 232,
       first: 10,
       unresolvedOnly: false,
-      includeOutdated: false
+      includeOutdated: false,
     })
 
     expect(list.items).toHaveLength(1)
@@ -387,7 +394,10 @@ describe("createGithubClient", () => {
   })
 
   it("returns cursor for last returned filtered item", async () => {
-    const execute = async <TData>(_query: string, variables?: Record<string, unknown>): Promise<TData> => {
+    const execute = async <TData>(
+      _query: string,
+      variables?: Record<string, unknown>,
+    ): Promise<TData> => {
       const after = (variables?.after as string | null | undefined) ?? null
       if (after === null) {
         return {
@@ -410,17 +420,17 @@ describe("createGithubClient", () => {
                       viewerCanResolve: true,
                       viewerCanUnresolve: false,
                       resolvedBy: null,
-                      comments: { nodes: [] }
-                    }
-                  }
+                      comments: { nodes: [] },
+                    },
+                  },
                 ],
                 pageInfo: {
                   endCursor: "page-end-1",
-                  hasNextPage: true
-                }
-              }
-            }
-          }
+                  hasNextPage: true,
+                },
+              },
+            },
+          },
         } as TData
       }
 
@@ -444,8 +454,8 @@ describe("createGithubClient", () => {
                     viewerCanResolve: true,
                     viewerCanUnresolve: false,
                     resolvedBy: null,
-                    comments: { nodes: [] }
-                  }
+                    comments: { nodes: [] },
+                  },
                 },
                 {
                   cursor: "cursor-3",
@@ -462,17 +472,17 @@ describe("createGithubClient", () => {
                     viewerCanResolve: true,
                     viewerCanUnresolve: false,
                     resolvedBy: null,
-                    comments: { nodes: [] }
-                  }
-                }
+                    comments: { nodes: [] },
+                  },
+                },
               ],
               pageInfo: {
                 endCursor: "page-end-2",
-                hasNextPage: true
-              }
-            }
-          }
-        }
+                hasNextPage: true,
+              },
+            },
+          },
+        },
       } as TData
     }
 
@@ -483,7 +493,7 @@ describe("createGithubClient", () => {
       prNumber: 232,
       first: 2,
       unresolvedOnly: true,
-      includeOutdated: true
+      includeOutdated: true,
     })
 
     expect(list.items.map((item) => item.id)).toEqual(["thread-1", "thread-2"])
@@ -496,10 +506,10 @@ describe("createGithubClient", () => {
       async execute<TData>(): Promise<TData> {
         return {
           repository: {
-            pullRequest: null
-          }
+            pullRequest: null,
+          },
         } as TData
-      }
+      },
     })
 
     await expect(
@@ -507,8 +517,8 @@ describe("createGithubClient", () => {
         owner: "go-modkit",
         name: "modkit",
         prNumber: 232,
-        first: 1
-      })
+        first: 1,
+      }),
     ).rejects.toThrow("Pull request review threads not found")
   })
 
@@ -522,13 +532,13 @@ describe("createGithubClient", () => {
                 edges: [],
                 pageInfo: {
                   endCursor: null,
-                  hasNextPage: false
-                }
-              }
-            }
-          }
+                  hasNextPage: false,
+                },
+              },
+            },
+          },
         } as TData
-      }
+      },
     })
 
     await expect(
@@ -537,8 +547,8 @@ describe("createGithubClient", () => {
         name: "modkit",
         prNumber: 232,
         first: 1,
-        unresolvedOnly: "yes" as unknown as boolean
-      })
+        unresolvedOnly: "yes" as unknown as boolean,
+      }),
     ).rejects.toThrow("unresolvedOnly must be a boolean")
 
     await expect(
@@ -547,8 +557,8 @@ describe("createGithubClient", () => {
         name: "modkit",
         prNumber: 232,
         first: 1,
-        includeOutdated: "no" as unknown as boolean
-      })
+        includeOutdated: "no" as unknown as boolean,
+      }),
     ).rejects.toThrow("includeOutdated must be a boolean")
   })
 
@@ -567,25 +577,25 @@ describe("createGithubClient", () => {
                     submittedAt: "2025-01-01T00:00:00Z",
                     url: "https://example.com/review-1",
                     author: { login: "octocat" },
-                    commit: { oid: "abc123" }
-                  }
+                    commit: { oid: "abc123" },
+                  },
                 ],
                 pageInfo: {
                   hasNextPage: false,
-                  endCursor: null
-                }
-              }
-            }
-          }
+                  endCursor: null,
+                },
+              },
+            },
+          },
         } as TData
-      }
+      },
     })
 
     const reviews = await client.fetchPrReviewsList({
       owner: "go-modkit",
       name: "modkit",
       prNumber: 232,
-      first: 10
+      first: 10,
     })
 
     expect(reviews.items[0]?.id).toBe("review-1")
@@ -603,25 +613,25 @@ describe("createGithubClient", () => {
                   {
                     path: "src/index.ts",
                     additions: 5,
-                    deletions: 1
-                  }
+                    deletions: 1,
+                  },
                 ],
                 pageInfo: {
                   hasNextPage: false,
-                  endCursor: null
-                }
-              }
-            }
-          }
+                  endCursor: null,
+                },
+              },
+            },
+          },
         } as TData
-      }
+      },
     })
 
     const files = await client.fetchPrDiffListFiles({
       owner: "go-modkit",
       name: "modkit",
       prNumber: 232,
-      first: 10
+      first: 10,
     })
 
     expect(files.items[0]?.path).toBe("src/index.ts")
@@ -633,10 +643,10 @@ describe("createGithubClient", () => {
       async execute<TData>(): Promise<TData> {
         return {
           repository: {
-            pullRequest: null
-          }
+            pullRequest: null,
+          },
         } as TData
-      }
+      },
     })
 
     await expect(
@@ -644,8 +654,8 @@ describe("createGithubClient", () => {
         owner: "go-modkit",
         name: "modkit",
         prNumber: 232,
-        first: 10
-      })
+        first: 10,
+      }),
     ).rejects.toThrow("Pull request reviews not found")
   })
 
@@ -655,11 +665,11 @@ describe("createGithubClient", () => {
         return {
           repository: {
             pullRequest: {
-              files: null
-            }
-          }
+              files: null,
+            },
+          },
         } as TData
-      }
+      },
     })
 
     await expect(
@@ -667,8 +677,8 @@ describe("createGithubClient", () => {
         owner: "go-modkit",
         name: "modkit",
         prNumber: 232,
-        first: 10
-      })
+        first: 10,
+      }),
     ).rejects.toThrow("Pull request files not found")
   })
 
@@ -681,8 +691,8 @@ describe("createGithubClient", () => {
         owner: "",
         name: "modkit",
         prNumber: 232,
-        first: 10
-      })
+        first: 10,
+      }),
     ).rejects.toThrow("Repository owner and name are required")
 
     await expect(
@@ -690,8 +700,8 @@ describe("createGithubClient", () => {
         owner: "go-modkit",
         name: "",
         prNumber: 232,
-        first: 10
-      })
+        first: 10,
+      }),
     ).rejects.toThrow("Repository owner and name are required")
 
     await expect(
@@ -699,8 +709,8 @@ describe("createGithubClient", () => {
         owner: "go-modkit",
         name: "modkit",
         prNumber: 0,
-        first: 10
-      })
+        first: 10,
+      }),
     ).rejects.toThrow("PR number must be a positive integer")
 
     await expect(
@@ -708,8 +718,8 @@ describe("createGithubClient", () => {
         owner: "go-modkit",
         name: "modkit",
         prNumber: 232,
-        first: 0
-      })
+        first: 0,
+      }),
     ).rejects.toThrow("List page size must be a positive integer")
 
     await expect(
@@ -717,8 +727,8 @@ describe("createGithubClient", () => {
         owner: "go-modkit",
         name: "modkit",
         prNumber: 232,
-        first: 0
-      })
+        first: 0,
+      }),
     ).rejects.toThrow("List page size must be a positive integer")
 
     await expect(
@@ -726,8 +736,8 @@ describe("createGithubClient", () => {
         owner: "go-modkit",
         name: "modkit",
         prNumber: 0,
-        first: 10
-      })
+        first: 10,
+      }),
     ).rejects.toThrow("PR number must be a positive integer")
 
     await expect(
@@ -735,8 +745,8 @@ describe("createGithubClient", () => {
         owner: "",
         name: "modkit",
         prNumber: 232,
-        first: 10
-      })
+        first: 10,
+      }),
     ).rejects.toThrow("Repository owner and name are required")
 
     await expect(
@@ -744,8 +754,8 @@ describe("createGithubClient", () => {
         owner: "go-modkit",
         name: "modkit",
         prNumber: 0,
-        first: 10
-      })
+        first: 10,
+      }),
     ).rejects.toThrow("PR number must be a positive integer")
 
     await expect(
@@ -753,8 +763,8 @@ describe("createGithubClient", () => {
         owner: "go-modkit",
         name: "modkit",
         prNumber: 232,
-        first: 0
-      })
+        first: 0,
+      }),
     ).rejects.toThrow("List page size must be a positive integer")
 
     expect(execute).not.toHaveBeenCalled()
@@ -777,16 +787,16 @@ describe("createGithubClient", () => {
                       submittedAt: null,
                       url: "https://example.com/review-1",
                       author: null,
-                      commit: null
-                    }
+                      commit: null,
+                    },
                   ],
                   pageInfo: {
                     hasNextPage: false,
-                    endCursor: null
-                  }
-                }
-              }
-            }
+                    endCursor: null,
+                  },
+                },
+              },
+            },
           } as TData
         }
 
@@ -799,31 +809,31 @@ describe("createGithubClient", () => {
                   {
                     path: "src/main.ts",
                     additions: 1,
-                    deletions: 2
-                  }
+                    deletions: 2,
+                  },
                 ],
                 pageInfo: {
                   hasNextPage: false,
-                  endCursor: null
-                }
-              }
-            }
-          }
+                  endCursor: null,
+                },
+              },
+            },
+          },
         } as TData
-      }
+      },
     })
 
     const reviews = await client.fetchPrReviewsList({
       owner: "go-modkit",
       name: "modkit",
       prNumber: 232,
-      first: 10
+      first: 10,
     })
     const files = await client.fetchPrDiffListFiles({
       owner: "go-modkit",
       name: "modkit",
       prNumber: 232,
-      first: 10
+      first: 10,
     })
 
     expect(reviews.items).toHaveLength(1)
@@ -832,11 +842,13 @@ describe("createGithubClient", () => {
         id: "review-1",
         authorLogin: null,
         submittedAt: null,
-        commitOid: null
-      })
+        commitOid: null,
+      }),
     )
     expect(files.items).toHaveLength(1)
-    expect(files.items[0]).toEqual(expect.objectContaining({ path: "src/main.ts", additions: 1, deletions: 2 }))
+    expect(files.items[0]).toEqual(
+      expect.objectContaining({ path: "src/main.ts", additions: 1, deletions: 2 }),
+    )
   })
 
   it("normalizes PR comments threads with malformed edges and nodes fallback", async () => {
@@ -871,29 +883,29 @@ describe("createGithubClient", () => {
                             body: 42,
                             createdAt: 42,
                             url: 42,
-                            author: null
-                          }
-                        ]
-                      }
-                    }
-                  }
+                            author: null,
+                          },
+                        ],
+                      },
+                    },
+                  },
                 ],
                 pageInfo: {
                   endCursor: null,
-                  hasNextPage: false
-                }
-              }
-            }
-          }
+                  hasNextPage: false,
+                },
+              },
+            },
+          },
         } as TData
-      }
+      },
     })
 
     const list = await client.fetchPrCommentsList({
       owner: "go-modkit",
       name: "modkit",
       prNumber: 232,
-      first: 10
+      first: 10,
     })
 
     expect(list.items).toHaveLength(1)
@@ -911,10 +923,10 @@ describe("createGithubClient", () => {
             authorLogin: null,
             body: "",
             createdAt: "",
-            url: "42"
-          })
-        ]
-      })
+            url: "42",
+          }),
+        ],
+      }),
     )
   })
 
@@ -939,25 +951,25 @@ describe("createGithubClient", () => {
                     viewerCanResolve: false,
                     viewerCanUnresolve: false,
                     resolvedBy: null,
-                    comments: { nodes: [] }
-                  }
+                    comments: { nodes: [] },
+                  },
                 ],
                 pageInfo: {
                   endCursor: "cursor-1",
-                  hasNextPage: false
-                }
-              }
-            }
-          }
+                  hasNextPage: false,
+                },
+              },
+            },
+          },
         } as TData
-      }
+      },
     })
 
     const list = await client.fetchPrCommentsList({
       owner: "go-modkit",
       name: "modkit",
       prNumber: 232,
-      first: 1
+      first: 1,
     })
 
     expect(list.items).toHaveLength(1)
@@ -989,8 +1001,8 @@ describe("createGithubClient", () => {
                       viewerCanResolve: false,
                       viewerCanUnresolve: false,
                       resolvedBy: null,
-                      comments: { nodes: [] }
-                    }
+                      comments: { nodes: [] },
+                    },
                   },
                   {
                     cursor: "outdated",
@@ -1007,8 +1019,8 @@ describe("createGithubClient", () => {
                       viewerCanResolve: false,
                       viewerCanUnresolve: false,
                       resolvedBy: null,
-                      comments: { nodes: [] }
-                    }
+                      comments: { nodes: [] },
+                    },
                   },
                   {
                     cursor: "kept",
@@ -1032,22 +1044,22 @@ describe("createGithubClient", () => {
                             body: "ok",
                             createdAt: "2025-01-02T00:00:00Z",
                             url: "https://example.com/comment-1",
-                            author: { login: "hubot" }
-                          }
-                        ]
-                      }
-                    }
-                  }
+                            author: { login: "hubot" },
+                          },
+                        ],
+                      },
+                    },
+                  },
                 ],
                 pageInfo: {
                   endCursor: null,
-                  hasNextPage: false
-                }
-              }
-            }
-          }
+                  hasNextPage: false,
+                },
+              },
+            },
+          },
         } as TData
-      }
+      },
     })
 
     const list = await client.fetchPrCommentsList({
@@ -1056,7 +1068,7 @@ describe("createGithubClient", () => {
       prNumber: 232,
       first: 10,
       unresolvedOnly: true,
-      includeOutdated: false
+      includeOutdated: false,
     })
 
     expect(list.items).toHaveLength(1)
@@ -1069,24 +1081,24 @@ describe("createGithubClient", () => {
       if (query.includes("mutation PrCommentReply")) {
         return {
           addPullRequestReviewThreadReply: {
-            comment: { id: "comment-1" }
-          }
+            comment: { id: "comment-1" },
+          },
         }
       }
 
       if (query.includes("mutation PrCommentResolve")) {
         return {
           resolveReviewThread: {
-            thread: { id: "thread-1", isResolved: true }
-          }
+            thread: { id: "thread-1", isResolved: true },
+          },
         }
       }
 
       if (query.includes("mutation PrCommentUnresolve")) {
         return {
           unresolveReviewThread: {
-            thread: { id: "thread-1", isResolved: false }
-          }
+            thread: { id: "thread-1", isResolved: false },
+          },
         }
       }
 
@@ -1094,8 +1106,8 @@ describe("createGithubClient", () => {
         return {
           node: {
             id: "thread-1",
-            isResolved: true
-          }
+            isResolved: true,
+          },
         }
       }
 
@@ -1104,17 +1116,19 @@ describe("createGithubClient", () => {
 
     const client = createGithubClient({ execute } as never)
 
-    await expect(client.replyToReviewThread({ threadId: "thread-1", body: "done" })).resolves.toEqual({
+    await expect(
+      client.replyToReviewThread({ threadId: "thread-1", body: "done" }),
+    ).resolves.toEqual({
       id: "thread-1",
-      isResolved: true
+      isResolved: true,
     })
     await expect(client.resolveReviewThread({ threadId: "thread-1" })).resolves.toEqual({
       id: "thread-1",
-      isResolved: true
+      isResolved: true,
     })
     await expect(client.unresolveReviewThread({ threadId: "thread-1" })).resolves.toEqual({
       id: "thread-1",
-      isResolved: false
+      isResolved: false,
     })
   })
 
@@ -1124,23 +1138,23 @@ describe("createGithubClient", () => {
         if (query.includes("mutation PrCommentReply")) {
           return {
             addPullRequestReviewThreadReply: {
-              comment: null
-            }
+              comment: null,
+            },
           } as TData
         }
 
         return {
           node: {
             id: "thread-1",
-            isResolved: true
-          }
+            isResolved: true,
+          },
         } as TData
-      }
+      },
     })
 
-    await expect(client.replyToReviewThread({ threadId: "thread-1", body: "done" })).rejects.toThrow(
-      "Review thread mutation failed"
-    )
+    await expect(
+      client.replyToReviewThread({ threadId: "thread-1", body: "done" }),
+    ).rejects.toThrow("Review thread mutation failed")
   })
 
   it("throws when pr.comment.reply thread-state lookup returns no node", async () => {
@@ -1149,20 +1163,20 @@ describe("createGithubClient", () => {
         if (query.includes("mutation PrCommentReply")) {
           return {
             addPullRequestReviewThreadReply: {
-              comment: { id: "comment-1" }
-            }
+              comment: { id: "comment-1" },
+            },
           } as TData
         }
 
         return {
-          node: null
+          node: null,
         } as TData
-      }
+      },
     })
 
-    await expect(client.replyToReviewThread({ threadId: "thread-1", body: "done" })).rejects.toThrow(
-      "Review thread state lookup failed"
-    )
+    await expect(
+      client.replyToReviewThread({ threadId: "thread-1", body: "done" }),
+    ).rejects.toThrow("Review thread state lookup failed")
   })
 
   it("throws when pr.comment.resolve payload has no thread", async () => {
@@ -1170,13 +1184,15 @@ describe("createGithubClient", () => {
       async execute<TData>(): Promise<TData> {
         return {
           resolveReviewThread: {
-            thread: null
-          }
+            thread: null,
+          },
         } as TData
-      }
+      },
     })
 
-    await expect(client.resolveReviewThread({ threadId: "thread-1" })).rejects.toThrow("Review thread mutation failed")
+    await expect(client.resolveReviewThread({ threadId: "thread-1" })).rejects.toThrow(
+      "Review thread mutation failed",
+    )
   })
 
   it("validates non-empty review thread id for thread mutations", async () => {
@@ -1184,15 +1200,17 @@ describe("createGithubClient", () => {
       async execute<TData>(): Promise<TData> {
         return {
           resolveReviewThread: {
-            thread: { id: "thread-1", isResolved: true }
-          }
+            thread: { id: "thread-1", isResolved: true },
+          },
         } as TData
-      }
+      },
     })
 
-    await expect(client.resolveReviewThread({ threadId: " " })).rejects.toThrow("Review thread id is required")
+    await expect(client.resolveReviewThread({ threadId: " " })).rejects.toThrow(
+      "Review thread id is required",
+    )
     await expect(client.resolveReviewThread({ threadId: 1 as unknown as string })).rejects.toThrow(
-      "Review thread id is required"
+      "Review thread id is required",
     )
   })
 
@@ -1201,18 +1219,18 @@ describe("createGithubClient", () => {
       async execute<TData>(): Promise<TData> {
         return {
           addPullRequestReviewThreadReply: {
-            comment: { id: "comment-1" }
-          }
+            comment: { id: "comment-1" },
+          },
         } as TData
-      }
+      },
     })
 
     await expect(client.replyToReviewThread({ threadId: "thread-1", body: "   " })).rejects.toThrow(
-      "Reply body is required"
+      "Reply body is required",
     )
-    await expect(client.replyToReviewThread({ threadId: "thread-1", body: 1 as unknown as string })).rejects.toThrow(
-      "Reply body is required"
-    )
+    await expect(
+      client.replyToReviewThread({ threadId: "thread-1", body: 1 as unknown as string }),
+    ).rejects.toThrow("Reply body is required")
   })
 
   it("supports issue lifecycle, metadata, and relation helpers", async () => {
@@ -1220,8 +1238,8 @@ describe("createGithubClient", () => {
       if (query.includes("query IssueCreateRepositoryId")) {
         return {
           repository: {
-            id: "repo-1"
-          }
+            id: "repo-1",
+          },
         }
       }
 
@@ -1233,9 +1251,9 @@ describe("createGithubClient", () => {
               number: 501,
               title: "Created issue",
               state: "OPEN",
-              url: "https://example.com/issues/501"
-            }
-          }
+              url: "https://example.com/issues/501",
+            },
+          },
         }
       }
 
@@ -1247,9 +1265,9 @@ describe("createGithubClient", () => {
               number: 501,
               title: "Updated issue",
               state: "OPEN",
-              url: "https://example.com/issues/501"
-            }
-          }
+              url: "https://example.com/issues/501",
+            },
+          },
         }
       }
 
@@ -1259,9 +1277,9 @@ describe("createGithubClient", () => {
             issue: {
               id: "issue-1",
               number: 501,
-              state: "CLOSED"
-            }
-          }
+              state: "CLOSED",
+            },
+          },
         }
       }
 
@@ -1271,17 +1289,17 @@ describe("createGithubClient", () => {
             issue: {
               id: "issue-1",
               number: 501,
-              state: "OPEN"
-            }
-          }
+              state: "OPEN",
+            },
+          },
         }
       }
 
       if (query.includes("mutation IssueDelete")) {
         return {
           deleteIssue: {
-            clientMutationId: "ok"
-          }
+            clientMutationId: "ok",
+          },
         }
       }
 
@@ -1291,10 +1309,10 @@ describe("createGithubClient", () => {
             issue: {
               id: "issue-1",
               labels: {
-                nodes: [{ name: "bug" }, { name: "batch-b" }]
-              }
-            }
-          }
+                nodes: [{ name: "bug" }, { name: "batch-b" }],
+              },
+            },
+          },
         }
       }
 
@@ -1305,11 +1323,11 @@ describe("createGithubClient", () => {
               labels: {
                 nodes: [
                   { id: "label-bug", name: "bug" },
-                  { id: "label-batch-b", name: "batch-b" }
-                ]
-              }
-            }
-          }
+                  { id: "label-batch-b", name: "batch-b" },
+                ],
+              },
+            },
+          },
         }
       }
 
@@ -1319,10 +1337,10 @@ describe("createGithubClient", () => {
             issue: {
               id: "issue-1",
               assignees: {
-                nodes: [{ login: "octocat" }]
-              }
-            }
-          }
+                nodes: [{ login: "octocat" }],
+              },
+            },
+          },
         }
       }
 
@@ -1331,10 +1349,10 @@ describe("createGithubClient", () => {
           node: {
             repository: {
               assignableUsers: {
-                nodes: [{ id: "user-octocat", login: "octocat" }]
-              }
-            }
-          }
+                nodes: [{ id: "user-octocat", login: "octocat" }],
+              },
+            },
+          },
         }
       }
 
@@ -1344,10 +1362,10 @@ describe("createGithubClient", () => {
             issue: {
               id: "issue-1",
               milestone: {
-                number: 3
-              }
-            }
-          }
+                number: 3,
+              },
+            },
+          },
         }
       }
 
@@ -1356,10 +1374,10 @@ describe("createGithubClient", () => {
           node: {
             repository: {
               milestone: {
-                id: "milestone-3"
-              }
-            }
-          }
+                id: "milestone-3",
+              },
+            },
+          },
         }
       }
 
@@ -1370,10 +1388,10 @@ describe("createGithubClient", () => {
               node: {
                 id: "comment-1",
                 body: "ack",
-                url: "https://example.com/comment/1"
-              }
-            }
-          }
+                url: "https://example.com/comment/1",
+              },
+            },
+          },
         }
       }
 
@@ -1391,13 +1409,13 @@ describe("createGithubClient", () => {
                       number: 42,
                       title: "Fixes #501",
                       state: "OPEN",
-                      url: "https://example.com/pull/42"
-                    }
-                  }
-                ]
-              }
-            }
-          }
+                      url: "https://example.com/pull/42",
+                    },
+                  },
+                ],
+              },
+            },
+          },
         }
       }
 
@@ -1409,16 +1427,16 @@ describe("createGithubClient", () => {
               number: 501,
               parent: {
                 id: "issue-parent",
-                number: 500
+                number: 500,
               },
               subIssues: {
-                nodes: [{ id: "issue-child", number: 502 }]
+                nodes: [{ id: "issue-child", number: 502 }],
               },
               blockedBy: {
-                nodes: [{ id: "issue-blocker", number: 499 }]
-              }
-            }
-          }
+                nodes: [{ id: "issue-blocker", number: 499 }],
+              },
+            },
+          },
         }
       }
 
@@ -1426,8 +1444,8 @@ describe("createGithubClient", () => {
         return {
           addSubIssue: {
             issue: { id: "issue-parent" },
-            subIssue: { id: "issue-child" }
-          }
+            subIssue: { id: "issue-child" },
+          },
         }
       }
 
@@ -1435,8 +1453,8 @@ describe("createGithubClient", () => {
         return {
           node: {
             id: "issue-child",
-            parent: { id: "issue-parent" }
-          }
+            parent: { id: "issue-parent" },
+          },
         }
       }
 
@@ -1444,8 +1462,8 @@ describe("createGithubClient", () => {
         return {
           removeSubIssue: {
             issue: { id: "issue-parent" },
-            subIssue: { id: "issue-child" }
-          }
+            subIssue: { id: "issue-child" },
+          },
         }
       }
 
@@ -1453,8 +1471,8 @@ describe("createGithubClient", () => {
         return {
           addBlockedBy: {
             issue: { id: "issue-1" },
-            blockingIssue: { id: "issue-blocker" }
-          }
+            blockingIssue: { id: "issue-blocker" },
+          },
         }
       }
 
@@ -1462,8 +1480,8 @@ describe("createGithubClient", () => {
         return {
           removeBlockedBy: {
             issue: { id: "issue-1" },
-            blockingIssue: { id: "issue-blocker" }
-          }
+            blockingIssue: { id: "issue-blocker" },
+          },
         }
       }
 
@@ -1472,152 +1490,179 @@ describe("createGithubClient", () => {
 
     const client = createGithubClient({ execute } as never)
 
-    await expect(client.createIssue({ owner: "acme", name: "modkit", title: "Created issue" })).resolves.toEqual(
-      expect.objectContaining({ id: "issue-1", number: 501, title: "Created issue" })
+    await expect(
+      client.createIssue({ owner: "acme", name: "modkit", title: "Created issue" }),
+    ).resolves.toEqual(
+      expect.objectContaining({ id: "issue-1", number: 501, title: "Created issue" }),
     )
-    await expect(client.updateIssue({ issueId: "issue-1", title: "Updated issue" })).resolves.toEqual(
-      expect.objectContaining({ id: "issue-1", title: "Updated issue" })
-    )
+    await expect(
+      client.updateIssue({ issueId: "issue-1", title: "Updated issue" }),
+    ).resolves.toEqual(expect.objectContaining({ id: "issue-1", title: "Updated issue" }))
     await expect(client.closeIssue({ issueId: "issue-1" })).resolves.toEqual(
-      expect.objectContaining({ id: "issue-1", state: "CLOSED", closed: true })
+      expect.objectContaining({ id: "issue-1", state: "CLOSED", closed: true }),
     )
     await expect(client.reopenIssue({ issueId: "issue-1" })).resolves.toEqual(
-      expect.objectContaining({ id: "issue-1", state: "OPEN", reopened: true })
+      expect.objectContaining({ id: "issue-1", state: "OPEN", reopened: true }),
     )
     await expect(client.deleteIssue({ issueId: "issue-1" })).resolves.toEqual(
-      expect.objectContaining({ id: "issue-1", deleted: true })
+      expect.objectContaining({ id: "issue-1", deleted: true }),
     )
-    await expect(client.updateIssueLabels({ issueId: "issue-1", labels: ["bug", "batch-b"] })).resolves.toEqual(
-      expect.objectContaining({ id: "issue-1", labels: ["bug", "batch-b"] })
-    )
-    await expect(client.updateIssueAssignees({ issueId: "issue-1", assignees: ["octocat"] })).resolves.toEqual(
-      expect.objectContaining({ id: "issue-1", assignees: ["octocat"] })
-    )
-    await expect(client.setIssueMilestone({ issueId: "issue-1", milestoneNumber: 3 })).resolves.toEqual(
-      expect.objectContaining({ id: "issue-1", milestoneNumber: 3 })
-    )
+    await expect(
+      client.updateIssueLabels({ issueId: "issue-1", labels: ["bug", "batch-b"] }),
+    ).resolves.toEqual(expect.objectContaining({ id: "issue-1", labels: ["bug", "batch-b"] }))
+    await expect(
+      client.updateIssueAssignees({ issueId: "issue-1", assignees: ["octocat"] }),
+    ).resolves.toEqual(expect.objectContaining({ id: "issue-1", assignees: ["octocat"] }))
+    await expect(
+      client.setIssueMilestone({ issueId: "issue-1", milestoneNumber: 3 }),
+    ).resolves.toEqual(expect.objectContaining({ id: "issue-1", milestoneNumber: 3 }))
     await expect(client.createIssueComment({ issueId: "issue-1", body: "ack" })).resolves.toEqual(
-      expect.objectContaining({ id: "comment-1", body: "ack" })
+      expect.objectContaining({ id: "comment-1", body: "ack" }),
     )
-    await expect(client.fetchIssueLinkedPrs({ owner: "acme", name: "modkit", issueNumber: 501 })).resolves.toEqual(
-      expect.objectContaining({ items: [expect.objectContaining({ id: "pr-1", number: 42 })] })
+    await expect(
+      client.fetchIssueLinkedPrs({ owner: "acme", name: "modkit", issueNumber: 501 }),
+    ).resolves.toEqual(
+      expect.objectContaining({ items: [expect.objectContaining({ id: "pr-1", number: 42 })] }),
     )
-    await expect(client.fetchIssueRelations({ owner: "acme", name: "modkit", issueNumber: 501 })).resolves.toEqual(
+    await expect(
+      client.fetchIssueRelations({ owner: "acme", name: "modkit", issueNumber: 501 }),
+    ).resolves.toEqual(
       expect.objectContaining({
         issue: expect.objectContaining({ id: "issue-1", number: 501 }),
-        parent: expect.objectContaining({ id: "issue-parent", number: 500 })
-      })
+        parent: expect.objectContaining({ id: "issue-parent", number: 500 }),
+      }),
     )
-    await expect(client.setIssueParent({ issueId: "issue-child", parentIssueId: "issue-parent" })).resolves.toEqual(
-      expect.objectContaining({ issueId: "issue-child", parentIssueId: "issue-parent" })
+    await expect(
+      client.setIssueParent({ issueId: "issue-child", parentIssueId: "issue-parent" }),
+    ).resolves.toEqual(
+      expect.objectContaining({ issueId: "issue-child", parentIssueId: "issue-parent" }),
     )
     await expect(client.removeIssueParent({ issueId: "issue-child" })).resolves.toEqual(
-      expect.objectContaining({ issueId: "issue-child", parentRemoved: true })
+      expect.objectContaining({ issueId: "issue-child", parentRemoved: true }),
     )
-    await expect(client.addIssueBlockedBy({ issueId: "issue-1", blockedByIssueId: "issue-blocker" })).resolves.toEqual(
-      expect.objectContaining({ issueId: "issue-1", blockedByIssueId: "issue-blocker" })
+    await expect(
+      client.addIssueBlockedBy({ issueId: "issue-1", blockedByIssueId: "issue-blocker" }),
+    ).resolves.toEqual(
+      expect.objectContaining({ issueId: "issue-1", blockedByIssueId: "issue-blocker" }),
     )
-    await expect(client.removeIssueBlockedBy({ issueId: "issue-1", blockedByIssueId: "issue-blocker" })).resolves.toEqual(
-      expect.objectContaining({ issueId: "issue-1", blockedByIssueId: "issue-blocker", removed: true })
+    await expect(
+      client.removeIssueBlockedBy({ issueId: "issue-1", blockedByIssueId: "issue-blocker" }),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        issueId: "issue-1",
+        blockedByIssueId: "issue-blocker",
+        removed: true,
+      }),
     )
   })
 
   it("covers issue mutation error branches for lookups and malformed payloads", async () => {
     const createRepoMissingClient = createGithubClient({
-      execute: vi.fn(async () => ({ repository: { id: null } }))
+      execute: vi.fn(async () => ({ repository: { id: null } })),
     } as never)
     await expect(
-      createRepoMissingClient.createIssue({ owner: "acme", name: "repo", title: "hello" })
+      createRepoMissingClient.createIssue({ owner: "acme", name: "repo", title: "hello" }),
     ).rejects.toThrow("Repository not found")
 
     const createMalformedNodeClient = createGithubClient({
       execute: vi
         .fn()
         .mockResolvedValueOnce({ repository: { id: "repo-1" } })
-        .mockResolvedValueOnce({ createIssue: { issue: { id: "issue-1" } } })
+        .mockResolvedValueOnce({ createIssue: { issue: { id: "issue-1" } } }),
     } as never)
     await expect(
-      createMalformedNodeClient.createIssue({ owner: "acme", name: "repo", title: "hello" })
+      createMalformedNodeClient.createIssue({ owner: "acme", name: "repo", title: "hello" }),
     ).rejects.toThrow("Issue mutation failed")
 
     const deleteMissingMutationClient = createGithubClient({
-      execute: vi.fn(async () => ({ deleteIssue: null }))
+      execute: vi.fn(async () => ({ deleteIssue: null })),
     } as never)
-    await expect(deleteMissingMutationClient.deleteIssue({ issueId: "issue-1" })).rejects.toThrow("Issue deletion failed")
-
-    const labelsLookupMissingClient = createGithubClient({
-      execute: vi.fn(async () => ({ node: { repository: { labels: { nodes: [] } } } }))
-    } as never)
-    await expect(labelsLookupMissingClient.updateIssueLabels({ issueId: "issue-1", labels: ["bug"] })).rejects.toThrow(
-      "Label not found: bug"
+    await expect(deleteMissingMutationClient.deleteIssue({ issueId: "issue-1" })).rejects.toThrow(
+      "Issue deletion failed",
     )
 
-    const assigneesLookupMissingClient = createGithubClient({
-      execute: vi.fn(async () => ({ node: { repository: { assignableUsers: { nodes: [] } } } }))
+    const labelsLookupMissingClient = createGithubClient({
+      execute: vi.fn(async () => ({ node: { repository: { labels: { nodes: [] } } } })),
     } as never)
     await expect(
-      assigneesLookupMissingClient.updateIssueAssignees({ issueId: "issue-1", assignees: ["octocat"] })
+      labelsLookupMissingClient.updateIssueLabels({ issueId: "issue-1", labels: ["bug"] }),
+    ).rejects.toThrow("Label not found: bug")
+
+    const assigneesLookupMissingClient = createGithubClient({
+      execute: vi.fn(async () => ({ node: { repository: { assignableUsers: { nodes: [] } } } })),
+    } as never)
+    await expect(
+      assigneesLookupMissingClient.updateIssueAssignees({
+        issueId: "issue-1",
+        assignees: ["octocat"],
+      }),
     ).rejects.toThrow("Assignee not found: octocat")
 
     const milestoneLookupMissingClient = createGithubClient({
-      execute: vi.fn(async () => ({ node: { repository: { milestone: null } } }))
+      execute: vi.fn(async () => ({ node: { repository: { milestone: null } } })),
     } as never)
     await expect(
-      milestoneLookupMissingClient.setIssueMilestone({ issueId: "issue-1", milestoneNumber: 2 })
+      milestoneLookupMissingClient.setIssueMilestone({ issueId: "issue-1", milestoneNumber: 2 }),
     ).rejects.toThrow("Milestone not found: 2")
 
     const commentMalformedClient = createGithubClient({
-      execute: vi.fn(async () => ({ addComment: { commentEdge: { node: { id: "comment-1" } } } }))
+      execute: vi.fn(async () => ({ addComment: { commentEdge: { node: { id: "comment-1" } } } })),
     } as never)
-    await expect(commentMalformedClient.createIssueComment({ issueId: "issue-1", body: "ack" })).rejects.toThrow(
-      "Issue comment creation failed"
-    )
+    await expect(
+      commentMalformedClient.createIssueComment({ issueId: "issue-1", body: "ack" }),
+    ).rejects.toThrow("Issue comment creation failed")
   })
 
   it("covers issue relation and dependency failure paths", async () => {
     const relationsMissingClient = createGithubClient({
-      execute: vi.fn(async () => ({ repository: { issue: null } }))
+      execute: vi.fn(async () => ({ repository: { issue: null } })),
     } as never)
-    await expect(relationsMissingClient.fetchIssueRelations({ owner: "acme", name: "repo", issueNumber: 1 })).rejects.toThrow(
-      "Issue relations not found"
-    )
+    await expect(
+      relationsMissingClient.fetchIssueRelations({ owner: "acme", name: "repo", issueNumber: 1 }),
+    ).rejects.toThrow("Issue relations not found")
 
     const parentSetMissingIdsClient = createGithubClient({
-      execute: vi.fn(async () => ({ addSubIssue: { issue: {}, subIssue: {} } }))
+      execute: vi.fn(async () => ({ addSubIssue: { issue: {}, subIssue: {} } })),
     } as never)
-    await expect(parentSetMissingIdsClient.setIssueParent({ issueId: "issue-1", parentIssueId: "issue-2" })).rejects.toThrow(
-      "Issue parent update failed"
-    )
+    await expect(
+      parentSetMissingIdsClient.setIssueParent({ issueId: "issue-1", parentIssueId: "issue-2" }),
+    ).rejects.toThrow("Issue parent update failed")
 
     const parentLookupMissingClient = createGithubClient({
-      execute: vi.fn(async () => ({ node: { parent: null } }))
+      execute: vi.fn(async () => ({ node: { parent: null } })),
     } as never)
-    await expect(parentLookupMissingClient.removeIssueParent({ issueId: "issue-1" })).rejects.toThrow(
-      "Issue parent removal failed"
-    )
+    await expect(
+      parentLookupMissingClient.removeIssueParent({ issueId: "issue-1" }),
+    ).rejects.toThrow("Issue parent removal failed")
 
     const parentRemoveMissingIdsClient = createGithubClient({
       execute: vi
         .fn()
         .mockResolvedValueOnce({ node: { parent: { id: "issue-parent" } } })
-        .mockResolvedValueOnce({ removeSubIssue: { issue: {}, subIssue: {} } })
-    } as never)
-    await expect(parentRemoveMissingIdsClient.removeIssueParent({ issueId: "issue-1" })).rejects.toThrow(
-      "Issue parent removal failed"
-    )
-
-    const blockedByAddMissingIdsClient = createGithubClient({
-      execute: vi.fn(async () => ({ addBlockedBy: { issue: {}, blockingIssue: {} } }))
+        .mockResolvedValueOnce({ removeSubIssue: { issue: {}, subIssue: {} } }),
     } as never)
     await expect(
-      blockedByAddMissingIdsClient.addIssueBlockedBy({ issueId: "issue-1", blockedByIssueId: "issue-2" })
+      parentRemoveMissingIdsClient.removeIssueParent({ issueId: "issue-1" }),
+    ).rejects.toThrow("Issue parent removal failed")
+
+    const blockedByAddMissingIdsClient = createGithubClient({
+      execute: vi.fn(async () => ({ addBlockedBy: { issue: {}, blockingIssue: {} } })),
+    } as never)
+    await expect(
+      blockedByAddMissingIdsClient.addIssueBlockedBy({
+        issueId: "issue-1",
+        blockedByIssueId: "issue-2",
+      }),
     ).rejects.toThrow("Issue dependency mutation failed")
 
     const blockedByRemoveMissingIdsClient = createGithubClient({
-      execute: vi.fn(async () => ({ removeBlockedBy: { issue: {}, blockingIssue: {} } }))
+      execute: vi.fn(async () => ({ removeBlockedBy: { issue: {}, blockingIssue: {} } })),
     } as never)
     await expect(
-      blockedByRemoveMissingIdsClient.removeIssueBlockedBy({ issueId: "issue-1", blockedByIssueId: "issue-2" })
+      blockedByRemoveMissingIdsClient.removeIssueBlockedBy({
+        issueId: "issue-1",
+        blockedByIssueId: "issue-2",
+      }),
     ).rejects.toThrow("Issue dependency mutation failed")
   })
 
@@ -1629,12 +1674,30 @@ describe("createGithubClient", () => {
           issue: {
             timelineItems: {
               nodes: [
-                { subject: { __typename: "PullRequest", id: "pr-1", number: 2, title: "ok", state: "OPEN", url: "u" } },
-                { subject: { __typename: "PullRequest", id: "pr-2", number: "bad", title: "skip", state: "OPEN", url: "u" } }
-              ]
-            }
-          }
-        }
+                {
+                  subject: {
+                    __typename: "PullRequest",
+                    id: "pr-1",
+                    number: 2,
+                    title: "ok",
+                    state: "OPEN",
+                    url: "u",
+                  },
+                },
+                {
+                  subject: {
+                    __typename: "PullRequest",
+                    id: "pr-2",
+                    number: "bad",
+                    title: "skip",
+                    state: "OPEN",
+                    url: "u",
+                  },
+                },
+              ],
+            },
+          },
+        },
       })
       .mockResolvedValueOnce({
         repository: {
@@ -1643,15 +1706,23 @@ describe("createGithubClient", () => {
             number: 10,
             parent: { id: 1 },
             subIssues: { nodes: [{ id: "issue-2", number: 11 }, { id: "bad" }] },
-            blockedBy: { nodes: [{ id: "issue-3", number: 7 }, { number: 9 }] }
-          }
-        }
+            blockedBy: { nodes: [{ id: "issue-3", number: 7 }, { number: 9 }] },
+          },
+        },
       })
 
     const client = createGithubClient({ execute } as never)
 
-    const linked = await client.fetchIssueLinkedPrs({ owner: "acme", name: "repo", issueNumber: 10 })
-    const relations = await client.fetchIssueRelations({ owner: "acme", name: "repo", issueNumber: 10 })
+    const linked = await client.fetchIssueLinkedPrs({
+      owner: "acme",
+      name: "repo",
+      issueNumber: 10,
+    })
+    const relations = await client.fetchIssueRelations({
+      owner: "acme",
+      name: "repo",
+      issueNumber: 10,
+    })
 
     expect(linked.items).toEqual([{ id: "pr-1", number: 2, title: "ok", state: "OPEN", url: "u" }])
     expect(relations.parent).toBeNull()
@@ -1767,7 +1838,9 @@ describe("createGithubClientFromToken", () => {
 
       const [url, options] = mockFetch.mock.calls[0] as [string, RequestInit]
       expect(url).toBe("https://api.github.com/graphql")
-      expect((options.headers as Record<string, string>).authorization).toBe("Bearer ghp_test_token")
+      expect((options.headers as Record<string, string>).authorization).toBe(
+        "Bearer ghp_test_token",
+      )
     } finally {
       globalThis.fetch = originalFetch
     }
@@ -1785,7 +1858,9 @@ describe("createGithubClientFromToken", () => {
 
     try {
       const client = createGithubClientFromToken("ghp_bad_token")
-      await expect(client.fetchRepoView({ owner: "o", name: "r" })).rejects.toThrow("Bad credentials")
+      await expect(client.fetchRepoView({ owner: "o", name: "r" })).rejects.toThrow(
+        "Bad credentials",
+      )
     } finally {
       globalThis.fetch = originalFetch
     }
@@ -1804,7 +1879,9 @@ describe("createGithubClientFromToken", () => {
 
     try {
       const client = createGithubClientFromToken("ghp_test")
-      await expect(client.fetchRepoView({ owner: "o", name: "r" })).rejects.toThrow("Field 'xyz' not found")
+      await expect(client.fetchRepoView({ owner: "o", name: "r" })).rejects.toThrow(
+        "Field 'xyz' not found",
+      )
     } finally {
       globalThis.fetch = originalFetch
     }
@@ -1821,7 +1898,9 @@ describe("createGithubClientFromToken", () => {
 
     try {
       const client = createGithubClientFromToken("ghp_test")
-      await expect(client.fetchRepoView({ owner: "o", name: "r" })).rejects.toThrow("GraphQL response missing data")
+      await expect(client.fetchRepoView({ owner: "o", name: "r" })).rejects.toThrow(
+        "GraphQL response missing data",
+      )
     } finally {
       globalThis.fetch = originalFetch
     }

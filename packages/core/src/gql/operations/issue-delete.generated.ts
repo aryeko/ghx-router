@@ -1,14 +1,15 @@
-import type * as Types from '../generated/common-types';
+import type { GraphQLClient, RequestOptions } from "graphql-request"
+import type * as Types from "../generated/common-types.js"
 
-import type { GraphQLClient, RequestOptions } from 'graphql-request';
-type GraphQLClientRequestHeaders = RequestOptions['requestHeaders'];
+type GraphQLClientRequestHeaders = RequestOptions["requestHeaders"]
 export type IssueDeleteMutationVariables = Types.Exact<{
-  issueId: Types.Scalars['ID']['input'];
-}>;
+  issueId: Types.Scalars["ID"]["input"]
+}>
 
-
-export type IssueDeleteMutation = { __typename?: 'Mutation', deleteIssue?: { __typename?: 'DeleteIssuePayload', clientMutationId?: string | null } | null };
-
+export type IssueDeleteMutation = {
+  __typename?: "Mutation"
+  deleteIssue?: { __typename?: "DeleteIssuePayload"; clientMutationId?: string | null } | null
+}
 
 export const IssueDeleteDocument = `
     mutation IssueDelete($issueId: ID!) {
@@ -16,18 +17,38 @@ export const IssueDeleteDocument = `
     clientMutationId
   }
 }
-    `;
+    `
 
-export type SdkFunctionWrapper = <T>(action: (requestHeaders?:Record<string, string>) => Promise<T>, operationName: string, operationType?: string, variables?: any) => Promise<T>;
+export type SdkFunctionWrapper = <T>(
+  action: (requestHeaders?: Record<string, string>) => Promise<T>,
+  operationName: string,
+  operationType?: string,
+  variables?: any,
+) => Promise<T>
 
-
-const defaultWrapper: SdkFunctionWrapper = (action, _operationName, _operationType, _variables) => action();
+const defaultWrapper: SdkFunctionWrapper = (action, _operationName, _operationType, _variables) =>
+  action()
 
 export function getSdk(client: GraphQLClient, withWrapper: SdkFunctionWrapper = defaultWrapper) {
   return {
-    IssueDelete(variables: IssueDeleteMutationVariables, requestHeaders?: GraphQLClientRequestHeaders, signal?: RequestInit['signal']): Promise<IssueDeleteMutation> {
-      return withWrapper((wrappedRequestHeaders) => client.request<IssueDeleteMutation>({ document: IssueDeleteDocument, variables, requestHeaders: { ...requestHeaders, ...wrappedRequestHeaders }, signal }), 'IssueDelete', 'mutation', variables);
-    }
-  };
+    IssueDelete(
+      variables: IssueDeleteMutationVariables,
+      requestHeaders?: GraphQLClientRequestHeaders,
+      signal?: RequestInit["signal"],
+    ): Promise<IssueDeleteMutation> {
+      return withWrapper(
+        (wrappedRequestHeaders) =>
+          client.request<IssueDeleteMutation>({
+            document: IssueDeleteDocument,
+            variables,
+            requestHeaders: { ...requestHeaders, ...wrappedRequestHeaders },
+            signal,
+          }),
+        "IssueDelete",
+        "mutation",
+        variables,
+      )
+    },
+  }
 }
-export type Sdk = ReturnType<typeof getSdk>;
+export type Sdk = ReturnType<typeof getSdk>

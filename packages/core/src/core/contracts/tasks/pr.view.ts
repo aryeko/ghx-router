@@ -1,3 +1,3 @@
 export const prViewTask = {
-  id: "pr.view"
+  id: "pr.view",
 } as const

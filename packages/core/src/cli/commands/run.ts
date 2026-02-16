@@ -1,6 +1,6 @@
-import { createGithubClient } from "../../gql/client.js"
-import { executeTask } from "../../core/routing/engine.js"
 import type { TaskRequest } from "../../core/contracts/task.js"
+import { executeTask } from "../../core/routing/engine.js"
+import { createGithubClient } from "../../gql/client.js"
 
 const GITHUB_GRAPHQL_ENDPOINT = "https://api.github.com/graphql"
 
@@ -49,7 +49,7 @@ function resolveGithubToken(): string {
 async function executeGraphqlRequest<TData>(
   token: string,
   query: string,
-  variables?: Record<string, unknown>
+  variables?: Record<string, unknown>,
 ): Promise<TData> {
   const response = await fetch(GITHUB_GRAPHQL_ENDPOINT, {
     method: "POST",
@@ -57,9 +57,9 @@ async function executeGraphqlRequest<TData>(
       "content-type": "application/json",
       accept: "application/json",
       authorization: `Bearer ${token}`,
-      "user-agent": "ghx"
+      "user-agent": "ghx",
     },
-    body: JSON.stringify({ query, variables: variables ?? {} })
+    body: JSON.stringify({ query, variables: variables ?? {} }),
   })
 
   const payload = (await response.json()) as {
@@ -69,7 +69,8 @@ async function executeGraphqlRequest<TData>(
   }
 
   if (!response.ok) {
-    const message = payload.message ?? `GitHub GraphQL request failed with status ${response.status}`
+    const message =
+      payload.message ?? `GitHub GraphQL request failed with status ${response.status}`
     throw new Error(message)
   }
 
@@ -97,17 +98,17 @@ export async function runCommand(argv: string[] = []): Promise<number> {
   const githubClient = createGithubClient({
     async execute<TData>(query: string, variables?: Record<string, unknown>): Promise<TData> {
       return executeGraphqlRequest<TData>(githubToken, query, variables)
-    }
+    },
   })
 
   const request: TaskRequest = {
     task,
-    input
+    input,
   }
 
   const result = await executeTask(request, {
     githubClient,
-    githubToken
+    githubToken,
   })
 
   process.stdout.write(`${JSON.stringify(result)}\n`)

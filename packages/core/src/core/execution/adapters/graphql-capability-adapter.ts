@@ -3,11 +3,11 @@ import type {
   IssueAssigneesUpdateInput,
   IssueBlockedByInput,
   IssueCommentCreateInput,
-  IssueCreateInput,
   IssueCommentsListInput,
+  IssueCreateInput,
   IssueLabelsUpdateInput,
-  IssueListInput,
   IssueLinkedPrsListInput,
+  IssueListInput,
   IssueMilestoneSetInput,
   IssueMutationInput,
   IssueParentRemoveInput,
@@ -20,13 +20,13 @@ import type {
   PrListInput,
   PrReviewsListInput,
   PrViewInput,
-  RepoViewInput
+  RepoViewInput,
 } from "../../../gql/client.js"
+import type { ResultEnvelope } from "../../contracts/envelope.js"
 import { errorCodes } from "../../errors/codes.js"
 import { mapErrorToCode } from "../../errors/map-error.js"
 import { isRetryableErrorCode } from "../../errors/retryability.js"
 import { normalizeError, normalizeResult } from "../normalizer.js"
-import type { ResultEnvelope } from "../../contracts/envelope.js"
 
 export type GraphqlCapabilityId =
   | "repo.view"
@@ -71,10 +71,10 @@ function unsupportedGraphqlCapability(capabilityId: string): ResultEnvelope {
     {
       code: errorCodes.AdapterUnsupported,
       message: `Unsupported GraphQL capability: ${capabilityId}`,
-      retryable: false
+      retryable: false,
     },
     "graphql",
-    { capabilityId, reason: "CAPABILITY_LIMIT" }
+    { capabilityId, reason: "CAPABILITY_LIMIT" },
   )
 }
 
@@ -82,14 +82,18 @@ function withDefaultFirst(params: Record<string, unknown>): Record<string, unkno
   if (params.first === undefined) {
     return {
       ...params,
-      first: DEFAULT_LIST_FIRST
+      first: DEFAULT_LIST_FIRST,
     }
   }
 
   return params
 }
 
-function requireNonEmptyString(params: Record<string, unknown>, field: string, capabilityId: GraphqlCapabilityId): string {
+function requireNonEmptyString(
+  params: Record<string, unknown>,
+  field: string,
+  capabilityId: GraphqlCapabilityId,
+): string {
   const value = params[field]
   if (typeof value !== "string" || value.trim().length === 0) {
     throw new Error(`Missing or invalid ${field} for ${capabilityId}`)
@@ -101,17 +105,41 @@ function requireNonEmptyString(params: Record<string, unknown>, field: string, c
 export async function runGraphqlCapability(
   client: Pick<
     GithubClient,
-    "fetchRepoView" | "fetchIssueView" | "fetchIssueList" | "fetchIssueCommentsList" | "fetchPrView" | "fetchPrList"
-      | "fetchPrCommentsList" | "fetchPrReviewsList" | "fetchPrDiffListFiles" | "replyToReviewThread"
-      | "resolveReviewThread" | "unresolveReviewThread"
-  > & Partial<Pick<GithubClient,
-    "createIssue" | "updateIssue" | "closeIssue" | "reopenIssue" | "deleteIssue"
-      | "updateIssueLabels" | "updateIssueAssignees" | "setIssueMilestone" | "createIssueComment"
-      | "fetchIssueLinkedPrs" | "fetchIssueRelations" | "setIssueParent" | "removeIssueParent"
-      | "addIssueBlockedBy" | "removeIssueBlockedBy"
-  >>,
+    | "fetchRepoView"
+    | "fetchIssueView"
+    | "fetchIssueList"
+    | "fetchIssueCommentsList"
+    | "fetchPrView"
+    | "fetchPrList"
+    | "fetchPrCommentsList"
+    | "fetchPrReviewsList"
+    | "fetchPrDiffListFiles"
+    | "replyToReviewThread"
+    | "resolveReviewThread"
+    | "unresolveReviewThread"
+  > &
+    Partial<
+      Pick<
+        GithubClient,
+        | "createIssue"
+        | "updateIssue"
+        | "closeIssue"
+        | "reopenIssue"
+        | "deleteIssue"
+        | "updateIssueLabels"
+        | "updateIssueAssignees"
+        | "setIssueMilestone"
+        | "createIssueComment"
+        | "fetchIssueLinkedPrs"
+        | "fetchIssueRelations"
+        | "setIssueParent"
+        | "removeIssueParent"
+        | "addIssueBlockedBy"
+        | "removeIssueBlockedBy"
+      >
+    >,
   capabilityId: GraphqlCapabilityId,
-  params: Record<string, unknown>
+  params: Record<string, unknown>,
 ): Promise<ResultEnvelope> {
   try {
     if (capabilityId === "repo.view") {
@@ -275,7 +303,9 @@ export async function runGraphqlCapability(
     }
 
     if (capabilityId === "pr.diff.list_files") {
-      const data = await client.fetchPrDiffListFiles(withDefaultFirst(params) as PrDiffListFilesInput)
+      const data = await client.fetchPrDiffListFiles(
+        withDefaultFirst(params) as PrDiffListFilesInput,
+      )
       return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
     }
 
@@ -305,10 +335,10 @@ export async function runGraphqlCapability(
       {
         code,
         message: error instanceof Error ? error.message : String(error),
-        retryable: isRetryableErrorCode(code)
+        retryable: isRetryableErrorCode(code),
       },
       "graphql",
-      { capabilityId, reason: "CARD_PREFERRED" }
+      { capabilityId, reason: "CARD_PREFERRED" },
     )
   }
 }

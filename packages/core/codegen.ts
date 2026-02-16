@@ -11,10 +11,10 @@ const config = {
     {
       "https://api.github.com/graphql": {
         headers: {
-          Authorization: `Bearer ${token}`
-        }
-      }
-    }
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    },
   ],
   documents: ["src/gql/operations/**/*.graphql"],
   generates: {
@@ -22,7 +22,7 @@ const config = {
       preset: "near-operation-file",
       presetConfig: {
         extension: ".generated.ts",
-        baseTypesPath: "../generated/common-types.js"
+        baseTypesPath: "../generated/common-types.js",
       },
       plugins: ["typescript-operations", "typescript-graphql-request"],
       config: {
@@ -31,11 +31,11 @@ const config = {
         preResolveTypes: true,
         onlyOperationTypes: true,
         emitLegacyCommonJSImports: false,
-        rawRequest: false
-      }
-    }
+        rawRequest: false,
+      },
+    },
   },
-  ignoreNoDocuments: false
+  ignoreNoDocuments: false,
 } as CodegenConfig
 
 export default config

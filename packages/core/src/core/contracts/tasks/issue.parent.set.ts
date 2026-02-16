@@ -1,3 +1,3 @@
 export const issueParentSetTask = {
-  id: "issue.parent.set"
+  id: "issue.parent.set",
 } as const

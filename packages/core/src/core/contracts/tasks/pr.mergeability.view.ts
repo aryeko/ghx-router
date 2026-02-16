@@ -1,3 +1,3 @@
 export const prMergeabilityViewTask = {
-  id: "pr.mergeability.view"
+  id: "pr.mergeability.view",
 } as const

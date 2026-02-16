@@ -35,7 +35,9 @@ describe("capabilities CLI commands", () => {
     const code = await capabilitiesExplainCommand([])
 
     expect(code).toBe(1)
-    expect(stderr).toHaveBeenCalledWith("Usage: ghx capabilities explain <capability_id> [--json]\n")
+    expect(stderr).toHaveBeenCalledWith(
+      "Usage: ghx capabilities explain <capability_id> [--json]\n",
+    )
   })
 
   it("explains a capability in text output by default", async () => {

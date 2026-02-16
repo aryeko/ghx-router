@@ -24,14 +24,16 @@ describe("report cli", () => {
 
     expect(report.parseArgs(["--gate"]).gate).toBe(true)
     expect(report.parseArgs([]).gateProfile).toBe("verify_pr")
-    expect(report.parseArgs(["--gate-profile", "verify_release"]).gateProfile).toBe("verify_release")
+    expect(report.parseArgs(["--gate-profile", "verify_release"]).gateProfile).toBe(
+      "verify_release",
+    )
     expect(report.parseArgs(["--gate-profile=verify_pr"]).gateProfile).toBe("verify_pr")
-    expect(report.parseArgs(["--expectations-model", "openai/gpt-5.1-codex-mini"]).expectationsModel).toBe(
-      "openai/gpt-5.1-codex-mini",
-    )
-    expect(report.parseArgs(["--expectations-config=config/expectations.json"]).expectationsConfigPath).toBe(
-      "config/expectations.json",
-    )
+    expect(
+      report.parseArgs(["--expectations-model", "openai/gpt-5.1-codex-mini"]).expectationsModel,
+    ).toBe("openai/gpt-5.1-codex-mini")
+    expect(
+      report.parseArgs(["--expectations-config=config/expectations.json"]).expectationsConfigPath,
+    ).toBe("config/expectations.json")
     expect(report.modeFromFilename("x-agent_direct-suite.jsonl")).toBe("agent_direct")
     expect(report.modeFromFilename("x-mcp-suite.jsonl")).toBe("mcp")
     expect(report.modeFromFilename("x-ghx-suite.jsonl")).toBe("ghx")
@@ -70,11 +72,15 @@ describe("report cli", () => {
       external_retry_count: 0,
       model: { provider_id: "x", model_id: "y", mode: null },
       git: { repo: null, commit: null },
-      error: null
+      error: null,
     })
 
     await writeFile(join(results, "2026-01-01-agent_direct-suite.jsonl"), `${row}\n`, "utf8")
-    await writeFile(join(results, "2026-01-02-ghx-suite.jsonl"), `${row.replace("agent_direct", "ghx")}\n`, "utf8")
+    await writeFile(
+      join(results, "2026-01-02-ghx-suite.jsonl"),
+      `${row.replace("agent_direct", "ghx")}\n`,
+      "utf8",
+    )
 
     const report = await importReportModule(root)
     const rows = await report.loadLatestRowsPerMode()
@@ -111,15 +117,14 @@ describe("report cli", () => {
       external_retry_count: 0,
       model: { provider_id: "x", model_id: "y", mode: null },
       git: { repo: null, commit: null },
-      error: null
+      error: null,
     })
     await writeFile(join(results, "2026-01-01-agent_direct-suite.jsonl"), `${row}\n`, "utf8")
 
     const report = await importReportModule(root)
     const previous = process.cwd()
     process.chdir(root)
-    await expect(report.main(["--gate"]))
-      .rejects.toThrow("Benchmark gate failed")
+    await expect(report.main(["--gate"])).rejects.toThrow("Benchmark gate failed")
     process.chdir(previous)
   })
 
@@ -152,14 +157,18 @@ describe("report cli", () => {
     })
 
     await writeFile(join(results, "2026-01-01-agent_direct-suite.jsonl"), `${row}\n`, "utf8")
-    await writeFile(join(results, "2026-01-02-ghx-suite.jsonl"), `${row.replace("agent_direct", "ghx")}\n`, "utf8")
+    await writeFile(
+      join(results, "2026-01-02-ghx-suite.jsonl"),
+      `${row.replace("agent_direct", "ghx")}\n`,
+      "utf8",
+    )
 
     const report = await importReportModule(root)
     const previous = process.cwd()
     process.chdir(root)
-    await expect(report.main(["--expectations-model", "openai/gpt-5.1-codex-mini"])).rejects.toThrow(
-      "Expectations config not found",
-    )
+    await expect(
+      report.main(["--expectations-model", "openai/gpt-5.1-codex-mini"]),
+    ).rejects.toThrow("Expectations config not found")
     process.chdir(previous)
   })
 

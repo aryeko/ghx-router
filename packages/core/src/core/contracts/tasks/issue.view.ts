@@ -1,3 +1,3 @@
 export const issueViewTask = {
-  id: "issue.view"
+  id: "issue.view",
 } as const

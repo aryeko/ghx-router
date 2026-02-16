@@ -1,10 +1,10 @@
-import { mkdtemp, mkdir, writeFile } from "node:fs/promises"
+import { mkdir, mkdtemp, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 
 import { describe, expect, it } from "vitest"
 
-import { loadScenarios, loadScenarioSets } from "../../src/scenario/loader.js"
+import { loadScenarioSets, loadScenarios } from "../../src/scenario/loader.js"
 
 describe("loadScenarios", () => {
   it("loads and sorts valid scenario files", async () => {
@@ -20,7 +20,7 @@ describe("loadScenarios", () => {
       timeout_ms: 1000,
       allowed_retries: 0,
       assertions: { must_succeed: true },
-      tags: []
+      tags: [],
     }
     const s2 = { ...s1, id: "batch-z-loader-a-001", name: "Scenario A" }
 
@@ -38,7 +38,7 @@ describe("loadScenarios", () => {
 
     const manifest = {
       default: ["repo-view-001"],
-      "pr-operations-all": ["repo-view-001", "pr-view-001"]
+      "pr-operations-all": ["repo-view-001", "pr-view-001"],
     }
 
     await writeFile(join(root, "scenario-sets.json"), JSON.stringify(manifest), "utf8")
@@ -52,7 +52,9 @@ describe("loadScenarios", () => {
     await mkdir(root, { recursive: true })
     await writeFile(join(root, "scenario-sets.json"), JSON.stringify(["default"]), "utf8")
 
-    await expect(loadScenarioSets(root)).rejects.toThrow("Invalid scenario-sets manifest: expected object")
+    await expect(loadScenarioSets(root)).rejects.toThrow(
+      "Invalid scenario-sets manifest: expected object",
+    )
   })
 
   it("throws when scenario set contains non-string ids", async () => {
@@ -61,11 +63,11 @@ describe("loadScenarios", () => {
     await writeFile(
       join(root, "scenario-sets.json"),
       JSON.stringify({ default: ["repo-view-001", 123], "pr-operations-all": ["repo-view-001"] }),
-      "utf8"
+      "utf8",
     )
 
     await expect(loadScenarioSets(root)).rejects.toThrow(
-      "Invalid scenario-sets manifest: set 'default' must be an array of non-empty scenario ids"
+      "Invalid scenario-sets manifest: set 'default' must be an array of non-empty scenario ids",
     )
   })
 })

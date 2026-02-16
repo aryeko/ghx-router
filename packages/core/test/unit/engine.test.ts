@@ -6,11 +6,11 @@ const executeMock = vi.fn()
 const getOperationCardMock = vi.fn()
 
 vi.mock("../../src/core/execute/execute.js", () => ({
-  execute: (...args: unknown[]) => executeMock(...args)
+  execute: (...args: unknown[]) => executeMock(...args),
 }))
 
 vi.mock("../../src/core/registry/index.js", () => ({
-  getOperationCard: (...args: unknown[]) => getOperationCardMock(...args)
+  getOperationCard: (...args: unknown[]) => getOperationCardMock(...args),
 }))
 
 const baseCard: OperationCard = {
@@ -21,8 +21,8 @@ const baseCard: OperationCard = {
   output_schema: { type: "object" },
   routing: {
     preferred: "graphql",
-    fallbacks: ["cli"]
-  }
+    fallbacks: ["cli"],
+  },
 }
 
 describe("executeTask engine wiring", () => {
@@ -33,16 +33,20 @@ describe("executeTask engine wiring", () => {
   })
 
   it("exposes REST fallback envelope via execute route callbacks", async () => {
-    executeMock.mockImplementation(async (options: { routes: { rest: (params: Record<string, unknown>) => Promise<unknown> } }) => {
-      return options.routes.rest({})
-    })
+    executeMock.mockImplementation(
+      async (options: {
+        routes: { rest: (params: Record<string, unknown>) => Promise<unknown> }
+      }) => {
+        return options.routes.rest({})
+      },
+    )
 
     const { executeTask } = await import("../../src/core/routing/engine.js")
 
     const result = await executeTask(
       {
         task: "repo.view",
-        input: { owner: "acme", name: "modkit" }
+        input: { owner: "acme", name: "modkit" },
       },
       {
         githubClient: {
@@ -57,9 +61,9 @@ describe("executeTask engine wiring", () => {
           fetchPrDiffListFiles: vi.fn(),
           replyToReviewThread: vi.fn(),
           resolveReviewThread: vi.fn(),
-          unresolveReviewThread: vi.fn()
-        }
-      }
+          unresolveReviewThread: vi.fn(),
+        },
+      },
     )
 
     expect(executeMock).toHaveBeenCalledTimes(1)
@@ -71,9 +75,9 @@ describe("executeTask engine wiring", () => {
         routes: expect.objectContaining({
           graphql: expect.any(Function),
           cli: expect.any(Function),
-          rest: expect.any(Function)
-        })
-      })
+          rest: expect.any(Function),
+        }),
+      }),
     )
 
     expect(result.ok).toBe(false)
