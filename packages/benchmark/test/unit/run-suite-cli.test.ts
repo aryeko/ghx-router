@@ -95,6 +95,8 @@ describe("run-suite cli", () => {
 
     expect(calls[0]?.[0]).toBe("cleanup")
     expect(calls[1]?.[0]).toBe("seed")
+    const seedOptions = calls[1]?.[2] as { env?: Record<string, string | undefined> } | undefined
+    expect(seedOptions?.env?.BENCH_FIXTURE_SEED_ID).toMatch(/^suite-seed-/)
 
     const ghxCall = calls[2]
     const directCall = calls[3]
@@ -132,6 +134,61 @@ describe("run-suite cli", () => {
     expect(calls[4]?.[1]).toEqual(["run", "report"])
     expect(calls[5]?.[0]).toBe("pnpm")
     expect(calls[5]?.[1]).toEqual(["run", "report", "--", "--gate", "--gate-profile", "verify_pr"])
+  })
+
+  it("preserves explicit BENCH_FIXTURE_SEED_ID on seed command", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ghx-suite-cli-"))
+    const configPath = join(root, "suite-runner.json")
+
+    await writeFile(
+      configPath,
+      `${JSON.stringify({
+        fixtures: {
+          setup: {
+            seed: {
+              command: ["seed", "--fixtures"],
+              env: {
+                BENCH_FIXTURE_SEED_ID: "fixed-seed-id",
+              },
+            },
+          },
+        },
+        benchmark: {
+          base: {
+            command: ["pnpm", "run", "benchmark", "--"],
+            repetitions: 3,
+          },
+          ghx: {
+            mode: "ghx",
+          },
+          direct: {
+            mode: "agent_direct",
+          },
+        },
+        reporting: {
+          analysis: {
+            report: { command: ["pnpm", "run", "report"] },
+          },
+        },
+      })}\n`,
+      "utf8",
+    )
+
+    spawnMock.mockImplementation(() => {
+      const child = createMockChild()
+      queueMicrotask(() => {
+        child.emit("exit", 0, null)
+      })
+      return child
+    })
+
+    const mod = await import("../../src/cli/run-suite.js")
+    await expect(mod.main(["--config", configPath, "--no-gate"])).resolves.toBeUndefined()
+
+    const calls = spawnMock.mock.calls as unknown[][]
+    const seedCall = calls.find((call) => call[0] === "seed")
+    const seedOptions = seedCall?.[2] as { env?: Record<string, string | undefined> } | undefined
+    expect(seedOptions?.env?.BENCH_FIXTURE_SEED_ID).toBe("fixed-seed-id")
   })
 
   it("kills peer benchmark process when one side fails", async () => {

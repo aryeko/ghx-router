@@ -323,6 +323,20 @@ async function runPhase(label: string, command: CommandConfig, cwd?: string): Pr
   }
 }
 
+function ensureSeedEnv(command: CommandConfig, seedId: string): CommandConfig {
+  if (command.env?.BENCH_FIXTURE_SEED_ID || process.env.BENCH_FIXTURE_SEED_ID) {
+    return command
+  }
+
+  return {
+    ...command,
+    env: {
+      ...(command.env ?? {}),
+      BENCH_FIXTURE_SEED_ID: seedId,
+    },
+  }
+}
+
 async function runParallelBenchmarks(
   benchmark: SuiteRunnerConfig["benchmark"],
   cwd?: string,
@@ -389,6 +403,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
   const parsed = parseArgs(argv)
   const config = await loadSuiteRunnerConfig(resolve(parsed.configPath))
   const cwd = config.cwd ? resolve(config.cwd) : undefined
+  const generatedSeedId = `suite-seed-${Date.now()}`
 
   const setup = config.fixtures?.setup
   if (setup?.cleanup && !parsed.skipCleanup) {
@@ -396,7 +411,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
   }
 
   if (setup?.seed && !parsed.skipSeed) {
-    await runPhase("seed", setup.seed, cwd)
+    await runPhase("seed", ensureSeedEnv(setup.seed, generatedSeedId), cwd)
   }
 
   await runParallelBenchmarks(config.benchmark, cwd)

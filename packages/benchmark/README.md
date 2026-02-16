@@ -37,7 +37,7 @@ pnpm --filter @ghx-dev/benchmark run benchmark -- ghx 1 --scenario-set pr-exec -
 pnpm --filter @ghx-dev/benchmark run fixtures -- cleanup --out fixtures/latest.json
 
 # suite runner (config-driven, recommended for repeatable local runs)
-pnpm --filter @ghx-dev/benchmark run suite:config -- --out config/suite-runner.json --scenario-set ci-verify-pr --repetitions 3 --gate-profile verify_pr
+pnpm --filter @ghx-dev/benchmark run suite:config -- --out config/suite-runner.json --scenario-set ci-verify-pr --repetitions 3 --gate-profile verify_pr --with-cleanup --with-seed
 pnpm --filter @ghx-dev/benchmark run suite:run -- --config config/suite-runner.json
 pnpm --filter @ghx-dev/benchmark run suite:run -- --config config/suite-runner.json --skip-cleanup --skip-seed --no-gate
 
@@ -81,6 +81,7 @@ Notes:
 - Use `--fixture-manifest` (or `BENCH_FIXTURE_MANIFEST`) to resolve scenario input bindings.
 - `suite:run` executes phases in order: `fixtures.setup` -> parallel benchmark (`ghx` + `agent_direct`) -> `reporting.analysis.report` -> optional `reporting.analysis.gate`.
 - `suite:config` writes grouped config with benchmark base command + per-mode extensions (env/args), and defaults ports to `3001` (ghx) / `3002` (agent_direct) for parallel runs.
+- `suite:config` does not include fixture setup phases unless `--with-cleanup` / `--with-seed` are provided.
 - Gate expectations are model-aware and configured in `packages/benchmark/config/expectations.json`.
 - `fixtures:env:bootstrap` reads app IDs from repo variables (`BENCH_FIXTURE_GH_APP_ID`, `BENCH_FIXTURE_GH_APP_INSTALLATION_ID`) and writes `.env.local`.
 - GitHub Actions secret values are write-only; private key content must come from local env (`BENCH_FIXTURE_GH_APP_PRIVATE_KEY`) or local path (`BENCH_FIXTURE_GH_APP_PRIVATE_KEY_PATH`).

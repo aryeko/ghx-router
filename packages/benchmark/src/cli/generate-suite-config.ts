@@ -45,8 +45,8 @@ export function parseArgs(argv: string[]): ParsedArgs {
   const gateProfileRaw = parseFlagValue(normalized, "--gate-profile") ?? "verify_pr"
   const gateProfile = gateProfileSchema.parse(gateProfileRaw)
 
-  const includeCleanup = !normalized.includes("--skip-cleanup")
-  const includeSeed = !normalized.includes("--skip-seed")
+  const includeCleanup = normalized.includes("--with-cleanup") && !normalized.includes("--skip-cleanup")
+  const includeSeed = normalized.includes("--with-seed") && !normalized.includes("--skip-seed")
   const includeGate = !normalized.includes("--no-gate")
 
   return {

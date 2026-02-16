@@ -23,6 +23,8 @@ describe("generate-suite-config cli", () => {
       "4",
       "--gate-profile",
       "verify_release",
+      "--with-cleanup",
+      "--with-seed",
     ])
 
     const raw = await readFile(outPath, "utf8")
@@ -75,5 +77,21 @@ describe("generate-suite-config cli", () => {
     expect(parsed.fixtures?.setup?.cleanup).toBeUndefined()
     expect(parsed.fixtures?.setup?.seed).toBeUndefined()
     expect(parsed.reporting?.analysis?.gate).toBeUndefined()
+  })
+
+  it("omits setup by default", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ghx-suite-config-"))
+    const outPath = join(root, "suite-runner.json")
+
+    const mod = await import("../../src/cli/generate-suite-config.js")
+    await mod.main(["--out", outPath])
+
+    const raw = await readFile(outPath, "utf8")
+    const parsed = JSON.parse(raw) as {
+      fixtures?: { setup?: { cleanup?: unknown; seed?: unknown } }
+    }
+
+    expect(parsed.fixtures?.setup?.cleanup).toBeUndefined()
+    expect(parsed.fixtures?.setup?.seed).toBeUndefined()
   })
 })
