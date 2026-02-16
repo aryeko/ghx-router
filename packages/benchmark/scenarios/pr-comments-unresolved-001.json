@@ -22,7 +22,6 @@
     }
   },
   "assertions": {
-    "must_succeed": true,
     "require_tool_calls": true,
     "min_tool_calls": 1,
     "max_tool_calls": 6,
@@ -35,7 +34,8 @@
     "required_data_fields": [
       "items",
       "pageInfo"
-    ]
+    ],
+    "expected_outcome": "success"
   },
   "tags": [
     "pr",

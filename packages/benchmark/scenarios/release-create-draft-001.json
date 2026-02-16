@@ -22,7 +22,6 @@
     }
   },
   "assertions": {
-    "must_succeed": false,
     "require_tool_calls": true,
     "min_tool_calls": 1,
     "required_fields": [
@@ -34,7 +33,8 @@
     "required_meta_fields": [
       "route_used"
     ],
-    "expected_route_used": "cli"
+    "expected_route_used": "cli",
+    "expected_outcome": "success"
   },
   "tags": [
     "roadmap",

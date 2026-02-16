@@ -11,7 +11,6 @@
   "timeout_ms": 60000,
   "allowed_retries": 0,
   "assertions": {
-    "must_succeed": false,
     "require_tool_calls": true,
     "min_tool_calls": 1,
     "required_fields": [
@@ -19,7 +18,8 @@
       "data",
       "error",
       "meta"
-    ]
+    ],
+    "expected_outcome": "success"
   },
   "tags": [
     "roadmap",

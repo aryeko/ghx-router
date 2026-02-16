@@ -4,7 +4,8 @@ import type { Scenario } from "../domain/types.js"
 
 const assertionsSchema = z
   .object({
-    must_succeed: z.boolean(),
+    expected_outcome: z.enum(["success", "expected_error"]).optional(),
+    must_succeed: z.boolean().optional(),
     expect_valid_output: z.boolean().optional(),
     required_fields: z.array(z.string()).optional(),
     required_data_fields: z.array(z.string()).optional(),
@@ -18,6 +19,34 @@ const assertionsSchema = z
     require_attempt_trace: z.boolean().optional()
   })
   .superRefine((value, context) => {
+    if (value.expected_outcome === undefined && value.must_succeed === undefined) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["expected_outcome"],
+        message: "either expected_outcome or must_succeed must be provided"
+      })
+    }
+
+    if (value.expected_outcome !== undefined && value.must_succeed !== undefined) {
+      const expectedFromLegacy = value.must_succeed ? "success" : "expected_error"
+      if (value.expected_outcome !== expectedFromLegacy) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["expected_outcome"],
+          message: "expected_outcome conflicts with must_succeed"
+        })
+      }
+    }
+
+    const expectedOutcome = value.expected_outcome ?? (value.must_succeed === false ? "expected_error" : "success")
+    if (expectedOutcome === "expected_error" && value.expected_error_code === undefined) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["expected_error_code"],
+        message: "expected_error scenarios must specify expected_error_code"
+      })
+    }
+
     if (
       value.min_tool_calls !== undefined &&
       value.max_tool_calls !== undefined &&

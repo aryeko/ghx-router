@@ -1027,6 +1027,25 @@ function modeScopedAssertions(scenario: Scenario, mode: BenchmarkMode): Scenario
   }
 }
 
+function expectedOutcomeFromAssertions(assertions: Scenario["assertions"]): "success" | "expected_error" {
+  if (assertions.expected_outcome !== undefined) {
+    return assertions.expected_outcome
+  }
+
+  return assertions.must_succeed === false ? "expected_error" : "success"
+}
+
+function matchesExpectedOutcome(
+  envelope: { ok: boolean; error: unknown },
+  expectedOutcome: "success" | "expected_error"
+): boolean {
+  if (expectedOutcome === "expected_error") {
+    return isObject(envelope.error)
+  }
+
+  return envelope.ok === true && envelope.error === null
+}
+
 function forcedToolCommandHint(scenario: Scenario, mode: BenchmarkMode): string {
   const owner = String((scenario.input.owner ?? "").toString())
   const name = String((scenario.input.name ?? "").toString())
@@ -1383,10 +1402,14 @@ export async function runScenario(
     const hasValidMaxToolCalls = maxToolCalls === undefined ? true : toolCounts.toolCalls <= maxToolCalls
     const requiresAttemptTrace = scopedAssertions.require_attempt_trace ?? false
     const hasAttemptTrace = !requiresAttemptTrace || attemptMetrics.totalAttempts > 0
-    const expectValidOutput = scopedAssertions.expect_valid_output ?? scopedAssertions.must_succeed
+    const expectedOutcome = expectedOutcomeFromAssertions(scopedAssertions)
+    const expectValidOutput = scopedAssertions.expect_valid_output ?? true
     const outputExpectationMet = expectValidOutput ? outputValid : !outputValid
+    const outcomeMatched = matchesExpectedOutcome(envelope as { ok: boolean; error: unknown }, expectedOutcome)
     const errorReason = !outputExpectationMet
       ? `Output validation failed: outputValid=${outputValid}, expectValidOutput=${expectValidOutput}`
+      : !outcomeMatched
+        ? `Outcome validation failed: expected_outcome=${expectedOutcome}`
       : !hasRequiredToolCalls
         ? `Expected at least ${minToolCalls} tool call(s), got ${toolCounts.toolCalls}`
         : !hasValidMaxToolCalls
@@ -1395,7 +1418,7 @@ export async function runScenario(
             ? "Expected attempt trace metadata in output envelope"
         : null
 
-    const success = outputExpectationMet && hasRequiredToolCalls && hasValidMaxToolCalls && hasAttemptTrace
+    const success = outputExpectationMet && outcomeMatched && hasRequiredToolCalls && hasValidMaxToolCalls && hasAttemptTrace
 
     return {
       timestamp: new Date().toISOString(),

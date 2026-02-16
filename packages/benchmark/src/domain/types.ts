@@ -1,7 +1,8 @@
 export type BenchmarkMode = "agent_direct" | "mcp" | "ghx"
 
 export type ScenarioAssertions = {
-  must_succeed: boolean
+  expected_outcome?: "success" | "expected_error"
+  must_succeed?: boolean
   expect_valid_output?: boolean
   required_fields?: string[]
   required_data_fields?: string[]
