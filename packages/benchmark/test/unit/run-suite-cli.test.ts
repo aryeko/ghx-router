@@ -670,7 +670,7 @@ describe("run-suite cli", () => {
 
     const mod = await import("../../src/cli/run-suite.js")
     await expect(mod.main(["--config", configPath])).rejects.toThrow(
-      "cleanup phase failed (code=1)",
+      "recent output:\nspawn failure",
     )
   })
 

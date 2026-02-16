@@ -1,10 +1,10 @@
-import { mkdir, readFile, readdir, writeFile } from "node:fs/promises"
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 
 import type { BenchmarkMode, BenchmarkRow } from "../domain/types.js"
-import { DEFAULT_GATE_V2_THRESHOLDS, buildSummary, toMarkdown } from "../report/aggregate.js"
 import type { GateProfile } from "../report/aggregate.js"
+import { buildSummary, DEFAULT_GATE_V2_THRESHOLDS, toMarkdown } from "../report/aggregate.js"
 import {
   expectationsConfigExists,
   inferModelSignatureFromRows,
@@ -43,30 +43,47 @@ function parseGateProfile(args: string[]): GateProfile {
 export function parseArgs(args: string[]): {
   gate: boolean
   gateProfile: GateProfile
+  expectationsConfigProvided: boolean
   expectationsConfigPath: string | null
   expectationsModel: string | null
 } {
-  const inlineConfig = args.find((arg) => arg.startsWith("--expectations-config="))
-  const configIndex = args.findIndex((arg) => arg === "--expectations-config")
-  const expectationsConfigPath = inlineConfig
-    ? inlineConfig.slice("--expectations-config=".length)
-    : configIndex >= 0
-      ? (args[configIndex + 1] ?? null)
-      : null
+  const parseStringFlag = (
+    flagName: "expectations-config" | "expectations-model",
+  ): { value: string | null; provided: boolean } => {
+    const inlinePrefix = `--${flagName}=`
+    const inline = args.find((arg) => arg.startsWith(inlinePrefix))
+    const splitIndex = args.findIndex((arg) => arg === `--${flagName}`)
 
-  const inlineModel = args.find((arg) => arg.startsWith("--expectations-model="))
-  const modelIndex = args.findIndex((arg) => arg === "--expectations-model")
-  const expectationsModel = inlineModel
-    ? inlineModel.slice("--expectations-model=".length)
-    : modelIndex >= 0
-      ? (args[modelIndex + 1] ?? null)
-      : null
+    const provided = inline !== undefined || splitIndex >= 0
+    if (!provided) {
+      return {
+        value: null,
+        provided: false,
+      }
+    }
+
+    const rawValue =
+      inline !== undefined ? inline.slice(inlinePrefix.length) : (args[splitIndex + 1] ?? "")
+    const value = rawValue.trim()
+    if (value.length === 0 || value.startsWith("--")) {
+      throw new Error(`Missing value for --${flagName}`)
+    }
+
+    return {
+      value,
+      provided: true,
+    }
+  }
+
+  const expectationsConfig = parseStringFlag("expectations-config")
+  const expectationsModel = parseStringFlag("expectations-model")
 
   return {
     gate: args.includes("--gate"),
     gateProfile: parseGateProfile(args),
-    expectationsConfigPath,
-    expectationsModel,
+    expectationsConfigProvided: expectationsConfig.provided,
+    expectationsConfigPath: expectationsConfig.value,
+    expectationsModel: expectationsModel.value,
   }
 }
 
@@ -126,19 +143,27 @@ function uniqueScenarioSets(rows: BenchmarkRow[]): string {
 }
 
 function uniqueScenarioIds(rows: BenchmarkRow[]): string {
-  return Array.from(new Set(rows.map((row) => row.scenario_id))).sort().join(",")
+  return Array.from(new Set(rows.map((row) => row.scenario_id)))
+    .sort()
+    .join(",")
 }
 
 function uniqueModelSignature(rows: BenchmarkRow[]): string {
   return Array.from(
-    new Set(rows.map((row) => `${row.model.provider_id}/${row.model.model_id}/${row.model.mode ?? "<null>"}`)),
+    new Set(
+      rows.map(
+        (row) => `${row.model.provider_id}/${row.model.model_id}/${row.model.mode ?? "<null>"}`,
+      ),
+    ),
   )
     .sort()
     .join(",")
 }
 
 function uniqueGitCommits(rows: BenchmarkRow[]): string {
-  return Array.from(new Set(rows.map((row) => row.git.commit ?? "<null>"))).sort().join(",")
+  return Array.from(new Set(rows.map((row) => row.git.commit ?? "<null>")))
+    .sort()
+    .join(",")
 }
 
 function validateComparableCohort(agentRows: BenchmarkRow[], ghxRows: BenchmarkRow[]): void {
@@ -176,7 +201,13 @@ function validateComparableCohort(agentRows: BenchmarkRow[], ghxRows: BenchmarkR
 }
 
 export async function main(args: string[] = process.argv.slice(2)): Promise<void> {
-  const { gate, gateProfile, expectationsConfigPath, expectationsModel } = parseArgs(args)
+  const {
+    gate,
+    gateProfile,
+    expectationsConfigProvided,
+    expectationsConfigPath,
+    expectationsModel,
+  } = parseArgs(args)
   const rows = await loadLatestRowsPerMode()
 
   if (rows.length === 0) {
@@ -187,10 +218,19 @@ export async function main(args: string[] = process.argv.slice(2)): Promise<void
   let expectationsModelResolved: string | null = null
   let gateThresholds = DEFAULT_GATE_V2_THRESHOLDS
 
-  if (await expectationsConfigExists(configPath)) {
+  const hasExpectationsConfig = await expectationsConfigExists(configPath)
+  if (!hasExpectationsConfig && expectationsConfigProvided) {
+    throw new Error(`Expectations config not found at ${configPath}`)
+  }
+
+  if (hasExpectationsConfig) {
     const config = await loadExpectationsConfig(configPath)
     const inferredModel = inferModelSignatureFromRows(rows)
-    expectationsModelResolved = resolveModelForExpectations(expectationsModel, inferredModel, config)
+    expectationsModelResolved = resolveModelForExpectations(
+      expectationsModel,
+      inferredModel,
+      config,
+    )
     gateThresholds = resolveGateThresholdsForModel(config, expectationsModelResolved)
   } else if (expectationsModel) {
     throw new Error(`Expectations config not found at ${configPath}`)
@@ -200,7 +240,11 @@ export async function main(args: string[] = process.argv.slice(2)): Promise<void
   const markdown = toMarkdown(summary)
 
   await mkdir(REPORTS_DIR, { recursive: true })
-  await writeFile(join(REPORTS_DIR, "latest-summary.json"), `${JSON.stringify(summary, null, 2)}\n`, "utf8")
+  await writeFile(
+    join(REPORTS_DIR, "latest-summary.json"),
+    `${JSON.stringify(summary, null, 2)}\n`,
+    "utf8",
+  )
   await writeFile(join(REPORTS_DIR, "latest-summary.md"), `${markdown}\n`, "utf8")
 
   console.log(`Wrote reports/latest-summary.json`)

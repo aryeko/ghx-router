@@ -17,6 +17,7 @@ describe("fixture app auth", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.unstubAllEnvs()
+    vi.unstubAllGlobals()
 
     delete process.env.BENCH_FIXTURE_GH_APP_ID
     delete process.env.BENCH_FIXTURE_GH_APP_INSTALLATION_ID

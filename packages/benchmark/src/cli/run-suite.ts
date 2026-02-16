@@ -546,7 +546,8 @@ function spawnCommand(
       }
     }
 
-    child.once("error", () => {
+    child.once("error", (error) => {
+      pushTail(stderrTail, error instanceof Error ? error.message : String(error))
       settle({ code: 1, signal: null, command: commandString, stdoutTail, stderrTail })
     })
 

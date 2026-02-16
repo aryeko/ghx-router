@@ -1,7 +1,7 @@
+import type { ResultEnvelope } from "../../contracts/envelope.js"
 import { errorCodes } from "../../errors/codes.js"
 import { mapErrorToCode } from "../../errors/map-error.js"
 import { isRetryableErrorCode } from "../../errors/retryability.js"
-import type { ResultEnvelope } from "../../contracts/envelope.js"
 import type { OperationCard } from "../../registry/types.js"
 import { normalizeError, normalizeResult } from "../normalizer.js"
 
@@ -53,7 +53,11 @@ export type CliCapabilityId =
   | "workflow_run.rerun_failed"
 
 export type CliCommandRunner = {
-  run(command: string, args: string[], timeoutMs: number): Promise<{ stdout: string; stderr: string; exitCode: number }>
+  run(
+    command: string,
+    args: string[],
+    timeoutMs: number,
+  ): Promise<{ stdout: string; stderr: string; exitCode: number }>
 }
 
 const DEFAULT_TIMEOUT_MS = 10_000
@@ -61,9 +65,13 @@ const DEFAULT_LIST_FIRST = 30
 const MAX_WORKFLOW_JOB_LOG_CHARS = 50_000
 const REDACTED_CLI_ERROR_MESSAGE = "gh command failed; stderr redacted for safety"
 const NON_JSON_STDOUT_CAPABILITIES = new Set<CliCapabilityId>([
+  "pr.checks.rerun_failed",
+  "pr.checks.rerun_all",
   "pr.reviewers.request",
   "pr.assignees.update",
-  "pr.branch.update"
+  "pr.branch.update",
+  "workflow_run.rerun_failed",
+  "workflow_run.rerun_all",
 ])
 const REPO_ISSUE_TYPES_GRAPHQL_QUERY =
   "query($owner:String!,$name:String!,$first:Int!,$after:String){repository(owner:$owner,name:$name){issueTypes(first:$first,after:$after){nodes{id name color isEnabled} pageInfo{hasNextPage endCursor}}}}"
@@ -72,7 +80,7 @@ const ISSUE_COMMENTS_GRAPHQL_QUERY =
 
 function containsSensitiveText(value: string): boolean {
   return /(gh[pousr]_[A-Za-z0-9_]+|github_pat_[A-Za-z0-9_]+|authorization:\s*bearer\s+\S+|bearer\s+[A-Za-z0-9._-]{20,}|(?:api[_-]?key|token|secret|password)\s*[=:]\s*\S+)/i.test(
-    value
+    value,
   )
 }
 
@@ -123,7 +131,8 @@ function requireRepo(owner: string, name: string, capabilityId: CliCapabilityId)
 
 function commandTokens(card: OperationCard | undefined, fallbackCommand: string): string[] {
   const fromCard = card?.cli?.command
-  const command = typeof fromCard === "string" && fromCard.trim().length > 0 ? fromCard : fallbackCommand
+  const command =
+    typeof fromCard === "string" && fromCard.trim().length > 0 ? fromCard : fallbackCommand
   return command.trim().split(/\s+/)
 }
 
@@ -136,7 +145,11 @@ function jsonFieldsFromCard(card: OperationCard | undefined, fallbackFields: str
   return fallbackFields
 }
 
-function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown>, card?: OperationCard): string[] {
+function buildArgs(
+  capabilityId: CliCapabilityId,
+  params: Record<string, unknown>,
+  card?: OperationCard,
+): string[] {
   const owner = String(params.owner ?? "")
   const name = String(params.name ?? "")
   const repo = owner && name ? `${owner}/${name}` : ""
@@ -147,7 +160,13 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
       args.push(repo)
     }
 
-    args.push("--json", jsonFieldsFromCard(card, "id,name,nameWithOwner,isPrivate,stargazerCount,forkCount,url,defaultBranchRef"))
+    args.push(
+      "--json",
+      jsonFieldsFromCard(
+        card,
+        "id,name,nameWithOwner,isPrivate,stargazerCount,forkCount,url,defaultBranchRef",
+      ),
+    )
     return args
   }
 
@@ -162,7 +181,12 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
       args.push("--repo", repo)
     }
 
-    args.push("--limit", String(first), "--json", jsonFieldsFromCard(card, "id,name,description,color,isDefault"))
+    args.push(
+      "--limit",
+      String(first),
+      "--json",
+      jsonFieldsFromCard(card, "id,name,description,color,isDefault"),
+    )
     return args
   }
 
@@ -190,7 +214,7 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
       "-f",
       `name=${name}`,
       "-F",
-      `first=${first}`
+      `first=${first}`,
     ]
 
     if (typeof after === "string" && after.length > 0) {
@@ -226,7 +250,12 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
       args.push("--repo", repo)
     }
 
-    args.push("--limit", String(first), "--json", jsonFieldsFromCard(card, "id,number,title,state,url"))
+    args.push(
+      "--limit",
+      String(first),
+      "--json",
+      jsonFieldsFromCard(card, "id,number,title,state,url"),
+    )
     return args
   }
 
@@ -257,7 +286,7 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
       "-F",
       `issueNumber=${issueNumber}`,
       "-F",
-      `first=${first}`
+      `first=${first}`,
     ]
 
     if (typeof after === "string" && after.length > 0) {
@@ -293,7 +322,12 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
       args.push("--repo", repo)
     }
 
-    args.push("--limit", String(first), "--json", jsonFieldsFromCard(card, "id,number,title,state,url"))
+    args.push(
+      "--limit",
+      String(first),
+      "--json",
+      jsonFieldsFromCard(card, "id,number,title,state,url"),
+    )
     return args
   }
 
@@ -323,7 +357,10 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
       args.push("--repo", repo)
     }
 
-    args.push("--json", jsonFieldsFromCard(card, "mergeable,mergeStateStatus,reviewDecision,isDraft,state"))
+    args.push(
+      "--json",
+      jsonFieldsFromCard(card, "mergeable,mergeStateStatus,reviewDecision,isDraft,state"),
+    )
     return args
   }
 
@@ -350,9 +387,9 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
   }
 
   if (
-    capabilityId === "pr.review.submit_approve"
-    || capabilityId === "pr.review.submit_request_changes"
-    || capabilityId === "pr.review.submit_comment"
+    capabilityId === "pr.review.submit_approve" ||
+    capabilityId === "pr.review.submit_request_changes" ||
+    capabilityId === "pr.review.submit_comment"
   ) {
     const prNumber = parseStrictPositiveInt(params.prNumber)
     if (prNumber === null) {
@@ -446,7 +483,9 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
     }
 
     const reviewers = Array.isArray(params.reviewers)
-      ? params.reviewers.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      ? params.reviewers.filter(
+          (value): value is string => typeof value === "string" && value.trim().length > 0,
+        )
       : []
 
     if (reviewers.length === 0) {
@@ -469,10 +508,14 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
     }
 
     const addAssignees = Array.isArray(params.add)
-      ? params.add.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      ? params.add.filter(
+          (value): value is string => typeof value === "string" && value.trim().length > 0,
+        )
       : []
     const removeAssignees = Array.isArray(params.remove)
-      ? params.remove.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      ? params.remove.filter(
+          (value): value is string => typeof value === "string" && value.trim().length > 0,
+        )
       : []
 
     if (addAssignees.length === 0 && removeAssignees.length === 0) {
@@ -519,7 +562,10 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
       throw new Error("Missing owner/name for check_run.annotations.list")
     }
 
-    const args = [...commandTokens(card, "api"), `repos/${owner}/${name}/check-runs/${checkRunId}/annotations`]
+    const args = [
+      ...commandTokens(card, "api"),
+      `repos/${owner}/${name}/check-runs/${checkRunId}/annotations`,
+    ]
     return args
   }
 
@@ -544,7 +590,12 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
       args.push("--status", params.status)
     }
 
-    args.push("--limit", String(first), "--json", jsonFieldsFromCard(card, "databaseId,workflowName,status,conclusion,headBranch,url"))
+    args.push(
+      "--limit",
+      String(first),
+      "--json",
+      jsonFieldsFromCard(card, "databaseId,workflowName,status,conclusion,headBranch,url"),
+    )
     return args
   }
 
@@ -593,7 +644,9 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
   }
 
   if (capabilityId === "workflow.get") {
-    const workflowId = parseNonEmptyString(params.workflowId) ?? (typeof params.workflowId === "number" ? String(params.workflowId) : null)
+    const workflowId =
+      parseNonEmptyString(params.workflowId) ??
+      (typeof params.workflowId === "number" ? String(params.workflowId) : null)
     if (workflowId === null) {
       throw new Error("Missing or invalid workflowId for workflow.get")
     }
@@ -618,7 +671,13 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
       args.push("--repo", repo)
     }
 
-    args.push("--json", jsonFieldsFromCard(card, "databaseId,workflowName,status,conclusion,headBranch,headSha,url,event,createdAt,updatedAt,startedAt"))
+    args.push(
+      "--json",
+      jsonFieldsFromCard(
+        card,
+        "databaseId,workflowName,status,conclusion,headBranch,headSha,url,event,createdAt,updatedAt,startedAt",
+      ),
+    )
     return args
   }
 
@@ -629,8 +688,11 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
     }
 
     const args = [
-      ...commandTokens(card, capabilityId === "workflow_run.rerun_all" ? "run rerun" : "run cancel"),
-      String(runId)
+      ...commandTokens(
+        card,
+        capabilityId === "workflow_run.rerun_all" ? "run rerun" : "run cancel",
+      ),
+      String(runId),
     ]
 
     if (repo) {
@@ -663,7 +725,14 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
       throw new Error(`Missing or invalid owner/projectNumber for ${capabilityId}`)
     }
 
-    const args = [...commandTokens(card, "project view"), String(projectNumber), "--owner", owner, "--format", "json"]
+    const args = [
+      ...commandTokens(card, "project view"),
+      String(projectNumber),
+      "--owner",
+      owner,
+      "--format",
+      "json",
+    ]
     return args
   }
 
@@ -674,7 +743,14 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
       throw new Error("Missing or invalid owner/projectNumber for project_v2.fields.list")
     }
 
-    const args = [...commandTokens(card, "project field-list"), String(projectNumber), "--owner", projectOwner, "--format", "json"]
+    const args = [
+      ...commandTokens(card, "project field-list"),
+      String(projectNumber),
+      "--owner",
+      projectOwner,
+      "--format",
+      "json",
+    ]
     return args
   }
 
@@ -694,7 +770,7 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
       "--format",
       "json",
       "--limit",
-      String(first)
+      String(first),
     ]
     return args
   }
@@ -706,7 +782,12 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
       throw new Error("Missing or invalid first for release.list")
     }
 
-    const args = [...commandTokens(card, "api"), `repos/${owner}/${name}/releases`, "-F", `per_page=${first}`]
+    const args = [
+      ...commandTokens(card, "api"),
+      `repos/${owner}/${name}/releases`,
+      "-F",
+      `per_page=${first}`,
+    ]
     return args
   }
 
@@ -717,7 +798,10 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
       throw new Error("Missing or invalid tagName for release.get")
     }
 
-    const args = [...commandTokens(card, "api"), `repos/${owner}/${name}/releases/tags/${encodeURIComponent(tagName)}`]
+    const args = [
+      ...commandTokens(card, "api"),
+      `repos/${owner}/${name}/releases/tags/${encodeURIComponent(tagName)}`,
+    ]
     return args
   }
 
@@ -736,7 +820,7 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
       "-f",
       `tag_name=${tagName}`,
       "-F",
-      "draft=true"
+      "draft=true",
     ]
 
     const title = parseNonEmptyString(params.title)
@@ -769,7 +853,9 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
     }
 
     if (params.draft !== undefined && params.draft !== true) {
-      throw new Error("release.update only supports draft=true; use release.publish_draft to publish")
+      throw new Error(
+        "release.update only supports draft=true; use release.publish_draft to publish",
+      )
     }
 
     const args = [
@@ -778,7 +864,7 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
       "--method",
       "PATCH",
       "-F",
-      "draft=true"
+      "draft=true",
     ]
 
     const tagName = parseNonEmptyString(params.tagName)
@@ -821,7 +907,7 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
       "--method",
       "PATCH",
       "-F",
-      "draft=false"
+      "draft=false",
     ]
 
     const title = parseNonEmptyString(params.title)
@@ -859,11 +945,15 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
       "--method",
       "POST",
       "-f",
-      `ref=${ref}`
+      `ref=${ref}`,
     ]
 
     if (params.inputs !== undefined) {
-      if (typeof params.inputs !== "object" || params.inputs === null || Array.isArray(params.inputs)) {
+      if (
+        typeof params.inputs !== "object" ||
+        params.inputs === null ||
+        Array.isArray(params.inputs)
+      ) {
         throw new Error("Missing or invalid inputs for workflow_dispatch.run")
       }
 
@@ -873,7 +963,9 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
           throw new Error("Missing or invalid inputs for workflow_dispatch.run")
         }
 
-        if (!(typeof value === "string" || typeof value === "number" || typeof value === "boolean")) {
+        if (
+          !(typeof value === "string" || typeof value === "number" || typeof value === "boolean")
+        ) {
           throw new Error("Missing or invalid inputs for workflow_dispatch.run")
         }
 
@@ -895,7 +987,7 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
       ...commandTokens(card, "api"),
       `repos/${owner}/${name}/actions/runs/${runId}/rerun-failed-jobs`,
       "--method",
-      "POST"
+      "POST",
     ]
     return args
   }
@@ -905,7 +997,9 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
     const projectOwner = parseNonEmptyString(params.owner)
     const issueUrl = parseNonEmptyString(params.issueUrl)
     if (projectNumber === null || projectOwner === null || issueUrl === null) {
-      throw new Error("Missing or invalid owner/projectNumber/issueUrl for project_v2.item.add_issue")
+      throw new Error(
+        "Missing or invalid owner/projectNumber/issueUrl for project_v2.item.add_issue",
+      )
     }
 
     const args = [
@@ -916,7 +1010,7 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
       "--url",
       issueUrl,
       "--format",
-      "json"
+      "json",
     ]
     return args
   }
@@ -926,7 +1020,9 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
     const itemId = parseNonEmptyString(params.itemId)
     const fieldId = parseNonEmptyString(params.fieldId)
     if (projectId === null || itemId === null || fieldId === null) {
-      throw new Error("Missing or invalid projectId/itemId/fieldId for project_v2.item.field.update")
+      throw new Error(
+        "Missing or invalid projectId/itemId/fieldId for project_v2.item.field.update",
+      )
     }
 
     const args = [
@@ -936,7 +1032,7 @@ function buildArgs(capabilityId: CliCapabilityId, params: Record<string, unknown
       "--id",
       itemId,
       "--field-id",
-      fieldId
+      fieldId,
     ]
 
     const valueText = parseNonEmptyString(params.valueText)
@@ -986,7 +1082,7 @@ function normalizeListItem(item: unknown): Record<string, unknown> {
     number: input.number,
     title: input.title,
     state: input.state,
-    url: input.url
+    url: input.url,
   }
 }
 
@@ -996,7 +1092,7 @@ function normalizeWorkflowItem(item: unknown): Record<string, unknown> {
       id: 0,
       name: null,
       path: null,
-      state: null
+      state: null,
     }
   }
 
@@ -1005,14 +1101,15 @@ function normalizeWorkflowItem(item: unknown): Record<string, unknown> {
     id: typeof input.id === "number" ? input.id : 0,
     name: typeof input.name === "string" ? input.name : null,
     path: typeof input.path === "string" ? input.path : null,
-    state: typeof input.state === "string" ? input.state : null
+    state: typeof input.state === "string" ? input.state : null,
   }
 }
 
 function normalizeProjectV2Summary(data: unknown): Record<string, unknown> {
-  const input = typeof data === "object" && data !== null && !Array.isArray(data)
-    ? (data as Record<string, unknown>)
-    : {}
+  const input =
+    typeof data === "object" && data !== null && !Array.isArray(data)
+      ? (data as Record<string, unknown>)
+      : {}
 
   return {
     id: typeof input.id === "string" ? input.id : null,
@@ -1020,7 +1117,7 @@ function normalizeProjectV2Summary(data: unknown): Record<string, unknown> {
     shortDescription: typeof input.shortDescription === "string" ? input.shortDescription : null,
     public: typeof input.public === "boolean" ? input.public : null,
     closed: typeof input.closed === "boolean" ? input.closed : null,
-    url: typeof input.url === "string" ? input.url : null
+    url: typeof input.url === "string" ? input.url : null,
   }
 }
 
@@ -1031,7 +1128,7 @@ function normalizeCheckItem(item: unknown): Record<string, unknown> {
       state: null,
       bucket: null,
       workflow: null,
-      link: null
+      link: null,
     }
   }
 
@@ -1041,7 +1138,7 @@ function normalizeCheckItem(item: unknown): Record<string, unknown> {
     state: typeof input.state === "string" ? input.state : null,
     bucket: typeof input.bucket === "string" ? input.bucket : null,
     workflow: typeof input.workflow === "string" ? input.workflow : null,
-    link: typeof input.link === "string" ? input.link : null
+    link: typeof input.link === "string" ? input.link : null,
   }
 }
 
@@ -1080,7 +1177,11 @@ function isCheckPassBucket(bucket: unknown): boolean {
   return normalized === "pass"
 }
 
-function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: Record<string, unknown>): unknown {
+function normalizeCliData(
+  capabilityId: CliCapabilityId,
+  data: unknown,
+  params: Record<string, unknown>,
+): unknown {
   const normalizeRelease = (input: unknown): Record<string, unknown> => {
     if (typeof input !== "object" || input === null || Array.isArray(input)) {
       return {
@@ -1092,7 +1193,7 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
         url: null,
         targetCommitish: null,
         createdAt: null,
-        publishedAt: null
+        publishedAt: null,
       }
     }
 
@@ -1106,14 +1207,15 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
       url: typeof record.html_url === "string" ? record.html_url : null,
       targetCommitish: typeof record.target_commitish === "string" ? record.target_commitish : null,
       createdAt: typeof record.created_at === "string" ? record.created_at : null,
-      publishedAt: typeof record.published_at === "string" ? record.published_at : null
+      publishedAt: typeof record.published_at === "string" ? record.published_at : null,
     }
   }
 
   if (capabilityId === "repo.view") {
-    const input = typeof data === "object" && data !== null && !Array.isArray(data)
-      ? (data as Record<string, unknown>)
-      : {}
+    const input =
+      typeof data === "object" && data !== null && !Array.isArray(data)
+        ? (data as Record<string, unknown>)
+        : {}
     const defaultBranchRef =
       typeof input.defaultBranchRef === "object" && input.defaultBranchRef !== null
         ? (input.defaultBranchRef as Record<string, unknown>)
@@ -1127,10 +1229,7 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
       stargazerCount: input.stargazerCount,
       forkCount: input.forkCount,
       url: input.url,
-      defaultBranch:
-        typeof defaultBranchRef?.name === "string"
-          ? defaultBranchRef.name
-          : null
+      defaultBranch: typeof defaultBranchRef?.name === "string" ? defaultBranchRef.name : null,
     }
   }
 
@@ -1144,7 +1243,7 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
             name: null,
             description: null,
             color: null,
-            isDefault: null
+            isDefault: null,
           }
         }
 
@@ -1154,33 +1253,44 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
           name: typeof record.name === "string" ? record.name : null,
           description: typeof record.description === "string" ? record.description : null,
           color: typeof record.color === "string" ? record.color : null,
-          isDefault: typeof record.isDefault === "boolean" ? record.isDefault : null
+          isDefault: typeof record.isDefault === "boolean" ? record.isDefault : null,
         }
       }),
       pageInfo: {
         hasNextPage: false,
-        endCursor: null
-      }
+        endCursor: null,
+      },
     }
   }
 
   if (capabilityId === "repo.issue_types.list") {
-    const root = typeof data === "object" && data !== null && !Array.isArray(data)
-      ? (data as Record<string, unknown>)
-      : {}
-    const payload = typeof root.data === "object" && root.data !== null && !Array.isArray(root.data)
-      ? (root.data as Record<string, unknown>)
-      : {}
-    const repository = typeof payload.repository === "object" && payload.repository !== null && !Array.isArray(payload.repository)
-      ? (payload.repository as Record<string, unknown>)
-      : {}
-    const connection = typeof repository.issueTypes === "object" && repository.issueTypes !== null && !Array.isArray(repository.issueTypes)
-      ? (repository.issueTypes as Record<string, unknown>)
-      : {}
+    const root =
+      typeof data === "object" && data !== null && !Array.isArray(data)
+        ? (data as Record<string, unknown>)
+        : {}
+    const payload =
+      typeof root.data === "object" && root.data !== null && !Array.isArray(root.data)
+        ? (root.data as Record<string, unknown>)
+        : {}
+    const repository =
+      typeof payload.repository === "object" &&
+      payload.repository !== null &&
+      !Array.isArray(payload.repository)
+        ? (payload.repository as Record<string, unknown>)
+        : {}
+    const connection =
+      typeof repository.issueTypes === "object" &&
+      repository.issueTypes !== null &&
+      !Array.isArray(repository.issueTypes)
+        ? (repository.issueTypes as Record<string, unknown>)
+        : {}
     const nodes = Array.isArray(connection.nodes) ? connection.nodes : []
-    const pageInfo = typeof connection.pageInfo === "object" && connection.pageInfo !== null && !Array.isArray(connection.pageInfo)
-      ? (connection.pageInfo as Record<string, unknown>)
-      : {}
+    const pageInfo =
+      typeof connection.pageInfo === "object" &&
+      connection.pageInfo !== null &&
+      !Array.isArray(connection.pageInfo)
+        ? (connection.pageInfo as Record<string, unknown>)
+        : {}
 
     return {
       items: nodes.map((node) => {
@@ -1189,7 +1299,7 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
             id: null,
             name: null,
             color: null,
-            isEnabled: null
+            isEnabled: null,
           }
         }
 
@@ -1198,13 +1308,13 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
           id: typeof record.id === "string" ? record.id : null,
           name: typeof record.name === "string" ? record.name : null,
           color: typeof record.color === "string" ? record.color : null,
-          isEnabled: typeof record.isEnabled === "boolean" ? record.isEnabled : null
+          isEnabled: typeof record.isEnabled === "boolean" ? record.isEnabled : null,
         }
       }),
       pageInfo: {
         hasNextPage: typeof pageInfo.hasNextPage === "boolean" ? pageInfo.hasNextPage : false,
-        endCursor: typeof pageInfo.endCursor === "string" ? pageInfo.endCursor : null
-      }
+        endCursor: typeof pageInfo.endCursor === "string" ? pageInfo.endCursor : null,
+      },
     }
   }
 
@@ -1214,8 +1324,8 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
       items,
       pageInfo: {
         hasNextPage: false,
-        endCursor: null
-      }
+        endCursor: null,
+      },
     }
   }
 
@@ -1224,28 +1334,37 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
       throw new Error("Missing or invalid first for issue.comments.list")
     }
 
-    const input = typeof data === "object" && data !== null && !Array.isArray(data)
-      ? (data as Record<string, unknown>)
-      : {}
+    const input =
+      typeof data === "object" && data !== null && !Array.isArray(data)
+        ? (data as Record<string, unknown>)
+        : {}
     const commentsConnection =
       typeof input.data === "object" && input.data !== null && !Array.isArray(input.data)
         ? (input.data as Record<string, unknown>).repository
         : null
     const repository =
-      typeof commentsConnection === "object" && commentsConnection !== null && !Array.isArray(commentsConnection)
+      typeof commentsConnection === "object" &&
+      commentsConnection !== null &&
+      !Array.isArray(commentsConnection)
         ? (commentsConnection as Record<string, unknown>)
         : null
     const issue =
-      typeof repository?.issue === "object" && repository.issue !== null && !Array.isArray(repository.issue)
+      typeof repository?.issue === "object" &&
+      repository.issue !== null &&
+      !Array.isArray(repository.issue)
         ? (repository.issue as Record<string, unknown>)
         : null
     const comments =
-      typeof issue?.comments === "object" && issue.comments !== null && !Array.isArray(issue.comments)
+      typeof issue?.comments === "object" &&
+      issue.comments !== null &&
+      !Array.isArray(issue.comments)
         ? (issue.comments as Record<string, unknown>)
         : null
     const nodes = Array.isArray(comments?.nodes) ? comments.nodes : null
     const pageInfo =
-      typeof comments?.pageInfo === "object" && comments.pageInfo !== null && !Array.isArray(comments.pageInfo)
+      typeof comments?.pageInfo === "object" &&
+      comments.pageInfo !== null &&
+      !Array.isArray(comments.pageInfo)
         ? (comments.pageInfo as Record<string, unknown>)
         : null
 
@@ -1273,21 +1392,23 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
         throw new Error("Invalid CLI payload: comment item has invalid field types")
       }
 
-      return [{
-        id: commentRecord.id,
-        body: commentRecord.body,
-        authorLogin: typeof author?.login === "string" ? author.login : null,
-        url: commentRecord.url,
-        createdAt: commentRecord.createdAt
-      }]
+      return [
+        {
+          id: commentRecord.id,
+          body: commentRecord.body,
+          authorLogin: typeof author?.login === "string" ? author.login : null,
+          url: commentRecord.url,
+          createdAt: commentRecord.createdAt,
+        },
+      ]
     })
 
     return {
       items: normalizedItems,
       pageInfo: {
         hasNextPage: pageInfo.hasNextPage,
-        endCursor: typeof pageInfo.endCursor === "string" ? pageInfo.endCursor : null
-      }
+        endCursor: typeof pageInfo.endCursor === "string" ? pageInfo.endCursor : null,
+      },
     }
   }
 
@@ -1303,22 +1424,23 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
         total: checks.length,
         failed: failed.length,
         pending: pending.length,
-        passed: passed.length
-      }
+        passed: passed.length,
+      },
     }
   }
 
   if (capabilityId === "pr.mergeability.view") {
-    const input = typeof data === "object" && data !== null && !Array.isArray(data)
-      ? (data as Record<string, unknown>)
-      : {}
+    const input =
+      typeof data === "object" && data !== null && !Array.isArray(data)
+        ? (data as Record<string, unknown>)
+        : {}
 
     return {
       mergeable: typeof input.mergeable === "string" ? input.mergeable : null,
       mergeStateStatus: typeof input.mergeStateStatus === "string" ? input.mergeStateStatus : null,
       reviewDecision: typeof input.reviewDecision === "string" ? input.reviewDecision : null,
       isDraft: Boolean(input.isDraft),
-      state: typeof input.state === "string" ? input.state : "UNKNOWN"
+      state: typeof input.state === "string" ? input.state : "UNKNOWN",
     }
   }
 
@@ -1328,87 +1450,96 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
 
     return {
       prNumber,
-      isDraft: !ready
+      isDraft: !ready,
     }
   }
 
   if (
-    capabilityId === "pr.review.submit_approve"
-    || capabilityId === "pr.review.submit_request_changes"
-    || capabilityId === "pr.review.submit_comment"
+    capabilityId === "pr.review.submit_approve" ||
+    capabilityId === "pr.review.submit_request_changes" ||
+    capabilityId === "pr.review.submit_comment"
   ) {
     const prNumber = Number(params.prNumber)
-    const event = capabilityId === "pr.review.submit_approve"
-      ? "APPROVE"
-      : capabilityId === "pr.review.submit_request_changes"
-        ? "REQUEST_CHANGES"
-        : "COMMENT"
+    const event =
+      capabilityId === "pr.review.submit_approve"
+        ? "APPROVE"
+        : capabilityId === "pr.review.submit_request_changes"
+          ? "REQUEST_CHANGES"
+          : "COMMENT"
 
     return {
       prNumber,
       event,
       submitted: true,
-      body: typeof params.body === "string" ? params.body : null
+      body: typeof params.body === "string" ? params.body : null,
     }
   }
 
   if (capabilityId === "pr.merge.execute") {
-    const method = params.method === "squash" || params.method === "rebase" ? params.method : "merge"
+    const method =
+      params.method === "squash" || params.method === "rebase" ? params.method : "merge"
     return {
       prNumber: Number(params.prNumber),
       method,
       queued: true,
-      deleteBranch: params.deleteBranch === true
+      deleteBranch: params.deleteBranch === true,
     }
   }
 
   if (capabilityId === "pr.checks.rerun_failed" || capabilityId === "pr.checks.rerun_all") {
-    const effectiveMode = params.__effectiveRerunMode === "all"
-      ? "all"
-      : capabilityId === "pr.checks.rerun_failed"
-        ? "failed"
-        : "all"
+    const effectiveMode =
+      params.__effectiveRerunMode === "all"
+        ? "all"
+        : capabilityId === "pr.checks.rerun_failed"
+          ? "failed"
+          : "all"
 
     return {
       prNumber: Number(params.prNumber),
       runId: Number(params.runId),
       mode: effectiveMode,
-      queued: true
+      queued: true,
     }
   }
 
   if (capabilityId === "pr.reviewers.request") {
     const reviewers = Array.isArray(params.reviewers)
-      ? params.reviewers.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      ? params.reviewers.filter(
+          (value): value is string => typeof value === "string" && value.trim().length > 0,
+        )
       : []
 
     return {
       prNumber: Number(params.prNumber),
       reviewers,
-      updated: true
+      updated: true,
     }
   }
 
   if (capabilityId === "pr.assignees.update") {
     const add = Array.isArray(params.add)
-      ? params.add.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      ? params.add.filter(
+          (value): value is string => typeof value === "string" && value.trim().length > 0,
+        )
       : []
     const remove = Array.isArray(params.remove)
-      ? params.remove.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+      ? params.remove.filter(
+          (value): value is string => typeof value === "string" && value.trim().length > 0,
+        )
       : []
 
     return {
       prNumber: Number(params.prNumber),
       add,
       remove,
-      updated: true
+      updated: true,
     }
   }
 
   if (capabilityId === "pr.branch.update") {
     return {
       prNumber: Number(params.prNumber),
-      updated: true
+      updated: true,
     }
   }
 
@@ -1425,7 +1556,7 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
             level: null,
             message: null,
             title: null,
-            details: null
+            details: null,
           }
         }
 
@@ -1437,9 +1568,9 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
           level: typeof record.annotation_level === "string" ? record.annotation_level : null,
           message: typeof record.message === "string" ? record.message : null,
           title: typeof record.title === "string" ? record.title : null,
-          details: typeof record.raw_details === "string" ? record.raw_details : null
+          details: typeof record.raw_details === "string" ? record.raw_details : null,
         }
-      })
+      }),
     }
   }
 
@@ -1455,7 +1586,7 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
             status: null,
             conclusion: null,
             headBranch: null,
-            url: null
+            url: null,
           }
         }
 
@@ -1466,20 +1597,21 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
           status: typeof record.status === "string" ? record.status : null,
           conclusion: typeof record.conclusion === "string" ? record.conclusion : null,
           headBranch: typeof record.headBranch === "string" ? record.headBranch : null,
-          url: typeof record.url === "string" ? record.url : null
+          url: typeof record.url === "string" ? record.url : null,
         }
       }),
       pageInfo: {
         hasNextPage: false,
-        endCursor: null
-      }
+        endCursor: null,
+      },
     }
   }
 
   if (capabilityId === "workflow_run.jobs.list") {
-    const root = typeof data === "object" && data !== null && !Array.isArray(data)
-      ? (data as Record<string, unknown>)
-      : {}
+    const root =
+      typeof data === "object" && data !== null && !Array.isArray(data)
+        ? (data as Record<string, unknown>)
+        : {}
     const jobs = Array.isArray(root.jobs) ? root.jobs : []
 
     return {
@@ -1492,7 +1624,7 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
             conclusion: null,
             startedAt: null,
             completedAt: null,
-            url: null
+            url: null,
           }
         }
 
@@ -1504,9 +1636,9 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
           conclusion: typeof record.conclusion === "string" ? record.conclusion : null,
           startedAt: typeof record.startedAt === "string" ? record.startedAt : null,
           completedAt: typeof record.completedAt === "string" ? record.completedAt : null,
-          url: typeof record.url === "string" ? record.url : null
+          url: typeof record.url === "string" ? record.url : null,
         }
-      })
+      }),
     }
   }
 
@@ -1519,7 +1651,7 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
     return {
       jobId,
       log: truncated ? rawLog.slice(0, MAX_WORKFLOW_JOB_LOG_CHARS) : rawLog,
-      truncated
+      truncated,
     }
   }
 
@@ -1541,8 +1673,8 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
       summary: {
         errorCount: errorLines.length,
         warningCount: warningLines.length,
-        topErrorLines
-      }
+        topErrorLines,
+      },
     }
   }
 
@@ -1552,8 +1684,8 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
       items: workflows.map((workflow) => normalizeWorkflowItem(workflow)),
       pageInfo: {
         hasNextPage: false,
-        endCursor: null
-      }
+        endCursor: null,
+      },
     }
   }
 
@@ -1563,27 +1695,29 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
       items,
       pageInfo: {
         hasNextPage: false,
-        endCursor: null
-      }
+        endCursor: null,
+      },
     }
   }
 
   if (capabilityId === "workflow.get") {
     const input = normalizeWorkflowItem(data)
-    const root = typeof data === "object" && data !== null && !Array.isArray(data)
-      ? (data as Record<string, unknown>)
-      : {}
+    const root =
+      typeof data === "object" && data !== null && !Array.isArray(data)
+        ? (data as Record<string, unknown>)
+        : {}
 
     return {
       ...input,
-      url: typeof root.url === "string" ? root.url : null
+      url: typeof root.url === "string" ? root.url : null,
     }
   }
 
   if (capabilityId === "workflow_run.get") {
-    const input = typeof data === "object" && data !== null && !Array.isArray(data)
-      ? (data as Record<string, unknown>)
-      : {}
+    const input =
+      typeof data === "object" && data !== null && !Array.isArray(data)
+        ? (data as Record<string, unknown>)
+        : {}
 
     return {
       id: typeof input.databaseId === "number" ? input.databaseId : 0,
@@ -1596,28 +1730,29 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
       createdAt: typeof input.createdAt === "string" ? input.createdAt : null,
       updatedAt: typeof input.updatedAt === "string" ? input.updatedAt : null,
       startedAt: typeof input.startedAt === "string" ? input.startedAt : null,
-      url: typeof input.url === "string" ? input.url : null
+      url: typeof input.url === "string" ? input.url : null,
     }
   }
 
   if (capabilityId === "workflow_run.rerun_all") {
     return {
       runId: Number(params.runId),
-      status: "requested"
+      status: "requested",
     }
   }
 
   if (capabilityId === "workflow_run.cancel") {
     return {
       runId: Number(params.runId),
-      status: "cancel_requested"
+      status: "cancel_requested",
     }
   }
 
   if (capabilityId === "workflow_run.artifacts.list") {
-    const root = typeof data === "object" && data !== null && !Array.isArray(data)
-      ? (data as Record<string, unknown>)
-      : {}
+    const root =
+      typeof data === "object" && data !== null && !Array.isArray(data)
+        ? (data as Record<string, unknown>)
+        : {}
     const artifacts = Array.isArray(root.artifacts) ? root.artifacts : []
 
     return {
@@ -1627,7 +1762,7 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
             id: 0,
             name: null,
             sizeInBytes: null,
-            archiveDownloadUrl: null
+            archiveDownloadUrl: null,
           }
         }
 
@@ -1636,13 +1771,14 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
           id: typeof record.id === "number" ? record.id : 0,
           name: typeof record.name === "string" ? record.name : null,
           sizeInBytes: typeof record.sizeInBytes === "number" ? record.sizeInBytes : null,
-          archiveDownloadUrl: typeof record.archiveDownloadUrl === "string" ? record.archiveDownloadUrl : null
+          archiveDownloadUrl:
+            typeof record.archiveDownloadUrl === "string" ? record.archiveDownloadUrl : null,
         }
       }),
       pageInfo: {
         hasNextPage: false,
-        endCursor: null
-      }
+        endCursor: null,
+      },
     }
   }
 
@@ -1651,9 +1787,10 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
   }
 
   if (capabilityId === "project_v2.fields.list") {
-    const root = typeof data === "object" && data !== null && !Array.isArray(data)
-      ? (data as Record<string, unknown>)
-      : {}
+    const root =
+      typeof data === "object" && data !== null && !Array.isArray(data)
+        ? (data as Record<string, unknown>)
+        : {}
     const fields = Array.isArray(root.fields) ? root.fields : []
 
     return {
@@ -1662,7 +1799,7 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
           return {
             id: null,
             name: null,
-            dataType: null
+            dataType: null,
           }
         }
 
@@ -1670,20 +1807,21 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
         return {
           id: typeof record.id === "string" ? record.id : null,
           name: typeof record.name === "string" ? record.name : null,
-          dataType: typeof record.dataType === "string" ? record.dataType : null
+          dataType: typeof record.dataType === "string" ? record.dataType : null,
         }
       }),
       pageInfo: {
         hasNextPage: false,
-        endCursor: null
-      }
+        endCursor: null,
+      },
     }
   }
 
   if (capabilityId === "project_v2.items.list") {
-    const root = typeof data === "object" && data !== null && !Array.isArray(data)
-      ? (data as Record<string, unknown>)
-      : {}
+    const root =
+      typeof data === "object" && data !== null && !Array.isArray(data)
+        ? (data as Record<string, unknown>)
+        : {}
     const items = Array.isArray(root.items) ? root.items : []
 
     return {
@@ -1693,48 +1831,56 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
             id: null,
             contentType: null,
             contentNumber: null,
-            contentTitle: null
+            contentTitle: null,
           }
         }
 
         const record = item as Record<string, unknown>
-        const content = typeof record.content === "object" && record.content !== null && !Array.isArray(record.content)
-          ? (record.content as Record<string, unknown>)
-          : {}
+        const content =
+          typeof record.content === "object" &&
+          record.content !== null &&
+          !Array.isArray(record.content)
+            ? (record.content as Record<string, unknown>)
+            : {}
 
         return {
           id: typeof record.id === "string" ? record.id : null,
           contentType: typeof content.type === "string" ? content.type : null,
           contentNumber: typeof content.number === "number" ? content.number : null,
-          contentTitle: typeof content.title === "string" ? content.title : null
+          contentTitle: typeof content.title === "string" ? content.title : null,
         }
       }),
       pageInfo: {
         hasNextPage: false,
-        endCursor: null
-      }
+        endCursor: null,
+      },
     }
   }
 
   if (capabilityId === "project_v2.item.add_issue") {
-    const root = typeof data === "object" && data !== null && !Array.isArray(data)
-      ? (data as Record<string, unknown>)
-      : {}
+    const root =
+      typeof data === "object" && data !== null && !Array.isArray(data)
+        ? (data as Record<string, unknown>)
+        : {}
 
     return {
       itemId: typeof root.id === "string" ? root.id : null,
-      added: true
+      added: true,
     }
   }
 
   if (capabilityId === "project_v2.item.field.update") {
     return {
       itemId: parseNonEmptyString(params.itemId),
-      updated: true
+      updated: true,
     }
   }
 
-  if (capabilityId === "release.get" || capabilityId === "release.create_draft" || capabilityId === "release.update") {
+  if (
+    capabilityId === "release.get" ||
+    capabilityId === "release.create_draft" ||
+    capabilityId === "release.update"
+  ) {
     return normalizeRelease(data)
   }
 
@@ -1742,7 +1888,7 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
     const release = normalizeRelease(data)
     return {
       ...release,
-      wasDraft: Boolean(params.__wasDraft)
+      wasDraft: Boolean(params.__wasDraft),
     }
   }
 
@@ -1750,14 +1896,14 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
     return {
       workflowId: String(params.workflowId),
       ref: String(params.ref),
-      dispatched: true
+      dispatched: true,
     }
   }
 
   if (capabilityId === "workflow_run.rerun_failed") {
     return {
       runId: Number(params.runId),
-      rerunFailed: true
+      rerunFailed: true,
     }
   }
 
@@ -1772,7 +1918,7 @@ export async function runCliCapability(
   runner: CliCommandRunner,
   capabilityId: CliCapabilityId,
   params: Record<string, unknown>,
-  card?: OperationCard
+  card?: OperationCard,
 ): Promise<ResultEnvelope> {
   try {
     if (capabilityId === "release.publish_draft") {
@@ -1783,7 +1929,10 @@ export async function runCliCapability(
         throw new Error("Missing owner/name/releaseId for release.publish_draft")
       }
 
-      const readArgs = [...commandTokens(card, "api"), `repos/${owner}/${name}/releases/${releaseId}`]
+      const readArgs = [
+        ...commandTokens(card, "api"),
+        `repos/${owner}/${name}/releases/${releaseId}`,
+      ]
       const readResult = await runner.run("gh", readArgs, DEFAULT_TIMEOUT_MS)
       if (readResult.exitCode !== 0) {
         const code = mapErrorToCode(readResult.stderr)
@@ -1792,16 +1941,18 @@ export async function runCliCapability(
             code,
             message: sanitizeCliErrorMessage(readResult.stderr, readResult.exitCode),
             retryable: isRetryableErrorCode(code),
-            details: { capabilityId, exitCode: readResult.exitCode }
+            details: { capabilityId, exitCode: readResult.exitCode },
           },
           "cli",
-          { capabilityId, reason: "CARD_FALLBACK" }
+          { capabilityId, reason: "CARD_FALLBACK" },
         )
       }
 
       const currentRelease = parseCliData(readResult.stdout)
       const currentDraftValue =
-        typeof currentRelease === "object" && currentRelease !== null && !Array.isArray(currentRelease)
+        typeof currentRelease === "object" &&
+        currentRelease !== null &&
+        !Array.isArray(currentRelease)
           ? (currentRelease as Record<string, unknown>).draft
           : undefined
 
@@ -1810,10 +1961,10 @@ export async function runCliCapability(
           {
             code: errorCodes.Validation,
             message: "release.publish_draft requires an existing draft release",
-            retryable: false
+            retryable: false,
           },
           "cli",
-          { capabilityId, reason: "CARD_FALLBACK" }
+          { capabilityId, reason: "CARD_FALLBACK" },
         )
       }
 
@@ -1827,44 +1978,55 @@ export async function runCliCapability(
             code,
             message: sanitizeCliErrorMessage(result.stderr, result.exitCode),
             retryable: isRetryableErrorCode(code),
-            details: { capabilityId, exitCode: result.exitCode }
+            details: { capabilityId, exitCode: result.exitCode },
           },
           "cli",
-          { capabilityId, reason: "CARD_FALLBACK" }
+          { capabilityId, reason: "CARD_FALLBACK" },
         )
       }
 
-      const normalized = normalizeCliData(capabilityId, parseCliData(result.stdout), { ...params, __wasDraft: true })
+      const normalized = normalizeCliData(capabilityId, parseCliData(result.stdout), {
+        ...params,
+        __wasDraft: true,
+      })
       return normalizeResult(normalized, "cli", { capabilityId, reason: "CARD_FALLBACK" })
     }
 
     const args = buildArgs(capabilityId, params, card)
     const result = await runner.run("gh", args, DEFAULT_TIMEOUT_MS)
 
+    let failureStderr = result.stderr
     if (result.exitCode !== 0) {
-      if (capabilityId === "pr.checks.rerun_failed" && shouldFallbackRerunFailedToAll(result.stderr)) {
+      if (
+        capabilityId === "pr.checks.rerun_failed" &&
+        shouldFallbackRerunFailedToAll(result.stderr)
+      ) {
         const rerunAllArgs = buildArgs("pr.checks.rerun_all", params, card)
         const rerunAllResult = await runner.run("gh", rerunAllArgs, DEFAULT_TIMEOUT_MS)
         if (rerunAllResult.exitCode === 0) {
-          const fallbackData = normalizeCliData(
-            capabilityId,
-            parseCliData(rerunAllResult.stdout),
-            { ...params, __effectiveRerunMode: "all" }
-          )
+          const rerunData = NON_JSON_STDOUT_CAPABILITIES.has(capabilityId)
+            ? {}
+            : parseCliData(rerunAllResult.stdout)
+          const fallbackData = normalizeCliData(capabilityId, rerunData, {
+            ...params,
+            __effectiveRerunMode: "all",
+          })
           return normalizeResult(fallbackData, "cli", { capabilityId, reason: "CARD_FALLBACK" })
         }
+
+        failureStderr = rerunAllResult.stderr || rerunAllResult.stdout || result.stderr
       }
 
-      const code = mapErrorToCode(result.stderr)
+      const code = mapErrorToCode(failureStderr)
       return normalizeError(
         {
           code,
-          message: sanitizeCliErrorMessage(result.stderr, result.exitCode),
+          message: sanitizeCliErrorMessage(failureStderr, result.exitCode),
           retryable: isRetryableErrorCode(code),
-          details: { capabilityId, exitCode: result.exitCode }
+          details: { capabilityId, exitCode: result.exitCode },
         },
         "cli",
-        { capabilityId, reason: "CARD_FALLBACK" }
+        { capabilityId, reason: "CARD_FALLBACK" },
       )
     }
 
@@ -1882,10 +2044,10 @@ export async function runCliCapability(
         {
           code: errorCodes.Server,
           message: "Failed to parse CLI JSON output",
-          retryable: false
+          retryable: false,
         },
         "cli",
-        { capabilityId, reason: "CARD_FALLBACK" }
+        { capabilityId, reason: "CARD_FALLBACK" },
       )
     }
 
@@ -1894,10 +2056,10 @@ export async function runCliCapability(
         {
           code: errorCodes.Server,
           message: error.message,
-          retryable: false
+          retryable: false,
         },
         "cli",
-        { capabilityId, reason: "CARD_FALLBACK" }
+        { capabilityId, reason: "CARD_FALLBACK" },
       )
     }
 
@@ -1906,22 +2068,25 @@ export async function runCliCapability(
         {
           code: errorCodes.Validation,
           message: error.message,
-          retryable: false
+          retryable: false,
         },
         "cli",
-        { capabilityId, reason: "CARD_FALLBACK" }
+        { capabilityId, reason: "CARD_FALLBACK" },
       )
     }
 
-    if (error instanceof Error && error.message.toLowerCase().includes("only supports draft=true")) {
+    if (
+      error instanceof Error &&
+      error.message.toLowerCase().includes("only supports draft=true")
+    ) {
       return normalizeError(
         {
           code: errorCodes.Validation,
           message: error.message,
-          retryable: false
+          retryable: false,
         },
         "cli",
-        { capabilityId, reason: "CARD_FALLBACK" }
+        { capabilityId, reason: "CARD_FALLBACK" },
       )
     }
 
@@ -1930,10 +2095,10 @@ export async function runCliCapability(
       {
         code,
         message: error instanceof Error ? error.message : String(error),
-        retryable: isRetryableErrorCode(code)
+        retryable: isRetryableErrorCode(code),
       },
       "cli",
-      { capabilityId, reason: "CARD_FALLBACK" }
+      { capabilityId, reason: "CARD_FALLBACK" },
     )
   }
 }

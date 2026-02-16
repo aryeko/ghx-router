@@ -987,7 +987,7 @@ describe("runCliCapability", () => {
           exitCode: 1,
         })
         .mockResolvedValueOnce({
-          stdout: "",
+          stdout: "queued",
           stderr: "",
           exitCode: 0,
         }),
@@ -1019,6 +1019,28 @@ describe("runCliCapability", () => {
       ["run", "rerun", "88", "--repo", "acme/modkit"],
       10_000,
     )
+  })
+
+  it("treats workflow rerun stdout as non-JSON", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "queued",
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const rerunResult = await runCliCapability(runner, "workflow_run.rerun_failed", {
+      owner: "acme",
+      name: "modkit",
+      runId: 88,
+    })
+
+    expect(rerunResult.ok).toBe(true)
+    expect(rerunResult.data).toEqual({
+      runId: 88,
+      rerunFailed: true,
+    })
   })
 
   it("validates required Batch A mutation inputs", async () => {
@@ -2909,7 +2931,7 @@ describe("runCliCapability", () => {
     })
   })
 
-  it("returns original rerun-failed error when rerun-all fallback also fails", async () => {
+  it("surfaces rerun-all failure details when fallback rerun also fails", async () => {
     const primaryStderr = "run 88 cannot be rerun; This workflow run cannot be retried"
     const runner = {
       run: vi
@@ -2934,7 +2956,7 @@ describe("runCliCapability", () => {
     })
 
     expect(result.ok).toBe(false)
-    expect(result.error?.message).toBe(primaryStderr)
+    expect(result.error?.message).toBe("rerun all failed")
     expect(runner.run).toHaveBeenCalledTimes(2)
   })
 

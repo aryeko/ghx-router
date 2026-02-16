@@ -62,6 +62,31 @@ describe("report cli", () => {
     expect(parsed.expectationsModel).toBe("openai/gpt-x")
   })
 
+  it("rejects expectation flags without a value", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ghx-bench-report-"))
+    const report = await importReportModule(root)
+
+    expect(() => report.parseArgs(["--expectations-config"])).toThrow(
+      "Missing value for --expectations-config",
+    )
+    expect(() => report.parseArgs(["--expectations-config="])).toThrow(
+      "Missing value for --expectations-config",
+    )
+    expect(() => report.parseArgs(["--expectations-config", "--gate"])).toThrow(
+      "Missing value for --expectations-config",
+    )
+
+    expect(() => report.parseArgs(["--expectations-model"])).toThrow(
+      "Missing value for --expectations-model",
+    )
+    expect(() => report.parseArgs(["--expectations-model="])).toThrow(
+      "Missing value for --expectations-model",
+    )
+    expect(() => report.parseArgs(["--expectations-model", "--gate"])).toThrow(
+      "Missing value for --expectations-model",
+    )
+  })
+
   it("loads latest rows and writes report outputs", async () => {
     const root = await mkdtemp(join(tmpdir(), "ghx-bench-report-"))
     const results = join(root, "results")
@@ -273,6 +298,50 @@ describe("report cli", () => {
     await expect(
       report.main(["--expectations-model", "openai/gpt-5.1-codex-mini"]),
     ).rejects.toThrow("Expectations config not found")
+    process.chdir(previous)
+  })
+
+  it("fails when an explicit expectations config path does not exist", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ghx-bench-report-"))
+    const results = join(root, "results")
+    await mkdir(results, { recursive: true })
+
+    const row = JSON.stringify({
+      timestamp: "2026-02-13T00:00:00.000Z",
+      run_id: "r1",
+      mode: "agent_direct",
+      scenario_id: "s1",
+      scenario_set: null,
+      iteration: 1,
+      session_id: "ss",
+      success: true,
+      output_valid: true,
+      latency_ms_wall: 100,
+      sdk_latency_ms: 90,
+      tokens: { input: 1, output: 1, reasoning: 1, cache_read: 0, cache_write: 0, total: 3 },
+      cost: 0,
+      tool_calls: 1,
+      api_calls: 1,
+      internal_retry_count: 0,
+      external_retry_count: 0,
+      model: { provider_id: "openai", model_id: "gpt-5.1-codex-mini", mode: null },
+      git: { repo: null, commit: null },
+      error: null,
+    })
+
+    await writeFile(join(results, "2026-01-01-agent_direct-suite.jsonl"), `${row}\n`, "utf8")
+    await writeFile(
+      join(results, "2026-01-02-ghx-suite.jsonl"),
+      `${row.replace("agent_direct", "ghx")}\n`,
+      "utf8",
+    )
+
+    const report = await importReportModule(root)
+    const previous = process.cwd()
+    process.chdir(root)
+    await expect(report.main(["--expectations-config", "config/missing.json"])).rejects.toThrow(
+      "Expectations config not found",
+    )
     process.chdir(previous)
   })
 
