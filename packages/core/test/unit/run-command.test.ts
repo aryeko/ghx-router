@@ -39,7 +39,9 @@ describe("runCommand", () => {
     const code = await runCommand([])
 
     expect(code).toBe(1)
-    expect(stdout).toHaveBeenCalledWith("Usage: ghx run <task> --input '<json>'\n")
+    expect(stdout).toHaveBeenCalledWith(
+      "Usage: ghx run <task> --input '<json>' [--check-gh-preflight]\n",
+    )
   })
 
   it("throws for missing input flag", async () => {
@@ -87,6 +89,48 @@ describe("runCommand", () => {
     expect(createGithubClientMock).toHaveBeenCalledTimes(1)
     expect(executeTaskMock).toHaveBeenCalledTimes(1)
     expect(stdout).toHaveBeenCalledWith('{"ok":true,"route":"graphql"}\n')
+  })
+
+  it("defaults to skipping gh preflight in executeTask deps", async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ data: { repository: { id: "r1" } } }),
+    }))
+    vi.stubGlobal("fetch", fetchMock)
+
+    executeTaskMock.mockResolvedValue({ ok: true })
+
+    await runCommand(["repo.view", "--input", '{"owner":"a","name":"b"}'])
+
+    expect(executeTaskMock).toHaveBeenCalledTimes(1)
+    expect(executeTaskMock).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.objectContaining({
+        skipGhPreflight: true,
+      }),
+    )
+  })
+
+  it("passes skipGhPreflight=false when --check-gh-preflight is provided", async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ data: { repository: { id: "r1" } } }),
+    }))
+    vi.stubGlobal("fetch", fetchMock)
+
+    executeTaskMock.mockResolvedValue({ ok: true })
+
+    await runCommand(["repo.view", "--input", '{"owner":"a","name":"b"}', "--check-gh-preflight"])
+
+    expect(executeTaskMock).toHaveBeenCalledTimes(1)
+    expect(executeTaskMock).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.objectContaining({
+        skipGhPreflight: false,
+      }),
+    )
   })
 
   it("propagates non-ok GraphQL HTTP responses", async () => {

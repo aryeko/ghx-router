@@ -698,7 +698,7 @@ describe("suite-runner helpers", () => {
       },
       "ghx",
     )
-    expect(prompt).toContain("GHX_SKIP_GH_PREFLIGHT=1 node ../core/dist/cli/index.js run")
+    expect(prompt).not.toContain("You are running a benchmark in ghx mode")
     expect(prompt).toContain("id")
     expect(prompt).toContain("If the ghx command fails")
   })
@@ -738,8 +738,8 @@ describe("suite-runner helpers", () => {
     expect(spawnSyncMock).toHaveBeenNthCalledWith(1, "gh", ["auth", "status"], { encoding: "utf8" })
     expect(spawnSyncMock).toHaveBeenNthCalledWith(
       2,
-      "node",
-      [expect.stringContaining("/core/dist/cli/index.js"), "capabilities", "list", "--json"],
+      expect.stringContaining("/packages/benchmark/bin/ghx"),
+      ["capabilities", "list", "--json"],
       { encoding: "utf8" },
     )
   })

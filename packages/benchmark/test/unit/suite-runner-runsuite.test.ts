@@ -145,6 +145,15 @@ describe("runSuite", () => {
     const mod = await import("../../src/runner/suite-runner.js")
     await mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null })
 
+    expect(createOpencodeMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        config: expect.objectContaining({
+          instructions: expect.arrayContaining([expect.stringContaining("# ghx CLI Skill")]),
+          plugin: [],
+        }),
+      }),
+    )
+
     expect(mkdirMock).toHaveBeenCalled()
     expect(appendFileMock).toHaveBeenCalled()
     const appendCalls = appendFileMock.mock.calls as unknown[][]
@@ -220,6 +229,46 @@ describe("runSuite", () => {
     const prompt = String(firstPromptPayload.body?.parts?.[0]?.text ?? "")
     expect(prompt).toContain('"owner":"aryeko"')
     expect(prompt).toContain('"name":"ghx-bench-fixtures"')
+    expect(close).toHaveBeenCalled()
+  })
+
+  it("loads agent_direct instruction instead of ghx skill", async () => {
+    const session = createSessionMocks()
+    const close = vi.fn()
+    createOpencodeMock.mockResolvedValue({ client: { session }, server: { close } })
+
+    loadScenariosMock.mockResolvedValue([
+      {
+        id: "repo-view-001",
+        name: "Repo view",
+        task: "repo.view",
+        input: { owner: "a", name: "b" },
+        prompt_template: "run {{task}} {{input_json}}",
+        timeout_ms: 1000,
+        allowed_retries: 0,
+        fixture: { repo: "a/b" },
+        assertions: {
+          must_succeed: true,
+          required_fields: ["ok", "data", "error", "meta"],
+          required_data_fields: ["id"],
+        },
+        tags: [],
+      },
+    ])
+
+    const mod = await import("../../src/runner/suite-runner.js")
+    await mod.runSuite({ mode: "agent_direct", repetitions: 1, scenarioFilter: null })
+
+    expect(createOpencodeMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        config: expect.objectContaining({
+          instructions: [
+            expect.stringContaining("Use GitHub CLI (`gh`) commands directly to complete the task"),
+          ],
+        }),
+      }),
+    )
+    expect(close).toHaveBeenCalled()
   })
 
   it("runs selected scenario set and records scenario_set metadata", async () => {
