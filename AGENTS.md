@@ -22,6 +22,7 @@ If any of these are added later, treat them as required policy inputs.
 From repo root:
 
 ```bash
+./scripts/setup-dev-env.sh
 pnpm install
 ```
 
@@ -180,8 +181,21 @@ pnpm --filter @ghx-dev/core exec vitest run test/unit/run-command.test.ts -t "pa
 Before final handoff on substantial changes, run:
 
 ```bash
-pnpm run ci:affected --parallel=3 --outputStyle=static
-pnpm run test:coverage --parallel=3 --outputStyle=static
+pnpm run ci
 ```
 
 Coverage expectation for touched files: >=90% (aim for 95% when practical).
+
+## PR Template Compliance
+Before opening a PR, review `.github/pull_request_template.md` and satisfy every applicable
+validation checkbox.
+
+Required checks from the template:
+
+```bash
+pnpm run ci
+```
+
+Conditional checks from the template:
+- Run `pnpm run ghx:gql:check` if GraphQL operations changed.
+- Confirm tests were added/updated as needed for behavior changes.

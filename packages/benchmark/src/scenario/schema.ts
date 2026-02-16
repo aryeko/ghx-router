@@ -35,7 +35,7 @@ const scenarioSchema = z.object({
   id: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*-\d{3}$/),
   name: z.string().min(1),
   task: z.string().min(1),
-  input: z.record(z.unknown()),
+  input: z.record(z.string(), z.unknown()),
   prompt_template: z.string().min(1),
   timeout_ms: z.number().positive(),
   allowed_retries: z.number().int().nonnegative(),

@@ -111,8 +111,8 @@ Need a custom GraphQL transport? Use `createGithubClient(transport)` instead -- 
 Install ghx as a project skill for Claude Code:
 
 ```bash
-npx @ghx-dev/core setup --platform claude-code --scope project --yes
-npx @ghx-dev/core setup --platform claude-code --scope project --verify
+npx @ghx-dev/core setup --scope project --yes
+npx @ghx-dev/core setup --scope project --verify
 ```
 
 ### Setup Skill Source

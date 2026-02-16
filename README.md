@@ -65,8 +65,8 @@ ghx run repo.view --input '{"owner":"aryeko","name":"ghx"}'
 Agent onboarding (Claude Code skill):
 
 ```bash
-npx @ghx-dev/core setup --platform claude-code --scope project --yes
-npx @ghx-dev/core setup --platform claude-code --scope project --verify
+npx @ghx-dev/core setup --scope project --yes
+npx @ghx-dev/core setup --scope project --verify
 ```
 
 ## Example Output

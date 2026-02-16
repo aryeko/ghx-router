@@ -5,7 +5,7 @@ import { z } from "zod"
 import type { Scenario } from "../domain/types.js"
 import { validateScenario } from "./schema.js"
 
-const scenarioSetsSchema = z.record(z.array(z.string().min(1)))
+const scenarioSetsSchema = z.record(z.string(), z.array(z.string().min(1)))
 
 export async function loadScenarios(scenariosDir: string): Promise<Scenario[]> {
   const files = await readdir(scenariosDir)
