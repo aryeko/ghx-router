@@ -211,5 +211,6 @@ describe("fixtures CLI", () => {
 
     expect(errorSpy).toHaveBeenCalledWith("manifest missing")
     expect(exitSpy).toHaveBeenCalledWith(1)
+    expect(exitSpy).toHaveBeenCalledOnce()
   })
 })
