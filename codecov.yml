@@ -4,11 +4,10 @@ coverage:
       default:
         target: 90%
         threshold: 1%
-        informational: true
+        if_not_found: success
     patch:
       default:
         target: 90%
-        informational: true
         if_not_found: success
 comment:
   layout: "reach,diff,flags,files"

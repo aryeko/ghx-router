@@ -8,7 +8,7 @@ Defined in `codecov.yml`:
 
 - Project target: `90%` (threshold `1%`)
 - Patch target: `90%`
-- Coverage statuses are `informational` so PRs without coverage artifacts are not blocked
+- Missing coverage reports are treated as success (`if_not_found: success`) so non-code changes don't fail on missing artifacts
 
 ## Scope
 
