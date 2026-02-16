@@ -91,9 +91,12 @@ Use `openai/gpt-5.1-codex-mini`, one iteration, and run both modes for each set 
 
 #### Preconditions
 
-1. Ensure fixture manifest is valid:
+1. Ensure fixture manifest exists, then validate it:
 
 ```bash
+if [ ! -f fixtures/latest.json ]; then
+  pnpm --filter @ghx-dev/benchmark run fixtures -- seed --out fixtures/latest.json --seed-id local
+fi
 pnpm --filter @ghx-dev/benchmark run fixtures -- status --out fixtures/latest.json
 ```
 
@@ -121,12 +124,42 @@ export BENCH_MODEL_ID=gpt-5.1-codex-mini
 For each set `<SET>`:
 
 ```bash
+# ensure report reads only this set's paired outputs
+rm -f packages/benchmark/results/*-agent_direct-suite.jsonl packages/benchmark/results/*-ghx-suite.jsonl
+
 pnpm --filter @ghx-dev/benchmark run benchmark -- agent_direct 1 --scenario-set <SET> --fixture-manifest fixtures/latest.json
 GHX_SKIP_GH_PREFLIGHT=1 pnpm --filter @ghx-dev/benchmark run benchmark -- ghx 1 --scenario-set <SET> --fixture-manifest fixtures/latest.json
+
+SET_ARTIFACT_DIR="packages/benchmark/reports/verification-$(date +%F)-gpt-5.1-codex-mini-by-set/<SET>"
+mkdir -p "$SET_ARTIFACT_DIR"
+cp packages/benchmark/results/*-agent_direct-suite.jsonl "$SET_ARTIFACT_DIR/agent_direct-suite.jsonl"
+cp packages/benchmark/results/*-ghx-suite.jsonl "$SET_ARTIFACT_DIR/ghx-suite.jsonl"
+
 pnpm --filter @ghx-dev/benchmark run report -- --gate --gate-profile verify_pr --expectations-model openai/gpt-5.1-codex-mini || true
+cp packages/benchmark/reports/latest-summary.json "$SET_ARTIFACT_DIR/latest-summary.json"
+cp packages/benchmark/reports/latest-summary.md "$SET_ARTIFACT_DIR/latest-summary.md"
 ```
 
-Archive each set's latest summary and paired result files immediately after the run.
+Run row-level blocking validation before proceeding to the next set:
+
+```bash
+pnpm --filter @ghx-dev/benchmark exec node -e '
+const fs = require("node:fs")
+const files = process.argv.slice(1)
+const rows = files.flatMap((file) =>
+  fs.readFileSync(file, "utf8").trim().split("\n").filter(Boolean).map((line) => JSON.parse(line))
+)
+const bad = rows.filter((row) => row.success !== true || row.output_valid !== true || row.error !== null)
+if (bad.length > 0) {
+  console.error("Blocking validation failed:")
+  for (const row of bad) {
+    console.error(` - mode=${row.mode} scenario=${row.scenario_id} success=${row.success} output_valid=${row.output_valid} error=${row.error ?? "<null>"}`)
+  }
+  process.exit(1)
+}
+console.log(`Blocking validation passed (${rows.length} rows)`)
+' "$SET_ARTIFACT_DIR/agent_direct-suite.jsonl" "$SET_ARTIFACT_DIR/ghx-suite.jsonl"
+```
 
 #### Pass criteria per set (blocking)
 
@@ -168,8 +201,9 @@ After mini phase stabilizes and all blocking checks pass:
 
 1. switch to `openai/gpt-5.3-codex`
 2. run paired `verify_pr` (agent_direct + ghx)
-3. run report gate using 5.3 expectations
-4. decide go/no-go for benchmark baseline update.
+3. run paired `verify_release` (agent_direct + ghx)
+4. run report gate using 5.3 expectations for each profile
+5. decide go/no-go for benchmark baseline update.
 
 ## Risks and Mitigations
 
