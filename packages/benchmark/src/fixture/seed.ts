@@ -1,7 +1,7 @@
+import { spawnSync } from "node:child_process"
+import { randomUUID } from "node:crypto"
 import { mkdir, writeFile } from "node:fs/promises"
 import { dirname } from "node:path"
-import { randomUUID } from "node:crypto"
-import { spawnSync } from "node:child_process"
 
 import type { FixtureManifest } from "../domain/types.js"
 
@@ -11,13 +11,14 @@ type SeedOptions = {
   seedId: string
 }
 
-const FAILED_RERUN_WORKFLOW_FILE = process.env.BENCH_FIXTURE_FAILED_RERUN_WORKFLOW ?? "bench-rerun-failed.yml"
+const FAILED_RERUN_WORKFLOW_FILE =
+  process.env.BENCH_FIXTURE_FAILED_RERUN_WORKFLOW ?? "bench-rerun-failed.yml"
 const FAILED_RERUN_POLL_INTERVAL_MS = 2000
 const FAILED_RERUN_TIMEOUT_MS = 90_000
 
 function runGh(args: string[]): string {
   const result = spawnSync("gh", args, {
-    encoding: "utf8"
+    encoding: "utf8",
   })
 
   if (result.status !== 0) {
@@ -101,7 +102,10 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-function findOrCreateIssue(repo: string, seedLabel: string): { id: string; number: number; url: string } {
+function findOrCreateIssue(
+  repo: string,
+  seedLabel: string,
+): { id: string; number: number; url: string } {
   const { owner, name } = parseRepo(repo)
   const listResult = runGhJson([
     "issue",
@@ -117,7 +121,7 @@ function findOrCreateIssue(repo: string, seedLabel: string): { id: string; numbe
     "--limit",
     "1",
     "--json",
-    "id,number,url"
+    "id,number,url",
   ])
 
   const existingItems = Array.isArray(listResult)
@@ -129,11 +133,15 @@ function findOrCreateIssue(repo: string, seedLabel: string): { id: string; numbe
   const existing = existingItems[0]
   if (typeof existing === "object" && existing !== null) {
     const issue = existing as Record<string, unknown>
-    if (typeof issue.id === "string" && typeof issue.number === "number" && typeof issue.url === "string") {
+    if (
+      typeof issue.id === "string" &&
+      typeof issue.number === "number" &&
+      typeof issue.url === "string"
+    ) {
       return {
         id: issue.id,
         number: issue.number,
-        url: issue.url
+        url: issue.url,
       }
     }
   }
@@ -151,7 +159,7 @@ function findOrCreateIssue(repo: string, seedLabel: string): { id: string; numbe
     "-f",
     "labels[]=bench-fixture",
     "-f",
-    `labels[]=${seedLabel}`
+    `labels[]=${seedLabel}`,
   ])
 
   const createdIssue = createResult as Record<string, unknown>
@@ -212,12 +220,19 @@ function findSeededPr(repo: string, seedLabel: string): { id: string; number: nu
   }
 }
 
-function createSeedPr(repo: string, seedId: string, seedLabel: string): { id: string; number: number } {
+function createSeedPr(
+  repo: string,
+  seedId: string,
+  seedLabel: string,
+): { id: string; number: number } {
   const { owner, name } = parseRepo(repo)
   const branch = `bench-seed-${seedId}`
   const contentPath = `.bench/seed-${seedId}.md`
 
-  const refResult = runGhJson(["api", `repos/${owner}/${name}/git/ref/heads/main`]) as Record<string, unknown>
+  const refResult = runGhJson(["api", `repos/${owner}/${name}/git/ref/heads/main`]) as Record<
+    string,
+    unknown
+  >
   const object = refResult.object as Record<string, unknown>
   const baseSha = String(object.sha ?? "")
   if (baseSha.length === 0) {
@@ -374,9 +389,13 @@ function findPrThreadId(repo: string, prNumber: number): string | null {
     return null
   }
 
-  const nodes = (((result as { data?: unknown }).data as { repository?: unknown } | undefined)?.repository as {
-    pullRequest?: unknown
-  } | undefined)?.pullRequest as { reviewThreads?: unknown } | undefined
+  const nodes = (
+    ((result as { data?: unknown }).data as { repository?: unknown } | undefined)?.repository as
+      | {
+          pullRequest?: unknown
+        }
+      | undefined
+  )?.pullRequest as { reviewThreads?: unknown } | undefined
 
   const threadNodes = parseArrayResponse((nodes?.reviewThreads ?? {}) as unknown)
   const first = threadNodes[0]
@@ -433,7 +452,11 @@ function parseWorkflowRunCreatedAtMs(entry: Record<string, unknown>): number {
   return Number.isFinite(createdAt) ? createdAt : 0
 }
 
-function findDispatchedFailedRunId(repo: string, seedId: string, dispatchedAtMs: number): number | null {
+function findDispatchedFailedRunId(
+  repo: string,
+  seedId: string,
+  dispatchedAtMs: number,
+): number | null {
   const listResult = tryRunGhJson([
     "run",
     "list",
@@ -450,7 +473,9 @@ function findDispatchedFailedRunId(repo: string, seedId: string, dispatchedAtMs:
   ])
 
   const runs = parseArrayResponse(listResult)
-    .filter((entry): entry is Record<string, unknown> => typeof entry === "object" && entry !== null)
+    .filter(
+      (entry): entry is Record<string, unknown> => typeof entry === "object" && entry !== null,
+    )
     .sort((left, right) => parseWorkflowRunCreatedAtMs(right) - parseWorkflowRunCreatedAtMs(left))
 
   const tagged = runs.find((entry) => {
@@ -467,24 +492,53 @@ function findDispatchedFailedRunId(repo: string, seedId: string, dispatchedAtMs:
     return createdAtMs >= dispatchedAtMs - 10_000
   })
 
-  if (nearDispatch && Number.isInteger(Number(nearDispatch.databaseId)) && Number(nearDispatch.databaseId) > 0) {
+  if (
+    nearDispatch &&
+    Number.isInteger(Number(nearDispatch.databaseId)) &&
+    Number(nearDispatch.databaseId) > 0
+  ) {
     return Number(nearDispatch.databaseId)
   }
 
   return null
 }
 
-function readWorkflowRunJobId(repo: string, runId: number): number | null {
-  const jobsResult = runGhJson([
-    "run",
-    "view",
-    String(runId),
-    "--repo",
-    repo,
-    "--json",
-    "jobs"
-  ])
-  const jobs = Array.isArray((jobsResult as { jobs?: unknown[] }).jobs) ? (jobsResult as { jobs: unknown[] }).jobs : []
+function parseCheckRunIdFromJob(entry: Record<string, unknown>): number | null {
+  const directIdCandidates = [entry.checkRunId, entry.check_run_id]
+  for (const candidate of directIdCandidates) {
+    if (typeof candidate === "number" && Number.isInteger(candidate) && candidate > 0) {
+      return Number(candidate)
+    }
+  }
+
+  const urlCandidates = [entry.checkRunUrl, entry.check_run_url]
+  for (const candidate of urlCandidates) {
+    if (typeof candidate !== "string") {
+      continue
+    }
+
+    const match = candidate.match(/\/check-runs\/(\d+)(?:[/?#]|$)/)
+    if (!match) {
+      continue
+    }
+
+    const parsed = Number(match[1])
+    if (Number.isInteger(parsed) && parsed > 0) {
+      return parsed
+    }
+  }
+
+  return null
+}
+
+function readWorkflowRunJobRefs(
+  repo: string,
+  runId: number,
+): { job_id: number | null; check_run_id: number | null } {
+  const jobsResult = runGhJson(["run", "view", String(runId), "--repo", repo, "--json", "jobs"])
+  const jobs = Array.isArray((jobsResult as { jobs?: unknown[] }).jobs)
+    ? (jobsResult as { jobs: unknown[] }).jobs
+    : []
   const failedJob = jobs.find((entry) => {
     if (typeof entry !== "object" || entry === null) {
       return false
@@ -494,13 +548,36 @@ function readWorkflowRunJobId(repo: string, runId: number): number | null {
     return conclusion === "failure"
   })
   const selectedJob = failedJob ?? jobs[0]
+  if (typeof selectedJob !== "object" || selectedJob === null) {
+    return {
+      job_id: null,
+      check_run_id: null,
+    }
+  }
 
-  return typeof selectedJob === "object" && selectedJob !== null && typeof (selectedJob as Record<string, unknown>).databaseId === "number"
-    ? Number((selectedJob as Record<string, unknown>).databaseId)
-    : null
+  const selectedJobRecord = selectedJob as Record<string, unknown>
+  const jobId =
+    typeof selectedJobRecord.databaseId === "number" &&
+    Number.isInteger(selectedJobRecord.databaseId)
+      ? Number(selectedJobRecord.databaseId)
+      : null
+
+  return {
+    job_id: jobId,
+    check_run_id: parseCheckRunIdFromJob(selectedJobRecord),
+  }
 }
 
-async function ensureFailedRerunWorkflowRun(repo: string, seedId: string): Promise<{ id: number; job_id: number | null } | null> {
+type WorkflowRunRef = {
+  id: number
+  job_id: number | null
+  check_run_id: number | null
+}
+
+async function ensureFailedRerunWorkflowRun(
+  repo: string,
+  seedId: string,
+): Promise<WorkflowRunRef | null> {
   const dispatchedAtMs = Date.now()
   const dispatchOutput = tryRunGh([
     "workflow",
@@ -547,20 +624,24 @@ async function ensureFailedRerunWorkflowRun(repo: string, seedId: string): Promi
 
     if (conclusion !== "failure") {
       throw new Error(
-        `expected failed rerun fixture workflow to conclude with failure; got conclusion=${conclusion || "unknown"}`
+        `expected failed rerun fixture workflow to conclude with failure; got conclusion=${conclusion || "unknown"}`,
       )
     }
 
+    const refs = readWorkflowRunJobRefs(repo, runId)
     return {
       id: runId,
-      job_id: readWorkflowRunJobId(repo, runId)
+      job_id: refs.job_id,
+      check_run_id: refs.check_run_id,
     }
   }
 
-  throw new Error(`timed out waiting for failed rerun fixture workflow (${FAILED_RERUN_WORKFLOW_FILE})`)
+  throw new Error(
+    `timed out waiting for failed rerun fixture workflow (${FAILED_RERUN_WORKFLOW_FILE})`,
+  )
 }
 
-function findLatestWorkflowRun(repo: string, prNumber: number): { id: number; job_id: number | null } | null {
+function findLatestWorkflowRun(repo: string, prNumber: number): WorkflowRunRef | null {
   const prChecksResult = tryRunGhJson([
     "pr",
     "checks",
@@ -571,11 +652,17 @@ function findLatestWorkflowRun(repo: string, prNumber: number): { id: number; jo
     "state,link",
   ])
   const checks = parseArrayResponse(prChecksResult)
-  const checkEntries = checks.filter((entry): entry is Record<string, unknown> => typeof entry === "object" && entry !== null)
-  const failedCheck = checkEntries.find((entry) => String(entry.state ?? "").toUpperCase() === "FAILURE")
+  const checkEntries = checks.filter(
+    (entry): entry is Record<string, unknown> => typeof entry === "object" && entry !== null,
+  )
+  const failedCheck = checkEntries.find(
+    (entry) => String(entry.state ?? "").toUpperCase() === "FAILURE",
+  )
   const firstCheck = checkEntries[0]
   const linkedRunId = [failedCheck, firstCheck]
-    .map((entry) => (typeof entry?.link === "string" ? parseWorkflowRunIdFromLink(entry.link) : null))
+    .map((entry) =>
+      typeof entry?.link === "string" ? parseWorkflowRunIdFromLink(entry.link) : null,
+    )
     .find((id): id is number => id !== null)
 
   if (linkedRunId !== undefined) {
@@ -586,23 +673,48 @@ function findLatestWorkflowRun(repo: string, prNumber: number): { id: number; jo
       "--repo",
       repo,
       "--json",
-      "jobs"
+      "jobs",
     ])
-    const jobs = Array.isArray((jobsResult as { jobs?: unknown[] }).jobs) ? (jobsResult as { jobs: unknown[] }).jobs : []
+    const jobs = Array.isArray((jobsResult as { jobs?: unknown[] }).jobs)
+      ? (jobsResult as { jobs: unknown[] }).jobs
+      : []
     const firstJob = jobs[0]
-    const jobId =
-      typeof firstJob === "object" && firstJob !== null && typeof (firstJob as Record<string, unknown>).databaseId === "number"
-        ? Number((firstJob as Record<string, unknown>).databaseId)
-        : null
+    const refs =
+      typeof firstJob === "object" && firstJob !== null
+        ? {
+            job_id:
+              typeof (firstJob as Record<string, unknown>).databaseId === "number"
+                ? Number((firstJob as Record<string, unknown>).databaseId)
+                : null,
+            check_run_id: parseCheckRunIdFromJob(firstJob as Record<string, unknown>),
+          }
+        : {
+            job_id: null,
+            check_run_id: null,
+          }
 
     return {
       id: linkedRunId,
-      job_id: jobId
+      job_id: refs.job_id,
+      check_run_id: refs.check_run_id,
     }
   }
 
   const runListArgsCandidates: string[][] = [
-    ["run", "list", "--repo", repo, "--workflow", "ci.yml", "--status", "failure", "--limit", "1", "--json", "databaseId"],
+    [
+      "run",
+      "list",
+      "--repo",
+      repo,
+      "--workflow",
+      "ci.yml",
+      "--status",
+      "failure",
+      "--limit",
+      "1",
+      "--json",
+      "databaseId",
+    ],
     ["run", "list", "--repo", repo, "--workflow", "ci.yml", "--limit", "1", "--json", "databaseId"],
   ]
 
@@ -612,7 +724,7 @@ function findLatestWorkflowRun(repo: string, prNumber: number): { id: number; jo
     const runs = Array.isArray(runResult)
       ? runResult
       : Array.isArray((runResult as { [k: string]: unknown } | null)?.items)
-        ? (((runResult as { items: unknown[] }).items) ?? [])
+        ? ((runResult as { items: unknown[] }).items ?? [])
         : []
     const first = runs[0]
     if (!first || typeof first !== "object") {
@@ -635,25 +747,12 @@ function findLatestWorkflowRun(repo: string, prNumber: number): { id: number; jo
     return null
   }
 
-  const jobsResult = runGhJson([
-    "run",
-    "view",
-    String(runIdNumber),
-    "--repo",
-    repo,
-    "--json",
-    "jobs"
-  ])
-  const jobs = Array.isArray((jobsResult as { jobs?: unknown[] }).jobs) ? (jobsResult as { jobs: unknown[] }).jobs : []
-  const firstJob = jobs[0]
-  const jobId =
-    typeof firstJob === "object" && firstJob !== null && typeof (firstJob as Record<string, unknown>).databaseId === "number"
-      ? Number((firstJob as Record<string, unknown>).databaseId)
-      : null
+  const refs = readWorkflowRunJobRefs(repo, runIdNumber)
 
   return {
     id: runIdNumber,
-    job_id: jobId
+    job_id: refs.job_id,
+    check_run_id: refs.check_run_id,
   }
 }
 
@@ -667,10 +766,14 @@ function findLatestDraftRelease(repo: string): { id: number; tag_name: string } 
       continue
     }
     const release = item as Record<string, unknown>
-    if (release.draft === true && typeof release.id === "number" && typeof release.tag_name === "string") {
+    if (
+      release.draft === true &&
+      typeof release.id === "number" &&
+      typeof release.tag_name === "string"
+    ) {
       return {
         id: release.id,
-        tag_name: release.tag_name
+        tag_name: release.tag_name,
       }
     }
   }
@@ -730,7 +833,9 @@ function ensureProjectFixture(
     "json",
   ])
   const itemId =
-    typeof itemResult === "object" && itemResult !== null && typeof (itemResult as { id?: unknown }).id === "string"
+    typeof itemResult === "object" &&
+    itemResult !== null &&
+    typeof (itemResult as { id?: unknown }).id === "string"
       ? String((itemResult as { id: string }).id)
       : ""
 
@@ -758,7 +863,9 @@ function ensureProjectFixture(
     if (type === "ProjectV2SingleSelectField" && id.length > 0 && options.length > 0) {
       const firstOption = options[0]
       const candidate =
-        typeof firstOption === "object" && firstOption !== null && typeof (firstOption as { id?: unknown }).id === "string"
+        typeof firstOption === "object" &&
+        firstOption !== null &&
+        typeof (firstOption as { id?: unknown }).id === "string"
           ? String((firstOption as { id: string }).id)
           : ""
       if (candidate.length > 0) {
@@ -791,12 +898,14 @@ async function buildManifest(repo: string, seedId: string): Promise<FixtureManif
   const pr = findSeededPr(repo, seedLabel) ?? createSeedPr(repo, seedId, seedLabel)
   createMainlineFixtureCommit(repo, seedId)
   const prThreadId = ensurePrThread(repo, pr.number, seedId)
-  let workflowRun: { id: number; job_id: number | null } | null = null
+  let workflowRun: WorkflowRunRef | null = null
   try {
     workflowRun = await ensureFailedRerunWorkflowRun(repo, seedId)
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error)
-    console.warn(`warning: failed rerun fixture workflow unavailable (${message}); falling back to latest workflow run`)
+    console.warn(
+      `warning: failed rerun fixture workflow unavailable (${message}); falling back to latest workflow run`,
+    )
   }
 
   if (!workflowRun) {
@@ -808,7 +917,9 @@ async function buildManifest(repo: string, seedId: string): Promise<FixtureManif
     project = ensureProjectFixture(owner, issue.url)
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error)
-    console.warn(`warning: unable to seed project fixture (${message}); using placeholder project fixture values`)
+    console.warn(
+      `warning: unable to seed project fixture (${message}); using placeholder project fixture values`,
+    )
     project = {
       number: 1,
       id: "",
@@ -824,7 +935,7 @@ async function buildManifest(repo: string, seedId: string): Promise<FixtureManif
       owner,
       name,
       full_name: repo,
-      default_branch: "main"
+      default_branch: "main",
     },
     resources: {
       issue,
@@ -832,28 +943,28 @@ async function buildManifest(repo: string, seedId: string): Promise<FixtureManif
       parent_issue: parentIssue,
       pr,
       pr_thread: {
-        id: prThreadId
+        id: prThreadId,
       },
       workflow_run: workflowRun ?? {
-        id: 1
+        id: 1,
       },
       workflow_job: {
-        id: workflowRun?.job_id ?? 1
+        id: workflowRun?.job_id ?? 1,
       },
       check_run: {
-        id: workflowRun?.job_id ?? 1
+        id: workflowRun?.check_run_id ?? 1,
       },
       release: release ?? {
         id: 1,
-        tag_name: "v0.0.0-bench"
+        tag_name: "v0.0.0-bench",
       },
       project,
       metadata: {
         seed_id: seedId,
         generated_at: new Date().toISOString(),
-        run_id: randomUUID()
-      }
-    }
+        run_id: randomUUID(),
+      },
+    },
   }
 
   return manifest

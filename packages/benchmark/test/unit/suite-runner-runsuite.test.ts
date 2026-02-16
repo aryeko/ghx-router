@@ -1,25 +1,32 @@
-import { beforeEach, describe, expect, it, vi } from "vitest"
 import { spawnSync } from "node:child_process"
 import { mkdtemp, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const { createOpencodeMock, loadScenariosMock, loadScenarioSetsMock, appendFileMock, mkdirMock, accessMock } = vi.hoisted(() => ({
+const {
+  createOpencodeMock,
+  loadScenariosMock,
+  loadScenarioSetsMock,
+  appendFileMock,
+  mkdirMock,
+  accessMock,
+} = vi.hoisted(() => ({
   createOpencodeMock: vi.fn(),
   loadScenariosMock: vi.fn(),
   loadScenarioSetsMock: vi.fn(),
   appendFileMock: vi.fn(async () => undefined),
   mkdirMock: vi.fn(async () => undefined),
-  accessMock: vi.fn(async () => undefined)
+  accessMock: vi.fn(async () => undefined),
 }))
 
 vi.mock("@opencode-ai/sdk", () => ({
-  createOpencode: createOpencodeMock
+  createOpencode: createOpencodeMock,
 }))
 
 vi.mock("../../src/scenario/loader.js", () => ({
   loadScenarios: loadScenariosMock,
-  loadScenarioSets: loadScenarioSetsMock
+  loadScenarioSets: loadScenarioSetsMock,
 }))
 
 vi.mock("node:fs/promises", async (importOriginal) => {
@@ -28,7 +35,7 @@ vi.mock("node:fs/promises", async (importOriginal) => {
     ...actual,
     access: accessMock,
     appendFile: appendFileMock,
-    mkdir: mkdirMock
+    mkdir: mkdirMock,
   }
 })
 
@@ -37,10 +44,10 @@ vi.mock("node:child_process", () => ({
     status: 0,
     stdout: JSON.stringify([
       { capability_id: "repo.view", description: "Repo view" },
-      { capability_id: "pr.view", description: "PR view" }
+      { capability_id: "pr.view", description: "PR view" },
     ]),
-    stderr: ""
-  }))
+    stderr: "",
+  })),
 }))
 
 const spawnSyncMock = vi.mocked(spawnSync)
@@ -65,12 +72,12 @@ function createSessionMocks(options?: { firstPromptFails?: boolean }) {
             role: "assistant",
             time: { created: 1, completed: 10 },
             tokens: { input: 1, output: 2, reasoning: 3, cache: { read: 0, write: 0 } },
-            cost: 0
+            cost: 0,
           },
           parts: [
             {
               type: "text",
-              text: '{"ok":true,"data":{"id":"repo"},"error":null,"meta":{"route_used":"graphql","attempts":[{"route":"graphql","status":"success"}]}}'
+              text: '{"ok":true,"data":{"id":"repo"},"error":null,"meta":{"route_used":"graphql","attempts":[{"route":"graphql","status":"success"}]}}',
             },
             { type: "tool", tool: "api-client" },
             {
@@ -78,13 +85,13 @@ function createSessionMocks(options?: { firstPromptFails?: boolean }) {
               reason: "done",
               tokens: { input: 1, output: 2, reasoning: 3, cache: { read: 0, write: 0 } },
               cost: 0,
-              time: { end: 10 }
-            }
-          ]
-        }
-      ]
+              time: { end: 10 },
+            },
+          ],
+        },
+      ],
     })),
-    abort: vi.fn(async () => ({ data: {} }))
+    abort: vi.fn(async () => ({ data: {} })),
   }
 
   return session
@@ -100,7 +107,7 @@ describe("runSuite", () => {
       "pr-review-reads": [],
       "pr-thread-mutations": [],
       "ci-diagnostics": [],
-      "ci-log-analysis": []
+      "ci-log-analysis": [],
     })
   })
 
@@ -122,10 +129,10 @@ describe("runSuite", () => {
         assertions: {
           must_succeed: true,
           required_fields: ["ok", "data", "error", "meta"],
-          required_data_fields: ["id"]
+          required_data_fields: ["id"],
         },
-        tags: []
-      }
+        tags: [],
+      },
     ])
 
     const mod = await import("../../src/runner/suite-runner.js")
@@ -160,16 +167,16 @@ describe("runSuite", () => {
           repo: "aryeko/ghx-bench-fixtures",
           bindings: {
             "input.owner": "repo.owner",
-            "input.name": "repo.name"
-          }
+            "input.name": "repo.name",
+          },
         },
         assertions: {
           must_succeed: true,
           required_fields: ["ok", "data", "error", "meta"],
-          required_data_fields: ["id"]
+          required_data_fields: ["id"],
         },
-        tags: []
-      }
+        tags: [],
+      },
     ])
 
     const root = await mkdtemp(join(tmpdir(), "ghx-bench-fixture-"))
@@ -182,11 +189,11 @@ describe("runSuite", () => {
           owner: "aryeko",
           name: "ghx-bench-fixtures",
           full_name: "aryeko/ghx-bench-fixtures",
-          default_branch: "main"
+          default_branch: "main",
         },
-        resources: {}
+        resources: {},
       }),
-      "utf8"
+      "utf8",
     )
 
     const mod = await import("../../src/runner/suite-runner.js")
@@ -194,7 +201,7 @@ describe("runSuite", () => {
       mode: "ghx",
       repetitions: 1,
       scenarioFilter: null,
-      fixtureManifestPath: fixturePath
+      fixtureManifestPath: fixturePath,
     })
 
     const promptCalls = session.promptAsync.mock.calls as unknown[][]
@@ -226,9 +233,9 @@ describe("runSuite", () => {
         assertions: {
           must_succeed: true,
           required_fields: ["ok", "data", "error", "meta"],
-          required_data_fields: ["id"]
+          required_data_fields: ["id"],
         },
-        tags: []
+        tags: [],
       },
       {
         id: "pr-view-001",
@@ -242,10 +249,10 @@ describe("runSuite", () => {
         assertions: {
           must_succeed: true,
           required_fields: ["ok", "data", "error", "meta"],
-          required_data_fields: ["id"]
+          required_data_fields: ["id"],
         },
-        tags: []
-      }
+        tags: [],
+      },
     ])
 
     loadScenarioSetsMock.mockResolvedValue({
@@ -254,11 +261,16 @@ describe("runSuite", () => {
       "pr-review-reads": ["pr-view-001"],
       "pr-thread-mutations": [],
       "ci-diagnostics": [],
-      "ci-log-analysis": []
+      "ci-log-analysis": [],
     })
 
     const mod = await import("../../src/runner/suite-runner.js")
-    await mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null, scenarioSet: "pr-review-reads" })
+    await mod.runSuite({
+      mode: "ghx",
+      repetitions: 1,
+      scenarioFilter: null,
+      scenarioSet: "pr-review-reads",
+    })
 
     expect(appendFileMock).toHaveBeenCalledTimes(1)
     const appendCalls = appendFileMock.mock.calls as unknown[][]
@@ -286,10 +298,10 @@ describe("runSuite", () => {
         assertions: {
           must_succeed: true,
           required_fields: ["ok", "data", "error", "meta"],
-          required_data_fields: ["id"]
+          required_data_fields: ["id"],
         },
-        tags: []
-      }
+        tags: [],
+      },
     ])
 
     const mod = await import("../../src/runner/suite-runner.js")
@@ -297,7 +309,7 @@ describe("runSuite", () => {
       mode: "ghx",
       repetitions: 1,
       scenarioFilter: "repo-view-001",
-      scenarioSet: "pr-review-reads"
+      scenarioSet: "pr-review-reads",
     })
 
     const appendCalls = appendFileMock.mock.calls as unknown[][]
@@ -324,16 +336,16 @@ describe("runSuite", () => {
         assertions: {
           must_succeed: true,
           required_fields: ["ok", "data", "error", "meta"],
-          required_data_fields: ["id"]
+          required_data_fields: ["id"],
         },
-        tags: []
-      }
+        tags: [],
+      },
     ])
 
     const mod = await import("../../src/runner/suite-runner.js")
-    await expect(mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null, scenarioSet: "missing" })).rejects.toThrow(
-      "Unknown scenario set: missing"
-    )
+    await expect(
+      mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null, scenarioSet: "missing" }),
+    ).rejects.toThrow("Unknown scenario set: missing")
     expect(close).not.toHaveBeenCalled()
   })
 
@@ -355,10 +367,10 @@ describe("runSuite", () => {
         assertions: {
           must_succeed: true,
           required_fields: ["ok", "data", "error", "meta"],
-          required_data_fields: ["id"]
+          required_data_fields: ["id"],
         },
-        tags: []
-      }
+        tags: [],
+      },
     ])
 
     spawnSyncMock
@@ -366,9 +378,9 @@ describe("runSuite", () => {
       .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" } as never)
 
     const mod = await import("../../src/runner/suite-runner.js")
-    await expect(mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null })).rejects.toThrow(
-      "ghx_preflight_failed"
-    )
+    await expect(
+      mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null }),
+    ).rejects.toThrow("ghx_preflight_failed")
     expect(appendFileMock).not.toHaveBeenCalled()
   })
 
@@ -390,10 +402,10 @@ describe("runSuite", () => {
         assertions: {
           must_succeed: true,
           required_fields: ["ok", "data", "error", "meta"],
-          required_data_fields: ["id"]
+          required_data_fields: ["id"],
         },
-        tags: []
-      }
+        tags: [],
+      },
     ])
     loadScenarioSetsMock.mockResolvedValue({
       default: ["missing-scenario-id"],
@@ -401,13 +413,13 @@ describe("runSuite", () => {
       "pr-review-reads": [],
       "pr-thread-mutations": [],
       "ci-diagnostics": [],
-      "ci-log-analysis": []
+      "ci-log-analysis": [],
     })
 
     const mod = await import("../../src/runner/suite-runner.js")
-    await expect(mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null })).rejects.toThrow(
-      "references unknown scenario id"
-    )
+    await expect(
+      mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null }),
+    ).rejects.toThrow("references unknown scenario id")
     expect(close).not.toHaveBeenCalled()
   })
 
@@ -429,10 +441,10 @@ describe("runSuite", () => {
         assertions: {
           must_succeed: true,
           required_fields: ["ok", "data", "error", "meta"],
-          required_data_fields: ["id"]
+          required_data_fields: ["id"],
         },
-        tags: []
-      }
+        tags: [],
+      },
     ])
     loadScenarioSetsMock.mockResolvedValue({
       default: [],
@@ -440,13 +452,13 @@ describe("runSuite", () => {
       "pr-review-reads": [],
       "pr-thread-mutations": [],
       "ci-diagnostics": [],
-      "ci-log-analysis": []
+      "ci-log-analysis": [],
     })
 
     const mod = await import("../../src/runner/suite-runner.js")
-    await expect(mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null })).rejects.toThrow(
-      "No scenarios matched filter: default"
-    )
+    await expect(
+      mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null }),
+    ).rejects.toThrow("No scenarios matched filter: default")
     expect(close).not.toHaveBeenCalled()
   })
 
@@ -470,21 +482,23 @@ describe("runSuite", () => {
           repo: "aryeko/ghx-bench-fixtures",
           bindings: {
             "input.owner": "repo.owner",
-            "input.name": "repo.name"
-          }
+            "input.name": "repo.name",
+          },
         },
         assertions: {
           must_succeed: true,
           required_fields: ["ok", "data", "error", "meta"],
-          required_data_fields: ["id"]
+          required_data_fields: ["id"],
         },
-        tags: []
-      }
+        tags: [],
+      },
     ])
 
     const mod = await import("../../src/runner/suite-runner.js")
-    await expect(mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null })).rejects.toThrow(
-      "Selected scenarios require fixture bindings but no fixture manifest was provided"
+    await expect(
+      mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null }),
+    ).rejects.toThrow(
+      "Selected scenarios require fixture bindings but no fixture manifest was provided",
     )
   })
 
@@ -495,9 +509,9 @@ describe("runSuite", () => {
     loadScenariosMock.mockResolvedValue([])
 
     const mod = await import("../../src/runner/suite-runner.js")
-    await expect(mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: "none" })).rejects.toThrow(
-      "No scenarios matched filter"
-    )
+    await expect(
+      mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: "none" }),
+    ).rejects.toThrow("No scenarios matched filter")
     expect(close).not.toHaveBeenCalled()
     expect(createOpencodeMock).not.toHaveBeenCalled()
   })
@@ -509,9 +523,9 @@ describe("runSuite", () => {
     loadScenariosMock.mockResolvedValue([])
 
     const mod = await import("../../src/runner/suite-runner.js")
-    await expect(mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null })).rejects.toThrow(
-      "No benchmark scenarios found"
-    )
+    await expect(
+      mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null }),
+    ).rejects.toThrow("No benchmark scenarios found")
     expect(close).not.toHaveBeenCalled()
     expect(createOpencodeMock).not.toHaveBeenCalled()
   })
@@ -534,10 +548,10 @@ describe("runSuite", () => {
         assertions: {
           must_succeed: true,
           required_fields: ["ok", "data", "error", "meta"],
-          required_data_fields: ["id"]
+          required_data_fields: ["id"],
         },
-        tags: []
-      }
+        tags: [],
+      },
     ])
 
     const mod = await import("../../src/runner/suite-runner.js")
@@ -565,16 +579,16 @@ describe("runSuite", () => {
         assertions: {
           must_succeed: true,
           required_fields: ["ok", "data", "error", "meta"],
-          required_data_fields: ["id"]
+          required_data_fields: ["id"],
         },
-        tags: []
-      }
+        tags: [],
+      },
     ])
 
     const mod = await import("../../src/runner/suite-runner.js")
-    await expect(mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null })).rejects.toThrow(
-      "No benchmark result produced"
-    )
+    await expect(
+      mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null }),
+    ).rejects.toThrow("No benchmark result produced")
     expect(close).not.toHaveBeenCalled()
   })
 
@@ -584,7 +598,7 @@ describe("runSuite", () => {
       OPENCODE_CONFIG_DIR: process.env.OPENCODE_CONFIG_DIR,
       XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME,
       GH_TOKEN: process.env.GH_TOKEN,
-      GITHUB_TOKEN: process.env.GITHUB_TOKEN
+      GITHUB_TOKEN: process.env.GITHUB_TOKEN,
     }
 
     process.env.OPENCODE_CONFIG = "from-test-config"
@@ -610,10 +624,10 @@ describe("runSuite", () => {
         assertions: {
           must_succeed: true,
           required_fields: ["ok", "data", "error", "meta"],
-          required_data_fields: ["id"]
+          required_data_fields: ["id"],
         },
-        tags: []
-      }
+        tags: [],
+      },
     ])
 
     const mod = await import("../../src/runner/suite-runner.js")
@@ -665,7 +679,7 @@ describe("runSuite", () => {
       OPENCODE_CONFIG_DIR: process.env.OPENCODE_CONFIG_DIR,
       XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME,
       GH_TOKEN: process.env.GH_TOKEN,
-      GITHUB_TOKEN: process.env.GITHUB_TOKEN
+      GITHUB_TOKEN: process.env.GITHUB_TOKEN,
     }
 
     delete process.env.OPENCODE_CONFIG
@@ -688,7 +702,7 @@ describe("runSuite", () => {
         return {
           status: 0,
           stdout: JSON.stringify([{ capability_id: "repo.view", description: "Repo view" }]),
-          stderr: ""
+          stderr: "",
         } as never
       }
 
@@ -712,10 +726,10 @@ describe("runSuite", () => {
         assertions: {
           must_succeed: true,
           required_fields: ["ok", "data", "error", "meta"],
-          required_data_fields: ["id"]
+          required_data_fields: ["id"],
         },
-        tags: []
-      }
+        tags: [],
+      },
     ])
 
     const mod = await import("../../src/runner/suite-runner.js")
@@ -784,10 +798,10 @@ describe("runSuite", () => {
         assertions: {
           must_succeed: true,
           required_fields: ["ok", "data", "error", "meta"],
-          required_data_fields: ["id"]
+          required_data_fields: ["id"],
         },
-        tags: []
-      }
+        tags: [],
+      },
     ])
 
     const mod = await import("../../src/runner/suite-runner.js")
@@ -795,25 +809,33 @@ describe("runSuite", () => {
     try {
       await mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null })
 
-      const eventNames = consoleLogSpy.mock.calls
+      const events = consoleLogSpy.mock.calls
         .map((call) => call[0])
         .filter((line): line is string => typeof line === "string")
         .map((line) => {
           try {
-            return JSON.parse(line) as { event?: unknown }
+            return JSON.parse(line) as { event?: unknown; completed?: unknown; total?: unknown }
           } catch {
             return null
           }
         })
-        .filter((entry): entry is { event?: unknown } => entry !== null)
-        .map((entry) => entry.event)
+        .filter(
+          (entry): entry is { event?: unknown; completed?: unknown; total?: unknown } =>
+            entry !== null,
+        )
+
+      const eventNames = events.map((entry) => entry.event)
 
       expect(eventNames).toEqual([
         "suite_started",
         "scenario_started",
         "scenario_finished",
-        "suite_finished"
+        "suite_finished",
       ])
+      expect(events.find((entry) => entry.event === "suite_started")).toMatchObject({
+        completed: 0,
+        total: 1,
+      })
     } finally {
       if (previousProgressEvents === undefined) {
         delete process.env.BENCH_PROGRESS_EVENTS
@@ -838,9 +860,9 @@ describe("runSuite", () => {
     const mod = await import("../../src/runner/suite-runner.js")
 
     try {
-      await expect(mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null })).rejects.toThrow(
-        "No benchmark scenarios found"
-      )
+      await expect(
+        mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null }),
+      ).rejects.toThrow("No benchmark scenarios found")
 
       const eventNames = consoleLogSpy.mock.calls
         .map((call) => call[0])

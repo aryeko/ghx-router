@@ -271,7 +271,14 @@ describe("fixture seed", () => {
       }
 
       if (joined.includes("run view 999") && joined.includes("--json jobs")) {
-        return success({ jobs: [{ databaseId: 333 }] })
+        return success({
+          jobs: [
+            {
+              databaseId: 333,
+              checkRunUrl: "https://api.github.com/repos/aryeko/ghx-bench-fixtures/check-runs/444",
+            },
+          ],
+        })
       }
 
       if (joined.includes("api repos/aryeko/ghx-bench-fixtures/releases?per_page=20")) {
@@ -297,6 +304,7 @@ describe("fixture seed", () => {
 
     expect(manifest.resources.workflow_run).toMatchObject({ id: 999 })
     expect(manifest.resources.workflow_job).toMatchObject({ id: 333 })
+    expect(manifest.resources.check_run).toMatchObject({ id: 444 })
     expect(manifest.resources.project).toMatchObject({
       number: 1,
       id: "",
@@ -467,7 +475,15 @@ describe("fixture seed", () => {
       }
 
       if (joined.includes("run view 444") && joined.includes("--json jobs")) {
-        return success({ jobs: [{ databaseId: 900, conclusion: "success" }] })
+        return success({
+          jobs: [
+            {
+              databaseId: 900,
+              checkRunUrl: "https://api.github.com/repos/aryeko/ghx-bench-fixtures/check-runs/901",
+              conclusion: "success",
+            },
+          ],
+        })
       }
 
       if (joined.includes("api repos/aryeko/ghx-bench-fixtures/releases?per_page=20")) {
@@ -512,6 +528,7 @@ describe("fixture seed", () => {
     expect(manifest.resources.pr_thread).toMatchObject({ id: "PRRT_seed" })
     expect(manifest.resources.workflow_run).toMatchObject({ id: 444 })
     expect(manifest.resources.workflow_job).toMatchObject({ id: 900 })
+    expect(manifest.resources.check_run).toMatchObject({ id: 901 })
     expect(manifest.resources.release).toMatchObject({ id: 321, tag_name: "v9.9.9-draft" })
     expect(manifest.resources.project).toMatchObject({
       number: 4,
