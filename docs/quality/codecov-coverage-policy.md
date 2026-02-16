@@ -8,6 +8,7 @@ Defined in `codecov.yml`:
 
 - Project target: `90%` (threshold `1%`)
 - Patch target: `90%`
+- Coverage statuses are `informational` so PRs without coverage artifacts are not blocked
 
 ## Scope
 
@@ -18,6 +19,7 @@ Defined in `codecov.yml`:
 ## CI Integration
 
 - PR workflow uploads coverage on Node `24`.
+- PR workflow uploads coverage and JUnit test results on Node `24` only when report files exist.
 - Main workflow uploads coverage on every push to `main`.
 - Codecov upload failures are configured to fail CI.
 
