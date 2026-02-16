@@ -58,6 +58,37 @@ This made it hard to distinguish real regressions from fixture or assertion nois
   - `expected_error` must include `expected_error_code`
   - roadmap sets must use success outcomes.
 
+### 6) Added config-driven suite orchestration and generation
+
+- Added `suite:run` orchestration CLI for benchmark workflow phases:
+  - optional `fixtures.setup.cleanup`
+  - optional `fixtures.setup.seed`
+  - parallel benchmark execution (`ghx` + `agent_direct`)
+  - `reporting.analysis.report`
+  - optional `reporting.analysis.gate`
+- Added `suite:config` generator CLI to create `config/suite-runner.json`.
+- Config now supports benchmark base command + per-mode extensions (`env`/`args`) to avoid duplicated command definitions.
+
+### 7) Hardened seeded-run ergonomics and defaults
+
+- Setup phases are now opt-in in generated config (`--with-cleanup`, `--with-seed`) to prevent accidental remote fixture operations for read-only sets.
+- When seed phase is enabled, `suite:run` now auto-generates `BENCH_FIXTURE_SEED_ID` per run unless explicitly provided, preventing collisions from static `default` seed IDs.
+- Generated benchmark defaults now assign distinct ports per mode (`3001`/`3002`) to avoid parallel run port conflicts.
+
+### 8) Improved suite execution observability
+
+- Added structured progress events in runner (`suite_started`, `scenario_started`, `scenario_finished`, `suite_finished`, `suite_error`).
+- Added live dashboard output in `suite:run` with:
+  - global suite progress
+  - per-phase status
+  - benchmark sub-progress for `ghx` and `agent_direct`
+- Added quiet-by-default output with `--verbose` opt-in for full child command streaming.
+
+### 9) Removed legacy gate output
+
+- Removed Legacy Gate (v1) from generated markdown and JSON report outputs.
+- `latest-summary` now reflects Gate V2 only.
+
 ## Progress Snapshot (Key Commits)
 
 - `bdb5672` feat(benchmark): add sandbox fixture manifest workflow
@@ -66,6 +97,10 @@ This made it hard to distinguish real regressions from fixture or assertion nois
 - `93b4620` fix(benchmark): seed dedicated project-v2 fixtures
 - `91942bd` refactor(benchmark): migrate to expected_outcome assertions
 - `9c36353` fix(benchmark): seed GraphQL issue IDs for mutations
+- `f8d181e` feat(benchmark): add config-driven suite runner with progress events
+- `6e25b6c` feat(benchmark): add generated suite config workflow
+- `1c91a15` fix(benchmark): auto-generate seed ids for seeded suite runs
+- `6491500` feat(benchmark): improve suite dashboard and drop legacy gate output
 
 ## Current Status
 
@@ -76,10 +111,14 @@ This made it hard to distinguish real regressions from fixture or assertion nois
 - model-aware gate configuration is wired
 - scenario assertion model migrated to explicit outcomes
 - benchmark package checks currently pass (tests/typecheck/lint/check-scenarios)
+- config-driven suite workflow is operational (`suite:config` + `suite:run`)
+- live suite dashboard and quiet/verbose output modes are implemented
+- report output no longer includes legacy gate v1
 
 ### Partially completed
 
-- paired verification has started (scenario-by-scenario), but full set-by-set paired validation across all planned sets is still pending.
+- paired verification has started and orchestration is in place, but full set-by-set paired validation across all planned sets is still pending.
+- consolidated mini artifact generation and canonical 5.3 confirmation runs are still pending.
 
 ## What Still Needs to Be Done
 
