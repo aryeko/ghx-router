@@ -1,11 +1,10 @@
-import { createLogUpdate } from "log-update"
-import { z } from "zod"
-import { createColors } from "colorette"
-
 import { spawn } from "node:child_process"
 import { readFile } from "node:fs/promises"
 import { resolve } from "node:path"
 import { pathToFileURL } from "node:url"
+import { createColors } from "colorette"
+import { createLogUpdate } from "log-update"
+import { z } from "zod"
 
 const commandSchema = z.object({
   command: z.array(z.string().min(1)).min(1),
@@ -127,7 +126,11 @@ export function parseArgs(argv: string[]): ParsedArgs {
   const configPath = parseFlagValue(normalized, "--config") ?? "config/suite-runner.json"
   const skipCleanup = normalized.includes("--skip-cleanup")
   const skipSeed = normalized.includes("--skip-seed")
-  const runGate = normalized.includes("--gate") ? true : normalized.includes("--no-gate") ? false : null
+  const runGate = normalized.includes("--gate")
+    ? true
+    : normalized.includes("--no-gate")
+      ? false
+      : null
   const verbose = normalized.includes("--verbose")
 
   return {
@@ -185,7 +188,11 @@ function parseProgressEvent(payload: string): ProgressEvent | null {
   }
 
   const eventName = (parsed as { event?: unknown }).event
-  if (eventName !== "suite_started" && eventName !== "scenario_started" && eventName !== "scenario_finished") {
+  if (
+    eventName !== "suite_started" &&
+    eventName !== "scenario_started" &&
+    eventName !== "scenario_finished"
+  ) {
     return null
   }
 
@@ -210,7 +217,8 @@ function renderPhaseIcon(status: PhaseStatus): string {
 }
 
 function renderBenchmarkRow(label: string, row: BenchmarkRow, spinnerFrame: string): string {
-  const colorizedLabel = label === "ghx" ? colors.blue(label) : colors.magenta(label)
+  const paddedLabel = label.padEnd(7)
+  const colorizedLabel = label === "ghx" ? colors.blue(paddedLabel) : colors.magenta(paddedLabel)
   const status =
     row.status === "ok"
       ? colors.green("✓")
@@ -221,16 +229,16 @@ function renderBenchmarkRow(label: string, row: BenchmarkRow, spinnerFrame: stri
           : colors.yellow(spinnerFrame)
 
   if (row.status === "pending") {
-    return `  ${colorizedLabel.padEnd(7)} ${status} ${colors.dim("pending")}`
+    return `  ${colorizedLabel} ${status} ${colors.dim("pending")}`
   }
 
   if (!row.total || row.total <= 0) {
-    return `  ${colorizedLabel.padEnd(7)} ${status} ${colors.dim("starting")}`
+    return `  ${colorizedLabel} ${status} ${colors.dim("starting")}`
   }
 
   const completed = Math.min(Math.max(0, row.completed), row.total)
   const bar = `[${toBar(completed, row.total, 18)}]`
-  return `  ${colorizedLabel.padEnd(7)} ${status} ${colors.cyan(bar)} ${colors.bold(`${completed}/${row.total}`)}`
+  return `  ${colorizedLabel} ${status} ${colors.cyan(bar)} ${colors.bold(`${completed}/${row.total}`)}`
 }
 
 function createSuiteDashboard(verbose: boolean): SuiteDashboard {
@@ -307,7 +315,8 @@ function createSuiteDashboard(verbose: boolean): SuiteDashboard {
           }
           return Math.min(Math.max(0, row.completed / row.total), 1)
         })
-        const avg = ratios.length === 0 ? 0 : ratios.reduce((sum, value) => sum + value, 0) / ratios.length
+        const avg =
+          ratios.length === 0 ? 0 : ratios.reduce((sum, value) => sum + value, 0) / ratios.length
         progressComplete += avg
       }
       break
@@ -379,7 +388,7 @@ function createSuiteDashboard(verbose: boolean): SuiteDashboard {
       },
       update: (label, event) => {
         const existing = benchmarkRows.get(label)
-        const total = event.total > 0 ? event.total : existing?.total ?? null
+        const total = event.total > 0 ? event.total : (existing?.total ?? null)
         benchmarkRows.set(label, {
           status: "running",
           completed: event.completed,
@@ -391,7 +400,8 @@ function createSuiteDashboard(verbose: boolean): SuiteDashboard {
         const existing = benchmarkRows.get(label)
         benchmarkRows.set(label, {
           status,
-          completed: status === "ok" && existing?.total ? existing.total : existing?.completed ?? 0,
+          completed:
+            status === "ok" && existing?.total ? existing.total : (existing?.completed ?? 0),
           total: existing?.total ?? null,
         })
         render()
@@ -551,7 +561,10 @@ function spawnCommand(
   }
 }
 
-function buildBenchmarkCommand(base: BenchmarkBaseConfig, variant: BenchmarkVariantConfig): CommandConfig {
+function buildBenchmarkCommand(
+  base: BenchmarkBaseConfig,
+  variant: BenchmarkVariantConfig,
+): CommandConfig {
   const args = [...base.command, variant.mode, String(base.repetitions)]
   if (base.scenarioSet) {
     args.push("--scenario-set", base.scenarioSet)
@@ -668,7 +681,10 @@ async function runParallelBenchmarks(
   if (ghxResult.code !== 0 || directResult.code !== 0) {
     dashboard.completePhase("benchmark", "failed")
 
-    const failed = ghxResult.code !== 0 ? { label: "ghx", result: ghxResult } : { label: "direct", result: directResult }
+    const failed =
+      ghxResult.code !== 0
+        ? { label: "ghx", result: ghxResult }
+        : { label: "direct", result: directResult }
     throw new Error(formatFailure(failed.label, failed.result))
   }
 
@@ -690,7 +706,8 @@ function buildExecutionPlan(config: SuiteRunnerConfig, parsed: ParsedArgs): Phas
   phases.push("benchmark")
   phases.push("report")
 
-  const shouldRunGate = parsed.runGate === null ? Boolean(config.reporting.analysis.gate) : parsed.runGate
+  const shouldRunGate =
+    parsed.runGate === null ? Boolean(config.reporting.analysis.gate) : parsed.runGate
   if (shouldRunGate) {
     phases.push("gate")
   }

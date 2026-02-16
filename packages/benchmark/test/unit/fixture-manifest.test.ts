@@ -217,4 +217,52 @@ describe("fixture manifest", () => {
 
     expect(resolved.input.nested).toEqual({ value: "aryeko" })
   })
+
+  it("rejects unsafe source binding path segments", () => {
+    const scenario: Scenario = {
+      ...createBaseScenario(),
+      fixture: {
+        bindings: {
+          "input.owner": "repo.__proto__.polluted",
+        },
+      },
+    }
+
+    expect(() =>
+      resolveScenarioFixtureBindings(scenario, {
+        version: 1,
+        repo: {
+          owner: "aryeko",
+          name: "ghx-bench-fixtures",
+          full_name: "aryeko/ghx-bench-fixtures",
+          default_branch: "main",
+        },
+        resources: {},
+      }),
+    ).toThrow("unsafe fixture manifest path segment")
+  })
+
+  it("rejects unsafe destination binding path segments", () => {
+    const scenario: Scenario = {
+      ...createBaseScenario(),
+      fixture: {
+        bindings: {
+          "input.__proto__.polluted": "repo.owner",
+        },
+      },
+    }
+
+    expect(() =>
+      resolveScenarioFixtureBindings(scenario, {
+        version: 1,
+        repo: {
+          owner: "aryeko",
+          name: "ghx-bench-fixtures",
+          full_name: "aryeko/ghx-bench-fixtures",
+          default_branch: "main",
+        },
+        resources: {},
+      }),
+    ).toThrow("unsafe fixture manifest path segment")
+  })
 })

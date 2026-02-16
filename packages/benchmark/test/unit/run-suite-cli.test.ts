@@ -53,6 +53,22 @@ function setStdoutTTY(value: boolean): () => void {
   }
 }
 
+function stripAnsi(value: string): string {
+  let output = ""
+  for (let index = 0; index < value.length; index += 1) {
+    const char = value[index]
+    if (char === "\u001b" && value[index + 1] === "[") {
+      while (index < value.length && value[index] !== "m") {
+        index += 1
+      }
+      continue
+    }
+    output += char
+  }
+
+  return output
+}
+
 describe("run-suite cli", () => {
   beforeEach(() => {
     vi.resetModules()
@@ -635,5 +651,62 @@ describe("run-suite cli", () => {
     expect(createLogUpdateMock).toHaveBeenCalled()
     expect(logUpdateRenderMock).toHaveBeenCalled()
     expect(logUpdateDoneMock).toHaveBeenCalledOnce()
+  })
+
+  it("pads benchmark labels before colorization for deterministic alignment", async () => {
+    const restoreTTY = setStdoutTTY(true)
+    const previousNoColor = process.env.NO_COLOR
+    delete process.env.NO_COLOR
+
+    const root = await mkdtemp(join(tmpdir(), "ghx-suite-cli-"))
+    const configPath = join(root, "suite-runner.json")
+    await writeFile(
+      configPath,
+      `${JSON.stringify({
+        benchmark: {
+          base: { command: ["pnpm", "run", "benchmark", "--"], repetitions: 1 },
+          ghx: { mode: "ghx" },
+          direct: { mode: "agent_direct" },
+        },
+        reporting: {
+          analysis: {
+            report: { command: ["pnpm", "run", "report"] },
+          },
+        },
+      })}\n`,
+      "utf8",
+    )
+
+    spawnMock.mockImplementation(() => {
+      const child = createMockChild()
+      queueMicrotask(() => child.emit("exit", 0, null))
+      return child
+    })
+
+    try {
+      const mod = await import("../../src/cli/run-suite.js")
+      await expect(mod.main(["--config", configPath, "--no-gate"])).resolves.toBeUndefined()
+    } finally {
+      restoreTTY()
+      if (previousNoColor === undefined) {
+        delete process.env.NO_COLOR
+      } else {
+        process.env.NO_COLOR = previousNoColor
+      }
+    }
+
+    const renders = logUpdateRenderMock.mock.calls
+      .map((call) => call[0])
+      .filter((value): value is string => typeof value === "string")
+      .map(stripAnsi)
+
+    const pendingRows = renders
+      .flatMap((frame) => frame.split("\n"))
+      .filter((line) => {
+        return line.includes("ghx") && line.includes("pending")
+      })
+
+    expect(pendingRows.length).toBeGreaterThan(0)
+    expect(pendingRows[0]).toMatch(/^\s{2}ghx\s{5}○ pending$/)
   })
 })

@@ -13,27 +13,13 @@
   "assertions": {
     "require_tool_calls": true,
     "min_tool_calls": 1,
-    "required_fields": [
-      "ok",
-      "data",
-      "error",
-      "meta"
-    ],
-    "required_data_fields": [
-      "items",
-      "pageInfo"
-    ],
-    "required_meta_fields": [
-      "route_used"
-    ],
+    "required_fields": ["ok", "data", "error", "meta"],
+    "required_data_fields": ["items", "pageInfo"],
+    "required_meta_fields": ["route_used"],
     "expected_route_used": "cli",
     "expected_outcome": "success"
   },
-  "tags": [
-    "roadmap",
-    "projects-v2",
-    "projects-v2"
-  ],
+  "tags": ["roadmap", "projects-v2"],
   "fixture": {
     "repo": "aryeko/ghx-bench-fixtures",
     "bindings": {

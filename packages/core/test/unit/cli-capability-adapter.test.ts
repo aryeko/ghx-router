@@ -1696,6 +1696,75 @@ describe("runCliCapability", () => {
     )
   })
 
+  it("supports numeric workflow identifiers for workflow.get", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: JSON.stringify({
+          id: 123,
+          name: "CI",
+          path: ".github/workflows/ci.yml",
+          state: "active",
+          url: "https://example.com/workflow/123",
+        }),
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "workflow.get", {
+      owner: "acme",
+      name: "modkit",
+      workflowId: 123,
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.data).toEqual(
+      expect.objectContaining({
+        id: 123,
+        name: "CI",
+        url: "https://example.com/workflow/123",
+      }),
+    )
+    expect(runner.run).toHaveBeenCalledWith(
+      "gh",
+      ["workflow", "view", "123", "--repo", "acme/modkit", "--json", "id,name,path,state,url"],
+      10_000,
+    )
+  })
+
+  it("accepts numeric and boolean workflow dispatch inputs", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "",
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "workflow_dispatch.run", {
+      owner: "acme",
+      name: "modkit",
+      workflowId: "release.yml",
+      ref: "main",
+      inputs: {
+        retryCount: 2,
+        dryRun: true,
+      },
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.data).toEqual({
+      workflowId: "release.yml",
+      ref: "main",
+      dispatched: true,
+    })
+    expect(runner.run).toHaveBeenCalledWith(
+      "gh",
+      expect.arrayContaining(["-f", "inputs[retryCount]=2", "-f", "inputs[dryRun]=true"]),
+      10_000,
+    )
+  })
+
   it("supports projects v2 capabilities and keeps output v2-only", async () => {
     const runner = {
       run: vi
@@ -2774,5 +2843,30 @@ describe("runCliCapability", () => {
 
     expect(branchUpdateResult.ok).toBe(true)
     expect(branchUpdateResult.data).toEqual({ prNumber: 7, updated: true })
+  })
+
+  it("normalizes project_v2.items.list when CLI payload is not an object", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "null",
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "project_v2.items.list", {
+      owner: "acme",
+      projectNumber: 1,
+      first: 10,
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.data).toEqual({
+      items: [],
+      pageInfo: {
+        hasNextPage: false,
+        endCursor: null,
+      },
+    })
   })
 })

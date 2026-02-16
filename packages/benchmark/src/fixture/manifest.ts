@@ -1,6 +1,5 @@
-import { z } from "zod"
-
 import { readFile } from "node:fs/promises"
+import { z } from "zod"
 
 import type { FixtureManifest, Scenario } from "../domain/types.js"
 
@@ -10,17 +9,38 @@ const fixtureManifestSchema = z.object({
     owner: z.string().min(1),
     name: z.string().min(1),
     full_name: z.string().min(1),
-    default_branch: z.string().min(1)
+    default_branch: z.string().min(1),
   }),
-  resources: z.record(z.unknown())
+  resources: z.record(z.unknown()),
 })
 
-function getPathValue(root: Record<string, unknown>, path: string): unknown {
+const UNSAFE_PATH_SEGMENTS = new Set(["__proto__", "constructor", "prototype"])
+
+function parseBindingPath(path: string, pathLabel: "source" | "destination"): string[] {
   const segments = path.split(".")
+  for (const segment of segments) {
+    if (!segment) {
+      throw new Error(`invalid ${pathLabel} path: ${path}`)
+    }
+    if (UNSAFE_PATH_SEGMENTS.has(segment)) {
+      throw new Error(`unsafe fixture manifest path segment: ${segment}`)
+    }
+  }
+
+  return segments
+}
+
+function getPathValue(root: Record<string, unknown>, path: string): unknown {
+  const segments = parseBindingPath(path, "source")
   let cursor: unknown = root
 
   for (const segment of segments) {
-    if (typeof cursor !== "object" || cursor === null || Array.isArray(cursor) || !(segment in cursor)) {
+    if (
+      typeof cursor !== "object" ||
+      cursor === null ||
+      Array.isArray(cursor) ||
+      !Object.hasOwn(cursor, segment)
+    ) {
       throw new Error(`fixture manifest path not found: ${path}`)
     }
     cursor = (cursor as Record<string, unknown>)[segment]
@@ -30,7 +50,7 @@ function getPathValue(root: Record<string, unknown>, path: string): unknown {
 }
 
 function setPathValue(root: Record<string, unknown>, path: string, value: unknown): void {
-  const segments = path.split(".")
+  const segments = parseBindingPath(path, "destination")
   let cursor: Record<string, unknown> = root
 
   for (let index = 0; index < segments.length; index += 1) {
@@ -58,7 +78,10 @@ export async function loadFixtureManifest(path: string): Promise<FixtureManifest
   return fixtureManifestSchema.parse(JSON.parse(raw)) as FixtureManifest
 }
 
-export function resolveScenarioFixtureBindings(scenario: Scenario, manifest: FixtureManifest): Scenario {
+export function resolveScenarioFixtureBindings(
+  scenario: Scenario,
+  manifest: FixtureManifest,
+): Scenario {
   const bindings = scenario.fixture?.bindings
   if (!bindings || Object.keys(bindings).length === 0) {
     return scenario
@@ -74,6 +97,6 @@ export function resolveScenarioFixtureBindings(scenario: Scenario, manifest: Fix
 
   return {
     ...scenario,
-    input: resolvedInput
+    input: resolvedInput,
   }
 }

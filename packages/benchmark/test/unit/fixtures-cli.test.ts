@@ -138,6 +138,28 @@ describe("fixtures CLI", () => {
     expect(() => parseArgs(["unknown"])).toThrow("Unsupported fixtures command")
   })
 
+  it("rejects invalid repo flag values", async () => {
+    const { parseArgs } = await import("../../src/cli/fixtures.js")
+
+    expect(() => parseArgs(["status", "--repo", "invalid-repo-format"])).toThrow(
+      "Invalid --repo value",
+    )
+  })
+
+  it("rejects invalid out file values", async () => {
+    const { parseArgs } = await import("../../src/cli/fixtures.js")
+
+    expect(() => parseArgs(["status", "--out", ""])).toThrow("Invalid --out value")
+  })
+
+  it("rejects invalid seed id values", async () => {
+    const { parseArgs } = await import("../../src/cli/fixtures.js")
+
+    expect(() => parseArgs(["seed", "--seed-id", "contains space"])).toThrow(
+      "Invalid --seed-id value",
+    )
+  })
+
   it("runs seed command and logs seeded manifest path", async () => {
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined)
     const { main } = await import("../../src/cli/fixtures.js")

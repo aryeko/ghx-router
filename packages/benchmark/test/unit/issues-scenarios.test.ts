@@ -36,4 +36,20 @@ describe("roadmap issues benchmark scenarios", () => {
       "issue-blocked-by-remove-001",
     ])
   })
+
+  it("keeps projects-v2 scenario tags deduplicated", async () => {
+    const benchmarkRoot = process.cwd()
+    const scenarioPaths = [
+      `${benchmarkRoot}/scenarios/project-v2-fields-list-001.json`,
+      `${benchmarkRoot}/scenarios/project-v2-item-add-issue-001.json`,
+      `${benchmarkRoot}/scenarios/project-v2-items-list-001.json`,
+    ]
+
+    for (const scenarioPath of scenarioPaths) {
+      const raw = await readFile(scenarioPath, "utf8")
+      const scenario = JSON.parse(raw) as { tags?: string[] }
+      const tags = scenario.tags ?? []
+      expect(new Set(tags).size).toBe(tags.length)
+    }
+  })
 })

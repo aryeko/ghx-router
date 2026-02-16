@@ -559,6 +559,89 @@ describe("runSuite", () => {
 
     expect(session.promptAsync).toHaveBeenCalledTimes(2)
     expect(appendFileMock).toHaveBeenCalledTimes(1)
+    const appendCalls = appendFileMock.mock.calls as unknown[][]
+    const row = JSON.parse(String(appendCalls[0]?.[1] ?? "{}")) as {
+      external_retry_count?: unknown
+    }
+    expect(row.external_retry_count).toBe(0)
+  })
+
+  it("preserves runner-level external retry count in persisted rows", async () => {
+    const session = {
+      create: vi
+        .fn()
+        .mockResolvedValueOnce({ data: { id: "session-1" } })
+        .mockResolvedValueOnce({ data: { id: "session-2" } }),
+      promptAsync: vi.fn(async () => ({ data: {} })),
+      messages: vi.fn().mockImplementation(async (options: { path?: { id?: string } }) => {
+        if (options.path?.id === "session-1") {
+          return { data: [] }
+        }
+
+        return {
+          data: [
+            {
+              info: {
+                id: "msg-2",
+                sessionID: "session-2",
+                role: "assistant",
+                time: { created: 1, completed: 10 },
+                tokens: { input: 1, output: 2, reasoning: 3, cache: { read: 0, write: 0 } },
+                cost: 0,
+              },
+              parts: [
+                {
+                  type: "text",
+                  text: '{"ok":true,"data":{"id":"repo"},"error":null,"meta":{"route_used":"graphql"}}',
+                },
+                { type: "tool", tool: "api-client" },
+                {
+                  type: "step-finish",
+                  reason: "done",
+                  tokens: { input: 1, output: 2, reasoning: 3, cache: { read: 0, write: 0 } },
+                  cost: 0,
+                  time: { end: 10 },
+                },
+              ],
+            },
+          ],
+        }
+      }),
+      abort: vi.fn(async () => ({ data: {} })),
+    }
+
+    const close = vi.fn()
+    createOpencodeMock.mockResolvedValue({ client: { session }, server: { close } })
+
+    loadScenariosMock.mockResolvedValue([
+      {
+        id: "repo-view-001",
+        name: "Repo view",
+        task: "repo.view",
+        input: { owner: "a", name: "b" },
+        prompt_template: "run {{task}} {{input_json}}",
+        timeout_ms: 10,
+        allowed_retries: 0,
+        fixture: { repo: "a/b" },
+        assertions: {
+          must_succeed: true,
+          required_fields: ["ok", "data", "error", "meta"],
+          required_data_fields: ["id"],
+          require_tool_calls: false,
+        },
+        tags: [],
+      },
+    ])
+
+    const mod = await import("../../src/runner/suite-runner.js")
+    await mod.runSuite({ mode: "agent_direct", repetitions: 1, scenarioFilter: null })
+
+    expect(appendFileMock).toHaveBeenCalledTimes(1)
+    const appendCalls = appendFileMock.mock.calls as unknown[][]
+    const row = JSON.parse(String(appendCalls[0]?.[1] ?? "{}")) as {
+      external_retry_count?: unknown
+    }
+    expect(row.external_retry_count).toBe(1)
   })
 
   it("throws if no benchmark result is produced for a scenario", async () => {

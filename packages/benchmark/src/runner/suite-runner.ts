@@ -1918,10 +1918,7 @@ export async function runSuite(options: RunSuiteOptions): Promise<void> {
           const result = await withIsolatedBenchmarkClient((client) =>
             runScenario(client, scenario, mode, iteration, resolvedScenarioSet),
           )
-          latestResult = {
-            ...result,
-            external_retry_count: attempt,
-          }
+          latestResult = result
 
           if (result.success || attempt === scenario.allowed_retries) {
             break
