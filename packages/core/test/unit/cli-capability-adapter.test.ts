@@ -2183,6 +2183,25 @@ describe("runCliCapability", () => {
     expect(result.error?.message).toBe("Failed to parse CLI JSON output")
   })
 
+  it("treats non-JSON stdout as success for pr.branch.update", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "✓ PR branch already up-to-date\n",
+        stderr: "",
+        exitCode: 0
+      }))
+    }
+
+    const result = await runCliCapability(runner, "pr.branch.update", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 42
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.data).toEqual({ prNumber: 42, updated: true })
+  })
+
   it("returns validation error when release.publish_draft params are incomplete", async () => {
     const runner = {
       run: vi.fn(async () => ({
