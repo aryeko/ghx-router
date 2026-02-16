@@ -47,8 +47,8 @@ Flags:
 
 ## 5) Install Targets
 
-- `user` scope: `$HOME/.agents/skill/ghx/SKILL.md`
-- `project` scope: `<repo>/.agents/skill/ghx/SKILL.md`
+- `user` scope: `$HOME/.agents/skills/ghx/SKILL.md`
+- `project` scope: `<repo>/.agents/skills/ghx/SKILL.md`
 
 `project` and `user` installs are executed separately; each command run writes to one target path only.
 

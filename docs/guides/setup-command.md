@@ -34,8 +34,8 @@ No binaries, no config files, no environment mutations -- just one Markdown file
 
 | Scope | Path | Use case |
 |-------|------|----------|
-| `user` | `~/.agents/skill/ghx/SKILL.md` | Personal machine; all projects pick it up |
-| `project` | `<cwd>/.agents/skill/ghx/SKILL.md` | Repository-scoped; shared via version control |
+| `user` | `~/.agents/skills/ghx/SKILL.md` | Personal machine; all projects pick it up |
+| `project` | `<cwd>/.agents/skills/ghx/SKILL.md` | Repository-scoped; shared via version control |
 
 Each invocation writes to exactly one path. To install both, run the command twice with different `--scope` values.
 
@@ -110,7 +110,7 @@ Every agent session on this machine now has access to ghx capabilities.
 
 ```bash
 ghx setup --scope project --yes
-git add .agents/skill/ghx/SKILL.md
+git add .agents/skills/ghx/SKILL.md
 git commit -m "add ghx agent skill"
 ```
 

@@ -120,7 +120,7 @@ function parseArgs(argv: string[]): SetupOptions | null {
 
 function resolveSkillPath(scope: SetupScope): string {
   const base = scope === "user" ? homedir() : process.cwd()
-  return join(base, ".agents", "skill", "ghx", "SKILL.md")
+  return join(base, ".agents", "skills", "ghx", "SKILL.md")
 }
 
 function resolveTrackingPath(): string {

@@ -68,7 +68,7 @@ CLI surface:
 Behavior:
 
 - idempotent writes,
-- skill-only installation under `.agents/skill/ghx/SKILL.md`,
+- skill-only installation under `.agents/skills/ghx/SKILL.md`,
 - explicit overwrite approval (or `--yes`) for existing skill files,
 - explicit dry-run plan,
 - explicit verify report,

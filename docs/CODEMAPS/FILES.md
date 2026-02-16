@@ -67,7 +67,7 @@ ghx/
 - `packages/core/src/agent.ts` - package public agent-interface exports (`listCapabilities`, `createExecuteTool`)
 - `packages/core/src/cli/index.ts` - `ghx` executable entrypoint
 - `packages/core/src/cli/commands/run.ts` - task parsing + execution entry
-- `packages/core/src/cli/commands/setup.ts` - setup/verify skill profile installation in `.agents/skill/ghx/SKILL.md`
+- `packages/core/src/cli/commands/setup.ts` - setup/verify skill profile installation in `.agents/skills/ghx/SKILL.md`
 - `packages/core/src/cli/commands/capabilities-list.ts` - CLI capability list command
 - `packages/core/src/cli/commands/capabilities-explain.ts` - CLI capability explain command
 - `packages/core/src/cli/commands/doctor.ts` - diagnostics command scaffold (reserved)

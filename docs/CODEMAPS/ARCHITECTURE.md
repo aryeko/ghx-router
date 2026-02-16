@@ -72,7 +72,7 @@ The core package routes capability requests from operation cards (`core/registry
 
 1. CLI dispatches one of three command families in `packages/core/src/cli/index.ts`:
    - `run`: parse `task` + `--input` JSON in `packages/core/src/cli/commands/run.ts`
-   - `setup`: install/verify `~/.agents/skill/ghx/SKILL.md` (or project-level `.agents/...`) in `packages/core/src/cli/commands/setup.ts`
+   - `setup`: install/verify `~/.agents/skills/ghx/SKILL.md` (or project-level `.agents/...`) in `packages/core/src/cli/commands/setup.ts`
    - `capabilities`: list/explain capability contracts in `packages/core/src/cli/commands/capabilities-list.ts` and `packages/core/src/cli/commands/capabilities-explain.ts`
 2. `executeTask()` in `packages/core/src/core/routing/engine.ts` resolves card metadata and route dependencies.
 3. `execute()` in `packages/core/src/core/execute/execute.ts` validates input schema and computes the route plan from card suitability/fallbacks.

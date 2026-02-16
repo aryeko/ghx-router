@@ -27,7 +27,7 @@
 
 - Ship `ghx setup --scope <user|project> [--yes] [--dry-run] [--verify] [--track]`.
 - Ship `ghx capabilities list` and `ghx capabilities explain <capability_id>` for capability discovery.
-- Ensure skill-only installation under `.agents/skill/ghx/SKILL.md`, overwrite prompts, and post-setup verification.
+- Ensure skill-only installation under `.agents/skills/ghx/SKILL.md`, overwrite prompts, and post-setup verification.
 
 Exit criteria:
 

@@ -125,7 +125,7 @@ During build/publish it is copied to:
 
 - `dist/cli/assets/skills/ghx/SKILL.md`
 
-`ghx setup` writes this content to `.agents/skill/ghx/SKILL.md` in user or project scope.
+`ghx setup` writes this content to `.agents/skills/ghx/SKILL.md` in user or project scope.
 
 ## Agent Tools (`@ghx-dev/core/agent`)
 

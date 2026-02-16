@@ -42,7 +42,7 @@ describe("setupCommand", () => {
     expect(code).toBe(0)
     expect(stdout.mock.calls.map((call) => String(call[0])).join("")).toContain("Dry run")
     expect(stdout.mock.calls.map((call) => String(call[0])).join("")).toContain(
-      ".agents/skill/ghx/SKILL.md",
+      ".agents/skills/ghx/SKILL.md",
     )
   })
 
@@ -72,7 +72,7 @@ describe("setupCommand", () => {
     const code = await setupCommand(["--scope", "user", "--yes"])
 
     expect(code).toBe(0)
-    const skillPath = join(tempRoot, ".agents", "skill", "ghx", "SKILL.md")
+    const skillPath = join(tempRoot, ".agents", "skills", "ghx", "SKILL.md")
     const content = readFileSync(skillPath, "utf8")
     expect(content).toContain("Use `ghx` as the default interface for supported GitHub operations.")
     expect(content).toContain("gh auth status")
@@ -91,7 +91,7 @@ describe("setupCommand", () => {
     const code = await setupCommand(["--scope", "project", "--yes"])
 
     expect(code).toBe(0)
-    const skillPath = join(projectRoot, ".agents", "skill", "ghx", "SKILL.md")
+    const skillPath = join(projectRoot, ".agents", "skills", "ghx", "SKILL.md")
     const content = readFileSync(skillPath, "utf8")
     expect(content).toContain("ghx capabilities list")
     expect(content).not.toContain("GHX_SKIP_GH_PREFLIGHT=1")
@@ -118,8 +118,8 @@ describe("setupCommand", () => {
   })
 
   it("requires overwrite confirmation when skill exists and --yes is not provided", async () => {
-    const skillPath = join(tempRoot, ".agents", "skill", "ghx", "SKILL.md")
-    const projectDir = join(tempRoot, ".agents", "skill", "ghx")
+    const skillPath = join(tempRoot, ".agents", "skills", "ghx", "SKILL.md")
+    const projectDir = join(tempRoot, ".agents", "skills", "ghx")
     await setupCommand(["--scope", "user", "--yes"])
     writeFileSync(skillPath, "custom content", "utf8")
 

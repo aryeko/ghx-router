@@ -81,7 +81,7 @@
 
 1. New subcommands are reachable from top-level `main()` dispatch.
 2. Capability commands consume `listCapabilities`/`explainCapability` and do not duplicate registry logic.
-3. Setup command writes skill file into `.agents/skill/ghx/SKILL.md` for selected scope.
+3. Setup command writes skill file into `.agents/skills/ghx/SKILL.md` for selected scope.
 4. Setup command prompts before overwriting existing skill file unless `--yes` is provided.
 
 ### 6.2 Quality requirements
