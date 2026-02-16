@@ -4,12 +4,13 @@ import { mkdtemp, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 
-const { createOpencodeMock, loadScenariosMock, loadScenarioSetsMock, appendFileMock, mkdirMock } = vi.hoisted(() => ({
+const { createOpencodeMock, loadScenariosMock, loadScenarioSetsMock, appendFileMock, mkdirMock, accessMock } = vi.hoisted(() => ({
   createOpencodeMock: vi.fn(),
   loadScenariosMock: vi.fn(),
   loadScenarioSetsMock: vi.fn(),
   appendFileMock: vi.fn(async () => undefined),
-  mkdirMock: vi.fn(async () => undefined)
+  mkdirMock: vi.fn(async () => undefined),
+  accessMock: vi.fn(async () => undefined)
 }))
 
 vi.mock("@opencode-ai/sdk", () => ({
@@ -25,6 +26,7 @@ vi.mock("node:fs/promises", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:fs/promises")>()
   return {
     ...actual,
+    access: accessMock,
     appendFile: appendFileMock,
     mkdir: mkdirMock
   }
@@ -91,6 +93,7 @@ function createSessionMocks(options?: { firstPromptFails?: boolean }) {
 describe("runSuite", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    accessMock.mockResolvedValue(undefined)
     loadScenarioSetsMock.mockResolvedValue({
       default: ["repo-view-001"],
       "pr-operations-all": ["repo-view-001"],
@@ -445,6 +448,44 @@ describe("runSuite", () => {
       "No scenarios matched filter: default"
     )
     expect(close).not.toHaveBeenCalled()
+  })
+
+  it("fails fast when selected scenarios require fixture bindings and no manifest is available", async () => {
+    const session = createSessionMocks()
+    const close = vi.fn()
+    createOpencodeMock.mockResolvedValue({ client: { session }, server: { close } })
+
+    accessMock.mockRejectedValueOnce(new Error("missing fixture manifest"))
+
+    loadScenariosMock.mockResolvedValue([
+      {
+        id: "repo-view-001",
+        name: "Repo view",
+        task: "repo.view",
+        input: { owner: "OWNER_PLACEHOLDER", name: "REPO_PLACEHOLDER" },
+        prompt_template: "run {{task}} {{input_json}}",
+        timeout_ms: 1000,
+        allowed_retries: 0,
+        fixture: {
+          repo: "aryeko/ghx-bench-fixtures",
+          bindings: {
+            "input.owner": "repo.owner",
+            "input.name": "repo.name"
+          }
+        },
+        assertions: {
+          must_succeed: true,
+          required_fields: ["ok", "data", "error", "meta"],
+          required_data_fields: ["id"]
+        },
+        tags: []
+      }
+    ])
+
+    const mod = await import("../../src/runner/suite-runner.js")
+    await expect(mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null })).rejects.toThrow(
+      "Selected scenarios require fixture bindings but no fixture manifest was provided"
+    )
   })
 
   it("throws when scenario filter matches nothing", async () => {

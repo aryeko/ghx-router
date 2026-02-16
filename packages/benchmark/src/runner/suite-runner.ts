@@ -30,6 +30,8 @@ type RunSuiteOptions = {
   seedIfMissing?: boolean
 }
 
+const DEFAULT_FIXTURE_MANIFEST_PATH = "fixtures/latest.json"
+
 type AssistantMessage = {
   id: string
   sessionID: string
@@ -1603,7 +1605,7 @@ export async function runSuite(options: RunSuiteOptions): Promise<void> {
     repetitions,
     scenarioFilter,
     scenarioSet = null,
-    fixtureManifestPath = process.env.BENCH_FIXTURE_MANIFEST ?? null,
+    fixtureManifestPath: providedFixtureManifestPath = process.env.BENCH_FIXTURE_MANIFEST ?? null,
     seedIfMissing = false
   } = options
 
@@ -1650,6 +1652,23 @@ export async function runSuite(options: RunSuiteOptions): Promise<void> {
 
   if (selectedScenarios.length === 0) {
     throw new Error(`No scenarios matched filter: ${scenarioFilter ?? scenarioSet ?? "default"}`)
+  }
+
+  const needsFixtureBindings = selectedScenarios.some((scenario) => {
+    const bindings = scenario.fixture?.bindings
+    return !!bindings && Object.keys(bindings).length > 0
+  })
+
+  let fixtureManifestPath = providedFixtureManifestPath
+  if (!fixtureManifestPath && needsFixtureBindings) {
+    try {
+      await access(DEFAULT_FIXTURE_MANIFEST_PATH)
+      fixtureManifestPath = DEFAULT_FIXTURE_MANIFEST_PATH
+    } catch {
+      throw new Error(
+        `Selected scenarios require fixture bindings but no fixture manifest was provided. Pass --fixture-manifest or create ${DEFAULT_FIXTURE_MANIFEST_PATH}.`
+      )
+    }
   }
 
   let fixtureManifest: FixtureManifest | null = null
