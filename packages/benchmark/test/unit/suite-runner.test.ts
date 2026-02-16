@@ -1524,6 +1524,54 @@ describe("suite-runner helpers", () => {
     expect(result.success).toBe(true)
   })
 
+  it("handles non-object envelopes without throwing", async () => {
+    const session = {
+      create: vi.fn(async () => ({ data: { id: "s1" } })),
+      promptAsync: vi.fn(async () => ({ data: {} })),
+      messages: vi.fn(async () => ({
+        data: [
+          {
+            info: {
+              id: "m1",
+              sessionID: "s1",
+              role: "assistant",
+              time: { created: 1, completed: 10 },
+              tokens: { input: 1, output: 2, reasoning: 3, cache: { read: 0, write: 0 } },
+              cost: 0,
+            },
+            parts: [{ type: "text", text: "null" }],
+          },
+        ],
+      })),
+      abort: vi.fn(async () => ({ data: {} })),
+    }
+
+    const result = await runScenario(
+      { session },
+      {
+        id: "repo-view-001",
+        name: "Repo view",
+        task: "repo.view",
+        input: { owner: "a", name: "b" },
+        prompt_template: "do {{task}} with {{input_json}}",
+        timeout_ms: 1000,
+        allowed_retries: 0,
+        assertions: {
+          must_succeed: true,
+          expect_valid_output: true,
+          require_tool_calls: false,
+          data_type: "object",
+        },
+        tags: [],
+      },
+      "ghx",
+      1,
+    )
+
+    expect(result.success).toBe(false)
+    expect(result.output_valid).toBe(false)
+  })
+
   it("wraps raw data object into a valid envelope for ghx mode", async () => {
     const session = {
       create: vi.fn(async () => ({ data: { id: "s1" } })),

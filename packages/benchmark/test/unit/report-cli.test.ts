@@ -7,10 +7,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 async function importReportModule(cwd: string) {
   const previous = process.cwd()
   process.chdir(cwd)
-  vi.resetModules()
-  const mod = await import("../../src/cli/report.js")
-  process.chdir(previous)
-  return mod
+  try {
+    vi.resetModules()
+    return await import("../../src/cli/report.js")
+  } finally {
+    process.chdir(previous)
+  }
 }
 
 describe("report cli", () => {
@@ -128,8 +130,11 @@ describe("report cli", () => {
 
     const previous = process.cwd()
     process.chdir(root)
-    await report.main([])
-    process.chdir(previous)
+    try {
+      await report.main([])
+    } finally {
+      process.chdir(previous)
+    }
   })
 
   it("fails gate when summary does not pass", async () => {
@@ -164,8 +169,11 @@ describe("report cli", () => {
     const report = await importReportModule(root)
     const previous = process.cwd()
     process.chdir(root)
-    await expect(report.main(["--gate"])).rejects.toThrow("Benchmark gate failed")
-    process.chdir(previous)
+    try {
+      await expect(report.main(["--gate"])).rejects.toThrow("Benchmark gate failed")
+    } finally {
+      process.chdir(previous)
+    }
   })
 
   it("fails when no benchmark rows exist", async () => {
@@ -175,8 +183,11 @@ describe("report cli", () => {
 
     const previous = process.cwd()
     process.chdir(root)
-    await expect(report.main([])).rejects.toThrow("No benchmark result rows found")
-    process.chdir(previous)
+    try {
+      await expect(report.main([])).rejects.toThrow("No benchmark result rows found")
+    } finally {
+      process.chdir(previous)
+    }
   })
 
   it("loads thresholds from expectations config when present", async () => {
@@ -253,8 +264,11 @@ describe("report cli", () => {
     const report = await importReportModule(root)
     const previous = process.cwd()
     process.chdir(root)
-    await expect(report.main(["--gate"])).resolves.toBeUndefined()
-    process.chdir(previous)
+    try {
+      await expect(report.main(["--gate"])).resolves.toBeUndefined()
+    } finally {
+      process.chdir(previous)
+    }
   })
 
   it("fails when expectations model is provided without config file", async () => {
@@ -295,10 +309,13 @@ describe("report cli", () => {
     const report = await importReportModule(root)
     const previous = process.cwd()
     process.chdir(root)
-    await expect(
-      report.main(["--expectations-model", "openai/gpt-5.1-codex-mini"]),
-    ).rejects.toThrow("Expectations config not found")
-    process.chdir(previous)
+    try {
+      await expect(
+        report.main(["--expectations-model", "openai/gpt-5.1-codex-mini"]),
+      ).rejects.toThrow("Expectations config not found")
+    } finally {
+      process.chdir(previous)
+    }
   })
 
   it("fails when an explicit expectations config path does not exist", async () => {
@@ -339,10 +356,13 @@ describe("report cli", () => {
     const report = await importReportModule(root)
     const previous = process.cwd()
     process.chdir(root)
-    await expect(report.main(["--expectations-config", "config/missing.json"])).rejects.toThrow(
-      "Expectations config not found",
-    )
-    process.chdir(previous)
+    try {
+      await expect(report.main(["--expectations-config", "config/missing.json"])).rejects.toThrow(
+        "Expectations config not found",
+      )
+    } finally {
+      process.chdir(previous)
+    }
   })
 
   it("rejects mixed latest cohorts across modes", async () => {

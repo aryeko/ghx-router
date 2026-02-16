@@ -98,7 +98,7 @@ describe("fixture seed", () => {
             {
               databaseId: 555,
               displayTitle: "bench-rerun-failed seedtest",
-              createdAt: new Date().toISOString(),
+              createdAt: "2024-01-01T00:00:00.000Z",
             },
           ])
         }
@@ -200,6 +200,29 @@ describe("fixture seed", () => {
         seedId: "seedtest",
       }),
     ).rejects.toThrow("invalid repo format: owner/repo/extra; expected owner/name")
+  })
+
+  it("rejects empty output file path", async () => {
+    await expect(
+      seedFixtureManifest({
+        repo: "aryeko/ghx-bench-fixtures",
+        outFile: "",
+        seedId: "seedtest",
+      }),
+    ).rejects.toThrow("seed outFile must be a non-empty path")
+  })
+
+  it("rejects empty seed id", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ghx-bench-fixture-seed-empty-seed-id-"))
+    const outFile = join(root, "fixture.json")
+
+    await expect(
+      seedFixtureManifest({
+        repo: "aryeko/ghx-bench-fixtures",
+        outFile,
+        seedId: "",
+      }),
+    ).rejects.toThrow("seedId must be a non-empty string")
   })
 
   it("throws fallback gh error text when gh fails without stderr", async () => {

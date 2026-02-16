@@ -70,6 +70,7 @@ const NON_JSON_STDOUT_CAPABILITIES = new Set<CliCapabilityId>([
   "pr.reviewers.request",
   "pr.assignees.update",
   "pr.branch.update",
+  "workflow_run.cancel",
   "workflow_run.rerun_failed",
   "workflow_run.rerun_all",
 ])

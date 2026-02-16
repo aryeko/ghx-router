@@ -1169,14 +1169,21 @@ function expectedOutcomeFromAssertions(
 }
 
 function matchesExpectedOutcome(
-  envelope: { ok: boolean; error: unknown },
+  envelope: unknown,
   expectedOutcome: "success" | "expected_error",
 ): boolean {
-  if (expectedOutcome === "expected_error") {
-    return isObject(envelope.error)
+  if (!isObject(envelope)) {
+    return false
   }
 
-  return envelope.ok === true && envelope.error === null
+  const ok = envelope.ok === true
+  const error = envelope.error
+
+  if (expectedOutcome === "expected_error") {
+    return isObject(error)
+  }
+
+  return ok && error === null
 }
 
 function forcedToolCommandHint(scenario: Scenario, mode: BenchmarkMode): string {
@@ -1601,10 +1608,7 @@ export async function runScenario(
       const expectedOutcome = expectedOutcomeFromAssertions(scopedAssertions)
       const expectValidOutput = scopedAssertions.expect_valid_output ?? true
       const outputExpectationMet = expectValidOutput ? outputValid : !outputValid
-      const outcomeMatched = matchesExpectedOutcome(
-        envelope as { ok: boolean; error: unknown },
-        expectedOutcome,
-      )
+      const outcomeMatched = matchesExpectedOutcome(envelope, expectedOutcome)
       const errorReason = !outputExpectationMet
         ? `Output validation failed: outputValid=${outputValid}, expectValidOutput=${expectValidOutput}`
         : !outcomeMatched

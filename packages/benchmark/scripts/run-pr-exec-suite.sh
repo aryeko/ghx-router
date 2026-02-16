@@ -29,6 +29,9 @@ set +a
 
 USER_GH_TOKEN="$(gh auth token)"
 
+MANIFEST_DIR="$(dirname "${MANIFEST_PATH}")"
+mkdir -p "${MANIFEST_DIR}"
+
 echo "[pr-exec] Seeding fixtures: seed_id=${SEED_ID} manifest=${MANIFEST_PATH}"
 "${PNPM_CMD[@]}" --filter @ghx-dev/benchmark run fixtures -- seed --seed-id "${SEED_ID}" --out "${MANIFEST_PATH}"
 

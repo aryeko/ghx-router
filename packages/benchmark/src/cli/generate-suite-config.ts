@@ -6,6 +6,19 @@ import { z } from "zod"
 
 const gateProfileSchema = z.enum(["verify_pr", "verify_release"])
 
+const parsedArgsSchema = z.object({
+  outPath: z.string().trim().min(1, "--out must be a non-empty path"),
+  scenarioSet: z.string().trim().min(1, "--scenario-set must be a non-empty value"),
+  repetitions: z
+    .number()
+    .int("Invalid --repetitions value")
+    .positive("Invalid --repetitions value"),
+  gateProfile: gateProfileSchema,
+  includeCleanup: z.boolean(),
+  includeSeed: z.boolean(),
+  includeGate: z.boolean(),
+})
+
 type ParsedArgs = {
   outPath: string
   scenarioSet: string
@@ -19,7 +32,12 @@ type ParsedArgs = {
 function parseFlagValue(args: string[], flag: string): string | null {
   const index = args.findIndex((arg) => arg === flag)
   if (index !== -1) {
-    return args[index + 1] ?? null
+    const value = args[index + 1]
+    if (!value || value.startsWith("--")) {
+      throw new Error(`Missing value for ${flag}`)
+    }
+
+    return value
   }
 
   const inline = args.find((arg) => arg.startsWith(`${flag}=`))
@@ -38,18 +56,19 @@ export function parseArgs(argv: string[]): ParsedArgs {
 
   const repetitionsRaw = parseFlagValue(normalized, "--repetitions") ?? "3"
   const repetitions = Number.parseInt(repetitionsRaw, 10)
-  if (!Number.isFinite(repetitions) || repetitions <= 0) {
+  if (!Number.isFinite(repetitions)) {
     throw new Error(`Invalid --repetitions value: ${repetitionsRaw}`)
   }
 
   const gateProfileRaw = parseFlagValue(normalized, "--gate-profile") ?? "verify_pr"
   const gateProfile = gateProfileSchema.parse(gateProfileRaw)
 
-  const includeCleanup = normalized.includes("--with-cleanup") && !normalized.includes("--skip-cleanup")
+  const includeCleanup =
+    normalized.includes("--with-cleanup") && !normalized.includes("--skip-cleanup")
   const includeSeed = normalized.includes("--with-seed") && !normalized.includes("--skip-seed")
   const includeGate = !normalized.includes("--no-gate")
 
-  return {
+  return parsedArgsSchema.parse({
     outPath,
     scenarioSet,
     repetitions,
@@ -57,7 +76,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
     includeCleanup,
     includeSeed,
     includeGate,
-  }
+  })
 }
 
 export function buildConfig(args: ParsedArgs): Record<string, unknown> {

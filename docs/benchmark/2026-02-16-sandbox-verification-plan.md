@@ -120,8 +120,6 @@ This made it hard to distinguish real regressions from fixture or assertion nois
 - paired verification has started and orchestration is in place, but full set-by-set paired validation across all planned sets is still pending.
 - consolidated mini artifact generation and canonical 5.3 confirmation runs are still pending.
 
-## What Still Needs to Be Done
-
 ## Detailed Execution Plan (Next Steps)
 
 ### Phase A: Set-by-set paired verification on mini (active phase)

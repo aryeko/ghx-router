@@ -1636,7 +1636,7 @@ describe("runCliCapability", () => {
           exitCode: 0,
         })
         .mockResolvedValueOnce({ stdout: "", stderr: "", exitCode: 0 })
-        .mockResolvedValueOnce({ stdout: "", stderr: "", exitCode: 0 })
+        .mockResolvedValueOnce({ stdout: "cancellation requested", stderr: "", exitCode: 0 })
         .mockResolvedValueOnce({
           stdout: JSON.stringify({
             artifacts: [

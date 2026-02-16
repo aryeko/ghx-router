@@ -3,6 +3,8 @@ import { randomUUID } from "node:crypto"
 import { mkdir, writeFile } from "node:fs/promises"
 import { dirname } from "node:path"
 
+import { z } from "zod"
+
 import type { FixtureManifest } from "../domain/types.js"
 
 type SeedOptions = {
@@ -10,6 +12,12 @@ type SeedOptions = {
   outFile: string
   seedId: string
 }
+
+const seedOptionsSchema = z.object({
+  repo: z.string().trim().min(1, "invalid repo format: ; expected owner/name"),
+  outFile: z.string().trim().min(1, "seed outFile must be a non-empty path"),
+  seedId: z.string().trim().min(1, "seedId must be a non-empty string"),
+})
 
 const FAILED_RERUN_WORKFLOW_FILE =
   process.env.BENCH_FIXTURE_FAILED_RERUN_WORKFLOW ?? "bench-rerun-failed.yml"
@@ -973,8 +981,9 @@ async function buildManifest(repo: string, seedId: string): Promise<FixtureManif
 }
 
 export async function seedFixtureManifest(options: SeedOptions): Promise<FixtureManifest> {
-  const manifest = await buildManifest(options.repo, options.seedId)
-  await mkdir(dirname(options.outFile), { recursive: true })
-  await writeFile(options.outFile, `${JSON.stringify(manifest, null, 2)}\n`, "utf8")
+  const parsed = seedOptionsSchema.parse(options)
+  const manifest = await buildManifest(parsed.repo, parsed.seedId)
+  await mkdir(dirname(parsed.outFile), { recursive: true })
+  await writeFile(parsed.outFile, `${JSON.stringify(manifest, null, 2)}\n`, "utf8")
   return manifest
 }
