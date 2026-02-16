@@ -31,6 +31,7 @@ type RunSuiteOptions = {
 }
 
 const DEFAULT_FIXTURE_MANIFEST_PATH = "fixtures/latest.json"
+const BENCH_PROGRESS_EVENTS_MODE = "jsonl"
 
 type AssistantMessage = {
   id: string
@@ -1608,147 +1609,214 @@ export async function runSuite(options: RunSuiteOptions): Promise<void> {
     fixtureManifestPath: providedFixtureManifestPath = process.env.BENCH_FIXTURE_MANIFEST ?? null,
     seedIfMissing = false
   } = options
+  const suiteRunId = randomUUID()
+  const progressEventsEnabled = process.env.BENCH_PROGRESS_EVENTS === BENCH_PROGRESS_EVENTS_MODE
+  const emitProgressEvent = (
+    event: "suite_started" | "scenario_started" | "scenario_finished" | "suite_finished" | "suite_error",
+    payload: Record<string, unknown> = {}
+  ): void => {
+    if (!progressEventsEnabled) {
+      return
+    }
 
-  await mkdir(RESULTS_DIR, { recursive: true })
-  const scenarios = await loadScenarios(SCENARIOS_DIR)
-
-  if (scenarios.length === 0) {
-    throw new Error(
-      scenarioFilter ? `No scenarios matched filter: ${scenarioFilter}` : "No benchmark scenarios found"
+    console.log(
+      JSON.stringify({
+        event,
+        timestamp: new Date().toISOString(),
+        run_id: suiteRunId,
+        ...payload
+      })
     )
   }
 
-  let selectedScenarios: Scenario[]
-  let resolvedScenarioSet: string | null
+  try {
+    await mkdir(RESULTS_DIR, { recursive: true })
+    const scenarios = await loadScenarios(SCENARIOS_DIR)
 
-  if (scenarioFilter) {
-    selectedScenarios = scenarios.filter((scenario) => scenario.id === scenarioFilter)
-    resolvedScenarioSet = null
-  } else {
-    const scenarioSets = await loadScenarioSets(process.cwd())
-    const selectedSetName = scenarioSet ?? "default"
-    const selectedScenarioIds = scenarioSets[selectedSetName]
-    if (!selectedScenarioIds) {
-      throw new Error(`Unknown scenario set: ${selectedSetName}`)
-    }
-
-    const unknownScenarioIds = selectedScenarioIds.filter(
-      (scenarioId) => !scenarios.some((scenario) => scenario.id === scenarioId)
-    )
-    if (unknownScenarioIds.length > 0) {
-      throw new Error(`Scenario set '${selectedSetName}' references unknown scenario id(s): ${unknownScenarioIds.join(", ")}`)
-    }
-
-    selectedScenarios = selectedScenarioIds.map((scenarioId) => {
-      const matchedScenario = scenarios.find((scenario) => scenario.id === scenarioId)
-      if (!matchedScenario) {
-        throw new Error(`Scenario set '${selectedSetName}' references unknown scenario id(s): ${scenarioId}`)
-      }
-
-      return matchedScenario
-    })
-    resolvedScenarioSet = selectedSetName
-  }
-
-  if (selectedScenarios.length === 0) {
-    throw new Error(`No scenarios matched filter: ${scenarioFilter ?? scenarioSet ?? "default"}`)
-  }
-
-  const needsFixtureBindings = selectedScenarios.some((scenario) => {
-    const bindings = scenario.fixture?.bindings
-    return !!bindings && Object.keys(bindings).length > 0
-  })
-
-  let fixtureManifestPath = providedFixtureManifestPath
-  if (!fixtureManifestPath && needsFixtureBindings) {
-    try {
-      await access(DEFAULT_FIXTURE_MANIFEST_PATH)
-      fixtureManifestPath = DEFAULT_FIXTURE_MANIFEST_PATH
-    } catch {
+    if (scenarios.length === 0) {
       throw new Error(
-        `Selected scenarios require fixture bindings but no fixture manifest was provided. Pass --fixture-manifest or create ${DEFAULT_FIXTURE_MANIFEST_PATH}.`
+        scenarioFilter ? `No scenarios matched filter: ${scenarioFilter}` : "No benchmark scenarios found"
       )
     }
-  }
 
-  let fixtureManifest: FixtureManifest | null = null
-  if (fixtureManifestPath) {
-    if (seedIfMissing) {
+    let selectedScenarios: Scenario[]
+    let resolvedScenarioSet: string | null
+
+    if (scenarioFilter) {
+      selectedScenarios = scenarios.filter((scenario) => scenario.id === scenarioFilter)
+      resolvedScenarioSet = null
+    } else {
+      const scenarioSets = await loadScenarioSets(process.cwd())
+      const selectedSetName = scenarioSet ?? "default"
+      const selectedScenarioIds = scenarioSets[selectedSetName]
+      if (!selectedScenarioIds) {
+        throw new Error(`Unknown scenario set: ${selectedSetName}`)
+      }
+
+      const unknownScenarioIds = selectedScenarioIds.filter(
+        (scenarioId) => !scenarios.some((scenario) => scenario.id === scenarioId)
+      )
+      if (unknownScenarioIds.length > 0) {
+        throw new Error(`Scenario set '${selectedSetName}' references unknown scenario id(s): ${unknownScenarioIds.join(", ")}`)
+      }
+
+      selectedScenarios = selectedScenarioIds.map((scenarioId) => {
+        const matchedScenario = scenarios.find((scenario) => scenario.id === scenarioId)
+        if (!matchedScenario) {
+          throw new Error(`Scenario set '${selectedSetName}' references unknown scenario id(s): ${scenarioId}`)
+        }
+
+        return matchedScenario
+      })
+      resolvedScenarioSet = selectedSetName
+    }
+
+    if (selectedScenarios.length === 0) {
+      throw new Error(`No scenarios matched filter: ${scenarioFilter ?? scenarioSet ?? "default"}`)
+    }
+    const totalScenarioExecutions = selectedScenarios.length * repetitions
+
+    const needsFixtureBindings = selectedScenarios.some((scenario) => {
+      const bindings = scenario.fixture?.bindings
+      return !!bindings && Object.keys(bindings).length > 0
+    })
+
+    let fixtureManifestPath = providedFixtureManifestPath
+    if (!fixtureManifestPath && needsFixtureBindings) {
       try {
-        await access(fixtureManifestPath)
+        await access(DEFAULT_FIXTURE_MANIFEST_PATH)
+        fixtureManifestPath = DEFAULT_FIXTURE_MANIFEST_PATH
       } catch {
-        const fixtureRepo = process.env.BENCH_FIXTURE_REPO ?? "aryeko/ghx-bench-fixtures"
-        const seedId = process.env.BENCH_FIXTURE_SEED_ID ?? "default"
-        await seedFixtureManifest({
-          repo: fixtureRepo,
-          outFile: fixtureManifestPath,
-          seedId
+        throw new Error(
+          `Selected scenarios require fixture bindings but no fixture manifest was provided. Pass --fixture-manifest or create ${DEFAULT_FIXTURE_MANIFEST_PATH}.`
+        )
+      }
+    }
+
+    let fixtureManifest: FixtureManifest | null = null
+    if (fixtureManifestPath) {
+      if (seedIfMissing) {
+        try {
+          await access(fixtureManifestPath)
+        } catch {
+          const fixtureRepo = process.env.BENCH_FIXTURE_REPO ?? "aryeko/ghx-bench-fixtures"
+          const seedId = process.env.BENCH_FIXTURE_SEED_ID ?? "default"
+          await seedFixtureManifest({
+            repo: fixtureRepo,
+            outFile: fixtureManifestPath,
+            seedId
+          })
+        }
+      }
+
+      fixtureManifest = await loadFixtureManifest(fixtureManifestPath)
+      const resolvedManifest = fixtureManifest
+      selectedScenarios = selectedScenarios.map((scenario) =>
+        resolveScenarioFixtureBindings(scenario, resolvedManifest)
+      )
+    }
+
+    if (seedIfMissing && !fixtureManifestPath) {
+      throw new Error("--seed-if-missing requires --fixture-manifest")
+    }
+
+    if (mode === "ghx") {
+      assertGhxRouterPreflight(selectedScenarios)
+    }
+
+    const outFile = join(
+      RESULTS_DIR,
+      `${new Date().toISOString().replace(/[:.]/g, "-")}-${mode}-suite.jsonl`
+    )
+
+    const selectedScenarioIds = selectedScenarios.map((scenario) => scenario.id)
+    console.log(
+      `[benchmark] start: mode=${mode} provider=${PROVIDER_ID} model=${MODEL_ID} opencode_mode=${OPEN_CODE_MODE ?? "<null>"}`
+    )
+    console.log(
+      `[benchmark] config: repetitions=${repetitions} scenario_set=${resolvedScenarioSet ?? "<null>"} scenario_filter=${scenarioFilter ?? "<null>"} scenarios=${selectedScenarios.length}`
+    )
+    console.log(`[benchmark] scenarios: ${selectedScenarioIds.join(",")}`)
+    console.log(
+      `[benchmark] context: opencode_port=${OPENCODE_PORT} git_repo=${GIT_REPO ?? "<null>"} git_commit=${GIT_COMMIT ?? "<null>"} out_file=${outFile}`
+    )
+    console.log(
+      `[benchmark] fixtures: manifest=${fixtureManifestPath ?? "<none>"} seed_if_missing=${seedIfMissing ? "true" : "false"}`
+    )
+    emitProgressEvent("suite_started", {
+      mode,
+      repetitions,
+      scenario_filter: scenarioFilter,
+      scenario_set: resolvedScenarioSet,
+      fixture_manifest_path: fixtureManifestPath ?? null,
+      seed_if_missing: seedIfMissing,
+      total: totalScenarioExecutions
+    })
+
+    let completedExecutions = 0
+    let successExecutions = 0
+
+    for (const scenario of selectedScenarios) {
+      validateFixture(scenario)
+
+      for (let iteration = 1; iteration <= repetitions; iteration += 1) {
+        let latestResult: BenchmarkRow | null = null
+        emitProgressEvent("scenario_started", {
+          mode,
+          scenario_id: scenario.id,
+          iteration,
+          completed: completedExecutions,
+          total: totalScenarioExecutions
+        })
+
+        for (let attempt = 0; attempt <= scenario.allowed_retries; attempt += 1) {
+          const result = await withIsolatedBenchmarkClient((client) =>
+            runScenario(client, scenario, mode, iteration, resolvedScenarioSet)
+          )
+          latestResult = {
+            ...result,
+            external_retry_count: attempt
+          }
+
+          if (result.success || attempt === scenario.allowed_retries) {
+            break
+          }
+        }
+
+        if (!latestResult) {
+          throw new Error(`No benchmark result produced for scenario ${scenario.id}`)
+        }
+
+        await appendFile(outFile, `${JSON.stringify(latestResult)}\n`, "utf8")
+        completedExecutions += 1
+        if (latestResult.success) {
+          successExecutions += 1
+        }
+        emitProgressEvent("scenario_finished", {
+          mode,
+          scenario_id: scenario.id,
+          iteration,
+          success: latestResult.success,
+          completed: completedExecutions,
+          total: totalScenarioExecutions
         })
       }
     }
 
-    fixtureManifest = await loadFixtureManifest(fixtureManifestPath)
-    const resolvedManifest = fixtureManifest
-    selectedScenarios = selectedScenarios.map((scenario) =>
-      resolveScenarioFixtureBindings(scenario, resolvedManifest)
-    )
+    console.log(`Wrote benchmark suite results: ${outFile}`)
+    emitProgressEvent("suite_finished", {
+      mode,
+      out_file: outFile,
+      completed: completedExecutions,
+      total: totalScenarioExecutions,
+      success_count: successExecutions,
+      failure_count: completedExecutions - successExecutions
+    })
+  } catch (error) {
+    emitProgressEvent("suite_error", {
+      mode,
+      message: error instanceof Error ? error.message : String(error)
+    })
+    throw error
   }
-
-  if (seedIfMissing && !fixtureManifestPath) {
-    throw new Error("--seed-if-missing requires --fixture-manifest")
-  }
-
-  if (mode === "ghx") {
-    assertGhxRouterPreflight(selectedScenarios)
-  }
-
-  const outFile = join(
-    RESULTS_DIR,
-    `${new Date().toISOString().replace(/[:.]/g, "-")}-${mode}-suite.jsonl`
-  )
-
-  const selectedScenarioIds = selectedScenarios.map((scenario) => scenario.id)
-  console.log(
-    `[benchmark] start: mode=${mode} provider=${PROVIDER_ID} model=${MODEL_ID} opencode_mode=${OPEN_CODE_MODE ?? "<null>"}`
-  )
-  console.log(
-    `[benchmark] config: repetitions=${repetitions} scenario_set=${resolvedScenarioSet ?? "<null>"} scenario_filter=${scenarioFilter ?? "<null>"} scenarios=${selectedScenarios.length}`
-  )
-  console.log(`[benchmark] scenarios: ${selectedScenarioIds.join(",")}`)
-  console.log(
-    `[benchmark] context: opencode_port=${OPENCODE_PORT} git_repo=${GIT_REPO ?? "<null>"} git_commit=${GIT_COMMIT ?? "<null>"} out_file=${outFile}`
-  )
-  console.log(
-    `[benchmark] fixtures: manifest=${fixtureManifestPath ?? "<none>"} seed_if_missing=${seedIfMissing ? "true" : "false"}`
-  )
-
-  for (const scenario of selectedScenarios) {
-    validateFixture(scenario)
-
-    for (let iteration = 1; iteration <= repetitions; iteration += 1) {
-      let latestResult: BenchmarkRow | null = null
-
-        for (let attempt = 0; attempt <= scenario.allowed_retries; attempt += 1) {
-        const result = await withIsolatedBenchmarkClient((client) =>
-          runScenario(client, scenario, mode, iteration, resolvedScenarioSet)
-        )
-        latestResult = {
-          ...result,
-          external_retry_count: attempt
-        }
-
-        if (result.success || attempt === scenario.allowed_retries) {
-          break
-        }
-      }
-
-      if (!latestResult) {
-        throw new Error(`No benchmark result produced for scenario ${scenario.id}`)
-      }
-
-      await appendFile(outFile, `${JSON.stringify(latestResult)}\n`, "utf8")
-    }
-  }
-
-  console.log(`Wrote benchmark suite results: ${outFile}`)
 }

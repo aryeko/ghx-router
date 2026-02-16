@@ -760,4 +760,109 @@ describe("runSuite", () => {
       }
     }
   })
+
+  it("emits JSONL suite/scenario progress events when BENCH_PROGRESS_EVENTS=jsonl", async () => {
+    const previousProgressEvents = process.env.BENCH_PROGRESS_EVENTS
+    process.env.BENCH_PROGRESS_EVENTS = "jsonl"
+
+    const consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => undefined)
+
+    const session = createSessionMocks()
+    const close = vi.fn()
+    createOpencodeMock.mockResolvedValue({ client: { session }, server: { close } })
+
+    loadScenariosMock.mockResolvedValue([
+      {
+        id: "repo-view-001",
+        name: "Repo view",
+        task: "repo.view",
+        input: { owner: "a", name: "b" },
+        prompt_template: "run {{task}} {{input_json}}",
+        timeout_ms: 1000,
+        allowed_retries: 0,
+        fixture: { repo: "a/b" },
+        assertions: {
+          must_succeed: true,
+          required_fields: ["ok", "data", "error", "meta"],
+          required_data_fields: ["id"]
+        },
+        tags: []
+      }
+    ])
+
+    const mod = await import("../../src/runner/suite-runner.js")
+
+    try {
+      await mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null })
+
+      const eventNames = consoleLogSpy.mock.calls
+        .map((call) => call[0])
+        .filter((line): line is string => typeof line === "string")
+        .map((line) => {
+          try {
+            return JSON.parse(line) as { event?: unknown }
+          } catch {
+            return null
+          }
+        })
+        .filter((entry): entry is { event?: unknown } => entry !== null)
+        .map((entry) => entry.event)
+
+      expect(eventNames).toEqual([
+        "suite_started",
+        "scenario_started",
+        "scenario_finished",
+        "suite_finished"
+      ])
+    } finally {
+      if (previousProgressEvents === undefined) {
+        delete process.env.BENCH_PROGRESS_EVENTS
+      } else {
+        process.env.BENCH_PROGRESS_EVENTS = previousProgressEvents
+      }
+      consoleLogSpy.mockRestore()
+    }
+  })
+
+  it("emits suite_error JSONL event when runSuite fails in progress mode", async () => {
+    const previousProgressEvents = process.env.BENCH_PROGRESS_EVENTS
+    process.env.BENCH_PROGRESS_EVENTS = "jsonl"
+
+    const consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => undefined)
+
+    const session = createSessionMocks()
+    const close = vi.fn()
+    createOpencodeMock.mockResolvedValue({ client: { session }, server: { close } })
+    loadScenariosMock.mockResolvedValue([])
+
+    const mod = await import("../../src/runner/suite-runner.js")
+
+    try {
+      await expect(mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null })).rejects.toThrow(
+        "No benchmark scenarios found"
+      )
+
+      const eventNames = consoleLogSpy.mock.calls
+        .map((call) => call[0])
+        .filter((line): line is string => typeof line === "string")
+        .map((line) => {
+          try {
+            return JSON.parse(line) as { event?: unknown }
+          } catch {
+            return null
+          }
+        })
+        .filter((entry): entry is { event?: unknown } => entry !== null)
+        .map((entry) => entry.event)
+
+      expect(eventNames).toContain("suite_error")
+    } finally {
+      if (previousProgressEvents === undefined) {
+        delete process.env.BENCH_PROGRESS_EVENTS
+      } else {
+        process.env.BENCH_PROGRESS_EVENTS = previousProgressEvents
+      }
+      consoleLogSpy.mockRestore()
+    }
+  })
 })

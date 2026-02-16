@@ -16,6 +16,7 @@
     "test:e2e:local": "vitest run --project e2e:local --passWithNoTests",
     "test:e2e:sdk": "vitest run --project e2e:sdk --passWithNoTests",
     "benchmark": "tsx src/cli/benchmark.ts run",
+    "suite:run": "tsx src/cli/run-suite.ts",
     "fixtures": "tsx src/cli/fixtures.ts",
     "fixtures:env:bootstrap": "bash scripts/bootstrap-fixture-app-env.sh",
     "suite:pr-exec": "bash scripts/run-pr-exec-suite.sh",

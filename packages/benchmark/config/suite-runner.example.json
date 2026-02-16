@@ -1,0 +1,47 @@
+{
+  "cleanup": {
+    "command": ["pnpm", "run", "fixtures", "--", "cleanup", "--out", "fixtures/latest.json"]
+  },
+  "seed": {
+    "command": ["pnpm", "run", "fixtures", "--", "seed", "--out", "fixtures/latest.json"]
+  },
+  "benchmark": {
+    "ghx": {
+      "command": [
+        "pnpm",
+        "run",
+        "benchmark",
+        "--",
+        "ghx",
+        "3",
+        "--scenario-set",
+        "ci-verify-pr"
+      ],
+      "env": {
+        "GHX_SKIP_GH_PREFLIGHT": "1",
+        "BENCH_OPENCODE_PORT": "3001"
+      }
+    },
+    "direct": {
+      "command": [
+        "pnpm",
+        "run",
+        "benchmark",
+        "--",
+        "agent_direct",
+        "3",
+        "--scenario-set",
+        "ci-verify-pr"
+      ],
+      "env": {
+        "BENCH_OPENCODE_PORT": "3002"
+      }
+    }
+  },
+  "report": {
+    "command": ["pnpm", "run", "report"]
+  },
+  "gate": {
+    "command": ["pnpm", "run", "report", "--", "--gate", "--gate-profile", "verify_pr"]
+  }
+}
