@@ -37,6 +37,8 @@ type RunSuiteOptions = {
   repetitions: number
   scenarioFilter: string | null
   scenarioSet?: string | null
+  fixtureManifestPath?: string | null
+  seedIfMissing?: boolean
 }
 
 type AssistantMessage = {
