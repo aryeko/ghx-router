@@ -932,6 +932,50 @@ describe("runCliCapability", () => {
     )
   })
 
+  it("falls back to rerun-all when rerun-failed cannot be retried", async () => {
+    const runner = {
+      run: vi
+        .fn()
+        .mockResolvedValueOnce({
+          stdout: "",
+          stderr: "run 88 cannot be rerun; This workflow run cannot be retried",
+          exitCode: 1
+        })
+        .mockResolvedValueOnce({
+          stdout: "",
+          stderr: "",
+          exitCode: 0
+        })
+    }
+
+    const rerunFailed = await runCliCapability(runner, "pr.checks.rerun_failed", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 10,
+      runId: 88
+    })
+
+    expect(rerunFailed.ok).toBe(true)
+    expect(rerunFailed.data).toEqual({
+      prNumber: 10,
+      runId: 88,
+      mode: "all",
+      queued: true
+    })
+    expect(runner.run).toHaveBeenNthCalledWith(
+      1,
+      "gh",
+      ["run", "rerun", "88", "--repo", "acme/modkit", "--failed"],
+      10_000
+    )
+    expect(runner.run).toHaveBeenNthCalledWith(
+      2,
+      "gh",
+      ["run", "rerun", "88", "--repo", "acme/modkit"],
+      10_000
+    )
+  })
+
   it("validates required Batch A mutation inputs", async () => {
     const runner = {
       run: vi.fn(async () => ({

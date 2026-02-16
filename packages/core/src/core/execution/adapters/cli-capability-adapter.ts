@@ -85,6 +85,11 @@ function sanitizeCliErrorMessage(stderr: string, exitCode: number): string {
   return trimmed
 }
 
+function shouldFallbackRerunFailedToAll(stderr: string): boolean {
+  const normalized = stderr.toLowerCase()
+  return normalized.includes("cannot be rerun") && normalized.includes("cannot be retried")
+}
+
 function parseStrictPositiveInt(value: unknown): number | null {
   return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : null
 }
@@ -1354,10 +1359,16 @@ function normalizeCliData(capabilityId: CliCapabilityId, data: unknown, params: 
   }
 
   if (capabilityId === "pr.checks.rerun_failed" || capabilityId === "pr.checks.rerun_all") {
+    const effectiveMode = params.__effectiveRerunMode === "all"
+      ? "all"
+      : capabilityId === "pr.checks.rerun_failed"
+        ? "failed"
+        : "all"
+
     return {
       prNumber: Number(params.prNumber),
       runId: Number(params.runId),
-      mode: capabilityId === "pr.checks.rerun_failed" ? "failed" : "all",
+      mode: effectiveMode,
       queued: true
     }
   }
@@ -1827,6 +1838,19 @@ export async function runCliCapability(
     const result = await runner.run("gh", args, DEFAULT_TIMEOUT_MS)
 
     if (result.exitCode !== 0) {
+      if (capabilityId === "pr.checks.rerun_failed" && shouldFallbackRerunFailedToAll(result.stderr)) {
+        const rerunAllArgs = buildArgs("pr.checks.rerun_all", params, card)
+        const rerunAllResult = await runner.run("gh", rerunAllArgs, DEFAULT_TIMEOUT_MS)
+        if (rerunAllResult.exitCode === 0) {
+          const fallbackData = normalizeCliData(
+            capabilityId,
+            parseCliData(rerunAllResult.stdout),
+            { ...params, __effectiveRerunMode: "all" }
+          )
+          return normalizeResult(fallbackData, "cli", { capabilityId, reason: "CARD_FALLBACK" })
+        }
+      }
+
       const code = mapErrorToCode(result.stderr)
       return normalizeError(
         {

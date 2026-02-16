@@ -410,7 +410,57 @@ function ensurePrThread(repo: string, prNumber: number, seedId: string): string 
   return findPrThreadId(repo, prNumber) ?? ""
 }
 
-function findLatestWorkflowRun(repo: string): { id: number; job_id: number | null } | null {
+function parseWorkflowRunIdFromLink(link: string): number | null {
+  const match = /\/actions\/runs\/(\d+)/.exec(link)
+  if (!match) {
+    return null
+  }
+
+  const runId = Number(match[1])
+  return Number.isInteger(runId) && runId > 0 ? runId : null
+}
+
+function findLatestWorkflowRun(repo: string, prNumber: number): { id: number; job_id: number | null } | null {
+  const prChecksResult = tryRunGhJson([
+    "pr",
+    "checks",
+    String(prNumber),
+    "--repo",
+    repo,
+    "--json",
+    "state,link",
+  ])
+  const checks = parseArrayResponse(prChecksResult)
+  const checkEntries = checks.filter((entry): entry is Record<string, unknown> => typeof entry === "object" && entry !== null)
+  const failedCheck = checkEntries.find((entry) => String(entry.state ?? "").toUpperCase() === "FAILURE")
+  const firstCheck = checkEntries[0]
+  const linkedRunId = [failedCheck, firstCheck]
+    .map((entry) => (typeof entry?.link === "string" ? parseWorkflowRunIdFromLink(entry.link) : null))
+    .find((id): id is number => id !== null)
+
+  if (linkedRunId !== undefined) {
+    const jobsResult = runGhJson([
+      "run",
+      "view",
+      String(linkedRunId),
+      "--repo",
+      repo,
+      "--json",
+      "jobs"
+    ])
+    const jobs = Array.isArray((jobsResult as { jobs?: unknown[] }).jobs) ? (jobsResult as { jobs: unknown[] }).jobs : []
+    const firstJob = jobs[0]
+    const jobId =
+      typeof firstJob === "object" && firstJob !== null && typeof (firstJob as Record<string, unknown>).databaseId === "number"
+        ? Number((firstJob as Record<string, unknown>).databaseId)
+        : null
+
+    return {
+      id: linkedRunId,
+      job_id: jobId
+    }
+  }
+
   const runListArgsCandidates: string[][] = [
     ["run", "list", "--repo", repo, "--workflow", "ci.yml", "--status", "failure", "--limit", "1", "--json", "databaseId"],
     ["run", "list", "--repo", repo, "--workflow", "ci.yml", "--limit", "1", "--json", "databaseId"],
@@ -601,7 +651,7 @@ function buildManifest(repo: string, seedId: string): FixtureManifest {
   const pr = findSeededPr(repo, seedLabel) ?? createSeedPr(repo, seedId, seedLabel)
   createMainlineFixtureCommit(repo, seedId)
   const prThreadId = ensurePrThread(repo, pr.number, seedId)
-  const workflowRun = findLatestWorkflowRun(repo)
+  const workflowRun = findLatestWorkflowRun(repo, pr.number)
   const release = findLatestDraftRelease(repo)
   let project: { number: number; id: string; item_id: string; field_id: string; option_id: string }
   try {

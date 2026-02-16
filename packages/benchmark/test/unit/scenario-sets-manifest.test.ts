@@ -67,12 +67,12 @@ describe("scenario-sets manifest", () => {
       "pr-review-submit-approve-001",
       "pr-review-submit-request-changes-001",
       "pr-review-submit-comment-001",
-      "pr-merge-execute-001",
       "pr-checks-rerun-failed-001",
       "pr-checks-rerun-all-001",
       "pr-reviewers-request-001",
       "pr-assignees-update-001",
-      "pr-branch-update-001"
+      "pr-branch-update-001",
+      "pr-merge-execute-001"
     ])
 
     expect(scenarioSets["issues"]).toEqual([
@@ -152,12 +152,12 @@ describe("scenario-sets manifest", () => {
       "pr-review-submit-approve-001",
       "pr-review-submit-request-changes-001",
       "pr-review-submit-comment-001",
-      "pr-merge-execute-001",
       "pr-checks-rerun-failed-001",
       "pr-checks-rerun-all-001",
       "pr-reviewers-request-001",
       "pr-assignees-update-001",
       "pr-branch-update-001",
+      "pr-merge-execute-001",
       "pr-view-001",
       "pr-list-open-001"
     ])
