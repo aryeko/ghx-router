@@ -6,6 +6,9 @@ This workspace prepares publish-ready growth materials for `ghx` without touchin
 ## Plan Index
 See the high-level phase/status tracker in [INDEX.md](./INDEX.md).
 
+## Latest Medium Draft
+- [Medium Draft 03: Deep Technical](./medium-post-03-deep-technical.md)
+
 ## Positioning One-Liner
 `ghx` gives agents a stable, typed GitHub capability interface so they can execute real repo workflows without re-discovering CLI and API surface area each run.
 
