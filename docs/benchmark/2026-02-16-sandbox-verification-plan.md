@@ -39,6 +39,28 @@ Define a set-level verification flow that reuses existing benchmark tooling (`be
 6. Validation blocks the run when any row violates required fields.
 7. Any wrapper-generated intermediate paths must be unique per execution to avoid collisions under
    parallel runs.
+8. Report summary path support is a hard prerequisite: wrapper implementation cannot proceed until
+   `report` supports explicit `--summary-json` and `--summary-md` output flags.
+9. Retry behavior is bounded: each failing set allows at most two scenario-level rerun attempts;
+   unresolved failures after attempt two are terminal.
+
+## Prerequisite Gate (Must Pass Before Wrapper Work)
+
+Before implementing `verify:set`, satisfy this prerequisite:
+
+1. `report` supports:
+   - `--summary-json <path>`
+   - `--summary-md <path>`
+2. Acceptance command:
+
+```bash
+pnpm --filter @ghx-dev/benchmark run report -- --gate --gate-profile verify_pr --summary-json /tmp/verify-summary.json --summary-md /tmp/verify-summary.md
+```
+
+3. Required result:
+   - command exits `0`
+   - both files are written at the exact requested paths
+4. If unsupported, implement this report support first and treat it as a blocking predecessor.
 
 ## CLI Contracts
 
@@ -63,6 +85,15 @@ Compatibility requirement:
 
 - if `report` does not yet support `--summary-json` and `--summary-md`, add support first;
   wrapper behavior must not depend on copying from shared latest files.
+
+Fixture-health preflight contract:
+
+- Preflight must run exactly once before Set 1:
+  - `pnpm --filter @ghx-dev/benchmark run fixtures -- status --out fixtures/latest.json`
+- Required preflight result:
+  - command exits `0`
+  - `fixtures/latest.json` exists and is valid JSON
+- If this contract is not currently supported by `fixtures`, add support before wrapper work.
 
 ## Validation Rules
 
@@ -165,6 +196,18 @@ Seed lifecycle requirements:
 - cleanup runs once at post-run stage after all ordered sets are green (or after terminal stop if
   explicitly requested).
 
+Seed command contract:
+
+- Seed ID format: `<run-id>-<set>-seed`
+  - example: `20260216T231045Z-pr-exec-seed`
+- Seed creation command for `with seed` sets:
+  - `pnpm --filter @ghx-dev/benchmark run fixtures -- seed --set <set> --seed-id <seed-id> --out <run-base>/fixtures/latest.json`
+- For `with seed` sets, wrapper must call the existing fixture-seed command with:
+  - `--set <set>`
+  - `--seed-id <seed-id>`
+  - output manifest under the run-scoped base directory
+- For read-only sets, wrapper must not invoke seed creation commands.
+
 ## Command Examples
 
 Single-set run:
@@ -213,6 +256,16 @@ Required mapping table:
 - Fix harness/fixture/scenario issues as needed.
 - Re-run the full set and require a clean blocking validation result before continuing.
 
+Bounded retry contract:
+
+- Maximum scenario-level reruns per set: `2`
+- Retry scope: each retry includes only failed `scenario_id` values from the immediately previous
+  attempt.
+- Terminal stop: if blocking failures remain after attempt 2, mark set `terminal_fail` and stop
+  ordered execution.
+- Every retry attempt must append to `tracking.json.reruns` with `attempt`, `scenario_ids`, and
+  `result`.
+
 ## Per-Set Tracking Requirements
 
 For each set, record:
@@ -229,12 +282,25 @@ Required file name in each set folder:
 
 - `tracking.json`
 
+Write-on-fail requirement:
+
+- `tracking.json` must be written for every set outcome: `pass`, `fail`, or `terminal_fail`.
+- On failure, it must still include computed row counts, failing scenarios, and rerun history up to
+  the stop point.
+
 Required tracking source rules:
 
 - `rows_expected` is derived from the resolved scenario list for the set (or rerun filter) before
   execution.
 - `rows_actual` is counted from each produced JSONL.
 - expected row count for paired mode is `rows_expected` per mode.
+
+Normative scenario-resolution source:
+
+- `rows_expected` must come from the same scenario resolver used by benchmark execution.
+- Wrapper must persist resolved IDs in `tracking.json.resolved_scenarios` before execution.
+- For reruns with `--scenario-id`, `rows_expected` equals the count of unique rerun IDs after
+  resolver normalization.
 
 Example `tracking.json` shape:
 
@@ -243,6 +309,10 @@ Example `tracking.json` shape:
   "set": "pr-exec",
   "provider": "openai",
   "model": "gpt-5.1-codex-mini",
+  "resolved_scenarios": [
+    "pr-review-submit-approve-001",
+    "pr-branch-update-001"
+  ],
   "rows_expected": {
     "agent_direct": 9,
     "ghx": 9
@@ -268,6 +338,12 @@ Example `tracking.json` shape:
 }
 ```
 
+Allowed `final_status` values:
+
+- `pass`
+- `fail`
+- `terminal_fail`
+
 ## Post-Run Requirements
 
 After all nine sets are green:
@@ -289,9 +365,11 @@ BENCH_PROVIDER_ID=openai BENCH_MODEL_ID=gpt-5.3-codex pnpm --filter @ghx-dev/ben
 
 - Single-set verification runs end-to-end via one command and produces per-set artifacts.
 - Multi-set driver runs all required sets in order.
+- Prerequisite gate for `report --summary-json/--summary-md` passes before wrapper implementation.
 - Invalid rows always block with non-zero exit and clear diagnostics.
 - Read-only sets skip seed flow; other sets use seed-enabled flow.
 - Preflight runs once and is not repeated per set.
-- Failed sets produce scenario-level retry inputs and do not allow progression until green.
-- Per-set tracking artifacts are present for all nine sets.
+- Failed sets produce scenario-level retry inputs, apply a max of two retries, and terminate
+  cleanly on unrecovered failures.
+- Per-set tracking artifacts are present for all nine sets and always written (including failures).
 - Post-run summary + cleanup + canonical confirmation handoff are defined and executable.
