@@ -35,7 +35,7 @@ const fixtureSeedIdSchema = z
   .max(64)
   .regex(/^[A-Za-z0-9][A-Za-z0-9._-]*$/)
 
-function parseCliValue<T>(schema: z.ZodType<T>, value: string, label: string): T {
+function parseCliValue<T>(schema: z.ZodSchema<T>, value: string, label: string): T {
   const parsed = schema.safeParse(value)
   if (parsed.success) {
     return parsed.data

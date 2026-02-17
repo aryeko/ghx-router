@@ -11,8 +11,8 @@ const parsedArgsSchema = z.object({
   scenarioSet: z.string().trim().min(1, "--scenario-set must be a non-empty value"),
   repetitions: z
     .number()
-    .int("Invalid --repetitions value")
-    .positive("Invalid --repetitions value"),
+    .int({ message: "Invalid --repetitions value" })
+    .positive({ message: "Invalid --repetitions value" }),
   gateProfile: gateProfileSchema,
   includeCleanup: z.boolean(),
   includeSeed: z.boolean(),

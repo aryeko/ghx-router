@@ -8,20 +8,20 @@ import { z } from "zod"
 
 const commandSchema = z.object({
   command: z.array(z.string().min(1)).min(1),
-  env: z.record(z.string()).optional(),
+  env: z.record(z.string(), z.string()).optional(),
 })
 
 const benchmarkBaseSchema = z.object({
   command: z.array(z.string().min(1)).min(1),
   repetitions: z.number().int().positive(),
   scenarioSet: z.string().min(1).optional(),
-  env: z.record(z.string()).optional(),
+  env: z.record(z.string(), z.string()).optional(),
 })
 
 const benchmarkVariantSchema = z.object({
   mode: z.enum(["ghx", "agent_direct"]),
   args: z.array(z.string()).optional(),
-  env: z.record(z.string()).optional(),
+  env: z.record(z.string(), z.string()).optional(),
 })
 
 const suiteRunnerConfigSchema = z.object({

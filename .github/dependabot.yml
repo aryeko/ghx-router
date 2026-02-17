@@ -28,6 +28,13 @@ updates:
         patterns:
           - "typescript"
           - "@types/*"
+    ignore:
+      # @types/node is pinned via pnpm catalog; Dependabot cannot update catalog entries correctly
+      - dependency-name: "@types/node"
+      # ESLint 10 is outside @nx/eslint@22 peer dep range (^8||^9); upgrade with Nx major bump
+      - dependency-name: "eslint"
+      - dependency-name: "@eslint/js"
+      - dependency-name: "typescript-eslint"
     open-pull-requests-limit: 10
 
   - package-ecosystem: github-actions

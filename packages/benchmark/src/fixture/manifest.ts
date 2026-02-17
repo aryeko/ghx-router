@@ -11,7 +11,7 @@ const fixtureManifestSchema = z.object({
     full_name: z.string().min(1),
     default_branch: z.string().min(1),
   }),
-  resources: z.record(z.unknown()),
+  resources: z.record(z.string(), z.unknown()),
 })
 
 const UNSAFE_PATH_SEGMENTS = new Set(["__proto__", "constructor", "prototype"])

@@ -1,9 +1,7 @@
 import { access, readFile } from "node:fs/promises"
 
 import { z } from "zod"
-
-import type { GateProfile } from "./aggregate.js"
-import type { GateV2ThresholdMap } from "./aggregate.js"
+import type { GateProfile, GateV2ThresholdMap } from "./aggregate.js"
 
 const gateV2ThresholdSchema = z.object({
   minTokensActiveReductionPct: z.number(),
@@ -21,6 +19,7 @@ const gateV2ThresholdSchema = z.object({
 const expectationsSchema = z.object({
   default_model: z.string().min(1),
   expectations: z.record(
+    z.string(),
     z.object({
       verify_pr: gateV2ThresholdSchema,
       verify_release: gateV2ThresholdSchema,
@@ -60,7 +59,9 @@ export function resolveGateThresholdsForModel(
   }
 }
 
-export function inferModelSignatureFromRows(rows: Array<{ mode: string; model: { provider_id: string; model_id: string } }>): string | null {
+export function inferModelSignatureFromRows(
+  rows: Array<{ mode: string; model: { provider_id: string; model_id: string } }>,
+): string | null {
   const preferredRows = rows.filter((row) => row.mode === "agent_direct" || row.mode === "ghx")
   const sourceRows = preferredRows.length > 0 ? preferredRows : rows
 
