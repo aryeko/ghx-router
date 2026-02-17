@@ -1,8 +1,5 @@
 import type { ScenarioAssertions } from "../domain/types.js"
-
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
-}
+import { isObject } from "../utils/guards.js"
 
 export function extractFirstJsonObject(input: string): unknown | null {
   const firstBrace = input.indexOf("{")

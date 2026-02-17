@@ -1,3 +1,5 @@
+import { isObject } from "../utils/guards.js"
+
 type AttemptMeta = {
   route?: string
   status?: string
@@ -8,10 +10,6 @@ type ExtractedAttempts = {
   totalAttempts: number
   routeUsed: string | null
   retryCount: number
-}
-
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null
 }
 
 export function extractAttemptMetrics(payload: unknown): ExtractedAttempts {

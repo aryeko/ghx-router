@@ -21,6 +21,7 @@ import { aggregateToolCounts } from "../extract/tool-usage.js"
 import { loadFixtureManifest, resolveScenarioFixtureBindings } from "../fixture/manifest.js"
 import { seedFixtureManifest } from "../fixture/seed.js"
 import { loadScenarioSets, loadScenarios } from "../scenario/loader.js"
+import { isObject } from "../utils/guards.js"
 import {
   AGENT_DIRECT_INSTRUCTION,
   MCP_INSTRUCTION,
@@ -122,10 +123,6 @@ const GHX_SKILL_ASSET_PATH = resolve(
   BENCHMARK_PACKAGE_ROOT,
   "../core/src/cli/assets/skills/ghx/SKILL.md",
 )
-
-export function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
-}
 
 export function unwrapData<T>(value: unknown, label: string): T {
   if (isObject(value) && "data" in value) {

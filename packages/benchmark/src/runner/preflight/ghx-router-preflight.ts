@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process"
 import type { Scenario } from "../../domain/types.js"
+import { isObject } from "../../utils/guards.js"
 
 type CapabilityListItem = {
   capability_id: string
@@ -35,10 +36,6 @@ function parseGhxCapabilities(raw: string): string[] {
   return parsed
     .map((item) => (isObject(item) ? (item as CapabilityListItem).capability_id : null))
     .filter((item): item is string => typeof item === "string" && item.length > 0)
-}
-
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
 }
 
 export function ghOk(args: string[], spawnSyncFn: SpawnSyncFn = spawnSync): boolean {

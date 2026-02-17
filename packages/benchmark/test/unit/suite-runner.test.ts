@@ -21,13 +21,13 @@ import {
   hasAssistantMetadata,
   hasAssistantSignalParts,
   hasTextPart,
-  isObject,
   runScenario,
   shouldRequestContinuation,
   unwrapData,
   waitForAssistantFromMessages,
   withTimeout,
 } from "../../src/runner/suite-runner.js"
+import { isObject } from "../../src/utils/guards.js"
 
 const spawnSyncMock = vi.mocked(spawnSync)
 
