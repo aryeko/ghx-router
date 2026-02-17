@@ -126,15 +126,15 @@ For the full capability inventory, see https://github.com/aryeko/ghx/blob/main/p
 
 ## Documentation
 
-- Architecture overview: `docs/architecture/overview.md`
-- System design: `docs/architecture/system-design.md`
-- Routing policy: `docs/architecture/routing-policy.md`
-- Contracts: `docs/architecture/contracts.md`
-- Setup command design: `docs/architecture/setup-command-design.md`
-- Roadmap golden flows: `docs/guides/roadmap-golden-flows.md`
-- Publishing guide: `docs/guides/publishing.md`
+Full documentation lives in [`docs/`](docs/README.md):
+
+- **[Getting Started](docs/getting-started/README.md)** — Installation, first task, agent setup
+- **[Capabilities Reference](docs/capabilities/README.md)** — All 66 capabilities by domain
+- **[Guides](docs/guides/README.md)** — CLI usage, library API, agent integration, error handling
+- **[Architecture](docs/architecture/README.md)** — System design, routing engine, adapters
+- **[Benchmark](docs/benchmark/README.md)** — Methodology, running benchmarks, scenario authoring
+- **[Contributing](docs/contributing/README.md)** — Development setup, testing, CI, publishing
 - Branding assets: `assets/branding/README.md`
-- CI workflows: `docs/engineering/ci-workflows.md`
 
 ## Roadmap
 

@@ -99,6 +99,17 @@ pnpm run changeset
 4. Open a PR with a clear description
 5. Address review feedback
 
+## Detailed Documentation
+
+For comprehensive contributor guides, see [`docs/contributing/`](docs/contributing/README.md):
+
+- [Development Setup](docs/contributing/development-setup.md) — Extended setup and tooling guide
+- [Testing Guide](docs/contributing/testing-guide.md) — Test patterns and coverage expectations
+- [Code Style](docs/contributing/code-style.md) — Biome, import conventions, type discipline
+- [Adding a Capability](docs/contributing/adding-a-capability.md) — Step-by-step guide for new capabilities
+- [CI Workflows](docs/contributing/ci-workflows.md) — GitHub Actions pipeline details
+- [Publishing](docs/contributing/publishing.md) — Changesets, versioning, and npm publishing
+
 ## Questions
 
 Open a [Discussion](https://github.com/aryeko/ghx/discussions) or an [Issue](https://github.com/aryeko/ghx/issues) if you have questions.

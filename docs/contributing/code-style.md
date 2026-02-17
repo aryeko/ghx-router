@@ -1,0 +1,219 @@
+# Code Style
+
+This guide covers formatting, import conventions, type patterns, and naming conventions enforced in the codebase.
+
+## Formatter: Biome
+
+[Biome](https://biomejs.dev/) is the official formatter and linter. Configuration is in `biome.json`.
+
+### Formatting Rules
+
+- **Quotes:** Double quotes
+- **Semicolons:** None (not used)
+- **Trailing commas:** Enabled
+- **Indent:** 2 spaces
+- **Line width:** 100 characters
+
+### Format & Lint
+
+```bash
+pnpm run format                 # Auto-fix formatting + import sorting
+pnpm run format:check           # Verify formatting (CI mode, read-only)
+pnpm run lint                   # Run ESLint
+```
+
+**Caution:** Lefthook's `stage_fixed: true` auto-stages all Biome-modified files. Avoid parallel commits in the same worktree — stray unstaged files may bleed into the wrong commit.
+
+## Import Conventions
+
+### Type-Only Imports
+
+Use `import type` for type-only imports:
+
+```typescript
+// Correct
+import type { MyType } from "./types.js"
+import { MyClass } from "./class.js"
+
+// Incorrect
+import { MyType, MyClass } from "./module.js"
+```
+
+### Node Resolution
+
+Relative imports require explicit `.js` extension (NodeNext resolution):
+
+```typescript
+// Correct
+import { helper } from "./utils.js"
+import type { Config } from "../config.js"
+
+// Incorrect
+import { helper } from "./utils"
+import type { Config } from "../config"
+```
+
+### Import Ordering
+
+Biome's `organizeImports` handles import ordering automatically. When a module needs both a value and a type import from the same source, `import type` is placed first:
+
+```typescript
+import type { ResponseType } from "./api.js"
+import { fetchData } from "./api.js"
+```
+
+This ordering is automatic — accept it to avoid churn.
+
+## Type Patterns
+
+### Prefer `unknown` with Narrowing
+
+Use `unknown` + type narrowing over `any`:
+
+```typescript
+// Correct
+function process(value: unknown): string {
+  if (typeof value === "string") {
+    return value.toUpperCase()
+  }
+  throw new Error("Expected string")
+}
+
+// Incorrect
+function process(value: any): string {
+  return value.toUpperCase()
+}
+```
+
+### Input Validation at Boundaries
+
+Validate untrusted input at module boundaries:
+
+- **Core package:** AJV for JSON schema validation
+- **Benchmark package:** Zod for runtime validation
+
+```typescript
+// core/execute/execute.ts (AJV)
+const validate = ajv.compile(inputSchema)
+if (!validate(input)) {
+  return { ok: false, error: "Invalid input", meta: { errors: validate.errors } }
+}
+
+// benchmark (Zod)
+const parsed = InputSchema.parse(input)
+```
+
+### `exactOptionalPropertyTypes: true`
+
+TypeScript is configured with `exactOptionalPropertyTypes: true` (in `tsconfig.json`). Zod's `.optional()` infers `T | undefined`, which conflicts with strict optional semantics.
+
+When returning Zod-parsed values where the declared return type uses optional fields (`field?: T`), cast the result:
+
+```typescript
+// Correct
+async function parseInput(): Promise<BenchmarkRow[]> {
+  const data = await InputSchema.parseAsync(raw)
+  return data as Promise<BenchmarkRow[]>
+}
+
+// Incorrect (type mismatch error)
+async function parseInput(): Promise<BenchmarkRow[]> {
+  return InputSchema.parseAsync(raw)  // T | undefined !== T?
+}
+```
+
+### Result Envelope
+
+All operations return a stable envelope shape. Do not change this contract:
+
+```typescript
+interface ResultEnvelope<T> {
+  ok: boolean
+  data?: T
+  error?: string
+  meta?: Record<string, unknown>
+}
+```
+
+## File and Constant Naming
+
+### File Names
+
+Use kebab-case:
+
+```
+src/core/registry/operation-loader.ts
+src/core/errors/map-error.ts
+src/cli/commands/setup-command.ts
+```
+
+### Test Files
+
+- Unit tests: `*.test.ts`
+- Integration tests: `*.integration.test.ts`
+
+### Type Names
+
+Use PascalCase:
+
+```typescript
+interface ExecuteTaskInput {}
+type ResultEnvelope<T> = { ok: boolean; data?: T }
+class OperationRegistry {}
+```
+
+### Constants
+
+Use UPPER_SNAKE_CASE:
+
+```typescript
+const DEFAULT_TIMEOUT_MS = 30_000
+const ERROR_CODE_MAPPING = { /* ... */ }
+const GITHUB_API_VERSION = "2022-11-28"
+```
+
+## Error Codes
+
+Error codes are defined in `packages/core/src/core/errors/codes.ts`. Reuse existing codes when mapping errors.
+
+### Error Code Mapping Order
+
+In `core/errors/map-error.ts`, errors are checked in this order:
+
+1. **RateLimit** – GitHub API rate limit exceeded
+2. **Server** – 5xx HTTP errors
+3. **Network** – Connection errors (ECONNREFUSED, ENOTFOUND, etc.)
+4. **NotFound** – 404 HTTP errors
+5. **Auth** – Authentication/authorization failures (invalid tokens, insufficient permissions)
+6. **Validation** – Invalid input or malformed requests
+7. **Unknown** – Catch-all for unmapped errors
+
+**Important:** Auth must precede Validation (both match "invalid…" messages). Current order is stable.
+
+## Generated Code Policy
+
+**Never edit generated files manually:**
+- `packages/core/src/gql/generated/**`
+- `packages/core/src/gql/operations/*.generated.ts`
+
+These files are generated by the GraphQL codegen script. To update:
+
+```bash
+pnpm run ghx:gql:check
+```
+
+## Summary
+
+- **Format with Biome** – runs automatically in pre-commit hooks
+- **Type with `unknown`** – prefer narrowing over `any`
+- **Validate at boundaries** – use AJV or Zod
+- **Name files in kebab-case** – test files use `.test.ts` suffix
+- **Name types in PascalCase** – constants in UPPER_SNAKE_CASE
+- **Use explicit `.js` extensions** – for relative imports (NodeNext resolution)
+- **Don't edit generated code** – regenerate with codegen script
+
+## Next Steps
+
+- **Development Setup:** See [Development Setup](./development-setup.md)
+- **Testing Guide:** See [Testing Guide](./testing-guide.md)
+- **Adding a Capability:** See [Adding a Capability](./adding-a-capability.md)

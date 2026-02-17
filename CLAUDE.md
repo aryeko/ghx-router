@@ -120,10 +120,12 @@ Lefthook runs automatically on commit (installed via `pnpm install`):
 
 ## Documentation
 
-If architecture, module, or file layout changes, update:
-- `docs/CODEMAPS/ARCHITECTURE.md`
-- `docs/CODEMAPS/MODULES.md`
-- `docs/CODEMAPS/FILES.md`
-- `docs/CODEMAPS/INDEX.md`
+Documentation hub: `docs/README.md`. Key sections:
+- `docs/architecture/` — system-design, routing-engine, operation-cards, adapters, agent-interface, repository-structure, telemetry
+- `docs/capabilities/` — per-domain capability reference (issues, PRs, workflows, releases, etc.)
+- `docs/getting-started/` — installation, first-task, setup-for-agents, how-it-works
+- `docs/guides/` — CLI usage, library API, agent integration, result envelope, error handling, routing explained
+- `docs/benchmark/` — methodology, running benchmarks, scenario authoring, metrics, reporting
+- `docs/contributing/` — development setup, testing, code style, adding capabilities, CI, publishing
 
-Architecture docs: `docs/architecture/` (overview, system-design, routing-policy, contracts, setup-command-design).
+If architecture, module, or file layout changes, update `docs/architecture/repository-structure.md`.

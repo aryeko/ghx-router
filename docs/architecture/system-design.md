@@ -12,19 +12,47 @@
 ## Runtime Model
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#9C27B0', 'primaryTextColor': '#fff', 'primaryBorderColor': '#7B1FA2', 'lineColor': '#666', 'secondaryColor': '#CE93D8', 'tertiaryColor': '#E1BEE7'}}}%%
 flowchart TB
-  A[Agent Request] --> B[Agent Interface Tools]
-  B --> C[Execute Orchestration]
-  C --> D[Operation Card Registry]
-  C --> E[Preflight + Retry/Fallback]
-  E --> F[GraphQL Adapter]
-  E --> G[CLI Adapter]
-  E --> H[REST Adapter]
-  F --> I[Normalizer]
-  G --> I
+  subgraph Agent["Agent Request 🤖"]
+    A["Agent Interface Tools<br/>(execute, explain, list)"]
+  end
+
+  subgraph Planning["Planning 📋"]
+    B["Operation Card Registry<br/>(schema validation)"]
+  end
+
+  subgraph Engine["Routing & Execution 🔀"]
+    C["Execute Orchestration<br/>(retry, fallback)"]
+    D["Preflight Checks<br/>(auth, capability limits)"]
+  end
+
+  subgraph Adapters["Adapters ⚙️"]
+    E["CLI Adapter<br/>(gh command)"]
+    F["GraphQL Adapter<br/>(GitHub API)"]
+    G["REST Adapter<br/>(stub)"]
+  end
+
+  subgraph Output["Output Normalization 📦"]
+    H["Result Normalizer"]
+    I["ResultEnvelope<br/>{ok, data, error, meta}"]
+  end
+
+  subgraph Meta["Telemetry 📊"]
+    J["Structured Events<br/>(route.plan, route.attempt, ...)"]
+  end
+
+  A --> B
+  B --> C
+  C --> D
+  D --> E
+  D --> F
+  D --> G
+  E --> H
+  F --> H
+  G --> H
   H --> I
-  I --> J[ResultEnvelope]
-  C --> K[Telemetry]
+  C --> J
 ```
 
 ## Result Envelope

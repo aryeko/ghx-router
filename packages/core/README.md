@@ -268,11 +268,11 @@ const result = await executeTask(
 
 ## Documentation
 
-- [Architecture overview](https://github.com/aryeko/ghx/blob/main/docs/CODEMAPS/ARCHITECTURE.md)
-- [Module map](https://github.com/aryeko/ghx/blob/main/docs/CODEMAPS/MODULES.md)
-- [File map](https://github.com/aryeko/ghx/blob/main/docs/CODEMAPS/FILES.md)
-- [Operation card registry](https://github.com/aryeko/ghx/blob/main/docs/architecture/operation-card-registry.md)
-- [Publishing guide](https://github.com/aryeko/ghx/blob/main/docs/guides/publishing.md)
+- [Documentation Hub](https://github.com/aryeko/ghx/blob/main/docs/README.md)
+- [Architecture](https://github.com/aryeko/ghx/blob/main/docs/architecture/README.md)
+- [Capabilities Reference](https://github.com/aryeko/ghx/blob/main/docs/capabilities/README.md)
+- [Operation Cards](https://github.com/aryeko/ghx/blob/main/docs/architecture/operation-cards.md)
+- [Publishing Guide](https://github.com/aryeko/ghx/blob/main/docs/contributing/publishing.md)
 
 ## License
 

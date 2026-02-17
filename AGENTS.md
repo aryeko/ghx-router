@@ -171,11 +171,7 @@ pnpm --filter @ghx-dev/core exec vitest run test/unit/run-command.test.ts -t "pa
 - `.npmrc` enforces `strict-peer-dependencies=true` and `auto-install-peers=false`.
 
 ### Documentation Updates
-- If architecture/module/file layout changes, update codemaps:
-  - `docs/CODEMAPS/ARCHITECTURE.md`
-  - `docs/CODEMAPS/MODULES.md`
-  - `docs/CODEMAPS/FILES.md`
-  - `docs/CODEMAPS/INDEX.md`
+- If architecture/module/file layout changes, update `docs/architecture/repository-structure.md`.
 
 ## Agent Pre-Handoff Checklist
 Before final handoff on substantial changes, run:

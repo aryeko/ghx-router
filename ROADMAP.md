@@ -147,13 +147,6 @@ Exit criteria:
 - Reliability: envelope/schema pass rate, fallback rate, and normalized error trends
 - Reach: stars, forks, external pull requests, and community-contributed workflows
 
-## Canonical Design Specs
-
-- `docs/architecture/cli-subcommands-design.md`
-- `docs/architecture/setup-command-design.md`
-- `docs/architecture/capability-roadmap-adoption-design.md`
-- `docs/benchmark/capability-roadmap-benchmark-sets-design.md`
-
 ## Contributing to the Roadmap
 
 Have ideas or want to influence priorities? Open a [Discussion](https://github.com/aryeko/ghx/discussions) or an [Issue](https://github.com/aryeko/ghx/issues).
