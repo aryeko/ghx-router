@@ -937,14 +937,13 @@ async function withIsolatedBenchmarkClient<T>(
       const configuredPlugins = Array.isArray(resolvedConfig.plugin) ? resolvedConfig.plugin : []
 
       if (mode === "ghx") {
-        const hasGhxSkillInstruction = configuredInstructions.some(
-          (instruction) =>
-            typeof instruction === "string" && instruction.includes("# ghx CLI Skill"),
+        const hasGhxInstructions = configuredInstructions.some(
+          (instruction) => typeof instruction === "string" && instruction.trim().length > 0,
         )
 
-        if (!hasGhxSkillInstruction || configuredPlugins.length > 0) {
+        if (!hasGhxInstructions || configuredPlugins.length > 0) {
           throw new Error(
-            `benchmark_config_invalid: expected ghx skill instruction and no plugins, got instructions=${configuredInstructions.length}, plugins=${configuredPlugins.length}`,
+            `benchmark_config_invalid: expected non-empty ghx instructions and no plugins, got instructions=${configuredInstructions.length}, plugins=${configuredPlugins.length}`,
           )
         }
       } else {

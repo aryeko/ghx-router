@@ -77,6 +77,7 @@ Notes:
 
 - Use mode `ghx`.
 - For benchmark runs, `ghx run` skips per-call CLI preflight by default; suite preflight performs auth verification once.
+- Suite preflight currently supports Unix-like environments because it executes the symlinked `packages/benchmark/bin/ghx` command.
 - Mutation-heavy scenarios should target sandbox repo `aryeko/ghx-bench-fixtures`, not `aryeko/ghx`.
 - Use `--fixture-manifest` (or `BENCH_FIXTURE_MANIFEST`) to resolve scenario input bindings.
 - `suite:run` executes phases in order: `fixtures.setup` -> parallel benchmark (`ghx` + `agent_direct`) -> `reporting.analysis.report` -> optional `reporting.analysis.gate`.

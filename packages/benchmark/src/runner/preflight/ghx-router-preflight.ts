@@ -54,6 +54,12 @@ export function assertGhxRouterPreflight(
     spawnSyncFn?: SpawnSyncFn
   },
 ): void {
+  if (process.platform === "win32") {
+    throw new Error(
+      "ghx_preflight_failed: benchmark ghx preflight currently supports Unix-like environments only (symlinked benchmark/bin/ghx)",
+    )
+  }
+
   const spawnSyncFn = options.spawnSyncFn ?? spawnSync
   options.ensureGhxAliasReady()
 
