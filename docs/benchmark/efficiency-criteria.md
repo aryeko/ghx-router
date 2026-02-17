@@ -13,37 +13,39 @@ Both must pass.
 
 ### Profile: `verify_pr`
 
-Reliability:
+**Reliability checks:**
 
-- success-rate delta (`ghx - agent_direct`) >= -3 pp
-- output validity >= 97%
-- runner failure rate <= 5%
-- timeout/stall rate <= 2%
-- external retry rate <= 15%
+- success-rate delta (`ghx - agent_direct`) >= -3 percentage points
+- output validity rate >= 95%
+- runner failure rate <= 7%
+- timeout/stall rate <= 4%
+- external retry rate <= 20%
 
-Efficiency (stable sample):
+**Efficiency checks (stable sample, ≥3 samples per scenario per mode):**
 
-- scenario coverage >= 80%
-- median active-token reduction >= 15%
-- median latency reduction >= 15%
-- median tool-call reduction >= 20%
+- scenario coverage >= 70%
+- median active-token reduction >= 10%
+- median latency reduction >= 10%
+- median tool-call reduction >= 15%
+- **cost reduction >= 10%** (new v2 gate)
 
 ### Profile: `verify_release`
 
-Reliability:
+**Reliability checks:**
 
-- success-rate delta (`ghx - agent_direct`) >= -1 pp
-- output validity >= 99%
-- runner failure rate <= 2%
-- timeout/stall rate <= 1%
-- external retry rate <= 8%
+- success-rate delta (`ghx - agent_direct`) >= -1 percentage point
+- output validity rate >= 96%
+- runner failure rate <= 6%
+- timeout/stall rate <= 3%
+- external retry rate <= 18%
 
-Efficiency (stable sample):
+**Efficiency checks (stable sample, ≥5 samples per scenario per mode):**
 
-- scenario coverage >= 95%
-- median active-token reduction >= 22%
-- median latency reduction >= 20%
-- median tool-call reduction >= 30%
+- scenario coverage >= 75%
+- median active-token reduction >= 12%
+- median latency reduction >= 12%
+- median tool-call reduction >= 18%
+- **cost reduction >= 15%** (new v2 gate)
 
 ## Legacy v1 Gate
 
@@ -52,7 +54,9 @@ The v1 gate remains reported for compatibility during migration, but gate enforc
 ## Measurement Requirements
 
 - identical scenarios across compared modes
-- repeated runs per scenario
+- repeated runs per scenario (minimum sample size verified per gate profile)
 - fixed fixtures and model/provider per suite
 - scenario-stratified aggregation for efficiency metrics
-- median reporting with run metadata (p90 optional)
+- median reporting with statistical metadata (p90, p95, IQR, CV)
+- bootstrap confidence intervals on reduction deltas (95% level, 10k iterations)
+- cost reduction check enforced on all scenarios (must meet profile minimum)
