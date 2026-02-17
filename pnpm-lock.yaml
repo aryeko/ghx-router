@@ -45,7 +45,7 @@ importers:
         specifier: 22.5.1
         version: 22.5.1(@babel/traverse@7.29.0)(nx@22.5.1)
       '@types/node':
-        specifier: 'catalog:'
+        specifier: 25.2.3
         version: 25.2.3
       '@vitest/eslint-plugin':
         specifier: ^1.6.9
