@@ -19,10 +19,6 @@ import { getOperationCard } from "../registry/index.js"
 import { routePreferenceOrder } from "./policy.js"
 import type { RouteReasonCode } from "./reason-codes.js"
 
-export function chooseRoute(): (typeof routePreferenceOrder)[number] {
-  return routePreferenceOrder[0]
-}
-
 type ExecutionDeps = {
   githubClient: Pick<
     GithubClient,
@@ -127,7 +123,7 @@ export async function executeTask(
         message: `Unsupported task: ${request.task}`,
         retryable: false,
       },
-      chooseRoute(),
+      routePreferenceOrder[0],
       { capabilityId: request.task, reason },
     )
   }
