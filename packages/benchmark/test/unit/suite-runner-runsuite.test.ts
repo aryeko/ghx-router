@@ -347,6 +347,72 @@ describe("runSuite", () => {
     expect(row.scenario_set).toBe("pr-review-reads")
   })
 
+  it("uses explicit provider/model/output path and supports multi-scenario filter", async () => {
+    const session = createSessionMocks()
+    const close = vi.fn()
+    createOpencodeMock.mockResolvedValue({ client: { session }, server: { close } })
+
+    loadScenariosMock.mockResolvedValue([
+      {
+        id: "repo-view-001",
+        name: "Repo view",
+        task: "repo.view",
+        input: { owner: "a", name: "b" },
+        prompt_template: "run {{task}} {{input_json}}",
+        timeout_ms: 1000,
+        allowed_retries: 0,
+        fixture: { repo: "a/b" },
+        assertions: {
+          must_succeed: true,
+          required_fields: ["ok", "data", "error", "meta"],
+          required_data_fields: ["id"],
+        },
+        tags: [],
+      },
+      {
+        id: "pr-view-001",
+        name: "PR view",
+        task: "pr.view",
+        input: { owner: "a", name: "b", prNumber: 1 },
+        prompt_template: "run {{task}} {{input_json}}",
+        timeout_ms: 1000,
+        allowed_retries: 0,
+        fixture: { repo: "a/b" },
+        assertions: {
+          must_succeed: true,
+          required_fields: ["ok", "data", "error", "meta"],
+          required_data_fields: ["id"],
+        },
+        tags: [],
+      },
+    ])
+
+    const root = await mkdtemp(join(tmpdir(), "ghx-bench-output-"))
+    const outFile = join(root, "custom", "suite.jsonl")
+
+    const mod = await import("../../src/runner/suite-runner.js")
+    await mod.runSuite({
+      mode: "ghx",
+      repetitions: 1,
+      scenarioFilter: ["repo-view-001", "pr-view-001"],
+      providerId: "openai",
+      modelId: "gpt-5.1-codex-mini",
+      outputJsonlPath: outFile,
+    })
+
+    expect(appendFileMock).toHaveBeenCalledTimes(2)
+    expect(appendFileMock).toHaveBeenCalledWith(outFile, expect.any(String), "utf8")
+
+    const appendCalls = appendFileMock.mock.calls as unknown[][]
+    const firstWrite = appendCalls[0]?.[1]
+    const row = JSON.parse(firstWrite as string)
+    expect(row.model.provider_id).toBe("openai")
+    expect(row.model.model_id).toBe("gpt-5.1-codex-mini")
+
+    const createCalls = createOpencodeMock.mock.calls as Array<[{ config?: { model?: string } }]>
+    expect(createCalls[0]?.[0]?.config?.model).toBe("openai/gpt-5.1-codex-mini")
+  })
+
   it("lets --scenario override scenario-set selection", async () => {
     const session = createSessionMocks()
     const close = vi.fn()
@@ -375,7 +441,7 @@ describe("runSuite", () => {
     await mod.runSuite({
       mode: "ghx",
       repetitions: 1,
-      scenarioFilter: "repo-view-001",
+      scenarioFilter: ["repo-view-001"],
       scenarioSet: "pr-review-reads",
     })
 
@@ -778,7 +844,7 @@ describe("runSuite", () => {
 
     const mod = await import("../../src/runner/suite-runner.js")
     await expect(
-      mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: "none" }),
+      mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: ["none"] }),
     ).rejects.toThrow("No scenarios matched filter")
     expect(close).not.toHaveBeenCalled()
     expect(createOpencodeMock).not.toHaveBeenCalled()

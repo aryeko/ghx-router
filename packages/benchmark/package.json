@@ -24,6 +24,8 @@
     "check:scenarios": "tsx src/cli/check-scenarios.ts",
     "report": "tsx src/cli/report.ts",
     "report:gate": "pnpm run report -- --gate",
+    "verify:set": "tsx src/cli/verify-by-set.ts",
+    "verify:mini:by-set": "bash scripts/run-verify-by-set.sh",
     "verify:pr:direct": "BENCH_OPENCODE_PORT=3002 pnpm run benchmark -- agent_direct 3 --scenario-set ci-verify-pr",
     "verify:pr:ghx": "BENCH_OPENCODE_PORT=3001 pnpm run benchmark -- ghx 3 --scenario-set ci-verify-pr",
     "verify:pr:report": "pnpm run report:gate --gate-profile verify_pr",

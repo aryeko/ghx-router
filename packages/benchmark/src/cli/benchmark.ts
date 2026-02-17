@@ -1,6 +1,6 @@
-import { parseCliArgs } from "./args.js"
-import { runSuite } from "../runner/suite-runner.js"
 import { pathToFileURL } from "node:url"
+import { runSuite } from "../runner/suite-runner.js"
+import { parseCliArgs } from "./args.js"
 
 export async function main(argv: string[] = process.argv.slice(2)): Promise<void> {
   const parsed = parseCliArgs(argv)
@@ -10,7 +10,10 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
     scenarioFilter: parsed.scenarioFilter,
     scenarioSet: parsed.scenarioSet,
     fixtureManifestPath: parsed.fixtureManifestPath,
-    seedIfMissing: parsed.seedIfMissing
+    seedIfMissing: parsed.seedIfMissing,
+    providerId: parsed.providerId,
+    modelId: parsed.modelId,
+    outputJsonlPath: parsed.outputJsonlPath,
   })
 }
 

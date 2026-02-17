@@ -181,7 +181,7 @@ pnpm --filter @ghx-dev/core exec vitest run test/unit/run-command.test.ts -t "pa
 Before final handoff on substantial changes, run:
 
 ```bash
-pnpm run ci
+pnpm run ci --outputStyle=static
 ```
 
 Coverage expectation for touched files: >=90% (aim for 95% when practical).
@@ -193,7 +193,7 @@ validation checkbox.
 Required checks from the template:
 
 ```bash
-pnpm run ci
+pnpm run ci --outputStyle=static
 ```
 
 Conditional checks from the template:

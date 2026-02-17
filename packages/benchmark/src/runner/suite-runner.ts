@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto"
 import { lstatSync } from "node:fs"
 import { access, appendFile, lstat, mkdir, mkdtemp, readFile, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
-import { delimiter, join, resolve } from "node:path"
+import { delimiter, dirname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { createOpencode } from "@opencode-ai/sdk"
 import type {
@@ -38,10 +38,13 @@ import {
 type RunSuiteOptions = {
   mode: BenchmarkMode
   repetitions: number
-  scenarioFilter: string | null
+  scenarioFilter: string[] | null
   scenarioSet?: string | null
   fixtureManifestPath?: string | null
   seedIfMissing?: boolean
+  providerId?: string | null
+  modelId?: string | null
+  outputJsonlPath?: string | null
 }
 
 const DEFAULT_FIXTURE_MANIFEST_PATH = "fixtures/latest.json"
@@ -94,8 +97,6 @@ type PromptResponse = {
 const SCENARIOS_DIR = join(process.cwd(), "scenarios")
 const RESULTS_DIR = join(process.cwd(), "results")
 
-const PROVIDER_ID = process.env.BENCH_PROVIDER_ID ?? "openai"
-const MODEL_ID = process.env.BENCH_MODEL_ID ?? "gpt-5.3-codex"
 const OPEN_CODE_MODE = process.env.BENCH_OPENCODE_MODE ?? null
 const GIT_REPO = process.env.BENCH_GIT_REPO ?? null
 const GIT_COMMIT = process.env.BENCH_GIT_COMMIT ?? null
@@ -865,6 +866,8 @@ function resolveGhTokenFromCli(): string | null {
 
 async function withIsolatedBenchmarkClient<T>(
   mode: BenchmarkMode,
+  providerId: string,
+  modelId: string,
   run: (client: unknown) => Promise<T>,
 ): Promise<T> {
   const isolatedXdgConfigHome = await mkdtemp(join(tmpdir(), "ghx-benchmark-opencode-"))
@@ -904,7 +907,7 @@ async function withIsolatedBenchmarkClient<T>(
     const opencode = await createOpencode({
       port: Number.isInteger(OPENCODE_PORT) && OPENCODE_PORT > 0 ? OPENCODE_PORT : 3000,
       config: {
-        model: `${PROVIDER_ID}/${MODEL_ID}`,
+        model: `${providerId}/${modelId}`,
         instructions,
         plugin: [],
         mcp: {},
@@ -1197,7 +1200,10 @@ export async function runScenario(
   mode: BenchmarkMode,
   iteration: number,
   scenarioSet: string | null = null,
+  modelOverride?: { providerId?: string; modelId?: string },
 ): Promise<BenchmarkRow> {
+  const providerId = modelOverride?.providerId ?? process.env.BENCH_PROVIDER_ID ?? "openai"
+  const modelId = modelOverride?.modelId ?? process.env.BENCH_MODEL_ID ?? "gpt-5.3-codex"
   const scenarioStartedAt = Date.now()
   let externalRetryCount = 0
 
@@ -1241,7 +1247,7 @@ export async function runScenario(
           url: "/session/{id}/prompt_async",
           path: { id: session.id },
           body: {
-            model: { providerID: PROVIDER_ID, modelID: MODEL_ID },
+            model: { providerID: providerId, modelID: modelId },
             agent: OPEN_CODE_MODE ?? undefined,
             parts: [
               {
@@ -1297,7 +1303,7 @@ export async function runScenario(
             path: { id: session.id },
             body: {
               messageID: assistantAndParts.assistant.id,
-              model: { providerID: PROVIDER_ID, modelID: MODEL_ID },
+              model: { providerID: providerId, modelID: modelId },
               agent: OPEN_CODE_MODE ?? undefined,
               parts: [
                 {
@@ -1343,7 +1349,7 @@ export async function runScenario(
             url: "/session/{id}/prompt_async",
             path: { id: session.id },
             body: {
-              model: { providerID: PROVIDER_ID, modelID: MODEL_ID },
+              model: { providerID: providerId, modelID: modelId },
               agent: OPEN_CODE_MODE ?? undefined,
               parts: [
                 {
@@ -1477,8 +1483,8 @@ export async function runScenario(
         internal_retry_count: attemptMetrics.retryCount,
         external_retry_count: externalRetryCount,
         model: {
-          provider_id: PROVIDER_ID,
-          model_id: MODEL_ID,
+          provider_id: providerId,
+          model_id: modelId,
           mode: OPEN_CODE_MODE,
         },
         git: {
@@ -1542,8 +1548,8 @@ export async function runScenario(
         internal_retry_count: 0,
         external_retry_count: externalRetryCount,
         model: {
-          provider_id: PROVIDER_ID,
-          model_id: MODEL_ID,
+          provider_id: providerId,
+          model_id: modelId,
           mode: OPEN_CODE_MODE,
         },
         git: {
@@ -1567,7 +1573,12 @@ export async function runSuite(options: RunSuiteOptions): Promise<void> {
     scenarioSet = null,
     fixtureManifestPath: providedFixtureManifestPath = process.env.BENCH_FIXTURE_MANIFEST ?? null,
     seedIfMissing = false,
+    providerId: providerIdOverride = null,
+    modelId: modelIdOverride = null,
+    outputJsonlPath = null,
   } = options
+  const providerId = providerIdOverride ?? process.env.BENCH_PROVIDER_ID ?? "openai"
+  const modelId = modelIdOverride ?? process.env.BENCH_MODEL_ID ?? "gpt-5.3-codex"
   const suiteRunId = randomUUID()
   const progressEventsEnabled = process.env.BENCH_PROGRESS_EVENTS === BENCH_PROGRESS_EVENTS_MODE
   const emitProgressEvent = (
@@ -1600,7 +1611,7 @@ export async function runSuite(options: RunSuiteOptions): Promise<void> {
     if (scenarios.length === 0) {
       throw new Error(
         scenarioFilter
-          ? `No scenarios matched filter: ${scenarioFilter}`
+          ? `No scenarios matched filter: ${scenarioFilter.join(",")}`
           : "No benchmark scenarios found",
       )
     }
@@ -1609,7 +1620,8 @@ export async function runSuite(options: RunSuiteOptions): Promise<void> {
     let resolvedScenarioSet: string | null
 
     if (scenarioFilter) {
-      selectedScenarios = scenarios.filter((scenario) => scenario.id === scenarioFilter)
+      const selectedIds = new Set(scenarioFilter)
+      selectedScenarios = scenarios.filter((scenario) => selectedIds.has(scenario.id))
       resolvedScenarioSet = null
     } else {
       const scenarioSets = await loadScenarioSets(process.cwd())
@@ -1707,17 +1719,17 @@ export async function runSuite(options: RunSuiteOptions): Promise<void> {
       assertGhxRouterPreflight(selectedScenarios)
     }
 
-    const outFile = join(
-      RESULTS_DIR,
-      `${new Date().toISOString().replace(/[:.]/g, "-")}-${mode}-suite.jsonl`,
-    )
+    const outFile =
+      outputJsonlPath ??
+      join(RESULTS_DIR, `${new Date().toISOString().replace(/[:.]/g, "-")}-${mode}-suite.jsonl`)
+    await mkdir(dirname(outFile), { recursive: true })
 
     const selectedScenarioIds = selectedScenarios.map((scenario) => scenario.id)
     console.log(
-      `[benchmark] start: mode=${mode} provider=${PROVIDER_ID} model=${MODEL_ID} opencode_mode=${OPEN_CODE_MODE ?? "<null>"}`,
+      `[benchmark] start: mode=${mode} provider=${providerId} model=${modelId} opencode_mode=${OPEN_CODE_MODE ?? "<null>"}`,
     )
     console.log(
-      `[benchmark] config: repetitions=${repetitions} scenario_set=${resolvedScenarioSet ?? "<null>"} scenario_filter=${scenarioFilter ?? "<null>"} scenarios=${selectedScenarios.length}`,
+      `[benchmark] config: repetitions=${repetitions} scenario_set=${resolvedScenarioSet ?? "<null>"} scenario_filter=${scenarioFilter?.join(",") ?? "<null>"} scenarios=${selectedScenarios.length}`,
     )
     console.log(`[benchmark] scenarios: ${selectedScenarioIds.join(",")}`)
     console.log(
@@ -1748,8 +1760,11 @@ export async function runSuite(options: RunSuiteOptions): Promise<void> {
         let latestResult: BenchmarkRow | null = null
 
         for (let attempt = 0; attempt <= scenario.allowed_retries; attempt += 1) {
-          const result = await withIsolatedBenchmarkClient(mode, (client) =>
-            runScenario(client, scenario, mode, iteration, resolvedScenarioSet),
+          const result = await withIsolatedBenchmarkClient(mode, providerId, modelId, (client) =>
+            runScenario(client, scenario, mode, iteration, resolvedScenarioSet, {
+              providerId,
+              modelId,
+            }),
           )
           latestResult = result
 
