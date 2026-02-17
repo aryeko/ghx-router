@@ -16,9 +16,10 @@ function parseRunArgs(argv: string[]): {
 
   const inputIndex = rest.findIndex((arg) => arg === "--input")
   const inlineInput = rest.find((arg) => arg.startsWith("--input="))
+  const inputCandidate = inputIndex >= 0 ? rest[inputIndex + 1] : undefined
   const inputRaw =
-    inputIndex >= 0
-      ? rest[inputIndex + 1]
+    inputCandidate && !inputCandidate.startsWith("--")
+      ? inputCandidate
       : inlineInput
         ? inlineInput.slice("--input=".length)
         : undefined

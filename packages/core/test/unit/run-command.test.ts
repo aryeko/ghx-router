@@ -48,6 +48,12 @@ describe("runCommand", () => {
     await expect(runCommand(["repo.view"])).rejects.toThrow("Missing --input JSON")
   })
 
+  it("treats --input followed by another flag as missing input", async () => {
+    await expect(runCommand(["repo.view", "--input", "--check-gh-preflight"])).rejects.toThrow(
+      "Missing --input JSON",
+    )
+  })
+
   it("throws usage error for blank task names", async () => {
     await expect(runCommand(["   ", "--input", "{}"])).rejects.toThrow("Usage: ghx run")
   })
