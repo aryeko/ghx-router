@@ -38,7 +38,8 @@
     "workflow-run-cancel-001",
     "workflow-run-artifacts-list-001",
     "pr-fix-review-comments-wf-001",
-    "issue-triage-comment-wf-001"
+    "issue-triage-comment-wf-001",
+    "pr-review-comment-wf-001"
   ],
   "projects-v2": [
     "project-v2-org-get-001",
@@ -148,6 +149,7 @@
     "workflow-run-artifacts-list-001",
     "pr-fix-review-comments-wf-001",
     "issue-triage-comment-wf-001",
+    "pr-review-comment-wf-001",
     "project-v2-org-get-001",
     "project-v2-user-get-001",
     "project-v2-fields-list-001",
@@ -197,6 +199,7 @@
     "workflow-run-artifacts-list-001",
     "pr-fix-review-comments-wf-001",
     "issue-triage-comment-wf-001",
+    "pr-review-comment-wf-001",
     "project-v2-org-get-001",
     "project-v2-user-get-001",
     "project-v2-fields-list-001",
