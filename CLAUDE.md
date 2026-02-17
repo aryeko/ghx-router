@@ -72,6 +72,14 @@ pnpm --filter @ghx-dev/benchmark run report:gate
 - `--model <id>` — override model (e.g., `gpt-5.3-codex`)
 - `--output-jsonl <path>` — write raw results to specified JSONL file
 
+**Fixture CLI flags** (`pnpm --filter @ghx-dev/benchmark run fixtures --`):
+
+- `seed` / `status` / `cleanup` — fixture lifecycle commands
+- `--repo <owner/name>` — target repo (default: `aryeko/ghx-bench-fixtures`, env: `BENCH_FIXTURE_REPO`)
+- `--out <path>` — manifest file path (default: `fixtures/latest.json`, env: `BENCH_FIXTURE_MANIFEST`)
+- `--seed-id <id>` — seed identifier for labeling (default: `default`, env: `BENCH_FIXTURE_SEED_ID`)
+- `--all` — (cleanup only) skip manifest, discover and remove all `bench-fixture`-labeled resources from the repo
+
 ## Architecture
 
 ### Core Execution Flow

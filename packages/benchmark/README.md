@@ -35,6 +35,7 @@ pnpm --filter @ghx-dev/benchmark run fixtures -- seed --repo aryeko/ghx-bench-fi
 pnpm --filter @ghx-dev/benchmark run fixtures -- status --out fixtures/latest.json
 pnpm --filter @ghx-dev/benchmark run benchmark -- ghx 1 --scenario-set pr-exec --fixture-manifest fixtures/latest.json
 pnpm --filter @ghx-dev/benchmark run fixtures -- cleanup --out fixtures/latest.json
+pnpm --filter @ghx-dev/benchmark run fixtures -- cleanup --all --repo aryeko/ghx-bench-fixtures
 
 # suite runner (config-driven, recommended for repeatable local runs)
 pnpm --filter @ghx-dev/benchmark run suite:config -- --out config/suite-runner.json --scenario-set ci-verify-pr --repetitions 3 --gate-profile verify_pr --with-cleanup --with-seed

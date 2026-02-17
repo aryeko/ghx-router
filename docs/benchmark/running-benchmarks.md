@@ -258,8 +258,11 @@ done
 # 3. Report
 pnpm --filter @ghx-dev/benchmark run report
 
-# 4. Cleanup
+# 4. Cleanup (manifest-based, removes seeded resources for this manifest)
 pnpm --filter @ghx-dev/benchmark run fixtures -- cleanup --out fixtures/latest.json
+
+# 4b. Cleanup all (no manifest needed, nukes all bench-fixture resources from repo)
+pnpm --filter @ghx-dev/benchmark run fixtures -- cleanup --all --repo aryeko/ghx-bench-fixtures
 ```
 
 ## CI Integration
