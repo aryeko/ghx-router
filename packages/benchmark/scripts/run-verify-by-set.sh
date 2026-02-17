@@ -4,6 +4,7 @@ set -euo pipefail
 PROVIDER=""
 MODEL="gpt-5.1-codex-mini"
 REPETITIONS="1"
+CLEANUP_ON_FAILURE="${CLEANUP_ON_FAILURE:-false}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -31,6 +32,10 @@ while [[ $# -gt 0 ]]; do
       REPETITIONS="${1#*=}"
       shift
       ;;
+    --cleanup-on-failure)
+      CLEANUP_ON_FAILURE="true"
+      shift
+      ;;
     --)
       shift
       ;;
@@ -44,6 +49,14 @@ done
 if [[ -z "$PROVIDER" ]]; then
   echo "Missing required --provider" >&2
   exit 1
+fi
+
+cleanup_fixtures() {
+  pnpm --filter @ghx-dev/benchmark run fixtures -- cleanup --out fixtures/latest.json
+}
+
+if [[ "$CLEANUP_ON_FAILURE" == "true" ]]; then
+  trap cleanup_fixtures EXIT
 fi
 
 SETS=(
@@ -70,6 +83,8 @@ for SET_NAME in "${SETS[@]}"; do
   fi
 done
 
-pnpm --filter @ghx-dev/benchmark run fixtures -- cleanup --out fixtures/latest.json
+if [[ "$CLEANUP_ON_FAILURE" != "true" ]]; then
+  cleanup_fixtures
+fi
 
 echo "[verify:mini:by-set] complete"

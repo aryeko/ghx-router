@@ -62,18 +62,21 @@ function parseScenarioFilter(flags: string[]): string[] | null {
     }
 
     if (flag === "--scenario") {
-      const value = flags[index + 1]
-      if (value && !value.startsWith("--")) {
-        values.push(value)
+      const value = (flags[index + 1] ?? "").trim()
+      if (value.length === 0 || value.startsWith("--")) {
+        throw new Error("Missing value for --scenario")
       }
+      values.push(value)
+      index += 1
       continue
     }
 
     if (flag.startsWith("--scenario=")) {
-      const value = flag.slice("--scenario=".length)
-      if (value.length > 0) {
-        values.push(value)
+      const value = flag.slice("--scenario=".length).trim()
+      if (value.length === 0) {
+        throw new Error("Missing value for --scenario")
       }
+      values.push(value)
     }
   }
 

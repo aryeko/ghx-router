@@ -112,6 +112,22 @@ describe("verify-by-set cli", () => {
     expect(parsed.scenarioIds).toEqual(["a", "b"])
   })
 
+  it("parses inline scalar flags", () => {
+    const parsed = parseArgs([
+      "--set=pr-exec",
+      "--provider=openai",
+      "--model=gpt-5.1-codex-mini",
+      "--repetitions=2",
+      "--out-dir=reports/custom",
+    ])
+
+    expect(parsed.set).toBe("pr-exec")
+    expect(parsed.provider).toBe("openai")
+    expect(parsed.model).toBe("gpt-5.1-codex-mini")
+    expect(parsed.repetitions).toBe(2)
+    expect(parsed.outDir).toBe("reports/custom")
+  })
+
   it("rejects missing required scalar flag values", () => {
     expect(() => parseArgs(["--set", "pr-exec", "--provider"])).toThrow(
       "Missing value for --provider",
@@ -120,6 +136,15 @@ describe("verify-by-set cli", () => {
       parseArgs(["--set", "pr-exec", "--provider", "--model", "gpt-5.1-codex-mini"]),
     ).toThrow("Missing value for --provider")
     expect(() => parseArgs(["--set", "--provider", "openai"])).toThrow("Missing value for --set")
+    expect(() => parseArgs(["--provider", "openai"])).toThrow("Missing value for --set")
+    expect(() => parseArgs(["--set", "pr-exec"])).toThrow("Missing value for --provider")
+    expect(() =>
+      parseArgs(["--set", "pr-exec", "--provider", "openai", "--repetitions", "0"]),
+    ).toThrow("Invalid value for --repetitions")
+    expect(() => parseArgs(["--set=", "--provider", "openai"])).toThrow("Missing value for --set")
+    expect(() => parseArgs(["--set", "pr-exec", "--provider", "openai", "--scenario-id="])).toThrow(
+      "Missing value for --scenario-id",
+    )
   })
 
   it("resolves seed policy by set", () => {
@@ -447,12 +472,14 @@ describe("verify-by-set cli", () => {
             [
               JSON.stringify({
                 scenario_id: "scenario-a",
+                iteration: 1,
                 success: true,
                 output_valid: true,
                 error: null,
               }),
               JSON.stringify({
                 scenario_id: "scenario-b",
+                iteration: 1,
                 success: false,
                 output_valid: false,
                 error: { message: "failed" },
@@ -465,12 +492,14 @@ describe("verify-by-set cli", () => {
             [
               JSON.stringify({
                 scenario_id: "scenario-a",
+                iteration: 1,
                 success: true,
                 output_valid: true,
                 error: null,
               }),
               JSON.stringify({
                 scenario_id: "scenario-b",
+                iteration: 1,
                 success: false,
                 output_valid: false,
                 error: { message: "failed" },
@@ -486,6 +515,7 @@ describe("verify-by-set cli", () => {
 
           const row = JSON.stringify({
             scenario_id: "scenario-b",
+            iteration: 1,
             success: true,
             output_valid: true,
             error: null,
@@ -585,5 +615,105 @@ describe("verify-by-set cli", () => {
     const tracking = JSON.parse(await readFile(join(outDir, "tracking.json"), "utf8"))
     expect(tracking.final_status).toBe("terminal_fail")
     expect(tracking.failing_scenarios.join(",")).toContain("row-count-mismatch")
+  })
+
+  it("preserves repeated iterations for the same scenario across reruns", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ghx-verify-set-repetitions-"))
+    const outDir = join(root, "reports", "pr-exec")
+    await mkdir(outDir, { recursive: true })
+
+    let attempt = 0
+    const commandRunner = vi.fn(async (command: string, args: string[]) => {
+      if (command !== "pnpm") {
+        throw new Error(`unexpected command: ${command}`)
+      }
+
+      const script = args[3]
+      if (script === "suite:config") {
+        const outPath = findFlagValue(args, "--out")
+        if (!outPath) {
+          throw new Error("missing --out for suite:config")
+        }
+        await writeBaseSuiteConfig(outPath)
+        return
+      }
+
+      if (script === "suite:run") {
+        attempt += 1
+        const configPath = findFlagValue(args, "--config")
+        if (!configPath) {
+          throw new Error("missing --config for suite:run")
+        }
+        const config = JSON.parse(await readFile(configPath, "utf8")) as SuiteConfig
+        const agentPath = outputPathFromModeArgs(config.benchmark.direct.args)
+        const ghxPath = outputPathFromModeArgs(config.benchmark.ghx.args)
+
+        if (attempt === 1) {
+          const rows = [
+            {
+              scenario_id: "scenario-a",
+              iteration: 1,
+              success: true,
+              output_valid: true,
+              error: null,
+            },
+            {
+              scenario_id: "scenario-a",
+              iteration: 2,
+              success: false,
+              output_valid: false,
+              error: { message: "failed" },
+            },
+          ]
+          await writeFile(
+            agentPath,
+            rows.map((row) => JSON.stringify(row)).join("\n") + "\n",
+            "utf8",
+          )
+          await writeFile(ghxPath, rows.map((row) => JSON.stringify(row)).join("\n") + "\n", "utf8")
+        } else {
+          const retryRow = {
+            scenario_id: "scenario-a",
+            iteration: 2,
+            success: true,
+            output_valid: true,
+            error: null,
+          }
+          await writeFile(agentPath, `${JSON.stringify(retryRow)}\n`, "utf8")
+          await writeFile(ghxPath, `${JSON.stringify(retryRow)}\n`, "utf8")
+        }
+
+        const { summaryJson, summaryMd } = reportSummaryPaths(
+          config.reporting.analysis.report.command,
+        )
+        await writeFile(summaryJson, "{}\n", "utf8")
+        await writeFile(summaryMd, "# Summary\n", "utf8")
+      }
+    })
+
+    await expect(
+      runVerifySet(
+        parseArgs([
+          "--set",
+          "pr-exec",
+          "--provider",
+          "openai",
+          "--repetitions",
+          "2",
+          "--out-dir",
+          outDir,
+        ]),
+        {
+          runCommand: commandRunner,
+          resolveScenarioIdsForSet: async () => ["scenario-a"],
+        },
+      ),
+    ).resolves.toBeUndefined()
+
+    const tracking = JSON.parse(await readFile(join(outDir, "tracking.json"), "utf8"))
+    expect(tracking.rows_expected.agent_direct).toBe(2)
+    expect(tracking.rows_actual.agent_direct).toBe(2)
+    expect(tracking.rows_actual.ghx).toBe(2)
+    expect(tracking.final_status).toBe("pass")
   })
 })

@@ -28,6 +28,18 @@ describe("parseCliArgs", () => {
     expect(parsed.scenarioFilter).toEqual(["a", "b", "c"])
   })
 
+  it("rejects scenario flags without values", () => {
+    expect(() => parseCliArgs(["run", "ghx", "1", "--scenario"])).toThrow(
+      "Missing value for --scenario",
+    )
+    expect(() => parseCliArgs(["run", "ghx", "1", "--scenario", "--model", "x"])).toThrow(
+      "Missing value for --scenario",
+    )
+    expect(() => parseCliArgs(["run", "ghx", "1", "--scenario="])).toThrow(
+      "Missing value for --scenario",
+    )
+  })
+
   it("parses scenario-set flag", () => {
     const parsed = parseCliArgs(["run", "ghx", "1", "--scenario-set", "pr-review-reads"])
 

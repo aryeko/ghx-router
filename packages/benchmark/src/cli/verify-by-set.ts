@@ -30,6 +30,7 @@ type ValidationSummary = {
 
 type SuiteRow = {
   scenario_id?: string
+  iteration?: unknown
   success?: unknown
   output_valid?: unknown
   error?: unknown
@@ -276,12 +277,13 @@ function rowsByScenarioId(rows: SuiteRow[]): Map<string, SuiteRow> {
   const byScenario = new Map<string, SuiteRow>()
   let unknownCounter = 0
 
-  for (const row of rows) {
-    const key =
+  for (const [index, row] of rows.entries()) {
+    const scenarioId =
       typeof row.scenario_id === "string" && row.scenario_id.length > 0
         ? row.scenario_id
         : `unknown-${unknownCounter++}`
-    byScenario.set(key, row)
+    const iteration = Number.isInteger(row.iteration) ? Number(row.iteration) : index + 1
+    byScenario.set(`${scenarioId}:${iteration}`, row)
   }
 
   return byScenario
@@ -541,7 +543,7 @@ export async function runVerifySet(
   await writeSuiteRows(agentSuite, Array.from(finalAgentRows.values()))
   await writeSuiteRows(ghxSuite, Array.from(finalGhxRows.values()))
 
-  const expectedRowsPerMode = resolvedScenarioIds.length
+  const expectedRowsPerMode = resolvedScenarioIds.length * parsed.repetitions
   const rowCountMismatch =
     agentValidation.rowsActual !== expectedRowsPerMode ||
     ghxValidation.rowsActual !== expectedRowsPerMode
@@ -559,8 +561,8 @@ export async function runVerifySet(
     model: parsed.model,
     resolved_scenarios: resolvedScenarioIds,
     rows_expected: {
-      agent_direct: resolvedScenarioIds.length,
-      ghx: resolvedScenarioIds.length,
+      agent_direct: expectedRowsPerMode,
+      ghx: expectedRowsPerMode,
     },
     rows_actual: {
       agent_direct: agentValidation.rowsActual,
