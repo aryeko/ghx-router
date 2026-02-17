@@ -32,10 +32,12 @@
   "remoteUser": "node",
   "mounts": [
     "source=ghx-bashhistory-${devcontainerId},target=/commandhistory,type=volume",
-    "source=ghx-claude-config-${devcontainerId},target=/home/node/.claude,type=volume"
+    "source=ghx-claude-config-${devcontainerId},target=/home/node/.claude,type=volume",
+    "source=${localEnv:HOME}/.config/gh,target=/home/node/.config/gh,type=bind,readonly",
+    "source=ghx-pnpm-store,target=/home/node/.local/share/pnpm/store,type=volume"
   ],
   "containerEnv": {
-    "GITHUB_TOKEN": "${localEnv:GITHUB_TOKEN}",
+    "ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY}",
     "NX_NO_CLOUD": "true",
     "NODE_OPTIONS": "--max-old-space-size=4096",
     "CLAUDE_CONFIG_DIR": "/home/node/.claude",

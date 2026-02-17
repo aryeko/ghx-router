@@ -9,6 +9,10 @@ This document provides a comprehensive overview of the ghx repository layout, mo
 ```text
 ghx/
 ├── .changeset/                  # Changesets for versioning
+├── .devcontainer/               # Devcontainer for sandboxed agent execution
+│   ├── Dockerfile              # Node 22 + gh + Claude Code + firewall tools
+│   ├── devcontainer.json       # Container config, mounts, env
+│   └── init-firewall.sh        # iptables firewall (GitHub/npm/Anthropic only)
 ├── .github/
 │   ├── dependabot.yml          # Automated dependency updates
 │   └── workflows/              # CI/CD workflows

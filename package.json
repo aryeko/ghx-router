@@ -35,8 +35,9 @@
     "ghx:gql:check": "nx run-many -t gql:check",
     "dep-graph": "nx graph",
     "cache:clean": "nx reset",
-    "agent:run": "./scripts/agent-run.sh",
-    "agent:run:branch": "./scripts/agent-run.sh --branch"
+    "dc:up": "devcontainer up --workspace-folder .",
+    "dc:down": "docker rm -f $(docker ps -q -a --filter label=devcontainer.local_folder=$(pwd)) 2>/dev/null || echo 'No container to stop'",
+    "dc:run": "devcontainer up --workspace-folder . && devcontainer exec --workspace-folder ."
   },
   "repository": {
     "type": "git",
