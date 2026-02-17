@@ -92,7 +92,7 @@
     "js-yaml": "^4.1.0"
   },
   "devDependencies": {
-    "@opencode-ai/sdk": "^1.1.64",
+    "@opencode-ai/sdk": "^1.2.6",
     "@vitest/coverage-v8": "catalog:",
     "@graphql-codegen/cli": "^5.0.7",
     "@graphql-codegen/near-operation-file-preset": "^3.1.0",

@@ -75,8 +75,8 @@ importers:
         specifier: workspace:*
         version: link:../core
       '@opencode-ai/sdk':
-        specifier: ^1.1.64
-        version: 1.1.64
+        specifier: ^1.2.6
+        version: 1.2.6
       colorette:
         specifier: ^2.0.20
         version: 2.0.20
@@ -140,8 +140,8 @@ importers:
         specifier: ^4.6.1
         version: 4.6.1(graphql@16.12.0)
       '@opencode-ai/sdk':
-        specifier: ^1.1.64
-        version: 1.1.64
+        specifier: ^1.2.6
+        version: 1.2.6
       '@types/js-yaml':
         specifier: ^4.0.9
         version: 4.0.9
@@ -1699,8 +1699,8 @@ packages:
   '@nx/workspace@22.5.1':
     resolution: {integrity: sha512-IZJ440ITiNpswacrTGGpo46adOszLAAZM9RYYvQg5ak8kZDmmrskTm0SWWVgZCuiJazw8s23vqDLQ07TN/t1NQ==}
 
-  '@opencode-ai/sdk@1.1.64':
-    resolution: {integrity: sha512-g+bZGx/86JlRTKyPWsD1oFu1SoENIHeKK4LhzWWFToPv4tpN3MSLVGSUsoTSi2XqSd9JzkfPBHPdTeFvqcbzMA==}
+  '@opencode-ai/sdk@1.2.6':
+    resolution: {integrity: sha512-dWMF8Aku4h7fh8sw5tQ2FtbqRLbIFT8FcsukpxTird49ax7oUXP+gzqxM/VdxHjfksQvzLBjLZyMdDStc5g7xA==}
 
   '@pkgjs/parseargs@0.11.0':
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
@@ -6158,7 +6158,7 @@ snapshots:
       - '@swc/core'
       - debug
 
-  '@opencode-ai/sdk@1.1.64': {}
+  '@opencode-ai/sdk@1.2.6': {}
 
   '@pkgjs/parseargs@0.11.0':
     optional: true
