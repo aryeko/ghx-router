@@ -1,5 +1,100 @@
 export type BenchmarkMode = "agent_direct" | "mcp" | "ghx"
 
+export type GateProfile = "verify_pr" | "verify_release"
+
+export type GateV2Thresholds = {
+  minTokensActiveReductionPct: number
+  minLatencyReductionPct: number
+  minToolCallReductionPct: number
+  minEfficiencyCoveragePct: number
+  maxSuccessRateDropPct: number
+  minOutputValidityRatePct: number
+  maxRunnerFailureRatePct: number
+  maxTimeoutStallRatePct: number
+  maxRetryRatePct: number
+  minSamplesPerScenarioPerMode: number
+}
+
+export type GateV2ThresholdMap = Record<GateProfile, GateV2Thresholds>
+
+export type BenchmarkSummary = {
+  generatedAt: string
+  modes: Partial<Record<BenchmarkMode, ModeSummary>>
+  profiling: Partial<Record<BenchmarkMode, ProfilingSummary>>
+  deltaVsAgentDirect: DeltaSummary | null
+  gateV2: GateV2Summary
+}
+
+type ModeSummary = {
+  mode: BenchmarkMode
+  modelSignature: string
+  runs: number
+  successRate: number
+  outputValidityRate: number
+  runnerFailureRate: number
+  timeoutStallRate: number
+  retryRate: number
+  medianLatencyMs: number
+  medianTokensTotal: number
+  medianTokensActive: number
+  medianToolCalls: number
+}
+
+type ProfilingSummary = {
+  runsWithProfiling: number
+  medianAssistantTotalMs: number
+  medianAssistantReasoningMs: number
+  medianAssistantBetweenReasoningAndToolMs: number
+  medianToolTotalMs: number
+  medianToolBashMs: number
+  medianAssistantPostToolMs: number
+}
+
+type DeltaSummary = {
+  tokensReductionPct: number
+  tokensActiveReductionPct: number
+  latencyReductionPct: number
+  toolCallReductionPct: number
+  successRateDeltaPct: number
+  outputValidityRatePct: number
+}
+
+type GateCheck = {
+  name: string
+  passed: boolean
+  value: number
+  threshold: number
+  operator: ">=" | "<="
+}
+
+type GateV2Reliability = {
+  successRateDeltaPct: number
+  outputValidityRatePct: number
+  runnerFailureRatePct: number
+  timeoutStallRatePct: number
+  retryRatePct: number
+}
+
+type GateV2Efficiency = {
+  minSamplesPerScenarioPerMode: number
+  eligibleScenarioCount: number
+  totalScenarioCount: number
+  coveragePct: number
+  tokensComparableScenarioCount: number
+  tokensActiveReductionPct: number
+  latencyReductionPct: number
+  toolCallReductionPct: number
+  scenarioWinRateTokensActivePct: number
+}
+
+type GateV2Summary = {
+  profile: GateProfile
+  passed: boolean
+  reliability: GateV2Reliability | null
+  efficiency: GateV2Efficiency | null
+  checks: GateCheck[]
+}
+
 export type ScenarioAssertions = {
   expected_outcome?: "success" | "expected_error"
   must_succeed?: boolean

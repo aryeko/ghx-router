@@ -1,7 +1,7 @@
 import { access, readFile } from "node:fs/promises"
 
 import { z } from "zod"
-import type { GateProfile, GateV2ThresholdMap } from "./aggregate.js"
+import type { GateProfile, GateV2ThresholdMap } from "../domain/types.js"
 
 const gateV2ThresholdSchema = z.object({
   minTokensActiveReductionPct: z.number(),

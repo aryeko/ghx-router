@@ -1,8 +1,6 @@
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises"
 import { dirname, join } from "node:path"
-
-import type { BenchmarkMode, BenchmarkRow } from "../domain/types.js"
-import type { GateProfile } from "../report/aggregate.js"
+import type { BenchmarkMode, BenchmarkRow, GateProfile } from "../domain/types.js"
 import { buildSummary, DEFAULT_GATE_V2_THRESHOLDS, toMarkdown } from "../report/aggregate.js"
 import {
   expectationsConfigExists,

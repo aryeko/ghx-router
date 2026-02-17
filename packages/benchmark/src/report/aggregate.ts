@@ -1,6 +1,13 @@
-import type { BenchmarkMode, BenchmarkRow } from "../domain/types.js"
+import type {
+  BenchmarkMode,
+  BenchmarkRow,
+  BenchmarkSummary,
+  GateProfile,
+  GateV2ThresholdMap,
+  GateV2Thresholds,
+} from "../domain/types.js"
 
-export type GateProfile = "verify_pr" | "verify_release"
+export type { GateProfile, GateV2ThresholdMap, GateV2Thresholds, BenchmarkSummary }
 
 type GateCheck = {
   name: string
@@ -44,21 +51,6 @@ type DeltaSummary = {
   outputValidityRatePct: number
 }
 
-export type GateV2Thresholds = {
-  minTokensActiveReductionPct: number
-  minLatencyReductionPct: number
-  minToolCallReductionPct: number
-  minEfficiencyCoveragePct: number
-  maxSuccessRateDropPct: number
-  minOutputValidityRatePct: number
-  maxRunnerFailureRatePct: number
-  maxTimeoutStallRatePct: number
-  maxRetryRatePct: number
-  minSamplesPerScenarioPerMode: number
-}
-
-export type GateV2ThresholdMap = Record<GateProfile, GateV2Thresholds>
-
 type GateV2Reliability = {
   successRateDeltaPct: number
   outputValidityRatePct: number
@@ -85,14 +77,6 @@ type GateV2Summary = {
   reliability: GateV2Reliability | null
   efficiency: GateV2Efficiency | null
   checks: GateCheck[]
-}
-
-export type BenchmarkSummary = {
-  generatedAt: string
-  modes: Partial<Record<BenchmarkMode, ModeSummary>>
-  profiling: Partial<Record<BenchmarkMode, ProfilingSummary>>
-  deltaVsAgentDirect: DeltaSummary | null
-  gateV2: GateV2Summary
 }
 
 export const DEFAULT_GATE_V2_THRESHOLDS: GateV2ThresholdMap = {
