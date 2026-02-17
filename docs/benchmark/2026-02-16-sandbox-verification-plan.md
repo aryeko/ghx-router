@@ -103,6 +103,11 @@ For every row in each generated suite JSONL file:
 - `output_valid` must be `true`
 - `error` must be `null`
 
+Row count contract:
+
+- each mode file must contain exactly one final row per resolved scenario ID for the set
+- zero-row outputs are always treated as terminal failure
+
 If any row fails, the command exits non-zero and reports failing row details.
 
 ## Architecture
@@ -201,12 +206,13 @@ Seed command contract:
 - Seed ID format: `<run-id>-<set>-seed`
   - example: `20260216T231045Z-pr-exec-seed`
 - Seed creation command for `with seed` sets:
-  - `pnpm --filter @ghx-dev/benchmark run fixtures -- seed --set <set> --seed-id <seed-id> --out <run-base>/fixtures/latest.json`
+  - `pnpm --filter @ghx-dev/benchmark run fixtures -- seed --seed-id <seed-id> --out <run-base>/fixtures/latest.json`
 - For `with seed` sets, wrapper must call the existing fixture-seed command with:
-  - `--set <set>`
   - `--seed-id <seed-id>`
   - output manifest under the run-scoped base directory
 - For read-only sets, wrapper must not invoke seed creation commands.
+- Post-run cleanup command:
+  - `pnpm --filter @ghx-dev/benchmark run fixtures -- cleanup --out fixtures/latest.json`
 
 ## Command Examples
 
