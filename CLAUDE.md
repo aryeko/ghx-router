@@ -94,6 +94,7 @@ User/Agent → CLI (packages/core/src/cli/) → executeTask() [core/routing/engi
 - **Imports:** Use `import type` for type-only imports. Relative imports require explicit `.js` extension (NodeNext resolution).
 - **Types:** `unknown` + narrowing over `any`. Validate untrusted input at boundaries (AJV in core, Zod in benchmark). Result envelope shape `{ ok, data, error, meta }` is a stable contract — do not change it.
 - **Error codes:** Reuse from `packages/core/src/core/errors/codes.ts`.
+- **`mapErrorToCode` ordering:** In `core/errors/map-error.ts`, Auth must precede Validation (both match "invalid…" messages). Current order: RateLimit → Server → Network → NotFound → Auth → Validation → Unknown.
 - **Files:** kebab-case. Tests: `*.test.ts` (unit), `*.integration.test.ts` (integration). Types: PascalCase. Constants: `UPPER_SNAKE_CASE`.
 - **Generated code:** Never edit manually — `packages/core/src/gql/generated/**` and `packages/core/src/gql/operations/*.generated.ts`. Regenerate via codegen script.
 
@@ -104,12 +105,15 @@ Lefthook runs automatically on commit (installed via `pnpm install`):
 - ESLint on staged `.ts`/`.js`/`.mjs`
 - Full typecheck
 
+**Caution:** Lefthook's `stage_fixed: true` auto-stages all Biome-modified files. Avoid parallel commits in the same worktree — stray unstaged files bleed into the wrong commit.
+
 ## Pre-PR Checklist
 
 1. `pnpm run ci --outputStyle=static` passes.
 2. If GraphQL operations changed: `pnpm run ghx:gql:check`.
 3. Satisfy all applicable checkboxes in `.github/pull_request_template.md`.
 4. Coverage for touched files: ≥90% (aim for 95%).
+5. If `@ghx-dev/core` public API changed: add a changeset — create `.changeset/<kebab-name>.md` with frontmatter `---\n"@ghx-dev/core": patch\n---\n\nDescription.`
 
 ## Documentation
 
