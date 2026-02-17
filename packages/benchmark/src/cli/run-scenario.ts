@@ -124,6 +124,7 @@ function spawnBenchmark(
   manifestPath: string,
   stallTimeoutMs: number,
   outputJsonlPath: string,
+  skipWarmup: boolean,
 ): Promise<{ code: number; scenarioSuccess: boolean }> {
   const benchmarkArgs = [
     "src/cli/benchmark.ts",
@@ -134,7 +135,7 @@ function spawnBenchmark(
     args.scenario,
     "--fixture-manifest",
     manifestPath,
-    "--skip-warmup",
+    ...(skipWarmup ? ["--skip-warmup"] : []),
     "--output-jsonl",
     outputJsonlPath,
   ]
@@ -218,6 +219,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
   )
 
   let failedIterations = 0
+  let warmedUp = false
 
   for (let iter = 1; iter <= args.iterations; iter++) {
     const iterSeedId = args.iterations === 1 ? args.seedId : `${args.seedId}-iter-${iter}`
@@ -247,7 +249,14 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
       await seedPhase({ ...args, seedId: iterSeedId }, manifestPath, meta.requires)
 
       log("run", `Starting benchmark (attempt ${attempt}/${maxAttempts})`)
-      const result = await spawnBenchmark(args, manifestPath, stallTimeoutMs, outputJsonlPath)
+      const result = await spawnBenchmark(
+        args,
+        manifestPath,
+        stallTimeoutMs,
+        outputJsonlPath,
+        warmedUp,
+      )
+      warmedUp = true
       iterSuccess = result.scenarioSuccess
 
       if (result.scenarioSuccess) {
