@@ -12,4 +12,5 @@ pre-commit:
       env:
         NX_DAEMON: "false"
         NX_DEFAULT_OUTPUT_STYLE: "static"
+        NX_TUI: "false"
       run: pnpm run typecheck

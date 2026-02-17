@@ -25,10 +25,10 @@
     "report": "tsx src/cli/report.ts",
     "report:gate": "pnpm run report -- --gate",
     "verify:pr:direct": "BENCH_OPENCODE_PORT=3002 pnpm run benchmark -- agent_direct 3 --scenario-set ci-verify-pr",
-    "verify:pr:ghx": "GHX_SKIP_GH_PREFLIGHT=1 BENCH_OPENCODE_PORT=3001 pnpm run benchmark -- ghx 3 --scenario-set ci-verify-pr",
+    "verify:pr:ghx": "BENCH_OPENCODE_PORT=3001 pnpm run benchmark -- ghx 3 --scenario-set ci-verify-pr",
     "verify:pr:report": "pnpm run report:gate --gate-profile verify_pr",
     "verify:release:direct": "BENCH_OPENCODE_PORT=3004 pnpm run benchmark -- agent_direct 4 --scenario-set ci-verify-release",
-    "verify:release:ghx": "GHX_SKIP_GH_PREFLIGHT=1 BENCH_OPENCODE_PORT=3003 pnpm run benchmark -- ghx 4 --scenario-set ci-verify-release",
+    "verify:release:ghx": "BENCH_OPENCODE_PORT=3003 pnpm run benchmark -- ghx 4 --scenario-set ci-verify-release",
     "verify:release:report": "pnpm run report:gate --gate-profile verify_release"
   },
   "nx": {

@@ -43,6 +43,7 @@ type ExecutionDeps = {
   cliRunner?: CliCommandRunner
   ghCliAvailable?: boolean
   ghAuthenticated?: boolean
+  skipGhPreflight?: boolean
   reason?: RouteReasonCode
 }
 
@@ -60,18 +61,6 @@ const cliEnvironmentCache = new WeakMap<
 >()
 const cliEnvironmentInFlight = new WeakMap<CliCommandRunner, Promise<CliEnvironmentState>>()
 const defaultCliRunner = createSafeCliCommandRunner()
-const SKIP_CLI_PREFLIGHT_ENV = "GHX_SKIP_GH_PREFLIGHT"
-
-function shouldSkipCliPreflight(): boolean {
-  const value = process.env[SKIP_CLI_PREFLIGHT_ENV]
-  if (!value) {
-    return false
-  }
-
-  const normalized = value.trim().toLowerCase()
-  return normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on"
-}
-
 async function detectCliEnvironment(runner: CliCommandRunner): Promise<CliEnvironmentState> {
   try {
     const version = await runner.run("gh", ["--version"], 1_500)
@@ -175,7 +164,7 @@ export async function executeTask(
           preflightInput.ghCliAvailable === undefined ||
           preflightInput.ghAuthenticated === undefined
         ) {
-          if (shouldSkipCliPreflight()) {
+          if (deps.skipGhPreflight === true) {
             if (preflightInput.ghCliAvailable === undefined) {
               preflightInput.ghCliAvailable = true
             }

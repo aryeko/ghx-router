@@ -12,6 +12,7 @@ const {
   appendFileMock,
   mkdirMock,
   accessMock,
+  lstatSyncMock,
 } = vi.hoisted(() => ({
   createOpencodeMock: vi.fn(),
   loadScenariosMock: vi.fn(),
@@ -20,6 +21,7 @@ const {
   appendFileMock: vi.fn(async () => undefined),
   mkdirMock: vi.fn(async () => undefined),
   accessMock: vi.fn(async () => undefined),
+  lstatSyncMock: vi.fn(),
 }))
 
 vi.mock("@opencode-ai/sdk", () => ({
@@ -42,6 +44,15 @@ vi.mock("node:fs/promises", async (importOriginal) => {
     access: accessMock,
     appendFile: appendFileMock,
     mkdir: mkdirMock,
+  }
+})
+
+vi.mock("node:fs", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:fs")>()
+  lstatSyncMock.mockImplementation(actual.lstatSync)
+  return {
+    ...actual,
+    lstatSync: lstatSyncMock,
   }
 })
 
@@ -145,6 +156,15 @@ describe("runSuite", () => {
     const mod = await import("../../src/runner/suite-runner.js")
     await mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null })
 
+    expect(createOpencodeMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        config: expect.objectContaining({
+          instructions: expect.arrayContaining([expect.stringContaining("# ghx CLI Skill")]),
+          plugin: [],
+        }),
+      }),
+    )
+
     expect(mkdirMock).toHaveBeenCalled()
     expect(appendFileMock).toHaveBeenCalled()
     const appendCalls = appendFileMock.mock.calls as unknown[][]
@@ -220,6 +240,46 @@ describe("runSuite", () => {
     const prompt = String(firstPromptPayload.body?.parts?.[0]?.text ?? "")
     expect(prompt).toContain('"owner":"aryeko"')
     expect(prompt).toContain('"name":"ghx-bench-fixtures"')
+    expect(close).toHaveBeenCalled()
+  })
+
+  it("loads agent_direct instruction instead of ghx skill", async () => {
+    const session = createSessionMocks()
+    const close = vi.fn()
+    createOpencodeMock.mockResolvedValue({ client: { session }, server: { close } })
+
+    loadScenariosMock.mockResolvedValue([
+      {
+        id: "repo-view-001",
+        name: "Repo view",
+        task: "repo.view",
+        input: { owner: "a", name: "b" },
+        prompt_template: "run {{task}} {{input_json}}",
+        timeout_ms: 1000,
+        allowed_retries: 0,
+        fixture: { repo: "a/b" },
+        assertions: {
+          must_succeed: true,
+          required_fields: ["ok", "data", "error", "meta"],
+          required_data_fields: ["id"],
+        },
+        tags: [],
+      },
+    ])
+
+    const mod = await import("../../src/runner/suite-runner.js")
+    await mod.runSuite({ mode: "agent_direct", repetitions: 1, scenarioFilter: null })
+
+    expect(createOpencodeMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        config: expect.objectContaining({
+          instructions: [
+            expect.stringContaining("Use GitHub CLI (`gh`) commands directly to complete the task"),
+          ],
+        }),
+      }),
+    )
+    expect(close).toHaveBeenCalled()
   })
 
   it("runs selected scenario set and records scenario_set metadata", async () => {
@@ -673,6 +733,43 @@ describe("runSuite", () => {
     expect(seedFixtureManifestMock).not.toHaveBeenCalled()
   })
 
+  it("throws when explicit fixture manifest path does not exist and seed is disabled", async () => {
+    const session = createSessionMocks()
+    const close = vi.fn()
+    createOpencodeMock.mockResolvedValue({ client: { session }, server: { close } })
+
+    loadScenariosMock.mockResolvedValue([
+      {
+        id: "repo-view-001",
+        name: "Repo view",
+        task: "repo.view",
+        input: { owner: "a", name: "b" },
+        prompt_template: "run {{task}} {{input_json}}",
+        timeout_ms: 1000,
+        allowed_retries: 0,
+        fixture: { repo: "a/b" },
+        assertions: {
+          must_succeed: true,
+          required_fields: ["ok", "data", "error", "meta"],
+          required_data_fields: ["id"],
+        },
+        tags: [],
+      },
+    ])
+
+    accessMock.mockRejectedValueOnce(new Error("missing explicit manifest"))
+
+    const mod = await import("../../src/runner/suite-runner.js")
+    await expect(
+      mod.runSuite({
+        mode: "ghx",
+        repetitions: 1,
+        scenarioFilter: null,
+        fixtureManifestPath: "/tmp/does-not-exist-fixture.json",
+      }),
+    ).rejects.toThrow("Fixture manifest not found: /tmp/does-not-exist-fixture.json")
+  })
+
   it("throws when scenario filter matches nothing", async () => {
     const session = createSessionMocks()
     const close = vi.fn()
@@ -1025,6 +1122,218 @@ describe("runSuite", () => {
         delete process.env.GITHUB_TOKEN
       } else {
         process.env.GITHUB_TOKEN = previous.GITHUB_TOKEN
+      }
+    }
+  })
+
+  it("fails early when benchmark ghx alias symlink check fails (sync preflight)", async () => {
+    const session = createSessionMocks()
+    const close = vi.fn()
+    createOpencodeMock.mockResolvedValue({ client: { session }, server: { close } })
+
+    loadScenariosMock.mockResolvedValue([
+      {
+        id: "repo-view-001",
+        name: "Repo view",
+        task: "repo.view",
+        input: { owner: "a", name: "b" },
+        prompt_template: "run {{task}} {{input_json}}",
+        timeout_ms: 1000,
+        allowed_retries: 0,
+        fixture: { repo: "a/b" },
+        assertions: {
+          must_succeed: true,
+          required_fields: ["ok", "data", "error", "meta"],
+          required_data_fields: ["id"],
+        },
+        tags: [],
+      },
+    ])
+
+    lstatSyncMock.mockImplementationOnce(() => {
+      throw new Error("missing alias")
+    })
+
+    const mod = await import("../../src/runner/suite-runner.js")
+    await expect(
+      mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null }),
+    ).rejects.toThrow("benchmark ghx alias missing")
+  })
+
+  it("fails when isolated ghx alias check fails before client execution", async () => {
+    const session = createSessionMocks()
+    const close = vi.fn()
+    const configGet = vi.fn(async () => ({
+      data: { instructions: ["# ghx CLI Skill"], plugin: [] },
+    }))
+    createOpencodeMock.mockResolvedValue({
+      client: { session, config: { get: configGet } },
+      server: { close },
+    })
+
+    loadScenariosMock.mockResolvedValue([
+      {
+        id: "repo-view-001",
+        name: "Repo view",
+        task: "repo.view",
+        input: { owner: "a", name: "b" },
+        prompt_template: "run {{task}} {{input_json}}",
+        timeout_ms: 1000,
+        allowed_retries: 0,
+        fixture: { repo: "a/b" },
+        assertions: {
+          must_succeed: true,
+          required_fields: ["ok", "data", "error", "meta"],
+          required_data_fields: ["id"],
+        },
+        tags: [],
+      },
+    ])
+
+    const fsPromises = await import("node:fs/promises")
+    const lstatSpy = vi.spyOn(fsPromises, "lstat").mockRejectedValueOnce(new Error("missing alias"))
+
+    const mod = await import("../../src/runner/suite-runner.js")
+    try {
+      await expect(
+        mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null }),
+      ).rejects.toThrow("benchmark ghx alias missing")
+      expect(configGet).not.toHaveBeenCalled()
+    } finally {
+      lstatSpy.mockRestore()
+    }
+  })
+
+  it("fails when ghx isolated client config does not include valid instructions", async () => {
+    const session = createSessionMocks()
+    const close = vi.fn()
+    createOpencodeMock.mockResolvedValue({
+      client: {
+        session,
+        config: {
+          get: vi.fn(async () => ({ data: { instructions: [""], plugin: ["forbidden"] } })),
+        },
+      },
+      server: { close },
+    })
+
+    loadScenariosMock.mockResolvedValue([
+      {
+        id: "repo-view-001",
+        name: "Repo view",
+        task: "repo.view",
+        input: { owner: "a", name: "b" },
+        prompt_template: "run {{task}} {{input_json}}",
+        timeout_ms: 1000,
+        allowed_retries: 0,
+        fixture: { repo: "a/b" },
+        assertions: {
+          must_succeed: true,
+          required_fields: ["ok", "data", "error", "meta"],
+          required_data_fields: ["id"],
+        },
+        tags: [],
+      },
+    ])
+
+    const mod = await import("../../src/runner/suite-runner.js")
+    await expect(
+      mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null }),
+    ).rejects.toThrow(
+      "benchmark_config_invalid: expected non-empty ghx instructions and no plugins",
+    )
+  })
+
+  it("fails when agent_direct isolated client config instruction is missing", async () => {
+    const session = createSessionMocks()
+    const close = vi.fn()
+    createOpencodeMock.mockResolvedValue({
+      client: {
+        session,
+        config: {
+          get: vi.fn(async () => ({ data: { instructions: ["wrong"], plugin: [] } })),
+        },
+      },
+      server: { close },
+    })
+
+    loadScenariosMock.mockResolvedValue([
+      {
+        id: "repo-view-001",
+        name: "Repo view",
+        task: "repo.view",
+        input: { owner: "a", name: "b" },
+        prompt_template: "run {{task}} {{input_json}}",
+        timeout_ms: 1000,
+        allowed_retries: 0,
+        fixture: { repo: "a/b" },
+        assertions: {
+          must_succeed: true,
+          required_fields: ["ok", "data", "error", "meta"],
+          required_data_fields: ["id"],
+        },
+        tags: [],
+      },
+    ])
+
+    const mod = await import("../../src/runner/suite-runner.js")
+    await expect(
+      mod.runSuite({ mode: "agent_direct", repetitions: 1, scenarioFilter: null }),
+    ).rejects.toThrow("benchmark_config_invalid: expected agent_direct instruction and no plugins")
+  })
+
+  it("restores PATH to undefined when it was unset before isolated execution", async () => {
+    const previousPath = process.env.PATH
+    const previousGhToken = process.env.GH_TOKEN
+    const previousGithubToken = process.env.GITHUB_TOKEN
+
+    delete process.env.PATH
+    process.env.GH_TOKEN = "from-test-gh"
+    process.env.GITHUB_TOKEN = "from-test-gh"
+
+    const session = createSessionMocks()
+    const close = vi.fn()
+    createOpencodeMock.mockResolvedValue({ client: { session }, server: { close } })
+
+    loadScenariosMock.mockResolvedValue([
+      {
+        id: "repo-view-001",
+        name: "Repo view",
+        task: "repo.view",
+        input: { owner: "a", name: "b" },
+        prompt_template: "run {{task}} {{input_json}}",
+        timeout_ms: 1000,
+        allowed_retries: 0,
+        fixture: { repo: "a/b" },
+        assertions: {
+          must_succeed: true,
+          required_fields: ["ok", "data", "error", "meta"],
+          required_data_fields: ["id"],
+        },
+        tags: [],
+      },
+    ])
+
+    const mod = await import("../../src/runner/suite-runner.js")
+
+    try {
+      await mod.runSuite({ mode: "agent_direct", repetitions: 1, scenarioFilter: null })
+      expect(process.env.PATH).toBeUndefined()
+    } finally {
+      if (previousPath === undefined) {
+        delete process.env.PATH
+      } else {
+        process.env.PATH = previousPath
+      }
+      if (previousGhToken === undefined) {
+        delete process.env.GH_TOKEN
+      } else {
+        process.env.GH_TOKEN = previousGhToken
+      }
+      if (previousGithubToken === undefined) {
+        delete process.env.GITHUB_TOKEN
+      } else {
+        process.env.GITHUB_TOKEN = previousGithubToken
       }
     }
   })

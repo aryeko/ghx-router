@@ -1,8 +1,10 @@
 import { spawnSync } from "node:child_process"
 import { randomUUID } from "node:crypto"
-import { access, appendFile, mkdir, mkdtemp, rm } from "node:fs/promises"
+import { lstatSync } from "node:fs"
+import { access, appendFile, lstat, mkdir, mkdtemp, readFile, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
-import { join } from "node:path"
+import { delimiter, join, resolve } from "node:path"
+import { fileURLToPath } from "node:url"
 import { createOpencode } from "@opencode-ai/sdk"
 import type {
   BenchmarkMode,
@@ -19,6 +21,19 @@ import { aggregateToolCounts } from "../extract/tool-usage.js"
 import { loadFixtureManifest, resolveScenarioFixtureBindings } from "../fixture/manifest.js"
 import { seedFixtureManifest } from "../fixture/seed.js"
 import { loadScenarioSets, loadScenarios } from "../scenario/loader.js"
+import {
+  AGENT_DIRECT_INSTRUCTION,
+  MCP_INSTRUCTION,
+  modeInstructions,
+} from "./mode/mode-instructions.js"
+import { validateFixture } from "./preflight/fixture-preflight.js"
+import * as ghxRouterPreflight from "./preflight/ghx-router-preflight.js"
+import {
+  buildOutputSchema,
+  forcedToolCommandHint,
+  modeScopedAssertions,
+  renderPrompt,
+} from "./prompt/prompt-renderer.js"
 
 type RunSuiteOptions = {
   mode: BenchmarkMode
@@ -98,13 +113,14 @@ const RUNNER_RETRY_BACKOFF_MS = Number.parseInt(
   process.env.BENCH_RUNNER_RETRY_BACKOFF_MS ?? "750",
   10,
 )
-
-const modePromptPrefix: Record<BenchmarkMode, string> = {
-  agent_direct:
-    "You are running a benchmark in agent_direct mode. Use GitHub CLI (`gh`) commands directly to complete the task. Do not use any `ghx` command.",
-  mcp: "You are running a benchmark in mcp mode. Prefer MCP tools when available.",
-  ghx: "You are running a benchmark in ghx mode. Use `GHX_SKIP_GH_PREFLIGHT=1 node ../core/dist/cli/index.js run <task> --input '<json>'` as the primary execution path and do not use direct `gh` commands unless explicitly asked.",
-}
+const MODULE_DIR = fileURLToPath(new URL(".", import.meta.url))
+const BENCHMARK_PACKAGE_ROOT = resolve(MODULE_DIR, "..", "..")
+const BENCHMARK_BIN_DIR = join(BENCHMARK_PACKAGE_ROOT, "bin")
+const GHX_BENCHMARK_ALIAS_PATH = join(BENCHMARK_BIN_DIR, "ghx")
+const GHX_SKILL_ASSET_PATH = resolve(
+  BENCHMARK_PACKAGE_ROOT,
+  "../core/src/cli/assets/skills/ghx/SKILL.md",
+)
 
 export function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
@@ -806,80 +822,35 @@ export function extractPromptResponseFromPromptResult(value: unknown): PromptRes
   return null
 }
 
-export function ghOk(args: string[]): boolean {
-  const result = spawnSync("gh", args, { encoding: "utf8" })
-  return result.status === 0
-}
-
-type CapabilityListItem = {
-  capability_id: string
-}
-
-function ghxCliPath(): string {
-  return join(process.cwd(), "../core/dist/cli/index.js")
-}
-
-function parseGhxCapabilities(raw: string): string[] {
-  const trimmed = raw.trim()
-  if (trimmed.length === 0) {
-    return []
-  }
-
-  let parsed: unknown
+async function ensureBenchmarkGhxAliasReady(): Promise<void> {
   try {
-    parsed = JSON.parse(trimmed)
-  } catch (error) {
+    await lstat(GHX_BENCHMARK_ALIAS_PATH)
+  } catch {
     throw new Error(
-      `ghx capabilities JSON invalid: ${error instanceof Error ? error.message : String(error)}`,
+      "ghx_preflight_failed: benchmark ghx alias missing; run pnpm --filter @ghx-dev/core run build and ensure packages/benchmark/bin/ghx points to packages/core/dist/cli/index.js",
     )
   }
+}
 
-  if (!Array.isArray(parsed)) {
-    throw new Error(`ghx capabilities JSON invalid: expected array but got ${typeof parsed}`)
+function assertBenchmarkGhxAliasReady(): void {
+  try {
+    lstatSync(GHX_BENCHMARK_ALIAS_PATH)
+  } catch {
+    throw new Error(
+      "ghx_preflight_failed: benchmark ghx alias missing; run pnpm --filter @ghx-dev/core run build and ensure packages/benchmark/bin/ghx points to packages/core/dist/cli/index.js",
+    )
   }
-
-  return parsed
-    .map((item) => (isObject(item) ? (item as CapabilityListItem).capability_id : null))
-    .filter((item): item is string => typeof item === "string" && item.length > 0)
 }
 
 export function assertGhxRouterPreflight(scenarios: Scenario[]): void {
-  const authStatus = spawnSync("gh", ["auth", "status"], { encoding: "utf8" })
-  if (authStatus.status !== 0) {
-    const stderr = typeof authStatus.stderr === "string" ? authStatus.stderr.trim() : ""
-    const message = stderr.length > 0 ? stderr : "gh auth status failed"
-    throw new Error(`ghx_preflight_failed: ${message}`)
-  }
-
-  const result = spawnSync("node", [ghxCliPath(), "capabilities", "list", "--json"], {
-    encoding: "utf8",
+  ghxRouterPreflight.assertGhxRouterPreflight(scenarios, {
+    ghxCommand: GHX_BENCHMARK_ALIAS_PATH,
+    ensureGhxAliasReady: assertBenchmarkGhxAliasReady,
   })
+}
 
-  if (result.status !== 0) {
-    const stderr = typeof result.stderr === "string" ? result.stderr.trim() : ""
-    const message = stderr.length > 0 ? stderr : "failed to list ghx capabilities"
-    throw new Error(`ghx_preflight_failed: ${message}`)
-  }
-
-  const stdout = typeof result.stdout === "string" ? result.stdout : ""
-  const capabilities = parseGhxCapabilities(stdout)
-  if (capabilities.length === 0) {
-    throw new Error(
-      "ghx_preflight_failed: ghx capabilities list returned no capabilities; run pnpm --filter @ghx-dev/core run build",
-    )
-  }
-
-  const capabilitySet = new Set(capabilities)
-  const missingTasks = scenarios
-    .map((scenario) => scenario.task)
-    .filter((task, index, all) => all.indexOf(task) === index)
-    .filter((task) => !capabilitySet.has(task))
-
-  if (missingTasks.length > 0) {
-    throw new Error(
-      `ghx_preflight_failed: missing capabilities for selected scenarios: ${missingTasks.join(", ")}`,
-    )
-  }
+async function loadGhxSkillInstruction(): Promise<string> {
+  return readFile(GHX_SKILL_ASSET_PATH, "utf8")
 }
 
 function resolveGhTokenFromCli(): string | null {
@@ -892,8 +863,15 @@ function resolveGhTokenFromCli(): string | null {
   return token.length > 0 ? token : null
 }
 
-async function withIsolatedBenchmarkClient<T>(run: (client: unknown) => Promise<T>): Promise<T> {
+async function withIsolatedBenchmarkClient<T>(
+  mode: BenchmarkMode,
+  run: (client: unknown) => Promise<T>,
+): Promise<T> {
   const isolatedXdgConfigHome = await mkdtemp(join(tmpdir(), "ghx-benchmark-opencode-"))
+  const instructions = await modeInstructions(mode, loadGhxSkillInstruction)
+  if (mode === "ghx") {
+    await ensureBenchmarkGhxAliasReady()
+  }
 
   const previousEnv = {
     OPENCODE_CONFIG: process.env.OPENCODE_CONFIG,
@@ -901,6 +879,7 @@ async function withIsolatedBenchmarkClient<T>(run: (client: unknown) => Promise<
     XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME,
     GH_TOKEN: process.env.GH_TOKEN,
     GITHUB_TOKEN: process.env.GITHUB_TOKEN,
+    PATH: process.env.PATH,
   }
 
   const ghToken = previousEnv.GH_TOKEN ?? previousEnv.GITHUB_TOKEN ?? resolveGhTokenFromCli()
@@ -912,6 +891,12 @@ async function withIsolatedBenchmarkClient<T>(run: (client: unknown) => Promise<
     process.env.GH_TOKEN = ghToken
     process.env.GITHUB_TOKEN = ghToken
   }
+  if (mode === "ghx") {
+    process.env.PATH =
+      previousEnv.PATH && previousEnv.PATH.length > 0
+        ? `${BENCHMARK_BIN_DIR}${delimiter}${previousEnv.PATH}`
+        : BENCHMARK_BIN_DIR
+  }
 
   let server: { close: () => void } | null = null
 
@@ -920,7 +905,7 @@ async function withIsolatedBenchmarkClient<T>(run: (client: unknown) => Promise<
       port: Number.isInteger(OPENCODE_PORT) && OPENCODE_PORT > 0 ? OPENCODE_PORT : 3000,
       config: {
         model: `${PROVIDER_ID}/${MODEL_ID}`,
-        instructions: [],
+        instructions,
         plugin: [],
         mcp: {},
         agent: {},
@@ -939,7 +924,9 @@ async function withIsolatedBenchmarkClient<T>(run: (client: unknown) => Promise<
     const client = opencode.client
 
     const configApi = (
-      client as { config?: { get?: (args?: Record<string, unknown>) => Promise<unknown> } }
+      client as {
+        config?: { get?: (args?: Record<string, unknown>) => Promise<unknown> }
+      }
     ).config
     if (configApi?.get) {
       const configResponse = await configApi.get({ url: "/config" })
@@ -949,10 +936,28 @@ async function withIsolatedBenchmarkClient<T>(run: (client: unknown) => Promise<
         : []
       const configuredPlugins = Array.isArray(resolvedConfig.plugin) ? resolvedConfig.plugin : []
 
-      if (configuredInstructions.length > 0 || configuredPlugins.length > 0) {
-        throw new Error(
-          `benchmark_config_not_clean: expected empty instructions/plugins, got instructions=${configuredInstructions.length}, plugins=${configuredPlugins.length}`,
+      if (mode === "ghx") {
+        const hasGhxInstructions = configuredInstructions.some(
+          (instruction) => typeof instruction === "string" && instruction.trim().length > 0,
         )
+
+        if (!hasGhxInstructions || configuredPlugins.length > 0) {
+          throw new Error(
+            `benchmark_config_invalid: expected non-empty ghx instructions and no plugins, got instructions=${configuredInstructions.length}, plugins=${configuredPlugins.length}`,
+          )
+        }
+      } else {
+        const expectedInstruction =
+          mode === "agent_direct" ? AGENT_DIRECT_INSTRUCTION : MCP_INSTRUCTION
+        const hasExpectedInstruction = configuredInstructions.some(
+          (instruction) => instruction === expectedInstruction,
+        )
+
+        if (!hasExpectedInstruction || configuredPlugins.length > 0) {
+          throw new Error(
+            `benchmark_config_invalid: expected ${mode} instruction and no plugins, got instructions=${configuredInstructions.length}, plugins=${configuredPlugins.length}`,
+          )
+        }
       }
     }
 
@@ -992,169 +997,13 @@ async function withIsolatedBenchmarkClient<T>(run: (client: unknown) => Promise<
       process.env.GITHUB_TOKEN = previousEnv.GITHUB_TOKEN
     }
 
+    if (previousEnv.PATH === undefined) {
+      delete process.env.PATH
+    } else {
+      process.env.PATH = previousEnv.PATH
+    }
+
     await rm(isolatedXdgConfigHome, { recursive: true, force: true })
-  }
-}
-
-export function validateFixture(scenario: Scenario): void {
-  const repo = scenario.fixture?.repo
-  if (!repo) return
-
-  if (!ghOk(["repo", "view", repo, "--json", "name"])) {
-    throw new Error(`fixture_invalid: repo not found or inaccessible: ${repo}`)
-  }
-
-  if (scenario.task === "issue.view") {
-    const issueNumber =
-      typeof scenario.input.issueNumber === "number"
-        ? scenario.input.issueNumber
-        : scenario.input.issue_number
-    if (typeof issueNumber !== "number") {
-      throw new Error("fixture_invalid: issue.view requires numeric input.issueNumber")
-    }
-    if (!ghOk(["issue", "view", String(issueNumber), "--repo", repo, "--json", "number"])) {
-      throw new Error(`fixture_invalid: issue #${issueNumber} not found in ${repo}`)
-    }
-  }
-
-  if (scenario.task === "pr.view") {
-    const prNumber =
-      typeof scenario.input.prNumber === "number"
-        ? scenario.input.prNumber
-        : scenario.input.pr_number
-    if (typeof prNumber !== "number") {
-      throw new Error("fixture_invalid: pr.view requires numeric input.prNumber")
-    }
-    if (!ghOk(["pr", "view", String(prNumber), "--repo", repo, "--json", "number"])) {
-      throw new Error(`fixture_invalid: pr #${prNumber} not found in ${repo}`)
-    }
-  }
-}
-
-export function renderPrompt(
-  scenario: Scenario,
-  mode: BenchmarkMode,
-  benchmarkNonce?: string,
-): string {
-  const scopedAssertions = modeScopedAssertions(scenario, mode)
-  const rendered = scenario.prompt_template
-    .replaceAll("{{task}}", scenario.task)
-    .replaceAll("{{scenario_id}}", scenario.id)
-    .replaceAll("{{input_json}}", JSON.stringify(scenario.input))
-    .replaceAll("{{fixture_repo}}", scenario.fixture?.repo ?? "")
-
-  const fixtureNote = scenario.fixture?.repo ? `Target repository: ${scenario.fixture.repo}.` : ""
-  const requiredDataFields = scopedAssertions.required_data_fields ?? []
-  const requiredMetaFields = scopedAssertions.required_meta_fields ?? []
-  const dataContract =
-    requiredDataFields.length > 0
-      ? `The JSON data object MUST include: ${requiredDataFields.join(", ")}.`
-      : "The JSON data field may be object or array based on task output."
-  const metaContract =
-    requiredMetaFields.length > 0
-      ? `The JSON meta object MUST include: ${requiredMetaFields.join(", ")}.`
-      : "The JSON meta object can include optional diagnostic fields."
-  const routeContract =
-    scopedAssertions.expected_route_used !== undefined
-      ? `meta.route_used MUST be exactly "${scopedAssertions.expected_route_used}".`
-      : ""
-  const failFastContract =
-    mode === "ghx"
-      ? "If the ghx command fails, return the final envelope JSON immediately. Do not run extra debugging commands."
-      : ""
-
-  const nonceLine = benchmarkNonce ? `Benchmark nonce: ${benchmarkNonce}` : ""
-
-  return `${modePromptPrefix[mode]}\n${fixtureNote}\n${nonceLine}\nYou MUST use real tools to gather data. Do not fabricate outputs.\nReturn STRICT JSON only. No markdown fences.\nOutput must be exactly one JSON object with keys: ok, data, error, meta.\n${dataContract}\n${metaContract}\n${routeContract}\n${failFastContract}\n\n${rendered}`
-}
-
-function buildOutputSchema(assertions: Scenario["assertions"]): Record<string, unknown> {
-  const requiredDataFields = assertions.required_data_fields ?? []
-  const requiredMetaFields = assertions.required_meta_fields ?? []
-
-  const dataProperties: Record<string, unknown> = {}
-  for (const field of requiredDataFields) {
-    if (field === "items") {
-      dataProperties.items = {
-        type: "array",
-        items: {},
-      }
-      continue
-    }
-    if (field === "pageInfo") {
-      dataProperties.pageInfo = {
-        type: "object",
-        properties: {
-          hasNextPage: { type: "boolean" },
-          endCursor: { type: ["string", "null"] },
-        },
-        required: ["hasNextPage", "endCursor"],
-        additionalProperties: true,
-      }
-      continue
-    }
-
-    dataProperties[field] = {}
-  }
-
-  const metaProperties: Record<string, unknown> = {}
-  for (const field of requiredMetaFields) {
-    if (field === "route_used") {
-      metaProperties.route_used =
-        assertions.expected_route_used !== undefined
-          ? { type: "string", const: assertions.expected_route_used }
-          : { type: "string" }
-      continue
-    }
-
-    metaProperties[field] = {}
-  }
-
-  return {
-    type: "object",
-    properties: {
-      ok: { type: "boolean" },
-      data: {
-        type: "object",
-        properties: dataProperties,
-        required: requiredDataFields,
-        additionalProperties: true,
-      },
-      error: { type: ["object", "null"] },
-      meta: {
-        type: "object",
-        properties: metaProperties,
-        required: requiredMetaFields,
-        additionalProperties: true,
-      },
-    },
-    required: ["ok", "data", "error", "meta"],
-    additionalProperties: false,
-  }
-}
-
-function modeScopedAssertions(scenario: Scenario, mode: BenchmarkMode): Scenario["assertions"] {
-  if (mode === "ghx") {
-    const hasGithubToken =
-      typeof process.env.GITHUB_TOKEN === "string" && process.env.GITHUB_TOKEN.trim().length > 0
-    const hasGhToken =
-      typeof process.env.GH_TOKEN === "string" && process.env.GH_TOKEN.trim().length > 0
-
-    if (scenario.assertions.expected_route_used === "graphql" && !hasGithubToken && !hasGhToken) {
-      const { expected_route_used: _expectedRoute, ...base } = scenario.assertions
-      return base
-    }
-
-    return scenario.assertions
-  }
-
-  const { expected_route_used: _ignoredExpectedRouteUsed, ...baseAssertions } = scenario.assertions
-
-  return {
-    ...baseAssertions,
-    required_meta_fields: (scenario.assertions.required_meta_fields ?? []).filter(
-      (field) => field !== "route_used",
-    ),
   }
 }
 
@@ -1184,38 +1033,6 @@ function matchesExpectedOutcome(
   }
 
   return ok && error === null
-}
-
-function forcedToolCommandHint(scenario: Scenario, mode: BenchmarkMode): string {
-  const owner = String((scenario.input.owner ?? "").toString())
-  const name = String((scenario.input.name ?? "").toString())
-  const repo = owner && name ? `${owner}/${name}` : (scenario.fixture?.repo ?? "")
-  const first = typeof scenario.input.first === "number" ? scenario.input.first : 20
-  const state = String((scenario.input.state ?? "open").toString())
-  const issueNumber =
-    typeof scenario.input.issueNumber === "number" ? scenario.input.issueNumber : 1
-  const prNumber = typeof scenario.input.prNumber === "number" ? scenario.input.prNumber : 1
-
-  if (mode === "ghx") {
-    return `GHX_SKIP_GH_PREFLIGHT=1 node ../core/dist/cli/index.js run ${scenario.task} --input '${JSON.stringify(scenario.input)}'`
-  }
-
-  switch (scenario.task) {
-    case "issue.comments.list":
-      return `gh api repos/${repo}/issues/${issueNumber}/comments?per_page=${first}&page=1`
-    case "issue.list":
-      return `gh issue list --repo ${repo} --state ${state} --limit ${first} --json id,number,title,state,url`
-    case "pr.list":
-      return `gh pr list --repo ${repo} --state ${state} --limit ${first} --json id,number,title,state,url`
-    case "issue.view":
-      return `gh issue view ${issueNumber} --repo ${repo} --json id,number,title,state,url`
-    case "pr.view":
-      return `gh pr view ${prNumber} --repo ${repo} --json id,number,title,state,url`
-    case "repo.view":
-      return `gh repo view ${repo} --json id,name,nameWithOwner,isPrivate,stargazerCount,forkCount,url,defaultBranchRef`
-    default:
-      return "gh --version"
-  }
 }
 
 function findBestEnvelopeFromMessages(
@@ -1426,7 +1243,12 @@ export async function runScenario(
           body: {
             model: { providerID: PROVIDER_ID, modelID: MODEL_ID },
             agent: OPEN_CODE_MODE ?? undefined,
-            parts: [{ type: "text", text: renderPrompt(scenario, mode, benchmarkNonce) }],
+            parts: [
+              {
+                type: "text",
+                text: renderPrompt(scenario, mode, benchmarkNonce),
+              },
+            ],
             format: {
               type: "json_schema",
               retryCount: 2,
@@ -1845,31 +1667,40 @@ export async function runSuite(options: RunSuiteOptions): Promise<void> {
       }
     }
 
+    if (seedIfMissing && !fixtureManifestPath) {
+      throw new Error("--seed-if-missing requires --fixture-manifest")
+    }
+
     let fixtureManifest: FixtureManifest | null = null
     if (fixtureManifestPath) {
-      if (seedIfMissing) {
-        try {
-          await access(fixtureManifestPath)
-        } catch {
-          const fixtureRepo = process.env.BENCH_FIXTURE_REPO ?? "aryeko/ghx-bench-fixtures"
-          const seedId = process.env.BENCH_FIXTURE_SEED_ID ?? "default"
-          await seedFixtureManifest({
-            repo: fixtureRepo,
-            outFile: fixtureManifestPath,
-            seedId,
-          })
+      let fixtureManifestExists = true
+      try {
+        await access(fixtureManifestPath)
+      } catch {
+        fixtureManifestExists = false
+      }
+
+      if (!fixtureManifestExists) {
+        if (!seedIfMissing) {
+          throw new Error(`Fixture manifest not found: ${fixtureManifestPath}`)
         }
+
+        const seedSourceRepo = process.env.BENCH_FIXTURE_REPO ?? "aryeko/ghx-bench-fixtures"
+
+        await seedFixtureManifest({
+          repo: seedSourceRepo,
+          outFile: fixtureManifestPath,
+          seedId: process.env.BENCH_FIXTURE_SEED_ID ?? "default",
+        })
       }
 
       fixtureManifest = await loadFixtureManifest(fixtureManifestPath)
-      const resolvedManifest = fixtureManifest
-      selectedScenarios = selectedScenarios.map((scenario) =>
-        resolveScenarioFixtureBindings(scenario, resolvedManifest),
-      )
     }
 
-    if (seedIfMissing && !fixtureManifestPath) {
-      throw new Error("--seed-if-missing requires --fixture-manifest")
+    if (fixtureManifest) {
+      selectedScenarios = selectedScenarios.map((scenario) =>
+        resolveScenarioFixtureBindings(scenario, fixtureManifest as FixtureManifest),
+      )
     }
 
     if (mode === "ghx") {
@@ -1892,38 +1723,32 @@ export async function runSuite(options: RunSuiteOptions): Promise<void> {
     console.log(
       `[benchmark] context: opencode_port=${OPENCODE_PORT} git_repo=${GIT_REPO ?? "<null>"} git_commit=${GIT_COMMIT ?? "<null>"} out_file=${outFile}`,
     )
-    console.log(
-      `[benchmark] fixtures: manifest=${fixtureManifestPath ?? "<none>"} seed_if_missing=${seedIfMissing ? "true" : "false"}`,
-    )
-    emitProgressEvent("suite_started", {
-      mode,
-      repetitions,
-      scenario_filter: scenarioFilter,
-      scenario_set: resolvedScenarioSet,
-      fixture_manifest_path: fixtureManifestPath ?? null,
-      seed_if_missing: seedIfMissing,
-      completed: 0,
-      total: totalScenarioExecutions,
-    })
 
     let completedExecutions = 0
     let successExecutions = 0
+    emitProgressEvent("suite_started", {
+      mode,
+      scenario_count: selectedScenarios.length,
+      repetitions,
+      total: totalScenarioExecutions,
+      completed: completedExecutions,
+    })
 
     for (const scenario of selectedScenarios) {
       validateFixture(scenario)
 
       for (let iteration = 1; iteration <= repetitions; iteration += 1) {
-        let latestResult: BenchmarkRow | null = null
         emitProgressEvent("scenario_started", {
-          mode,
           scenario_id: scenario.id,
           iteration,
-          completed: completedExecutions,
           total: totalScenarioExecutions,
+          completed: completedExecutions,
         })
 
+        let latestResult: BenchmarkRow | null = null
+
         for (let attempt = 0; attempt <= scenario.allowed_retries; attempt += 1) {
-          const result = await withIsolatedBenchmarkClient((client) =>
+          const result = await withIsolatedBenchmarkClient(mode, (client) =>
             runScenario(client, scenario, mode, iteration, resolvedScenarioSet),
           )
           latestResult = result
@@ -1938,35 +1763,31 @@ export async function runSuite(options: RunSuiteOptions): Promise<void> {
         }
 
         await appendFile(outFile, `${JSON.stringify(latestResult)}\n`, "utf8")
+
         completedExecutions += 1
         if (latestResult.success) {
           successExecutions += 1
         }
         emitProgressEvent("scenario_finished", {
-          mode,
           scenario_id: scenario.id,
           iteration,
           success: latestResult.success,
-          completed: completedExecutions,
           total: totalScenarioExecutions,
+          completed: completedExecutions,
         })
       }
     }
 
-    console.log(`Wrote benchmark suite results: ${outFile}`)
     emitProgressEvent("suite_finished", {
       mode,
-      out_file: outFile,
-      completed: completedExecutions,
       total: totalScenarioExecutions,
-      success_count: successExecutions,
-      failure_count: completedExecutions - successExecutions,
+      completed: completedExecutions,
+      successful: successExecutions,
     })
+    console.log(`Wrote benchmark suite results: ${outFile}`)
   } catch (error) {
-    emitProgressEvent("suite_error", {
-      mode,
-      message: error instanceof Error ? error.message : String(error),
-    })
+    const message = error instanceof Error ? error.message : String(error)
+    emitProgressEvent("suite_error", { mode, message })
     throw error
   }
 }

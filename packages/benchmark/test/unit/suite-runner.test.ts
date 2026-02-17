@@ -5,7 +5,9 @@ vi.mock("node:child_process", () => ({
 }))
 
 import { spawnSync } from "node:child_process"
-
+import { validateFixture } from "../../src/runner/preflight/fixture-preflight.js"
+import { ghOk } from "../../src/runner/preflight/ghx-router-preflight.js"
+import { renderPrompt } from "../../src/runner/prompt/prompt-renderer.js"
 import {
   asNumber,
   assertGhxRouterPreflight,
@@ -16,16 +18,13 @@ import {
   extractTimingBreakdown,
   fetchSessionMessages,
   getSessionApi,
-  ghOk,
   hasAssistantMetadata,
   hasAssistantSignalParts,
   hasTextPart,
   isObject,
-  renderPrompt,
   runScenario,
   shouldRequestContinuation,
   unwrapData,
-  validateFixture,
   waitForAssistantFromMessages,
   withTimeout,
 } from "../../src/runner/suite-runner.js"
@@ -699,7 +698,7 @@ describe("suite-runner helpers", () => {
       },
       "ghx",
     )
-    expect(prompt).toContain("GHX_SKIP_GH_PREFLIGHT=1 node ../core/dist/cli/index.js run")
+    expect(prompt).not.toContain("You are running a benchmark in ghx mode")
     expect(prompt).toContain("id")
     expect(prompt).toContain("If the ghx command fails")
   })
@@ -739,8 +738,8 @@ describe("suite-runner helpers", () => {
     expect(spawnSyncMock).toHaveBeenNthCalledWith(1, "gh", ["auth", "status"], { encoding: "utf8" })
     expect(spawnSyncMock).toHaveBeenNthCalledWith(
       2,
-      "node",
-      [expect.stringContaining("/core/dist/cli/index.js"), "capabilities", "list", "--json"],
+      expect.stringContaining("/packages/benchmark/bin/ghx"),
+      ["capabilities", "list", "--json"],
       { encoding: "utf8" },
     )
   })

@@ -11,7 +11,7 @@ import { setupCommand } from "./commands/setup.js"
 function usage(): string {
   return [
     "Usage:",
-    "  ghx run <task> --input '<json>'",
+    "  ghx run <task> --input '<json>' [--check-gh-preflight]",
     "  ghx setup --scope <user|project> [--yes] [--dry-run] [--verify] [--track]",
     "  ghx capabilities list",
     "  ghx capabilities explain <capability_id>",

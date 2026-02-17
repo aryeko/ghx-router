@@ -15,7 +15,7 @@
 - repeated runs per scenario
 - captured runtime metadata (commit, timestamp, model)
 - one-time `gh auth status` preflight for `ghx` suites before scenario execution
-- per-call CLI preflight skipped in benchmark execution path via `GHX_SKIP_GH_PREFLIGHT=1`
+- per-call CLI preflight skipped in benchmark execution path by default
 
 ## Metric System v2
 
@@ -48,7 +48,7 @@ Recommended verify sequence for PR validation:
 
 1. `pnpm --filter @ghx-dev/core run build`
 2. `pnpm --filter @ghx-dev/benchmark run benchmark -- agent_direct 4 --scenario-set ci-verify-pr`
-3. `GHX_SKIP_GH_PREFLIGHT=1 pnpm --filter @ghx-dev/benchmark run benchmark -- ghx 4 --scenario-set ci-verify-pr`
+3. `pnpm --filter @ghx-dev/benchmark run benchmark -- ghx 4 --scenario-set ci-verify-pr`
 4. `pnpm --filter @ghx-dev/benchmark run report`
 5. `pnpm --filter @ghx-dev/benchmark exec tsx src/cli/report.ts --gate --gate-profile verify_pr`
 

@@ -45,7 +45,7 @@ pnpm --filter @ghx-dev/benchmark run report
 pnpm --filter @ghx-dev/benchmark run report:gate
 pnpm --filter @ghx-dev/benchmark run report -- --gate --gate-profile verify_pr --expectations-model openai/gpt-5.1-codex-mini
 
-GHX_SKIP_GH_PREFLIGHT=1 pnpm --filter @ghx-dev/benchmark run benchmark -- ghx 3 --scenario-set pr-exec
+pnpm --filter @ghx-dev/benchmark run benchmark -- ghx 3 --scenario-set pr-exec
 pnpm --filter @ghx-dev/benchmark exec tsx src/cli/report.ts --gate --gate-profile verify_pr
 
 pnpm --filter @ghx-dev/benchmark run test
@@ -76,7 +76,8 @@ Additional sets:
 Notes:
 
 - Use mode `ghx`.
-- For benchmark runs, prefer `GHX_SKIP_GH_PREFLIGHT=1` on `ghx` executions; suite preflight performs auth verification once.
+- For benchmark runs, `ghx run` skips per-call CLI preflight by default; suite preflight performs auth verification once.
+- Suite preflight currently supports Unix-like environments because it executes the symlinked `packages/benchmark/bin/ghx` command.
 - Mutation-heavy scenarios should target sandbox repo `aryeko/ghx-bench-fixtures`, not `aryeko/ghx`.
 - Use `--fixture-manifest` (or `BENCH_FIXTURE_MANIFEST`) to resolve scenario input bindings.
 - `suite:run` executes phases in order: `fixtures.setup` -> parallel benchmark (`ghx` + `agent_direct`) -> `reporting.analysis.report` -> optional `reporting.analysis.gate`.

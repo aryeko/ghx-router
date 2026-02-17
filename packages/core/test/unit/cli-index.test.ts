@@ -43,7 +43,7 @@ describe("cli index main", () => {
 
     expect(code).toBe(0)
     expect(stdout).toHaveBeenCalledWith(
-      "Usage:\n  ghx run <task> --input '<json>'\n  ghx setup --scope <user|project> [--yes] [--dry-run] [--verify] [--track]\n  ghx capabilities list\n  ghx capabilities explain <capability_id>\n",
+      "Usage:\n  ghx run <task> --input '<json>' [--check-gh-preflight]\n  ghx setup --scope <user|project> [--yes] [--dry-run] [--verify] [--track]\n  ghx capabilities list\n  ghx capabilities explain <capability_id>\n",
     )
   })
 
@@ -54,7 +54,7 @@ describe("cli index main", () => {
 
     expect(code).toBe(0)
     expect(stdout).toHaveBeenCalledWith(
-      "Usage:\n  ghx run <task> --input '<json>'\n  ghx setup --scope <user|project> [--yes] [--dry-run] [--verify] [--track]\n  ghx capabilities list\n  ghx capabilities explain <capability_id>\n",
+      "Usage:\n  ghx run <task> --input '<json>' [--check-gh-preflight]\n  ghx setup --scope <user|project> [--yes] [--dry-run] [--verify] [--track]\n  ghx capabilities list\n  ghx capabilities explain <capability_id>\n",
     )
   })
 
@@ -101,7 +101,7 @@ describe("cli index main", () => {
 
     expect(code).toBe(1)
     expect(stderr).toHaveBeenCalledWith(
-      "Unknown capabilities subcommand: nope\nUsage:\n  ghx run <task> --input '<json>'\n  ghx setup --scope <user|project> [--yes] [--dry-run] [--verify] [--track]\n  ghx capabilities list\n  ghx capabilities explain <capability_id>\n",
+      "Unknown capabilities subcommand: nope\nUsage:\n  ghx run <task> --input '<json>' [--check-gh-preflight]\n  ghx setup --scope <user|project> [--yes] [--dry-run] [--verify] [--track]\n  ghx capabilities list\n  ghx capabilities explain <capability_id>\n",
     )
   })
 
@@ -112,7 +112,7 @@ describe("cli index main", () => {
 
     expect(code).toBe(1)
     expect(stderr).toHaveBeenCalledWith(
-      "Missing capabilities subcommand.\nUsage:\n  ghx run <task> --input '<json>'\n  ghx setup --scope <user|project> [--yes] [--dry-run] [--verify] [--track]\n  ghx capabilities list\n  ghx capabilities explain <capability_id>\n",
+      "Missing capabilities subcommand.\nUsage:\n  ghx run <task> --input '<json>' [--check-gh-preflight]\n  ghx setup --scope <user|project> [--yes] [--dry-run] [--verify] [--track]\n  ghx capabilities list\n  ghx capabilities explain <capability_id>\n",
     )
   })
 
@@ -123,7 +123,7 @@ describe("cli index main", () => {
 
     expect(code).toBe(1)
     expect(stderr).toHaveBeenCalledWith(
-      "Unknown command: nope\nUsage:\n  ghx run <task> --input '<json>'\n  ghx setup --scope <user|project> [--yes] [--dry-run] [--verify] [--track]\n  ghx capabilities list\n  ghx capabilities explain <capability_id>\n",
+      "Unknown command: nope\nUsage:\n  ghx run <task> --input '<json>' [--check-gh-preflight]\n  ghx setup --scope <user|project> [--yes] [--dry-run] [--verify] [--track]\n  ghx capabilities list\n  ghx capabilities explain <capability_id>\n",
     )
   })
 })

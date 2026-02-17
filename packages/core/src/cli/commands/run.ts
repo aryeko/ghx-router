@@ -4,17 +4,22 @@ import { createGithubClient } from "../../gql/client.js"
 
 const GITHUB_GRAPHQL_ENDPOINT = "https://api.github.com/graphql"
 
-function parseRunArgs(argv: string[]): { task: string; input: Record<string, unknown> } {
+function parseRunArgs(argv: string[]): {
+  task: string
+  input: Record<string, unknown>
+  skipGhPreflight: boolean
+} {
   const [task, ...rest] = argv
   if (!task || task.trim().length === 0) {
-    throw new Error("Usage: ghx run <task> --input '<json>'")
+    throw new Error("Usage: ghx run <task> --input '<json>' [--check-gh-preflight]")
   }
 
   const inputIndex = rest.findIndex((arg) => arg === "--input")
   const inlineInput = rest.find((arg) => arg.startsWith("--input="))
+  const inputCandidate = inputIndex >= 0 ? rest[inputIndex + 1] : undefined
   const inputRaw =
-    inputIndex >= 0
-      ? rest[inputIndex + 1]
+    inputCandidate && !inputCandidate.startsWith("--")
+      ? inputCandidate
       : inlineInput
         ? inlineInput.slice("--input=".length)
         : undefined
@@ -34,7 +39,9 @@ function parseRunArgs(argv: string[]): { task: string; input: Record<string, unk
     throw new Error("--input must be a JSON object")
   }
 
-  return { task, input: parsed as Record<string, unknown> }
+  const skipGhPreflight = !rest.includes("--check-gh-preflight")
+
+  return { task, input: parsed as Record<string, unknown>, skipGhPreflight }
 }
 
 function resolveGithubToken(): string {
@@ -88,11 +95,11 @@ async function executeGraphqlRequest<TData>(
 
 export async function runCommand(argv: string[] = []): Promise<number> {
   if (argv.length === 0) {
-    process.stdout.write("Usage: ghx run <task> --input '<json>'\n")
+    process.stdout.write("Usage: ghx run <task> --input '<json>' [--check-gh-preflight]\n")
     return 1
   }
 
-  const { task, input } = parseRunArgs(argv)
+  const { task, input, skipGhPreflight } = parseRunArgs(argv)
   const githubToken = resolveGithubToken()
 
   const githubClient = createGithubClient({
@@ -109,6 +116,7 @@ export async function runCommand(argv: string[] = []): Promise<number> {
   const result = await executeTask(request, {
     githubClient,
     githubToken,
+    skipGhPreflight,
   })
 
   process.stdout.write(`${JSON.stringify(result)}\n`)

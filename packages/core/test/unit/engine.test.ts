@@ -85,4 +85,50 @@ describe("executeTask engine wiring", () => {
     expect(result.meta.route_used).toBe("rest")
     expect(result.meta.reason).toBe("DEFAULT_POLICY")
   })
+
+  it("skips cli preflight probes when skipGhPreflight is true", async () => {
+    const cliRunner = {
+      run: vi.fn(async () => ({
+        exitCode: 1,
+        stdout: "",
+        stderr: "",
+      })),
+    }
+
+    executeMock.mockImplementation(
+      async (options: { preflight: (route: "cli") => Promise<{ ok: boolean }> }) => {
+        return options.preflight("cli")
+      },
+    )
+
+    const { executeTask } = await import("../../src/core/routing/engine.js")
+
+    const result = await executeTask(
+      {
+        task: "repo.view",
+        input: { owner: "acme", name: "modkit" },
+      },
+      {
+        githubClient: {
+          fetchRepoView: vi.fn(),
+          fetchIssueCommentsList: vi.fn(),
+          fetchIssueList: vi.fn(),
+          fetchIssueView: vi.fn(),
+          fetchPrList: vi.fn(),
+          fetchPrView: vi.fn(),
+          fetchPrCommentsList: vi.fn(),
+          fetchPrReviewsList: vi.fn(),
+          fetchPrDiffListFiles: vi.fn(),
+          replyToReviewThread: vi.fn(),
+          resolveReviewThread: vi.fn(),
+          unresolveReviewThread: vi.fn(),
+        },
+        cliRunner,
+        skipGhPreflight: true,
+      },
+    )
+
+    expect(cliRunner.run).not.toHaveBeenCalled()
+    expect(result).toEqual({ ok: true })
+  })
 })
