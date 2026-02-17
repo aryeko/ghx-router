@@ -1,4 +1,3 @@
-import { spawnSync } from "node:child_process"
 import { randomUUID } from "node:crypto"
 import { mkdir, writeFile } from "node:fs/promises"
 import { dirname } from "node:path"
@@ -6,6 +5,7 @@ import { dirname } from "node:path"
 import { z } from "zod"
 
 import type { FixtureManifest } from "../domain/types.js"
+import { runGh, runGhJson, sleep, tryRunGh, tryRunGhJson } from "./gh-client.js"
 
 type SeedOptions = {
   repo: string
@@ -23,49 +23,6 @@ const FAILED_RERUN_WORKFLOW_FILE =
   process.env.BENCH_FIXTURE_FAILED_RERUN_WORKFLOW ?? "bench-rerun-failed.yml"
 const FAILED_RERUN_POLL_INTERVAL_MS = 2000
 const FAILED_RERUN_TIMEOUT_MS = 90_000
-
-function runGh(args: string[]): string {
-  const result = spawnSync("gh", args, {
-    encoding: "utf8",
-  })
-
-  if (result.status !== 0) {
-    const stderr = (result.stderr ?? "").trim()
-    throw new Error(stderr.length > 0 ? stderr : `gh command failed: gh ${args.join(" ")}`)
-  }
-
-  return (result.stdout ?? "").trim()
-}
-
-function tryRunGh(args: string[]): string | null {
-  try {
-    return runGh(args)
-  } catch {
-    return null
-  }
-}
-
-function runGhJson(args: string[]): unknown {
-  const output = runGh(args)
-  if (output.length === 0) {
-    return {}
-  }
-
-  return JSON.parse(output)
-}
-
-function tryRunGhJson(args: string[]): unknown | null {
-  const output = tryRunGh(args)
-  if (output === null) {
-    return null
-  }
-
-  if (output.length === 0) {
-    return {}
-  }
-
-  return JSON.parse(output)
-}
 
 function parseRepo(repo: string): { owner: string; name: string } {
   const parts = repo.split("/")
@@ -106,10 +63,6 @@ function parseArrayResponse(value: unknown): unknown[] {
   }
 
   return []
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 function findOrCreateIssue(

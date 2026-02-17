@@ -1,22 +1,8 @@
-import { spawnSync } from "node:child_process"
-
 import type { FixtureManifest } from "../domain/types.js"
+import { runGh } from "./gh-client.js"
 
 type CleanupResult = {
   closedIssues: number
-}
-
-function runGh(args: string[]): string {
-  const result = spawnSync("gh", args, {
-    encoding: "utf8"
-  })
-
-  if (result.status !== 0) {
-    const stderr = (result.stderr ?? "").trim()
-    throw new Error(stderr.length > 0 ? stderr : `gh command failed: gh ${args.join(" ")}`)
-  }
-
-  return (result.stdout ?? "").trim()
 }
 
 function listOpenSeededIssues(repo: string, seedLabel: string): number[] {
@@ -34,7 +20,7 @@ function listOpenSeededIssues(repo: string, seedLabel: string): number[] {
     "--limit",
     "200",
     "--json",
-    "number"
+    "number",
   ])
 
   const parsed = output.length === 0 ? [] : JSON.parse(output)
@@ -76,11 +62,11 @@ export async function cleanupSeededFixtures(manifest: FixtureManifest): Promise<
       "--repo",
       repo,
       "--comment",
-      `Benchmark fixture cleanup (${seedLabel})`
+      `Benchmark fixture cleanup (${seedLabel})`,
     ])
   }
 
   return {
-    closedIssues: issueNumbers.length
+    closedIssues: issueNumbers.length,
   }
 }
