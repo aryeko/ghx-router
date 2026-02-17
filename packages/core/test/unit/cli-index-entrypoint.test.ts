@@ -32,7 +32,7 @@ describe("cli index entrypoint", () => {
 
     expect(process.exitCode).toBe(0)
     expect(stdout).toHaveBeenCalledWith(
-      "Usage:\n  ghx run <task> --input '<json>' [--check-gh-preflight]\n  ghx setup --scope <user|project> [--yes] [--dry-run] [--verify] [--track]\n  ghx capabilities list\n  ghx capabilities explain <capability_id>\n",
+      "Usage:\n  ghx run <task> --input '<json>' | --input - [--check-gh-preflight]\n  ghx setup --scope <user|project> [--yes] [--dry-run] [--verify] [--track]\n  ghx capabilities list\n  ghx capabilities explain <capability_id>\n",
     )
   })
 

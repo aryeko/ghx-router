@@ -1,3 +1,4 @@
+import { Readable } from "node:stream"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 const createGithubClientMock = vi.fn()
@@ -12,6 +13,16 @@ vi.mock("../../src/core/routing/engine.js", () => ({
 }))
 
 import { runCommand } from "../../src/cli/commands/run.js"
+
+function mockStdin(content: string): void {
+  const readable = new Readable({
+    read() {
+      this.push(Buffer.from(content))
+      this.push(null)
+    },
+  })
+  vi.spyOn(process, "stdin", "get").mockReturnValue(readable as unknown as typeof process.stdin)
+}
 
 describe("runCommand", () => {
   const originalFetch = globalThis.fetch
@@ -40,7 +51,7 @@ describe("runCommand", () => {
 
     expect(code).toBe(1)
     expect(stdout).toHaveBeenCalledWith(
-      "Usage: ghx run <task> --input '<json>' [--check-gh-preflight]\n",
+      "Usage: ghx run <task> --input '<json>' | --input - [--check-gh-preflight]\n",
     )
   })
 
@@ -212,5 +223,56 @@ describe("runCommand", () => {
     await expect(runCommand(["repo.view", "--input", "{}"])).rejects.toThrow(
       "response missing data",
     )
+  })
+
+  describe("stdin input (--input -)", () => {
+    it("reads JSON from stdin when --input - is passed", async () => {
+      mockStdin('{"owner":"a","name":"b"}')
+      executeTaskMock.mockResolvedValue({ ok: true })
+
+      const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true)
+      const code = await runCommand(["repo.view", "--input", "-"])
+
+      expect(code).toBe(0)
+      expect(executeTaskMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          task: "repo.view",
+          input: { owner: "a", name: "b" },
+        }),
+        expect.any(Object),
+      )
+      expect(stdout).toHaveBeenCalledWith('{"ok":true}\n')
+    })
+
+    it("throws for invalid JSON from stdin", async () => {
+      mockStdin("not-json")
+
+      await expect(runCommand(["repo.view", "--input", "-"])).rejects.toThrow(
+        "Invalid JSON for --input",
+      )
+    })
+
+    it("throws when stdin JSON is not an object", async () => {
+      mockStdin("[1,2,3]")
+
+      await expect(runCommand(["repo.view", "--input", "-"])).rejects.toThrow(
+        "--input must be a JSON object",
+      )
+    })
+
+    it("respects --check-gh-preflight with stdin input", async () => {
+      mockStdin('{"owner":"a","name":"b"}')
+      executeTaskMock.mockResolvedValue({ ok: true })
+
+      vi.spyOn(process.stdout, "write").mockImplementation(() => true)
+      await runCommand(["repo.view", "--input", "-", "--check-gh-preflight"])
+
+      expect(executeTaskMock).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.objectContaining({
+          skipGhPreflight: false,
+        }),
+      )
+    })
   })
 })

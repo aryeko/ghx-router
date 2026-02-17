@@ -4,19 +4,27 @@ import { createGithubClient } from "../../gql/client.js"
 
 const GITHUB_GRAPHQL_ENDPOINT = "https://api.github.com/graphql"
 
-function parseRunArgs(argv: string[]): {
+interface ParsedRunFlags {
   task: string
-  input: Record<string, unknown>
+  inputSource: "stdin" | { raw: string }
   skipGhPreflight: boolean
-} {
+}
+
+export function parseRunFlags(argv: string[]): ParsedRunFlags {
   const [task, ...rest] = argv
   if (!task || task.trim().length === 0) {
-    throw new Error("Usage: ghx run <task> --input '<json>' [--check-gh-preflight]")
+    throw new Error("Usage: ghx run <task> --input '<json>' | --input - [--check-gh-preflight]")
   }
 
   const inputIndex = rest.findIndex((arg) => arg === "--input")
   const inlineInput = rest.find((arg) => arg.startsWith("--input="))
   const inputCandidate = inputIndex >= 0 ? rest[inputIndex + 1] : undefined
+
+  if (inputCandidate === "-") {
+    const skipGhPreflight = !rest.includes("--check-gh-preflight")
+    return { task, inputSource: "stdin", skipGhPreflight }
+  }
+
   const inputRaw =
     inputCandidate && !inputCandidate.startsWith("--")
       ? inputCandidate
@@ -28,9 +36,14 @@ function parseRunArgs(argv: string[]): {
     throw new Error("Missing --input JSON")
   }
 
+  const skipGhPreflight = !rest.includes("--check-gh-preflight")
+  return { task, inputSource: { raw: inputRaw }, skipGhPreflight }
+}
+
+function parseJsonInput(raw: string): Record<string, unknown> {
   let parsed: unknown
   try {
-    parsed = JSON.parse(inputRaw)
+    parsed = JSON.parse(raw)
   } catch {
     throw new Error("Invalid JSON for --input")
   }
@@ -39,9 +52,28 @@ function parseRunArgs(argv: string[]): {
     throw new Error("--input must be a JSON object")
   }
 
-  const skipGhPreflight = !rest.includes("--check-gh-preflight")
+  return parsed as Record<string, unknown>
+}
 
-  return { task, input: parsed as Record<string, unknown>, skipGhPreflight }
+export function readStdin(timeoutMs = 10_000): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const parts: string[] = []
+    const stream = process.stdin
+    const timer = setTimeout(() => {
+      stream.destroy()
+      reject(new Error("Timed out reading from stdin"))
+    }, timeoutMs)
+    stream.setEncoding("utf8")
+    stream.on("data", (chunk: string) => parts.push(chunk))
+    stream.on("end", () => {
+      clearTimeout(timer)
+      resolve(parts.join(""))
+    })
+    stream.on("error", (err: Error) => {
+      clearTimeout(timer)
+      reject(err)
+    })
+  })
 }
 
 function resolveGithubToken(): string {
@@ -95,11 +127,15 @@ async function executeGraphqlRequest<TData>(
 
 export async function runCommand(argv: string[] = []): Promise<number> {
   if (argv.length === 0) {
-    process.stdout.write("Usage: ghx run <task> --input '<json>' [--check-gh-preflight]\n")
+    process.stdout.write(
+      "Usage: ghx run <task> --input '<json>' | --input - [--check-gh-preflight]\n",
+    )
     return 1
   }
 
-  const { task, input, skipGhPreflight } = parseRunArgs(argv)
+  const { task, inputSource, skipGhPreflight } = parseRunFlags(argv)
+  const input =
+    inputSource === "stdin" ? parseJsonInput(await readStdin()) : parseJsonInput(inputSource.raw)
   const githubToken = resolveGithubToken()
 
   const githubClient = createGithubClient({
