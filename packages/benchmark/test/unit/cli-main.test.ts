@@ -35,6 +35,7 @@ describe("benchmark cli mains", () => {
       providerId: null,
       modelId: null,
       outputJsonlPath: null,
+      skipWarmup: false,
     })
   })
 
@@ -65,6 +66,7 @@ describe("benchmark cli mains", () => {
       providerId: "openai",
       modelId: "gpt-5.1-codex-mini",
       outputJsonlPath: "reports/custom.jsonl",
+      skipWarmup: false,
     })
   })
 

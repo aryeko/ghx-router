@@ -27,9 +27,7 @@
     "workflow-run-jobs-list-001",
     "workflow-job-logs-get-001"
   ],
-  "ci-log-analysis": [
-    "workflow-job-logs-analyze-001"
-  ],
+  "ci-log-analysis": ["workflow-job-logs-analyze-001"],
   "workflows": [
     "workflow-dispatch-run-001",
     "workflow-run-rerun-failed-001",
@@ -38,7 +36,8 @@
     "workflow-run-get-001",
     "workflow-run-rerun-all-001",
     "workflow-run-cancel-001",
-    "workflow-run-artifacts-list-001"
+    "workflow-run-artifacts-list-001",
+    "pr-fix-review-comments-wf-001"
   ],
   "projects-v2": [
     "project-v2-org-get-001",
@@ -90,17 +89,6 @@
     "pr-assignees-update-001",
     "pr-branch-update-001",
     "pr-merge-execute-001"
-  ],
-  "ci-verify-pr": [
-    "pr-status-checks-001",
-    "pr-checks-get-failed-001"
-  ],
-  "ci-verify-release": [
-    "repo-view-001",
-    "workflow-runs-list-001",
-    "workflow-run-jobs-list-001",
-    "release-list-001",
-    "pr-mergeability-view-001"
   ],
   "issues": [
     "issue-create-001",
@@ -157,6 +145,7 @@
     "workflow-run-rerun-all-001",
     "workflow-run-cancel-001",
     "workflow-run-artifacts-list-001",
+    "pr-fix-review-comments-wf-001",
     "project-v2-org-get-001",
     "project-v2-user-get-001",
     "project-v2-fields-list-001",
@@ -204,6 +193,7 @@
     "workflow-run-rerun-all-001",
     "workflow-run-cancel-001",
     "workflow-run-artifacts-list-001",
+    "pr-fix-review-comments-wf-001",
     "project-v2-org-get-001",
     "project-v2-user-get-001",
     "project-v2-fields-list-001",

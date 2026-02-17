@@ -101,7 +101,7 @@ describe("run-suite cli", () => {
           base: {
             command: ["pnpm", "run", "benchmark", "--"],
             repetitions: 3,
-            scenarioSet: "ci-verify-pr",
+            scenarioSet: "default",
           },
           ghx: {
             mode: "ghx",
@@ -162,7 +162,7 @@ describe("run-suite cli", () => {
       "ghx",
       "3",
       "--scenario-set",
-      "ci-verify-pr",
+      "default",
     ])
 
     expect(directCall?.[0]).toBe("pnpm")
@@ -173,7 +173,7 @@ describe("run-suite cli", () => {
       "agent_direct",
       "3",
       "--scenario-set",
-      "ci-verify-pr",
+      "default",
     ])
 
     const ghxOptions = ghxCall?.[2] as { env?: Record<string, string | undefined> }
@@ -255,7 +255,7 @@ describe("run-suite cli", () => {
           base: {
             command: ["pnpm", "run", "benchmark", "--"],
             repetitions: 3,
-            scenarioSet: "ci-verify-pr",
+            scenarioSet: "default",
           },
           ghx: { mode: "ghx" },
           direct: { mode: "agent_direct" },

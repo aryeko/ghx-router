@@ -1,8 +1,8 @@
-import type { Scenario } from "../../domain/types.js"
+import type { AtomicScenario } from "../../domain/types.js"
 import { ghOk } from "./ghx-router-preflight.js"
 
 export function validateFixture(
-  scenario: Scenario,
+  scenario: AtomicScenario,
   ghOkFn: (args: string[]) => boolean = ghOk,
 ): void {
   const repo = scenario.fixture?.repo

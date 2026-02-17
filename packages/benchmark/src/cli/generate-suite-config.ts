@@ -34,7 +34,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
   const normalized = argv.filter((arg) => arg !== "--")
 
   const outPath = parseStrictFlagValue(normalized, "--out") ?? "config/suite-runner.json"
-  const scenarioSet = parseStrictFlagValue(normalized, "--scenario-set") ?? "ci-verify-pr"
+  const scenarioSet = parseStrictFlagValue(normalized, "--scenario-set") ?? "default"
 
   const repetitionsRaw = parseStrictFlagValue(normalized, "--repetitions") ?? "3"
   const repetitions = Number(repetitionsRaw)

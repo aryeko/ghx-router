@@ -3,11 +3,12 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 
 import { describe, expect, it } from "vitest"
-import type { Scenario } from "../../src/domain/types.js"
+import type { AtomicScenario } from "../../src/domain/types.js"
 import { loadFixtureManifest, resolveScenarioFixtureBindings } from "../../src/fixture/manifest.js"
 
-function createBaseScenario(): Scenario {
+function createBaseScenario(): AtomicScenario {
   return {
+    type: "atomic",
     id: "pr-view-001",
     name: "PR view",
     task: "pr.view",
@@ -84,7 +85,7 @@ describe("fixture manifest", () => {
   })
 
   it("resolves scenario input values from fixture bindings", () => {
-    const scenario: Scenario = {
+    const scenario: AtomicScenario = {
       ...createBaseScenario(),
       fixture: {
         bindings: {
@@ -116,11 +117,11 @@ describe("fixture manifest", () => {
   })
 
   it("returns original scenario when bindings are missing or empty", () => {
-    const scenarioWithoutBindings: Scenario = {
+    const scenarioWithoutBindings: AtomicScenario = {
       ...createBaseScenario(),
     }
 
-    const scenarioWithEmptyBindings: Scenario = {
+    const scenarioWithEmptyBindings: AtomicScenario = {
       ...createBaseScenario(),
       fixture: {
         bindings: {},
@@ -147,7 +148,7 @@ describe("fixture manifest", () => {
   })
 
   it("throws when a binding source path does not exist", () => {
-    const scenario: Scenario = {
+    const scenario: AtomicScenario = {
       ...createBaseScenario(),
       fixture: {
         bindings: {
@@ -171,7 +172,7 @@ describe("fixture manifest", () => {
   })
 
   it("throws when destination binding path is invalid", () => {
-    const scenario: Scenario = {
+    const scenario: AtomicScenario = {
       ...createBaseScenario(),
       fixture: {
         bindings: {
@@ -195,7 +196,7 @@ describe("fixture manifest", () => {
   })
 
   it("replaces non-object intermediates when setting destination paths", () => {
-    const scenario: Scenario = {
+    const scenario: AtomicScenario = {
       ...createBaseScenario(),
       fixture: {
         bindings: {
@@ -219,7 +220,7 @@ describe("fixture manifest", () => {
   })
 
   it("rejects unsafe source binding path segments", () => {
-    const scenario: Scenario = {
+    const scenario: AtomicScenario = {
       ...createBaseScenario(),
       fixture: {
         bindings: {
@@ -243,7 +244,7 @@ describe("fixture manifest", () => {
   })
 
   it("rejects unsafe destination binding path segments", () => {
-    const scenario: Scenario = {
+    const scenario: AtomicScenario = {
       ...createBaseScenario(),
       fixture: {
         bindings: {

@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises"
 import { z } from "zod"
 
-import type { FixtureManifest, Scenario } from "../domain/types.js"
+import type { AtomicScenario, FixtureManifest, WorkflowScenario } from "../domain/types.js"
 
 const fixtureManifestSchema = z.object({
   version: z.literal(1),
@@ -79,9 +79,9 @@ export async function loadFixtureManifest(path: string): Promise<FixtureManifest
 }
 
 export function resolveScenarioFixtureBindings(
-  scenario: Scenario,
+  scenario: AtomicScenario,
   manifest: FixtureManifest,
-): Scenario {
+): AtomicScenario {
   const bindings = scenario.fixture?.bindings
   if (!bindings || Object.keys(bindings).length === 0) {
     return scenario
@@ -98,5 +98,43 @@ export function resolveScenarioFixtureBindings(
   return {
     ...scenario,
     input: resolvedInput,
+  }
+}
+
+export function resolveWorkflowFixtureBindings(
+  scenario: WorkflowScenario,
+  manifest: FixtureManifest,
+): WorkflowScenario {
+  const bindings = scenario.fixture?.bindings
+  if (!bindings || Object.keys(bindings).length === 0) {
+    return scenario
+  }
+
+  const manifestRecord = manifest as unknown as Record<string, unknown>
+  const resolvedContext: Record<string, unknown> = {}
+
+  for (const [destination, source] of Object.entries(bindings)) {
+    const sourceValue = getPathValue(manifestRecord, source)
+    const key = destination.replace(/^input\./, "")
+    resolvedContext[key] = sourceValue
+  }
+
+  let resolvedPrompt = scenario.prompt
+  for (const [key, value] of Object.entries(resolvedContext)) {
+    resolvedPrompt = resolvedPrompt.replaceAll(`{{${key}}}`, String(value))
+  }
+
+  const resolvedCheckpoints = scenario.assertions.checkpoints.map((checkpoint) => ({
+    ...checkpoint,
+    verification_input: { ...resolvedContext, ...checkpoint.verification_input },
+  }))
+
+  return {
+    ...scenario,
+    prompt: resolvedPrompt,
+    assertions: {
+      ...scenario.assertions,
+      checkpoints: resolvedCheckpoints,
+    },
   }
 }

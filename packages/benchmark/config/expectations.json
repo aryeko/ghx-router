@@ -12,7 +12,8 @@
         "maxRunnerFailureRatePct": 7,
         "maxTimeoutStallRatePct": 4,
         "maxRetryRatePct": 20,
-        "minSamplesPerScenarioPerMode": 1
+        "minSamplesPerScenarioPerMode": 3,
+        "minCostReductionPct": 10
       },
       "verify_release": {
         "minTokensActiveReductionPct": 12,
@@ -24,7 +25,8 @@
         "maxRunnerFailureRatePct": 6,
         "maxTimeoutStallRatePct": 3,
         "maxRetryRatePct": 18,
-        "minSamplesPerScenarioPerMode": 1
+        "minSamplesPerScenarioPerMode": 5,
+        "minCostReductionPct": 15
       }
     },
     "openai/gpt-5.3-codex": {
@@ -38,7 +40,8 @@
         "maxRunnerFailureRatePct": 5,
         "maxTimeoutStallRatePct": 2,
         "maxRetryRatePct": 15,
-        "minSamplesPerScenarioPerMode": 1
+        "minSamplesPerScenarioPerMode": 3,
+        "minCostReductionPct": 10
       },
       "verify_release": {
         "minTokensActiveReductionPct": 22,
@@ -50,7 +53,8 @@
         "maxRunnerFailureRatePct": 2,
         "maxTimeoutStallRatePct": 1,
         "maxRetryRatePct": 8,
-        "minSamplesPerScenarioPerMode": 2
+        "minSamplesPerScenarioPerMode": 5,
+        "minCostReductionPct": 15
       }
     }
   }

@@ -18,7 +18,7 @@ describe("scenario-sets manifest", () => {
       "issue-list-open-001",
       "issue-comments-list-001",
       "pr-view-001",
-      "pr-list-open-001"
+      "pr-list-open-001",
     ])
   })
 
@@ -33,7 +33,8 @@ describe("scenario-sets manifest", () => {
       "workflow-run-get-001",
       "workflow-run-rerun-all-001",
       "workflow-run-cancel-001",
-      "workflow-run-artifacts-list-001"
+      "workflow-run-artifacts-list-001",
+      "pr-fix-review-comments-wf-001",
     ])
 
     expect(scenarioSets["projects-v2"]).toEqual([
@@ -44,7 +45,7 @@ describe("scenario-sets manifest", () => {
       "project-v2-item-add-issue-001",
       "project-v2-item-field-update-001",
       "repo-labels-list-001",
-      "repo-issue-types-list-001"
+      "repo-issue-types-list-001",
     ])
   })
 
@@ -56,7 +57,7 @@ describe("scenario-sets manifest", () => {
       "release-get-001",
       "release-create-draft-001",
       "release-update-001",
-      "release-publish-draft-001"
+      "release-publish-draft-001",
     ])
   })
 
@@ -72,7 +73,7 @@ describe("scenario-sets manifest", () => {
       "pr-reviewers-request-001",
       "pr-assignees-update-001",
       "pr-branch-update-001",
-      "pr-merge-execute-001"
+      "pr-merge-execute-001",
     ])
 
     expect(scenarioSets["issues"]).toEqual([
@@ -90,28 +91,7 @@ describe("scenario-sets manifest", () => {
       "issue-parent-set-001",
       "issue-parent-remove-001",
       "issue-blocked-by-add-001",
-      "issue-blocked-by-remove-001"
-    ])
-  })
-
-  it("defines ci-verify-pr for low-noise PR gating", () => {
-    const scenarioSets = loadScenarioSets()
-
-    expect(scenarioSets["ci-verify-pr"]).toEqual([
-      "pr-status-checks-001",
-      "pr-checks-get-failed-001"
-    ])
-  })
-
-  it("defines ci-verify-release for stable release gating", () => {
-    const scenarioSets = loadScenarioSets()
-
-    expect(scenarioSets["ci-verify-release"]).toEqual([
-      "repo-view-001",
-      "workflow-runs-list-001",
-      "workflow-run-jobs-list-001",
-      "release-list-001",
-      "pr-mergeability-view-001"
+      "issue-blocked-by-remove-001",
     ])
   })
 
@@ -129,7 +109,7 @@ describe("scenario-sets manifest", () => {
       ...(scenarioSets["issues"] ?? []),
       ...(scenarioSets["release-delivery"] ?? []),
       ...(scenarioSets.workflows ?? []),
-      ...(scenarioSets["projects-v2"] ?? [])
+      ...(scenarioSets["projects-v2"] ?? []),
     ])
 
     expect(new Set(scenarioSets.all ?? [])).toEqual(expectedUnion)
@@ -159,7 +139,7 @@ describe("scenario-sets manifest", () => {
       "pr-branch-update-001",
       "pr-merge-execute-001",
       "pr-view-001",
-      "pr-list-open-001"
+      "pr-list-open-001",
     ])
   })
 })

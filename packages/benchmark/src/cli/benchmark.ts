@@ -14,6 +14,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
     providerId: parsed.providerId,
     modelId: parsed.modelId,
     outputJsonlPath: parsed.outputJsonlPath,
+    skipWarmup: parsed.skipWarmup,
   })
 }
 

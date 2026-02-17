@@ -1,9 +1,9 @@
-import type { BenchmarkMode, Scenario } from "../../domain/types.js"
+import type { AtomicScenario, BenchmarkMode, ScenarioAssertions } from "../../domain/types.js"
 
 export function modeScopedAssertions(
-  scenario: Scenario,
+  scenario: AtomicScenario,
   mode: BenchmarkMode,
-): Scenario["assertions"] {
+): ScenarioAssertions {
   if (mode === "ghx") {
     const hasGithubToken =
       typeof process.env.GITHUB_TOKEN === "string" && process.env.GITHUB_TOKEN.trim().length > 0
@@ -29,7 +29,7 @@ export function modeScopedAssertions(
 }
 
 export function renderPrompt(
-  scenario: Scenario,
+  scenario: AtomicScenario,
   mode: BenchmarkMode,
   benchmarkNonce?: string,
 ): string {
@@ -77,7 +77,7 @@ export function renderPrompt(
   return `${promptLines.join("\n")}\n\n${rendered}`
 }
 
-export function buildOutputSchema(assertions: Scenario["assertions"]): Record<string, unknown> {
+export function buildOutputSchema(assertions: ScenarioAssertions): Record<string, unknown> {
   const requiredDataFields = assertions.required_data_fields ?? []
   const requiredMetaFields = assertions.required_meta_fields ?? []
 
@@ -172,7 +172,7 @@ export function buildOutputSchema(assertions: Scenario["assertions"]): Record<st
   }
 }
 
-export function forcedToolCommandHint(scenario: Scenario, mode: BenchmarkMode): string {
+export function forcedToolCommandHint(scenario: AtomicScenario, mode: BenchmarkMode): string {
   const owner = String((scenario.input.owner ?? "").toString())
   const name = String((scenario.input.name ?? "").toString())
   const repo = owner && name ? `${owner}/${name}` : (scenario.fixture?.repo ?? "")

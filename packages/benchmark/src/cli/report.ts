@@ -1,7 +1,7 @@
-import { mkdir, readdir, writeFile } from "node:fs/promises"
+import { appendFile, mkdir, readdir, writeFile } from "node:fs/promises"
 import { dirname, join } from "node:path"
 import { z } from "zod"
-import type { BenchmarkMode, BenchmarkRow, GateProfile } from "../domain/types.js"
+import type { BenchmarkMode, BenchmarkRow, GateProfile, HistoryEntry } from "../domain/types.js"
 import { buildSummary, DEFAULT_GATE_V2_THRESHOLDS, toMarkdown } from "../report/aggregate.js"
 import {
   expectationsConfigExists,
@@ -10,6 +10,7 @@ import {
   resolveGateThresholdsForModel,
   resolveModelForExpectations,
 } from "../report/expectations.js"
+import { detectRegressions, formatRegressionWarnings, loadHistory } from "../report/regression.js"
 import { readJsonlFile } from "../utils/jsonl.js"
 import { runIfDirectEntry } from "./entry.js"
 import { parseMultiFlagValues } from "./flag-utils.js"
@@ -284,6 +285,17 @@ function validateComparableCohort(agentRows: BenchmarkRow[], ghxRows: BenchmarkR
   }
 }
 
+function extractGitInfo(): { commit: string | null; branch: string | null } {
+  const commit = process.env.GIT_COMMIT ?? null
+  const branch = process.env.GIT_BRANCH ?? null
+  return { commit, branch }
+}
+
+async function appendToHistory(historyPath: string, entry: HistoryEntry): Promise<void> {
+  const line = `${JSON.stringify(entry)}\n`
+  await appendFile(historyPath, line, "utf8")
+}
+
 export async function main(args: string[] = process.argv.slice(2)): Promise<void> {
   const {
     gate,
@@ -327,13 +339,37 @@ export async function main(args: string[] = process.argv.slice(2)): Promise<void
   }
 
   const summary = buildSummary(rows, gateProfile, gateThresholds)
-  const markdown = toMarkdown(summary)
+  let markdown = toMarkdown(summary)
 
   await mkdir(REPORTS_DIR, { recursive: true })
   const summaryJsonOutputPath = summaryJsonPath ?? join(REPORTS_DIR, "latest-summary.json")
   const summaryMdOutputPath = summaryMdPath ?? join(REPORTS_DIR, "latest-summary.md")
+  const historyPath = join(RESULTS_DIR, "history.jsonl")
+
   await mkdir(dirname(summaryJsonOutputPath), { recursive: true })
   await mkdir(dirname(summaryMdOutputPath), { recursive: true })
+  await mkdir(RESULTS_DIR, { recursive: true })
+
+  const { commit, branch } = extractGitInfo()
+  const historyEntry: HistoryEntry = {
+    timestamp: summary.generatedAt,
+    commit,
+    branch,
+    profile: gateProfile,
+    modes: summary.modes,
+    gate_passed: summary.gateV2.passed,
+  }
+
+  await appendToHistory(historyPath, historyEntry)
+  console.log(`Appended history entry to ${historyPath}`)
+
+  const history = await loadHistory(historyPath)
+  const regressions = detectRegressions(summary, history)
+  if (regressions.length > 0) {
+    const regressionMarkdown = formatRegressionWarnings(regressions)
+    markdown = `${markdown}\n\n${regressionMarkdown}`
+  }
+
   await writeFile(summaryJsonOutputPath, `${JSON.stringify(summary, null, 2)}\n`, "utf8")
   await writeFile(summaryMdOutputPath, `${markdown}\n`, "utf8")
 

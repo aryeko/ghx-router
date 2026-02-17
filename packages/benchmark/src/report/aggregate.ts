@@ -6,6 +6,7 @@ import type {
   GateV2ThresholdMap,
   GateV2Thresholds,
 } from "../domain/types.js"
+import { bootstrapCI, coefficientOfVariation, iqr, percentile } from "./statistics.js"
 
 export type { GateProfile, GateV2ThresholdMap, GateV2Thresholds, BenchmarkSummary }
 
@@ -30,6 +31,13 @@ type ModeSummary = {
   medianTokensTotal: number
   medianTokensActive: number
   medianToolCalls: number
+  p90LatencyMs: number
+  p95LatencyMs: number
+  iqrLatencyMs: number
+  cvLatency: number
+  p90TokensActive: number
+  p95TokensActive: number
+  medianCostUsd: number
 }
 
 type ProfilingSummary = {
@@ -49,6 +57,9 @@ type DeltaSummary = {
   toolCallReductionPct: number
   successRateDeltaPct: number
   outputValidityRatePct: number
+  costReductionPct: number
+  tokensActiveReductionCI: [number, number]
+  latencyReductionCI: [number, number]
 }
 
 type GateV2Reliability = {
@@ -91,6 +102,7 @@ export const DEFAULT_GATE_V2_THRESHOLDS: GateV2ThresholdMap = {
     maxTimeoutStallRatePct: 2,
     maxRetryRatePct: 15,
     minSamplesPerScenarioPerMode: 1,
+    minCostReductionPct: 10,
   },
   verify_release: {
     minTokensActiveReductionPct: 22,
@@ -103,6 +115,7 @@ export const DEFAULT_GATE_V2_THRESHOLDS: GateV2ThresholdMap = {
     maxTimeoutStallRatePct: 1,
     maxRetryRatePct: 8,
     minSamplesPerScenarioPerMode: 2,
+    minCostReductionPct: 15,
   },
 }
 
@@ -159,6 +172,10 @@ function summarizeMode(mode: BenchmarkMode, rows: BenchmarkRow[]): ModeSummary {
     .sort()
     .join(",")
 
+  const latencies = rows.map((row) => row.latency_ms_wall)
+  const tokensActiveValues = rows.map((row) => activeTokens(row))
+  const costs = rows.map((row) => row.cost)
+
   return {
     mode,
     modelSignature,
@@ -168,10 +185,17 @@ function summarizeMode(mode: BenchmarkMode, rows: BenchmarkRow[]): ModeSummary {
     runnerFailureRate: pct(rows.filter((row) => isRunnerError(row)).length, rows.length),
     timeoutStallRate: pct(rows.filter((row) => isTimeoutStallError(row)).length, rows.length),
     retryRate: pct(rows.filter((row) => row.external_retry_count > 0).length, rows.length),
-    medianLatencyMs: median(rows.map((row) => row.latency_ms_wall)),
+    medianLatencyMs: median(latencies),
     medianTokensTotal: median(rows.map((row) => row.tokens.total)),
-    medianTokensActive: median(rows.map((row) => activeTokens(row))),
+    medianTokensActive: median(tokensActiveValues),
     medianToolCalls: median(rows.map((row) => row.tool_calls)),
+    p90LatencyMs: percentile(latencies, 90),
+    p95LatencyMs: percentile(latencies, 95),
+    iqrLatencyMs: iqr(latencies),
+    cvLatency: coefficientOfVariation(latencies),
+    p90TokensActive: percentile(tokensActiveValues, 90),
+    p95TokensActive: percentile(tokensActiveValues, 95),
+    medianCostUsd: median(costs),
   }
 }
 
@@ -374,6 +398,20 @@ function buildGateV2(
       threshold: thresholds.minToolCallReductionPct,
       operator: ">=",
     },
+    {
+      name: "efficiency_cost_reduction",
+      passed:
+        ghxRouter.medianCostUsd > 0 && agentDirect.medianCostUsd > 0
+          ? safeReductionPct(agentDirect.medianCostUsd, ghxRouter.medianCostUsd) >=
+            thresholds.minCostReductionPct
+          : false,
+      value:
+        ghxRouter.medianCostUsd > 0 && agentDirect.medianCostUsd > 0
+          ? safeReductionPct(agentDirect.medianCostUsd, ghxRouter.medianCostUsd)
+          : 0,
+      threshold: thresholds.minCostReductionPct,
+      operator: ">=",
+    },
   ]
 
   return {
@@ -412,6 +450,8 @@ export function buildSummary(
 
   let deltaVsAgentDirect: DeltaSummary | null = null
   if (agentDirect && ghxRouter) {
+    const agentDirectTokensActive = grouped.agent_direct ?? []
+
     deltaVsAgentDirect = {
       tokensReductionPct: safeReductionPct(
         agentDirect.medianTokensTotal,
@@ -428,6 +468,11 @@ export function buildSummary(
       ),
       successRateDeltaPct: ghxRouter.successRate - agentDirect.successRate,
       outputValidityRatePct: ghxRouter.outputValidityRate,
+      costReductionPct: safeReductionPct(agentDirect.medianCostUsd, ghxRouter.medianCostUsd),
+      tokensActiveReductionCI: bootstrapCI(
+        agentDirectTokensActive.map((row) => activeTokens(row)).filter((v) => v > 0),
+      ),
+      latencyReductionCI: bootstrapCI(agentDirectTokensActive.map((row) => row.latency_ms_wall)),
     }
   }
 
@@ -449,15 +494,17 @@ export function toMarkdown(summary: BenchmarkSummary): string {
   lines.push("## Mode Metrics")
   lines.push("")
   lines.push(
-    "| Mode | Model | Runs | Success % | Output Valid % | Runner Error % | Timeout/Stall % | Retry % | Median Latency (ms) | Median Tokens (Total) | Median Tokens (Active) | Median Tool Calls |",
+    "| Mode | Model | Runs | Success % | Output Valid % | Runner Error % | Timeout/Stall % | Retry % | Median Latency (ms) | P90 Latency (ms) | P95 Latency (ms) | IQR Latency (ms) | CV Latency % | Median Tokens (Total) | Median Tokens (Active) | P90 Tokens (Active) | P95 Tokens (Active) | Median Cost (USD) | Median Tool Calls |",
   )
-  lines.push("|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
+  lines.push(
+    "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+  )
 
   for (const mode of ["agent_direct", "mcp", "ghx"] as const) {
     const item = summary.modes[mode]
     if (!item) continue
     lines.push(
-      `| ${mode} | ${item.modelSignature} | ${item.runs} | ${item.successRate.toFixed(2)} | ${item.outputValidityRate.toFixed(2)} | ${item.runnerFailureRate.toFixed(2)} | ${item.timeoutStallRate.toFixed(2)} | ${item.retryRate.toFixed(2)} | ${item.medianLatencyMs.toFixed(0)} | ${item.medianTokensTotal.toFixed(0)} | ${item.medianTokensActive.toFixed(0)} | ${item.medianToolCalls.toFixed(1)} |`,
+      `| ${mode} | ${item.modelSignature} | ${item.runs} | ${item.successRate.toFixed(2)} | ${item.outputValidityRate.toFixed(2)} | ${item.runnerFailureRate.toFixed(2)} | ${item.timeoutStallRate.toFixed(2)} | ${item.retryRate.toFixed(2)} | ${item.medianLatencyMs.toFixed(0)} | ${item.p90LatencyMs.toFixed(0)} | ${item.p95LatencyMs.toFixed(0)} | ${item.iqrLatencyMs.toFixed(0)} | ${item.cvLatency.toFixed(2)} | ${item.medianTokensTotal.toFixed(0)} | ${item.medianTokensActive.toFixed(0)} | ${item.p90TokensActive.toFixed(0)} | ${item.p95TokensActive.toFixed(0)} | ${item.medianCostUsd.toFixed(4)} | ${item.medianToolCalls.toFixed(1)} |`,
     )
   }
 
@@ -524,6 +571,19 @@ export function toMarkdown(summary: BenchmarkSummary): string {
   lines.push(
     `- scenario win-rate (active tokens): ${summary.gateV2.efficiency.scenarioWinRateTokensActivePct.toFixed(2)}% (${summary.gateV2.efficiency.tokensComparableScenarioCount} comparable scenarios)`,
   )
+
+  if (summary.deltaVsAgentDirect) {
+    lines.push("")
+    lines.push("### Delta vs Agent Direct")
+    lines.push("")
+    lines.push(`- cost reduction: ${summary.deltaVsAgentDirect.costReductionPct.toFixed(2)}%`)
+    lines.push(
+      `- tokens active reduction CI: [${summary.deltaVsAgentDirect.tokensActiveReductionCI[0].toFixed(2)}, ${summary.deltaVsAgentDirect.tokensActiveReductionCI[1].toFixed(2)}]`,
+    )
+    lines.push(
+      `- latency reduction CI: [${summary.deltaVsAgentDirect.latencyReductionCI[0].toFixed(2)}, ${summary.deltaVsAgentDirect.latencyReductionCI[1].toFixed(2)}]`,
+    )
+  }
 
   return lines.join("\n")
 }

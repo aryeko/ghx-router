@@ -8,15 +8,21 @@ import { validateScenario } from "./schema.js"
 const scenarioSetsSchema = z.record(z.string(), z.array(z.string().min(1)))
 
 export async function loadScenarios(scenariosDir: string): Promise<Scenario[]> {
-  const files = await readdir(scenariosDir)
-  const scenarioFiles = files.filter((file) => file.endsWith(".json"))
+  const scenarios: Scenario[] = []
 
-  const scenarios = await Promise.all(
-    scenarioFiles.map(async (file) => {
-      const raw = await readFile(join(scenariosDir, file), "utf8")
-      return validateScenario(JSON.parse(raw))
-    }),
-  )
+  const entries = await readdir(scenariosDir, { withFileTypes: true })
+
+  for (const entry of entries) {
+    const fullPath = join(scenariosDir, entry.name)
+
+    if (entry.isDirectory()) {
+      const subScenarios = await loadScenarios(fullPath)
+      scenarios.push(...subScenarios)
+    } else if (entry.name.endsWith(".json")) {
+      const raw = await readFile(fullPath, "utf8")
+      scenarios.push(validateScenario(JSON.parse(raw)))
+    }
+  }
 
   return scenarios.sort((a, b) => a.id.localeCompare(b.id))
 }

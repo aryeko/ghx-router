@@ -154,7 +154,7 @@ describe("runSuite", () => {
     ])
 
     const mod = await import("../../src/runner/suite-runner.js")
-    await mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null })
+    await mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null, skipWarmup: true })
 
     expect(createOpencodeMock).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -229,6 +229,7 @@ describe("runSuite", () => {
       repetitions: 1,
       scenarioFilter: null,
       fixtureManifestPath: fixturePath,
+      skipWarmup: true,
     })
 
     const promptCalls = session.promptAsync.mock.calls as unknown[][]
@@ -268,7 +269,12 @@ describe("runSuite", () => {
     ])
 
     const mod = await import("../../src/runner/suite-runner.js")
-    await mod.runSuite({ mode: "agent_direct", repetitions: 1, scenarioFilter: null })
+    await mod.runSuite({
+      mode: "agent_direct",
+      repetitions: 1,
+      scenarioFilter: null,
+      skipWarmup: true,
+    })
 
     expect(createOpencodeMock).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -337,6 +343,7 @@ describe("runSuite", () => {
       repetitions: 1,
       scenarioFilter: null,
       scenarioSet: "pr-review-reads",
+      skipWarmup: true,
     })
 
     expect(appendFileMock).toHaveBeenCalledTimes(1)
@@ -477,7 +484,13 @@ describe("runSuite", () => {
 
     const mod = await import("../../src/runner/suite-runner.js")
     await expect(
-      mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null, scenarioSet: "missing" }),
+      mod.runSuite({
+        mode: "ghx",
+        repetitions: 1,
+        scenarioFilter: null,
+        scenarioSet: "missing",
+        skipWarmup: true,
+      }),
     ).rejects.toThrow("Unknown scenario set: missing")
     expect(close).not.toHaveBeenCalled()
   })
@@ -512,7 +525,7 @@ describe("runSuite", () => {
 
     const mod = await import("../../src/runner/suite-runner.js")
     await expect(
-      mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null }),
+      mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null, skipWarmup: true }),
     ).rejects.toThrow("ghx_preflight_failed")
     expect(appendFileMock).not.toHaveBeenCalled()
   })
@@ -551,7 +564,7 @@ describe("runSuite", () => {
 
     const mod = await import("../../src/runner/suite-runner.js")
     await expect(
-      mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null }),
+      mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null, skipWarmup: true }),
     ).rejects.toThrow("references unknown scenario id")
     expect(close).not.toHaveBeenCalled()
   })
@@ -590,7 +603,7 @@ describe("runSuite", () => {
 
     const mod = await import("../../src/runner/suite-runner.js")
     await expect(
-      mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null }),
+      mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null, skipWarmup: true }),
     ).rejects.toThrow("No scenarios matched filter: default")
     expect(close).not.toHaveBeenCalled()
   })
@@ -629,7 +642,7 @@ describe("runSuite", () => {
 
     const mod = await import("../../src/runner/suite-runner.js")
     await expect(
-      mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null }),
+      mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null, skipWarmup: true }),
     ).rejects.toThrow(
       "Selected scenarios require fixture bindings but no fixture manifest was provided",
     )
@@ -691,6 +704,7 @@ describe("runSuite", () => {
       repetitions: 1,
       scenarioFilter: null,
       seedIfMissing: true,
+      skipWarmup: true,
     })
 
     expect(seedFixtureManifestMock).toHaveBeenCalledWith({
@@ -753,6 +767,7 @@ describe("runSuite", () => {
       scenarioFilter: null,
       fixtureManifestPath: fixturePath,
       seedIfMissing: true,
+      skipWarmup: true,
     })
 
     expect(seedFixtureManifestMock).toHaveBeenCalledWith({
@@ -794,6 +809,7 @@ describe("runSuite", () => {
         repetitions: 1,
         scenarioFilter: null,
         seedIfMissing: true,
+        skipWarmup: true,
       }),
     ).rejects.toThrow("--seed-if-missing requires --fixture-manifest")
     expect(seedFixtureManifestMock).not.toHaveBeenCalled()
@@ -832,6 +848,7 @@ describe("runSuite", () => {
         repetitions: 1,
         scenarioFilter: null,
         fixtureManifestPath: "/tmp/does-not-exist-fixture.json",
+        skipWarmup: true,
       }),
     ).rejects.toThrow("Fixture manifest not found: /tmp/does-not-exist-fixture.json")
   })
@@ -844,7 +861,7 @@ describe("runSuite", () => {
 
     const mod = await import("../../src/runner/suite-runner.js")
     await expect(
-      mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: ["none"] }),
+      mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: ["none"], skipWarmup: true }),
     ).rejects.toThrow("No scenarios matched filter")
     expect(close).not.toHaveBeenCalled()
     expect(createOpencodeMock).not.toHaveBeenCalled()
@@ -858,7 +875,7 @@ describe("runSuite", () => {
 
     const mod = await import("../../src/runner/suite-runner.js")
     await expect(
-      mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null }),
+      mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null, skipWarmup: true }),
     ).rejects.toThrow("No benchmark scenarios found")
     expect(close).not.toHaveBeenCalled()
     expect(createOpencodeMock).not.toHaveBeenCalled()
@@ -889,7 +906,7 @@ describe("runSuite", () => {
     ])
 
     const mod = await import("../../src/runner/suite-runner.js")
-    await mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null })
+    await mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null, skipWarmup: true })
 
     expect(session.promptAsync).toHaveBeenCalledTimes(2)
     expect(appendFileMock).toHaveBeenCalledTimes(1)
@@ -968,7 +985,12 @@ describe("runSuite", () => {
     ])
 
     const mod = await import("../../src/runner/suite-runner.js")
-    await mod.runSuite({ mode: "agent_direct", repetitions: 1, scenarioFilter: null })
+    await mod.runSuite({
+      mode: "agent_direct",
+      repetitions: 1,
+      scenarioFilter: null,
+      skipWarmup: true,
+    })
 
     expect(appendFileMock).toHaveBeenCalledTimes(1)
     const appendCalls = appendFileMock.mock.calls as unknown[][]
@@ -1004,7 +1026,7 @@ describe("runSuite", () => {
 
     const mod = await import("../../src/runner/suite-runner.js")
     await expect(
-      mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null }),
+      mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null, skipWarmup: true }),
     ).rejects.toThrow("No benchmark result produced")
     expect(close).not.toHaveBeenCalled()
   })
@@ -1050,7 +1072,7 @@ describe("runSuite", () => {
     const mod = await import("../../src/runner/suite-runner.js")
 
     try {
-      await mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null })
+      await mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null, skipWarmup: true })
 
       expect(process.env.OPENCODE_CONFIG).toBe("from-test-config")
       expect(process.env.OPENCODE_CONFIG_DIR).toBe("from-test-config-dir")
@@ -1152,7 +1174,7 @@ describe("runSuite", () => {
     const mod = await import("../../src/runner/suite-runner.js")
 
     try {
-      await mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null })
+      await mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null, skipWarmup: true })
 
       expect(process.env.OPENCODE_CONFIG).toBeUndefined()
       expect(process.env.OPENCODE_CONFIG_DIR).toBeUndefined()
@@ -1222,7 +1244,7 @@ describe("runSuite", () => {
 
     const mod = await import("../../src/runner/suite-runner.js")
     await expect(
-      mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null }),
+      mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null, skipWarmup: true }),
     ).rejects.toThrow("benchmark ghx alias missing")
   })
 
@@ -1262,7 +1284,7 @@ describe("runSuite", () => {
     const mod = await import("../../src/runner/suite-runner.js")
     try {
       await expect(
-        mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null }),
+        mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null, skipWarmup: true }),
       ).rejects.toThrow("benchmark ghx alias missing")
       expect(configGet).not.toHaveBeenCalled()
     } finally {
@@ -1304,7 +1326,7 @@ describe("runSuite", () => {
 
     const mod = await import("../../src/runner/suite-runner.js")
     await expect(
-      mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null }),
+      mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null, skipWarmup: true }),
     ).rejects.toThrow(
       "benchmark_config_invalid: expected non-empty ghx instructions and no plugins",
     )
@@ -1344,7 +1366,12 @@ describe("runSuite", () => {
 
     const mod = await import("../../src/runner/suite-runner.js")
     await expect(
-      mod.runSuite({ mode: "agent_direct", repetitions: 1, scenarioFilter: null }),
+      mod.runSuite({
+        mode: "agent_direct",
+        repetitions: 1,
+        scenarioFilter: null,
+        skipWarmup: true,
+      }),
     ).rejects.toThrow("benchmark_config_invalid: expected agent_direct instruction and no plugins")
   })
 
@@ -1383,7 +1410,12 @@ describe("runSuite", () => {
     const mod = await import("../../src/runner/suite-runner.js")
 
     try {
-      await mod.runSuite({ mode: "agent_direct", repetitions: 1, scenarioFilter: null })
+      await mod.runSuite({
+        mode: "agent_direct",
+        repetitions: 1,
+        scenarioFilter: null,
+        skipWarmup: true,
+      })
       expect(process.env.PATH).toBeUndefined()
     } finally {
       if (previousPath === undefined) {
@@ -1436,7 +1468,7 @@ describe("runSuite", () => {
     const mod = await import("../../src/runner/suite-runner.js")
 
     try {
-      await mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null })
+      await mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null, skipWarmup: true })
 
       const events = consoleLogSpy.mock.calls
         .map((call) => call[0])
@@ -1490,7 +1522,7 @@ describe("runSuite", () => {
 
     try {
       await expect(
-        mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null }),
+        mod.runSuite({ mode: "ghx", repetitions: 1, scenarioFilter: null, skipWarmup: true }),
       ).rejects.toThrow("No benchmark scenarios found")
 
       const eventNames = consoleLogSpy.mock.calls
@@ -1543,7 +1575,7 @@ describe("runSuite", () => {
     ])
 
     const mod = await import("../../src/runner/suite-runner.js")
-    await mod.runSuite({ mode: "mcp", repetitions: 1, scenarioFilter: null })
+    await mod.runSuite({ mode: "mcp", repetitions: 1, scenarioFilter: null, skipWarmup: true })
 
     expect(createOpencodeMock).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -1586,7 +1618,7 @@ describe("runSuite", () => {
     ])
 
     const mod = await import("../../src/runner/suite-runner.js")
-    await mod.runSuite({ mode: "ghx", repetitions: 2, scenarioFilter: null })
+    await mod.runSuite({ mode: "ghx", repetitions: 2, scenarioFilter: null, skipWarmup: true })
 
     const appendCalls = appendFileMock.mock.calls as unknown[][]
     expect(appendCalls).toHaveLength(2)

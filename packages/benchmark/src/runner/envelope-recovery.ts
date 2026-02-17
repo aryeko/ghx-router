@@ -1,6 +1,6 @@
 import type {
   BenchmarkMode,
-  Scenario,
+  ScenarioAssertions,
   SessionMessageEntry,
   SessionMessagePart,
 } from "../domain/types.js"
@@ -54,7 +54,7 @@ export function extractEnvelopeFromMessages(messages: SessionMessageEntry[]): un
 
 export function findBestEnvelopeFromMessages(
   messages: SessionMessageEntry[],
-  assertions: Scenario["assertions"],
+  assertions: ScenarioAssertions,
   mode: BenchmarkMode,
 ): unknown | null {
   for (const message of [...messages].reverse()) {
@@ -74,7 +74,7 @@ export function findBestEnvelopeFromMessages(
 
 export function tryWrapRawDataAsEnvelope(
   envelope: unknown,
-  assertions: Scenario["assertions"],
+  assertions: ScenarioAssertions,
   mode: BenchmarkMode,
 ): unknown {
   const requiredDataFields = assertions.required_data_fields ?? []

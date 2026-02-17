@@ -231,27 +231,6 @@ function assertRoadmapBatchCoverage(
   }
 }
 
-function assertCiSetsAvoidMutationScenarios(
-  scenarioSets: Record<string, string[]>,
-  scenariosById: Map<string, { tags: string[] }>,
-): void {
-  const ciSetNames = ["ci-verify-pr", "ci-verify-release"]
-
-  for (const setName of ciSetNames) {
-    const scenarioIds = scenarioSets[setName] ?? []
-    const mutationScenarioIds = scenarioIds.filter((scenarioId) => {
-      const tags = scenariosById.get(scenarioId)?.tags ?? []
-      return tags.some((tag) => tag === "mutation" || tag === "mutations")
-    })
-
-    if (mutationScenarioIds.length > 0) {
-      throw new Error(
-        `Scenario set '${setName}' must avoid mutation scenarios: ${mutationScenarioIds.join(", ")}`,
-      )
-    }
-  }
-}
-
 function assertExpectedOutcomeCoverage(
   scenariosById: Map<
     string,
@@ -270,12 +249,15 @@ function assertExpectedOutcomeCoverage(
 function assertRoadmapSetsExpectSuccessOutcomes(
   scenarioSets: Record<string, string[]>,
   scenariosById: Map<string, { expectedOutcome: "success" | "expected_error" }>,
+  workflowScenarioIds: Set<string>,
 ): void {
   const roadmapSets = ["pr-exec", "issues", "release-delivery", "workflows", "projects-v2"]
   for (const setName of roadmapSets) {
     const ids = scenarioSets[setName] ?? []
     const nonSuccess = ids.filter(
-      (scenarioId) => scenariosById.get(scenarioId)?.expectedOutcome !== "success",
+      (scenarioId) =>
+        !workflowScenarioIds.has(scenarioId) &&
+        scenariosById.get(scenarioId)?.expectedOutcome !== "success",
     )
     if (nonSuccess.length > 0) {
       throw new Error(
@@ -295,11 +277,12 @@ export async function main(cwd: string = process.cwd()): Promise<void> {
     throw new Error("No benchmark scenarios found")
   }
 
+  const atomicScenarios = scenarios.filter((s) => s.type !== "workflow")
   const scenarioIds = scenarios.map((scenario) => scenario.id)
-  const scenarioTasks = new Set(scenarios.map((scenario) => scenario.task))
+  const scenarioTasks = new Set(atomicScenarios.map((scenario) => scenario.task))
   const knownScenarioIds = new Set(scenarioIds)
   const scenariosById = new Map(
-    scenarios.map((scenario) => [
+    atomicScenarios.map((scenario) => [
       scenario.id,
       {
         task: scenario.task,
@@ -318,9 +301,11 @@ export async function main(cwd: string = process.cwd()): Promise<void> {
   assertNoOrphanScenarios(scenarioSets, scenarioIds)
   assertAllSetExactUnion(scenarioSets)
   assertRoadmapBatchCoverage(scenarioSets, scenariosById)
-  assertCiSetsAvoidMutationScenarios(scenarioSets, scenariosById)
   assertExpectedOutcomeCoverage(scenariosById)
-  assertRoadmapSetsExpectSuccessOutcomes(scenarioSets, scenariosById)
+  const workflowScenarioIds = new Set(
+    scenarios.filter((s) => s.type === "workflow").map((s) => s.id),
+  )
+  assertRoadmapSetsExpectSuccessOutcomes(scenarioSets, scenariosById, workflowScenarioIds)
 
   const registryCapabilityIds = await tryLoadRegistryCapabilityIds(benchmarkRoot)
   if (registryCapabilityIds) {

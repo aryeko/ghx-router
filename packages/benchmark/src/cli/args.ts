@@ -13,6 +13,7 @@ export type ParsedCliArgs = {
   providerId: string | null
   modelId: string | null
   outputJsonlPath: string | null
+  skipWarmup: boolean
 }
 
 function isBenchmarkMode(value: string): boolean {
@@ -58,6 +59,10 @@ function parseSeedIfMissing(flags: string[]): boolean {
   return flags.includes("--seed-if-missing")
 }
 
+function parseSkipWarmup(flags: string[]): boolean {
+  return flags.includes("--skip-warmup")
+}
+
 const parsedCliArgsSchema = z
   .object({
     command: z.literal("run"),
@@ -70,6 +75,7 @@ const parsedCliArgsSchema = z
     providerId: z.string().min(1).nullable(),
     modelId: z.string().min(1).nullable(),
     outputJsonlPath: z.string().min(1).nullable(),
+    skipWarmup: z.boolean(),
   })
   .refine((value) => !(value.scenarioFilter && value.scenarioSet), {
     message: "--scenario and --scenario-set cannot be used together",
@@ -111,6 +117,7 @@ export function parseCliArgs(argv: string[]): ParsedCliArgs {
     providerId: parseStrictFlagValue(flags, "--provider"),
     modelId: parseStrictFlagValue(flags, "--model"),
     outputJsonlPath: parseStrictFlagValue(flags, "--output-jsonl"),
+    skipWarmup: parseSkipWarmup(flags),
   })
 
   return parsed

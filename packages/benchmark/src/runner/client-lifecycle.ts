@@ -5,7 +5,7 @@ import { tmpdir } from "node:os"
 import { delimiter, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { createOpencode } from "@opencode-ai/sdk"
-import type { BenchmarkMode, Scenario } from "../domain/types.js"
+import type { AtomicScenario, BenchmarkMode } from "../domain/types.js"
 import { isObject } from "../utils/guards.js"
 import {
   AGENT_DIRECT_INSTRUCTION,
@@ -56,7 +56,7 @@ function assertBenchmarkGhxAliasReady(): void {
   }
 }
 
-export function assertGhxRouterPreflight(scenarios: Scenario[]): void {
+export function assertGhxRouterPreflight(scenarios: AtomicScenario[]): void {
   ghxRouterPreflight.assertGhxRouterPreflight(scenarios, {
     ghxCommand: GHX_BENCHMARK_ALIAS_PATH,
     ensureGhxAliasReady: assertBenchmarkGhxAliasReady,

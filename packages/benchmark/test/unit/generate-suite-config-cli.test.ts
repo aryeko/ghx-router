@@ -18,7 +18,7 @@ describe("generate-suite-config cli", () => {
       "--out",
       outPath,
       "--scenario-set",
-      "ci-verify-pr",
+      "default",
       "--repetitions",
       "4",
       "--gate-profile",
@@ -41,7 +41,7 @@ describe("generate-suite-config cli", () => {
 
     expect(base.command).toEqual(["pnpm", "run", "benchmark", "--"])
     expect(base.repetitions).toBe(4)
-    expect(base.scenarioSet).toBe("ci-verify-pr")
+    expect(base.scenarioSet).toBe("default")
     expect(ghx.mode).toBe("ghx")
     expect(direct.mode).toBe("agent_direct")
     expect((ghx.env as Record<string, unknown>)?.BENCH_OPENCODE_PORT).toBe("3001")
@@ -99,14 +99,14 @@ describe("generate-suite-config cli", () => {
     const mod = await import("../../src/cli/generate-suite-config.js")
     const parsed = mod.parseArgs([
       "--out=config/custom.json",
-      "--scenario-set=ci-verify-release",
+      "--scenario-set=all",
       "--repetitions=2",
       "--gate-profile=verify_release",
       "--",
     ])
 
     expect(parsed.outPath).toBe("config/custom.json")
-    expect(parsed.scenarioSet).toBe("ci-verify-release")
+    expect(parsed.scenarioSet).toBe("all")
     expect(parsed.repetitions).toBe(2)
     expect(parsed.gateProfile).toBe("verify_release")
     expect(parsed.includeGate).toBe(true)

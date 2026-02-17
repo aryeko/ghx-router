@@ -300,7 +300,29 @@ describe("report cli", () => {
       latency_ms_wall: 100,
       sdk_latency_ms: 90,
       tokens: { input: 1, output: 1, reasoning: 1, cache_read: 0, cache_write: 0, total: 3 },
-      cost: 0,
+      cost: 0.01,
+      tool_calls: 1,
+      api_calls: 1,
+      internal_retry_count: 0,
+      external_retry_count: 0,
+      model: { provider_id: "openai", model_id: "gpt-5.1-codex-mini", mode: null },
+      git: { repo: null, commit: null },
+      error: null,
+    })
+    const ghxRow = JSON.stringify({
+      timestamp: "2026-02-13T00:00:00.000Z",
+      run_id: "r1",
+      mode: "ghx",
+      scenario_id: "s1",
+      scenario_set: null,
+      iteration: 1,
+      session_id: "ss",
+      success: true,
+      output_valid: true,
+      latency_ms_wall: 100,
+      sdk_latency_ms: 90,
+      tokens: { input: 1, output: 1, reasoning: 1, cache_read: 0, cache_write: 0, total: 3 },
+      cost: 0.008,
       tool_calls: 1,
       api_calls: 1,
       internal_retry_count: 0,
@@ -310,11 +332,7 @@ describe("report cli", () => {
       error: null,
     })
     await writeFile(join(results, "2026-01-01-agent_direct-suite.jsonl"), `${row}\n`, "utf8")
-    await writeFile(
-      join(results, "2026-01-02-ghx-suite.jsonl"),
-      `${row.replace("agent_direct", "ghx")}\n`,
-      "utf8",
-    )
+    await writeFile(join(results, "2026-01-02-ghx-suite.jsonl"), `${ghxRow}\n`, "utf8")
     await writeFile(
       join(configDir, "expectations.json"),
       JSON.stringify({
@@ -332,6 +350,7 @@ describe("report cli", () => {
               maxTimeoutStallRatePct: 100,
               maxRetryRatePct: 100,
               minSamplesPerScenarioPerMode: 1,
+              minCostReductionPct: -100,
             },
             verify_release: {
               minTokensActiveReductionPct: -100,
@@ -344,6 +363,7 @@ describe("report cli", () => {
               maxTimeoutStallRatePct: 100,
               maxRetryRatePct: 100,
               minSamplesPerScenarioPerMode: 1,
+              minCostReductionPct: -100,
             },
           },
         },

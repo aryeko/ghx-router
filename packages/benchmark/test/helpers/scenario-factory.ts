@@ -1,4 +1,4 @@
-import type { Scenario, ScenarioAssertions } from "../../src/domain/types.js"
+import type { AtomicScenario, ScenarioAssertions } from "../../src/domain/types.js"
 
 export function makeAssertions(overrides: Partial<ScenarioAssertions> = {}): ScenarioAssertions {
   return {
@@ -7,9 +7,10 @@ export function makeAssertions(overrides: Partial<ScenarioAssertions> = {}): Sce
   }
 }
 
-export function makeScenario(overrides: Partial<Scenario> = {}): Scenario {
+export function makeScenario(overrides: Partial<AtomicScenario> = {}): AtomicScenario {
   const { assertions: assertionOverrides, ...restOverrides } = overrides
   return {
+    type: "atomic" as const,
     id: "test-scenario-001",
     name: "Test Scenario",
     task: "repo.view",

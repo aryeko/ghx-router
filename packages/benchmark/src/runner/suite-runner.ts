@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto"
 import { access, appendFile, mkdir } from "node:fs/promises"
 import { dirname, join } from "node:path"
 import type {
+  AtomicScenario,
   BenchmarkMode,
   BenchmarkRow,
   BenchmarkTimingBreakdown,
@@ -9,11 +10,18 @@ import type {
   Scenario,
   SessionMessageEntry,
   SessionMessagePart,
+  WorkflowCheckpoint,
+  WorkflowScenario,
 } from "../domain/types.js"
+import { isAtomicScenario, isWorkflowScenario } from "../domain/types.js"
 import { extractAttemptMetrics } from "../extract/attempts.js"
 import { validateEnvelope } from "../extract/envelope.js"
 import { aggregateToolCounts } from "../extract/tool-usage.js"
-import { loadFixtureManifest, resolveScenarioFixtureBindings } from "../fixture/manifest.js"
+import {
+  loadFixtureManifest,
+  resolveScenarioFixtureBindings,
+  resolveWorkflowFixtureBindings,
+} from "../fixture/manifest.js"
 import { seedFixtureManifest } from "../fixture/seed.js"
 import { loadScenarioSets, loadScenarios } from "../scenario/loader.js"
 import { isObject } from "../utils/guards.js"
@@ -53,6 +61,7 @@ type RunSuiteOptions = {
   providerId?: string | null
   modelId?: string | null
   outputJsonlPath?: string | null
+  skipWarmup?: boolean
   config?: RunnerConfig
 }
 
@@ -622,7 +631,7 @@ export function extractPromptResponseFromPromptResult(value: unknown): PromptRes
 }
 
 function expectedOutcomeFromAssertions(
-  assertions: Scenario["assertions"],
+  assertions: AtomicScenario["assertions"],
 ): "success" | "expected_error" {
   if (assertions.expected_outcome !== undefined) {
     return assertions.expected_outcome
@@ -651,7 +660,7 @@ function matchesExpectedOutcome(
 
 export async function runScenario(
   client: unknown,
-  scenario: Scenario,
+  scenario: AtomicScenario,
   mode: BenchmarkMode,
   iteration: number,
   scenarioSet: string | null = null,
@@ -1026,6 +1035,262 @@ export async function runScenario(
   }
 }
 
+function evaluateCheckpoint(
+  checkpoint: WorkflowCheckpoint,
+  result: { ok: boolean; data?: unknown },
+): boolean {
+  if (!result.ok) {
+    return false
+  }
+
+  const data = result.data
+
+  switch (checkpoint.condition) {
+    case "empty":
+      return Array.isArray(data) ? data.length === 0 : data === null || data === undefined
+    case "non_empty":
+      return Array.isArray(data) ? data.length > 0 : data !== null && data !== undefined
+    case "count_gte":
+      return Array.isArray(data) && data.length >= Number(checkpoint.expected_value)
+    case "count_eq":
+      return Array.isArray(data) && data.length === Number(checkpoint.expected_value)
+    case "field_equals": {
+      if (!isObject(data) || !isObject(checkpoint.expected_value)) {
+        return false
+      }
+      const expected = checkpoint.expected_value as Record<string, unknown>
+      const actual = data as Record<string, unknown>
+      return Object.entries(expected).every(
+        ([key, value]) => JSON.stringify(actual[key]) === JSON.stringify(value),
+      )
+    }
+    default:
+      return false
+  }
+}
+
+export async function runWorkflowScenario(
+  client: unknown,
+  scenario: WorkflowScenario,
+  mode: BenchmarkMode,
+  iteration: number,
+  scenarioSet: string | null = null,
+  modelOverride?: { providerId?: string; modelId?: string },
+  config?: RunnerConfig,
+): Promise<BenchmarkRow> {
+  const cfg = config ?? loadRunnerConfig()
+  const providerId = modelOverride?.providerId ?? process.env.BENCH_PROVIDER_ID ?? "openai"
+  const modelId = modelOverride?.modelId ?? process.env.BENCH_MODEL_ID ?? "gpt-5.3-codex"
+  const scenarioStartedAt = Date.now()
+  let externalRetryCount = 0
+
+  while (true) {
+    const attemptStartedAt = Date.now()
+    let sessionId: string | null = null
+
+    try {
+      const sessionApi = getSessionApi(client)
+      const sessionResult = await withTimeout(
+        sessionApi.create({ url: "/session" }),
+        scenario.timeout_ms,
+        "session.create",
+      )
+      const session = unwrapData<{ id: string }>(sessionResult, "session.create")
+      sessionId = session.id
+
+      const promptResult = await withTimeout(
+        sessionApi.promptAsync({
+          url: "/session/{id}/prompt_async",
+          path: { id: session.id },
+          body: {
+            model: { providerID: providerId, modelID: modelId },
+            agent: cfg.openCodeMode ?? undefined,
+            parts: [{ type: "text", text: scenario.prompt }],
+          },
+        }),
+        Math.min(15000, scenario.timeout_ms),
+        "session.promptAsync",
+      )
+
+      const remainingTimeoutMs = Math.max(
+        1000,
+        scenario.timeout_ms - (Date.now() - attemptStartedAt),
+      )
+      const immediatePrompt = extractPromptResponseFromPromptResult(promptResult)
+      const hydrated =
+        immediatePrompt ??
+        (await waitForAssistantFromMessages(
+          sessionApi,
+          session.id,
+          remainingTimeoutMs,
+          scenario.id,
+          undefined,
+          cfg,
+        ))
+      const assistantAndParts = coercePromptResponse(hydrated)
+      const assistant = assistantAndParts.assistant
+
+      const allMessages = await fetchSessionMessages(sessionApi, session.id)
+      const toolCounts = aggregateToolCounts(allMessages)
+      const timingBreakdown = extractTimingBreakdown(allMessages)
+
+      const checkpointResults: Array<{ name: string; passed: boolean }> = []
+
+      for (const checkpoint of scenario.assertions.checkpoints) {
+        try {
+          const { executeTask } = await import("@ghx-dev/core")
+          const { createGithubClientFromToken } = await import("@ghx-dev/core")
+          const ghToken = process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN ?? ""
+          const githubClient = createGithubClientFromToken(ghToken)
+
+          const verificationResult = await executeTask(
+            {
+              task: checkpoint.verification_task,
+              input: checkpoint.verification_input,
+            },
+            {
+              githubClient,
+              githubToken: ghToken,
+              skipGhPreflight: true,
+            },
+          )
+
+          const passed = evaluateCheckpoint(checkpoint, verificationResult)
+          checkpointResults.push({ name: checkpoint.name, passed })
+        } catch {
+          checkpointResults.push({ name: checkpoint.name, passed: false })
+        }
+      }
+
+      const allCheckpointsPassed = checkpointResults.every((c) => c.passed)
+      const expectedOutcome = scenario.assertions.expected_outcome
+      const success = expectedOutcome === "success" ? allCheckpointsPassed : !allCheckpointsPassed
+
+      const latencyWall = Date.now() - scenarioStartedAt
+      const sdkLatency =
+        typeof assistant.time.completed === "number"
+          ? Math.max(0, assistant.time.completed - assistant.time.created)
+          : null
+      const tokenTotal =
+        assistant.tokens.input +
+        assistant.tokens.output +
+        assistant.tokens.reasoning +
+        assistant.tokens.cache.read +
+        assistant.tokens.cache.write
+
+      const failedCheckpoints = checkpointResults.filter((c) => !c.passed).map((c) => c.name)
+      const errorReason = !success
+        ? `Workflow checkpoint verification failed: ${failedCheckpoints.join(", ") || "outcome mismatch"}`
+        : null
+
+      return {
+        timestamp: new Date().toISOString(),
+        run_id: randomUUID(),
+        mode,
+        scenario_id: scenario.id,
+        scenario_set: scenarioSet,
+        iteration,
+        session_id: sessionId,
+        success,
+        output_valid: allCheckpointsPassed,
+        latency_ms_wall: latencyWall,
+        sdk_latency_ms: sdkLatency,
+        timing_breakdown: timingBreakdown,
+        tokens: {
+          input: assistant.tokens.input,
+          output: assistant.tokens.output,
+          reasoning: assistant.tokens.reasoning,
+          cache_read: assistant.tokens.cache.read,
+          cache_write: assistant.tokens.cache.write,
+          total: tokenTotal,
+        },
+        cost: assistant.cost,
+        tool_calls: toolCounts.toolCalls,
+        api_calls: toolCounts.apiCalls,
+        internal_retry_count: 0,
+        external_retry_count: externalRetryCount,
+        model: {
+          provider_id: providerId,
+          model_id: modelId,
+          mode: cfg.openCodeMode,
+        },
+        git: {
+          repo: cfg.gitRepo,
+          commit: cfg.gitCommit,
+        },
+        error: errorReason ? { type: "checkpoint_failed", message: errorReason } : null,
+      }
+    } catch (error: unknown) {
+      if (sessionId) {
+        const sessionApi = getSessionApi(client)
+        await sessionApi
+          .abort({ url: "/session/{id}/abort", path: { id: sessionId } })
+          .catch(() => undefined)
+      }
+
+      const message = error instanceof Error ? error.message : String(error)
+      const retryable =
+        message.includes("No assistant message received") ||
+        message.includes("Session message stream stalled") ||
+        message.includes("Timed out waiting for assistant")
+      const retriesAllowed = Number.isFinite(cfg.maxRunnerRetries)
+        ? Math.max(0, cfg.maxRunnerRetries)
+        : 0
+
+      if (retryable && externalRetryCount < retriesAllowed) {
+        externalRetryCount += 1
+        const backoffMs =
+          (Number.isFinite(cfg.runnerRetryBackoffMs) ? Math.max(0, cfg.runnerRetryBackoffMs) : 0) *
+          externalRetryCount
+        if (backoffMs > 0) {
+          await new Promise((resolve) => setTimeout(resolve, backoffMs))
+        }
+        continue
+      }
+
+      return {
+        timestamp: new Date().toISOString(),
+        run_id: randomUUID(),
+        mode,
+        scenario_id: scenario.id,
+        scenario_set: scenarioSet,
+        iteration,
+        session_id: sessionId,
+        success: false,
+        output_valid: false,
+        latency_ms_wall: Date.now() - scenarioStartedAt,
+        sdk_latency_ms: null,
+        tokens: {
+          input: 0,
+          output: 0,
+          reasoning: 0,
+          cache_read: 0,
+          cache_write: 0,
+          total: 0,
+        },
+        cost: 0,
+        tool_calls: 0,
+        api_calls: 0,
+        internal_retry_count: 0,
+        external_retry_count: externalRetryCount,
+        model: {
+          provider_id: providerId,
+          model_id: modelId,
+          mode: cfg.openCodeMode,
+        },
+        git: {
+          repo: cfg.gitRepo,
+          commit: cfg.gitCommit,
+        },
+        error: {
+          type: retryable ? "runner_timeout" : "runner_error",
+          message,
+        },
+      }
+    }
+  }
+}
+
 export async function runSuite(options: RunSuiteOptions): Promise<void> {
   const {
     mode,
@@ -1037,6 +1302,7 @@ export async function runSuite(options: RunSuiteOptions): Promise<void> {
     providerId: providerIdOverride = null,
     modelId: modelIdOverride = null,
     outputJsonlPath = null,
+    skipWarmup = false,
     config: optionsConfig,
   } = options
   const suiteConfig = optionsConfig ?? loadRunnerConfig()
@@ -1079,12 +1345,12 @@ export async function runSuite(options: RunSuiteOptions): Promise<void> {
       )
     }
 
-    let selectedScenarios: Scenario[]
+    let allSelectedScenarios: Scenario[]
     let resolvedScenarioSet: string | null
 
     if (scenarioFilter) {
       const selectedIds = new Set(scenarioFilter)
-      selectedScenarios = scenarios.filter((scenario) => selectedIds.has(scenario.id))
+      allSelectedScenarios = scenarios.filter((scenario) => selectedIds.has(scenario.id))
       resolvedScenarioSet = null
     } else {
       const scenarioSets = await loadScenarioSets(process.cwd())
@@ -1103,7 +1369,7 @@ export async function runSuite(options: RunSuiteOptions): Promise<void> {
         )
       }
 
-      selectedScenarios = selectedScenarioIds.map((scenarioId) => {
+      allSelectedScenarios = selectedScenarioIds.map((scenarioId) => {
         const matchedScenario = scenarios.find((scenario) => scenario.id === scenarioId)
         if (!matchedScenario) {
           throw new Error(
@@ -1116,12 +1382,15 @@ export async function runSuite(options: RunSuiteOptions): Promise<void> {
       resolvedScenarioSet = selectedSetName
     }
 
-    if (selectedScenarios.length === 0) {
+    if (allSelectedScenarios.length === 0) {
       throw new Error(`No scenarios matched filter: ${scenarioFilter ?? scenarioSet ?? "default"}`)
     }
-    const totalScenarioExecutions = selectedScenarios.length * repetitions
 
-    const needsFixtureBindings = selectedScenarios.some((scenario) => {
+    let selectedAtomicScenarios = allSelectedScenarios.filter(isAtomicScenario)
+    let selectedWorkflowScenarios = allSelectedScenarios.filter(isWorkflowScenario)
+    const totalScenarioExecutions = allSelectedScenarios.length * repetitions
+
+    const needsFixtureBindings = allSelectedScenarios.some((scenario) => {
       const bindings = scenario.fixture?.bindings
       return !!bindings && Object.keys(bindings).length > 0
     })
@@ -1173,13 +1442,16 @@ export async function runSuite(options: RunSuiteOptions): Promise<void> {
     }
 
     if (fixtureManifest) {
-      selectedScenarios = selectedScenarios.map((scenario) =>
+      selectedAtomicScenarios = selectedAtomicScenarios.map((scenario) =>
         resolveScenarioFixtureBindings(scenario, fixtureManifest as FixtureManifest),
+      )
+      selectedWorkflowScenarios = selectedWorkflowScenarios.map((scenario) =>
+        resolveWorkflowFixtureBindings(scenario, fixtureManifest as FixtureManifest),
       )
     }
 
     if (mode === "ghx") {
-      assertGhxRouterPreflight(selectedScenarios)
+      assertGhxRouterPreflight(selectedAtomicScenarios)
     }
 
     const outFile =
@@ -1187,30 +1459,68 @@ export async function runSuite(options: RunSuiteOptions): Promise<void> {
       join(RESULTS_DIR, `${new Date().toISOString().replace(/[:.]/g, "-")}-${mode}-suite.jsonl`)
     await mkdir(dirname(outFile), { recursive: true })
 
-    const selectedScenarioIds = selectedScenarios.map((scenario) => scenario.id)
+    const allResolvedScenarios: Scenario[] = [
+      ...selectedAtomicScenarios,
+      ...selectedWorkflowScenarios,
+    ]
+    const selectedScenarioIds = allResolvedScenarios.map((scenario) => scenario.id)
     console.log(
       `[benchmark] start: mode=${mode} provider=${providerId} model=${modelId} opencode_mode=${suiteConfig.openCodeMode ?? "<null>"}`,
     )
     console.log(
-      `[benchmark] config: repetitions=${repetitions} scenario_set=${resolvedScenarioSet ?? "<null>"} scenario_filter=${scenarioFilter?.join(",") ?? "<null>"} scenarios=${selectedScenarios.length}`,
+      `[benchmark] config: repetitions=${repetitions} scenario_set=${resolvedScenarioSet ?? "<null>"} scenario_filter=${scenarioFilter?.join(",") ?? "<null>"} scenarios=${allResolvedScenarios.length} (atomic=${selectedAtomicScenarios.length} workflow=${selectedWorkflowScenarios.length})`,
     )
     console.log(`[benchmark] scenarios: ${selectedScenarioIds.join(",")}`)
     console.log(
       `[benchmark] context: opencode_port=${process.env.BENCH_OPENCODE_PORT ?? "3000"} git_repo=${suiteConfig.gitRepo ?? "<null>"} git_commit=${suiteConfig.gitCommit ?? "<null>"} out_file=${outFile}`,
     )
 
+    if (!skipWarmup && selectedAtomicScenarios.length > 0) {
+      const warmupScenario =
+        selectedAtomicScenarios.find((s) => s.task === "repo.view") ?? selectedAtomicScenarios[0]
+      if (warmupScenario) {
+        console.log(`[benchmark] warm-up canary: running ${warmupScenario.id}`)
+        try {
+          const warmupResult = await withIsolatedBenchmarkClient(
+            mode,
+            providerId,
+            modelId,
+            (client) =>
+              runScenario(
+                client,
+                warmupScenario,
+                mode,
+                0,
+                null,
+                { providerId, modelId },
+                suiteConfig,
+              ),
+          )
+          console.log(
+            `[benchmark] warm-up canary: ${warmupResult.success ? "success" : "failed"} (${warmupResult.latency_ms_wall}ms)`,
+          )
+        } catch (error) {
+          console.log(
+            `[benchmark] warm-up canary: error (${error instanceof Error ? error.message : String(error)})`,
+          )
+        }
+      }
+    }
+
     let completedExecutions = 0
     let successExecutions = 0
     emitProgressEvent("suite_started", {
       mode,
-      scenario_count: selectedScenarios.length,
+      scenario_count: allResolvedScenarios.length,
       repetitions,
       total: totalScenarioExecutions,
       completed: completedExecutions,
     })
 
-    for (const scenario of selectedScenarios) {
-      validateFixture(scenario)
+    for (const scenario of allResolvedScenarios) {
+      if (isAtomicScenario(scenario)) {
+        validateFixture(scenario)
+      }
 
       for (let iteration = 1; iteration <= repetitions; iteration += 1) {
         emitProgressEvent("scenario_started", {
@@ -1223,20 +1533,29 @@ export async function runSuite(options: RunSuiteOptions): Promise<void> {
         let latestResult: BenchmarkRow | null = null
 
         for (let attempt = 0; attempt <= scenario.allowed_retries; attempt += 1) {
-          const result = await withIsolatedBenchmarkClient(mode, providerId, modelId, (client) =>
-            runScenario(
-              client,
-              scenario,
-              mode,
-              iteration,
-              resolvedScenarioSet,
-              {
-                providerId,
-                modelId,
-              },
-              suiteConfig,
-            ),
-          )
+          const result = isWorkflowScenario(scenario)
+            ? await withIsolatedBenchmarkClient(mode, providerId, modelId, (client) =>
+                runWorkflowScenario(
+                  client,
+                  scenario,
+                  mode,
+                  iteration,
+                  resolvedScenarioSet,
+                  { providerId, modelId },
+                  suiteConfig,
+                ),
+              )
+            : await withIsolatedBenchmarkClient(mode, providerId, modelId, (client) =>
+                runScenario(
+                  client,
+                  scenario,
+                  mode,
+                  iteration,
+                  resolvedScenarioSet,
+                  { providerId, modelId },
+                  suiteConfig,
+                ),
+              )
           latestResult = result
 
           if (result.success || attempt === scenario.allowed_retries) {

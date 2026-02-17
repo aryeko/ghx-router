@@ -14,6 +14,7 @@ const gateV2ThresholdSchema = z.object({
   maxTimeoutStallRatePct: z.number(),
   maxRetryRatePct: z.number(),
   minSamplesPerScenarioPerMode: z.number().int().min(1),
+  minCostReductionPct: z.number(),
 })
 
 const expectationsSchema = z.object({

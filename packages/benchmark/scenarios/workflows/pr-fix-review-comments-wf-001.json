@@ -1,0 +1,37 @@
+{
+  "type": "workflow",
+  "id": "pr-fix-review-comments-wf-001",
+  "name": "Fix PR review comments",
+  "prompt": "There are unresolved review comments on PR #{{prNumber}} in {{owner}}/{{name}}. Read the comments, understand the feedback, and resolve each thread with an appropriate reply.",
+  "expected_capabilities": [
+    "pr.view",
+    "pr.comments.list",
+    "pr.comment.reply",
+    "pr.comment.resolve"
+  ],
+  "timeout_ms": 180000,
+  "allowed_retries": 1,
+  "fixture": {
+    "repo": "aryeko/ghx-bench-fixtures",
+    "bindings": {
+      "input.owner": "repo.owner",
+      "input.name": "repo.name",
+      "input.prNumber": "resources.pr_with_reviews.number"
+    },
+    "requires": ["pr_with_reviews"]
+  },
+  "assertions": {
+    "expected_outcome": "success",
+    "checkpoints": [
+      {
+        "name": "all_threads_resolved",
+        "verification_task": "pr.comments.list",
+        "verification_input": {
+          "state": "unresolved"
+        },
+        "condition": "empty"
+      }
+    ]
+  },
+  "tags": ["workflow", "pr", "review"]
+}

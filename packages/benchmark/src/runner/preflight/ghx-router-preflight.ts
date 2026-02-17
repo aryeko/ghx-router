@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process"
-import type { Scenario } from "../../domain/types.js"
+import type { AtomicScenario } from "../../domain/types.js"
 import { isObject } from "../../utils/guards.js"
 
 type CapabilityListItem = {
@@ -44,7 +44,7 @@ export function ghOk(args: string[], spawnSyncFn: SpawnSyncFn = spawnSync): bool
 }
 
 export function assertGhxRouterPreflight(
-  scenarios: Scenario[],
+  scenarios: AtomicScenario[],
   options: {
     ghxCommand: string
     ensureGhxAliasReady: () => void

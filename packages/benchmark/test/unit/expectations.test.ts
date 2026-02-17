@@ -34,6 +34,7 @@ describe("expectations config", () => {
               maxTimeoutStallRatePct: 4,
               maxRetryRatePct: 20,
               minSamplesPerScenarioPerMode: 1,
+              minCostReductionPct: 10,
             },
             verify_release: {
               minTokensActiveReductionPct: 12,
@@ -46,6 +47,7 @@ describe("expectations config", () => {
               maxTimeoutStallRatePct: 3,
               maxRetryRatePct: 18,
               minSamplesPerScenarioPerMode: 1,
+              minCostReductionPct: 15,
             },
           },
         },
@@ -126,6 +128,7 @@ describe("expectations config", () => {
               maxTimeoutStallRatePct: 4,
               maxRetryRatePct: 20,
               minSamplesPerScenarioPerMode: 1,
+              minCostReductionPct: 10,
             },
             verify_release: {
               minTokensActiveReductionPct: 12,
@@ -138,6 +141,7 @@ describe("expectations config", () => {
               maxTimeoutStallRatePct: 3,
               maxRetryRatePct: 18,
               minSamplesPerScenarioPerMode: 1,
+              minCostReductionPct: 15,
             },
           },
           "openai/gpt-5.3-codex": {
@@ -152,6 +156,7 @@ describe("expectations config", () => {
               maxTimeoutStallRatePct: 2,
               maxRetryRatePct: 15,
               minSamplesPerScenarioPerMode: 1,
+              minCostReductionPct: 10,
             },
             verify_release: {
               minTokensActiveReductionPct: 22,
@@ -164,6 +169,7 @@ describe("expectations config", () => {
               maxTimeoutStallRatePct: 1,
               maxRetryRatePct: 8,
               minSamplesPerScenarioPerMode: 2,
+              minCostReductionPct: 15,
             },
           },
         },
@@ -189,6 +195,7 @@ describe("expectations config", () => {
             maxTimeoutStallRatePct: 4,
             maxRetryRatePct: 20,
             minSamplesPerScenarioPerMode: 1,
+            minCostReductionPct: 10,
           },
           verify_release: {
             minTokensActiveReductionPct: 12,
@@ -201,6 +208,7 @@ describe("expectations config", () => {
             maxTimeoutStallRatePct: 3,
             maxRetryRatePct: 18,
             minSamplesPerScenarioPerMode: 1,
+            minCostReductionPct: 12,
           },
         },
       },
@@ -242,6 +250,7 @@ describe("expectations config", () => {
               maxTimeoutStallRatePct: 4,
               maxRetryRatePct: 20,
               minSamplesPerScenarioPerMode: 1,
+              minCostReductionPct: 10,
             },
             verify_release: {
               minTokensActiveReductionPct: 12,
@@ -254,6 +263,7 @@ describe("expectations config", () => {
               maxTimeoutStallRatePct: 3,
               maxRetryRatePct: 18,
               minSamplesPerScenarioPerMode: 1,
+              minCostReductionPct: 15,
             },
           },
         },
