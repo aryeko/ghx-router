@@ -1,8 +1,9 @@
 import { mkdir, writeFile } from "node:fs/promises"
 import { dirname, resolve } from "node:path"
-import { pathToFileURL } from "node:url"
 
 import { z } from "zod"
+import { runIfDirectEntry } from "./entry.js"
+import { parseStrictFlagValue } from "./flag-utils.js"
 
 const gateProfileSchema = z.enum(["verify_pr", "verify_release"])
 
@@ -29,38 +30,19 @@ type ParsedArgs = {
   includeGate: boolean
 }
 
-function parseFlagValue(args: string[], flag: string): string | null {
-  const index = args.findIndex((arg) => arg === flag)
-  if (index !== -1) {
-    const value = args[index + 1]
-    if (!value || value.startsWith("--")) {
-      throw new Error(`Missing value for ${flag}`)
-    }
-
-    return value
-  }
-
-  const inline = args.find((arg) => arg.startsWith(`${flag}=`))
-  if (inline) {
-    return inline.slice(flag.length + 1)
-  }
-
-  return null
-}
-
 export function parseArgs(argv: string[]): ParsedArgs {
   const normalized = argv.filter((arg) => arg !== "--")
 
-  const outPath = parseFlagValue(normalized, "--out") ?? "config/suite-runner.json"
-  const scenarioSet = parseFlagValue(normalized, "--scenario-set") ?? "ci-verify-pr"
+  const outPath = parseStrictFlagValue(normalized, "--out") ?? "config/suite-runner.json"
+  const scenarioSet = parseStrictFlagValue(normalized, "--scenario-set") ?? "ci-verify-pr"
 
-  const repetitionsRaw = parseFlagValue(normalized, "--repetitions") ?? "3"
+  const repetitionsRaw = parseStrictFlagValue(normalized, "--repetitions") ?? "3"
   const repetitions = Number.parseInt(repetitionsRaw, 10)
   if (!Number.isFinite(repetitions)) {
     throw new Error(`Invalid --repetitions value: ${repetitionsRaw}`)
   }
 
-  const gateProfileRaw = parseFlagValue(normalized, "--gate-profile") ?? "verify_pr"
+  const gateProfileRaw = parseStrictFlagValue(normalized, "--gate-profile") ?? "verify_pr"
   const gateProfile = gateProfileSchema.parse(gateProfileRaw)
 
   const includeCleanup =
@@ -154,14 +136,4 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
   console.log(`Wrote ${outPath}`)
 }
 
-const isDirectRun = process.argv[1]
-  ? import.meta.url === pathToFileURL(process.argv[1]).href
-  : false
-
-if (isDirectRun) {
-  main().catch((error: unknown) => {
-    const message = error instanceof Error ? error.message : String(error)
-    console.error(message)
-    process.exit(1)
-  })
-}
+runIfDirectEntry(import.meta.url, main)

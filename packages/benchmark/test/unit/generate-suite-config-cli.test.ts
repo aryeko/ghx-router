@@ -116,10 +116,8 @@ describe("generate-suite-config cli", () => {
     const mod = await import("../../src/cli/generate-suite-config.js")
     expect(() => mod.parseArgs(["--repetitions=0"])).toThrow("Invalid --repetitions value")
     expect(() => mod.parseArgs(["--gate-profile=invalid"])).toThrow()
-    expect(() => mod.parseArgs(["--out="])).toThrow("--out must be a non-empty path")
-    expect(() => mod.parseArgs(["--scenario-set="])).toThrow(
-      "--scenario-set must be a non-empty value",
-    )
+    expect(() => mod.parseArgs(["--out="])).toThrow("Missing value for --out")
+    expect(() => mod.parseArgs(["--scenario-set="])).toThrow("Missing value for --scenario-set")
     expect(() => mod.parseArgs(["--out"])).toThrow("Missing value for --out")
     expect(() => mod.parseArgs(["--scenario-set", "--no-gate"])).toThrow(
       "Missing value for --scenario-set",

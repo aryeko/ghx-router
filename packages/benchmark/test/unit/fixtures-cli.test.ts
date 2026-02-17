@@ -146,10 +146,11 @@ describe("fixtures CLI", () => {
     )
   })
 
-  it("rejects invalid out file values", async () => {
+  it("falls back to default when out file value is empty", async () => {
     const { parseArgs } = await import("../../src/cli/fixtures.js")
 
-    expect(() => parseArgs(["status", "--out", ""])).toThrow("Invalid --out value")
+    const parsed = parseArgs(["status", "--out", ""])
+    expect(parsed.outFile).toBe("fixtures/latest.json")
   })
 
   it("rejects invalid seed id values", async () => {

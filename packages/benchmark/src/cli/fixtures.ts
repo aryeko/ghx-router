@@ -1,10 +1,11 @@
 import { access, rm } from "node:fs/promises"
-import { pathToFileURL } from "node:url"
 import { z } from "zod"
 import { applyFixtureAppAuthIfConfigured } from "../fixture/app-auth.js"
 import { cleanupSeededFixtures } from "../fixture/cleanup.js"
 import { loadFixtureManifest } from "../fixture/manifest.js"
 import { seedFixtureManifest } from "../fixture/seed.js"
+import { runIfDirectEntry } from "./entry.js"
+import { parseFlagValue } from "./flag-utils.js"
 
 type FixtureCommand = "seed" | "status" | "cleanup"
 
@@ -44,20 +45,6 @@ function parseCliValue<T>(schema: z.ZodSchema<T>, value: string, label: string):
   const issue = parsed.error.issues[0]
   const detail = issue?.message ? `: ${issue.message}` : ""
   throw new Error(`Invalid ${label} value${detail}`)
-}
-
-function parseFlagValue(args: string[], flag: string): string | null {
-  const index = args.findIndex((arg) => arg === flag)
-  if (index !== -1) {
-    return args[index + 1] ?? null
-  }
-
-  const inline = args.find((arg) => arg.startsWith(`${flag}=`))
-  if (inline) {
-    return inline.slice(flag.length + 1)
-  }
-
-  return null
 }
 
 export function parseArgs(argv: string[]): ParsedFixtureArgs {
@@ -131,14 +118,4 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
   }
 }
 
-const isDirectRun = process.argv[1]
-  ? import.meta.url === pathToFileURL(process.argv[1]).href
-  : false
-
-if (isDirectRun) {
-  main().catch((error: unknown) => {
-    const message = error instanceof Error ? error.message : String(error)
-    console.error(message)
-    process.exit(1)
-  })
-}
+runIfDirectEntry(import.meta.url, main)

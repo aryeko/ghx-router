@@ -1,10 +1,11 @@
 import { spawn } from "node:child_process"
 import { readFile } from "node:fs/promises"
 import { resolve } from "node:path"
-import { pathToFileURL } from "node:url"
 import { createColors } from "colorette"
 import { createLogUpdate } from "log-update"
 import { z } from "zod"
+import { runIfDirectEntry } from "./entry.js"
+import { parseFlagValue } from "./flag-utils.js"
 
 const commandSchema = z.object({
   command: z.array(z.string().min(1)).min(1),
@@ -106,20 +107,6 @@ const TAIL_LIMIT = 12
 const colors = createColors({
   useColor: Boolean(process.stdout.isTTY) && !process.env.NO_COLOR,
 })
-
-function parseFlagValue(args: string[], flag: string): string | null {
-  const index = args.findIndex((arg) => arg === flag)
-  if (index !== -1) {
-    return args[index + 1] ?? null
-  }
-
-  const inline = args.find((arg) => arg.startsWith(`${flag}=`))
-  if (inline) {
-    return inline.slice(flag.length + 1)
-  }
-
-  return null
-}
 
 export function parseArgs(argv: string[]): ParsedArgs {
   const normalized = argv.filter((arg) => arg !== "--")
@@ -769,14 +756,4 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
   }
 }
 
-const isDirectRun = process.argv[1]
-  ? import.meta.url === pathToFileURL(process.argv[1]).href
-  : false
-
-if (isDirectRun) {
-  main().catch((error: unknown) => {
-    const message = error instanceof Error ? error.message : String(error)
-    console.error(message)
-    process.exit(1)
-  })
-}
+runIfDirectEntry(import.meta.url, main)

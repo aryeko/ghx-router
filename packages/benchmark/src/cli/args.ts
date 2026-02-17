@@ -1,5 +1,6 @@
 import { z } from "zod"
 import type { BenchmarkMode } from "../domain/types.js"
+import { parseFlagValue, parseMultiFlagValues, parseStrictFlagValue } from "./flag-utils.js"
 
 export type ParsedCliArgs = {
   command: "run"
@@ -53,89 +54,8 @@ function splitPositionalAndFlags(args: string[]): {
   return { positional, flags }
 }
 
-function parseScenarioFilter(flags: string[]): string[] | null {
-  const values: string[] = []
-  for (let index = 0; index < flags.length; index += 1) {
-    const flag = flags[index] ?? ""
-
-    if (flag === "--scenario") {
-      const value = (flags[index + 1] ?? "").trim()
-      if (value.length === 0 || value.startsWith("--")) {
-        throw new Error("Missing value for --scenario")
-      }
-      values.push(value)
-      index += 1
-      continue
-    }
-
-    if (flag.startsWith("--scenario=")) {
-      const value = flag.slice("--scenario=".length).trim()
-      if (value.length === 0) {
-        throw new Error("Missing value for --scenario")
-      }
-      values.push(value)
-    }
-  }
-
-  if (values.length === 0) {
-    return null
-  }
-
-  return values
-}
-
-function parseScenarioSet(flags: string[]): string | null {
-  const index = flags.findIndex((arg) => arg === "--scenario-set")
-  if (index !== -1) {
-    return flags[index + 1] ?? null
-  }
-
-  const inline = flags.find((arg) => arg.startsWith("--scenario-set="))
-  if (inline) {
-    return inline.slice("--scenario-set=".length)
-  }
-
-  return null
-}
-
-function parseFixtureManifestPath(flags: string[]): string | null {
-  const index = flags.findIndex((arg) => arg === "--fixture-manifest")
-  if (index !== -1) {
-    return flags[index + 1] ?? null
-  }
-
-  const inline = flags.find((arg) => arg.startsWith("--fixture-manifest="))
-  if (inline) {
-    return inline.slice("--fixture-manifest=".length)
-  }
-
-  return null
-}
-
 function parseSeedIfMissing(flags: string[]): boolean {
   return flags.includes("--seed-if-missing")
-}
-
-function parseSingleStringFlag(flags: string[], flagName: string): string | null {
-  const index = flags.findIndex((arg) => arg === flagName)
-  if (index !== -1) {
-    const value = (flags[index + 1] ?? "").trim()
-    if (value.length === 0 || value.startsWith("--")) {
-      throw new Error(`Missing value for ${flagName}`)
-    }
-    return value
-  }
-
-  const inline = flags.find((arg) => arg.startsWith(`${flagName}=`))
-  if (inline) {
-    const value = inline.slice(flagName.length + 1).trim()
-    if (value.length === 0) {
-      throw new Error(`Missing value for ${flagName}`)
-    }
-    return value
-  }
-
-  return null
 }
 
 const parsedCliArgsSchema = z
@@ -177,17 +97,20 @@ export function parseCliArgs(argv: string[]): ParsedCliArgs {
     throw new Error(`Invalid repetitions: ${repetitionsRaw}`)
   }
 
+  const scenarioValues = parseMultiFlagValues(flags, "--scenario")
+  const scenarioFilter = scenarioValues.length > 0 ? scenarioValues : null
+
   const parsed = parsedCliArgsSchema.parse({
     command,
     mode,
     repetitions,
-    scenarioFilter: parseScenarioFilter(flags),
-    scenarioSet: parseScenarioSet(flags),
-    fixtureManifestPath: parseFixtureManifestPath(flags),
+    scenarioFilter,
+    scenarioSet: parseFlagValue(flags, "--scenario-set"),
+    fixtureManifestPath: parseFlagValue(flags, "--fixture-manifest"),
     seedIfMissing: parseSeedIfMissing(flags),
-    providerId: parseSingleStringFlag(flags, "--provider"),
-    modelId: parseSingleStringFlag(flags, "--model"),
-    outputJsonlPath: parseSingleStringFlag(flags, "--output-jsonl"),
+    providerId: parseStrictFlagValue(flags, "--provider"),
+    modelId: parseStrictFlagValue(flags, "--model"),
+    outputJsonlPath: parseStrictFlagValue(flags, "--output-jsonl"),
   })
 
   return parsed

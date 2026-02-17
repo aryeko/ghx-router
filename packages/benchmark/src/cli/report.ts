@@ -1,6 +1,5 @@
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises"
 import { dirname, join } from "node:path"
-import { pathToFileURL } from "node:url"
 
 import type { BenchmarkMode, BenchmarkRow } from "../domain/types.js"
 import type { GateProfile } from "../report/aggregate.js"
@@ -12,6 +11,8 @@ import {
   resolveGateThresholdsForModel,
   resolveModelForExpectations,
 } from "../report/expectations.js"
+import { runIfDirectEntry } from "./entry.js"
+import { parseMultiFlagValues } from "./flag-utils.js"
 
 const RESULTS_DIR = join(process.cwd(), "results")
 const REPORTS_DIR = join(process.cwd(), "reports")
@@ -83,32 +84,7 @@ export function parseArgs(args: string[]): {
   const summaryJson = parseStringFlag("summary-json")
   const summaryMd = parseStringFlag("summary-md")
 
-  const suiteJsonlPaths: string[] = []
-  for (let index = 0; index < args.length; index += 1) {
-    const arg = args[index]
-    if (!arg) {
-      continue
-    }
-
-    if (arg === "--suite-jsonl") {
-      const nextValue = (args[index + 1] ?? "").trim()
-      if (nextValue.length === 0 || nextValue.startsWith("--")) {
-        throw new Error("Missing value for --suite-jsonl")
-      }
-      suiteJsonlPaths.push(nextValue)
-      index += 1
-      continue
-    }
-
-    const inlinePrefix = "--suite-jsonl="
-    if (arg.startsWith(inlinePrefix)) {
-      const value = arg.slice(inlinePrefix.length).trim()
-      if (value.length === 0) {
-        throw new Error("Missing value for --suite-jsonl")
-      }
-      suiteJsonlPaths.push(value)
-    }
-  }
+  const suiteJsonlPaths = parseMultiFlagValues(args, "--suite-jsonl")
 
   return {
     gate: args.includes("--gate"),
@@ -346,14 +322,4 @@ export async function main(args: string[] = process.argv.slice(2)): Promise<void
   }
 }
 
-const isDirectRun = process.argv[1]
-  ? import.meta.url === pathToFileURL(process.argv[1]).href
-  : false
-
-if (isDirectRun) {
-  main().catch((error: unknown) => {
-    const message = error instanceof Error ? error.message : String(error)
-    console.error(message)
-    process.exit(1)
-  })
-}
+runIfDirectEntry(import.meta.url, main)
