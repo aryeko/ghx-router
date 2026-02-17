@@ -7,6 +7,7 @@ const {
   loadFixtureManifestMock,
   cleanupSeededFixturesMock,
   applyFixtureAppAuthIfConfiguredMock,
+  mintFixtureAppTokenMock,
   seedFixtureManifestMock,
 } = vi.hoisted(() => ({
   accessMock: vi.fn(),
@@ -14,6 +15,7 @@ const {
   loadFixtureManifestMock: vi.fn(),
   cleanupSeededFixturesMock: vi.fn(),
   applyFixtureAppAuthIfConfiguredMock: vi.fn(),
+  mintFixtureAppTokenMock: vi.fn(),
   seedFixtureManifestMock: vi.fn(),
 }))
 
@@ -36,6 +38,7 @@ vi.mock("../../src/fixture/cleanup.js", () => ({
 
 vi.mock("../../src/fixture/app-auth.js", () => ({
   applyFixtureAppAuthIfConfigured: applyFixtureAppAuthIfConfiguredMock,
+  mintFixtureAppToken: mintFixtureAppTokenMock,
 }))
 
 vi.mock("../../src/fixture/seed.js", () => ({
@@ -61,6 +64,7 @@ describe("fixtures CLI", () => {
     })
     cleanupSeededFixturesMock.mockResolvedValue({ closedIssues: 3 })
     applyFixtureAppAuthIfConfiguredMock.mockResolvedValue(() => undefined)
+    mintFixtureAppTokenMock.mockResolvedValue("ghs_fake_reviewer_token")
     seedFixtureManifestMock.mockResolvedValue({
       version: 1,
       repo: {
@@ -168,11 +172,14 @@ describe("fixtures CLI", () => {
       main(["seed", "--repo", "aryeko/ghx-bench-fixtures", "--out", "fixtures/latest.json"]),
     ).resolves.toBeUndefined()
 
-    expect(seedFixtureManifestMock).toHaveBeenCalledWith({
-      repo: "aryeko/ghx-bench-fixtures",
-      outFile: "fixtures/latest.json",
-      seedId: "default",
-    })
+    expect(seedFixtureManifestMock).toHaveBeenCalledWith(
+      {
+        repo: "aryeko/ghx-bench-fixtures",
+        outFile: "fixtures/latest.json",
+        seedId: "default",
+      },
+      "ghs_fake_reviewer_token",
+    )
     expect(logSpy).toHaveBeenCalledWith(
       "Seeded fixtures for aryeko/ghx-bench-fixtures -> fixtures/latest.json",
     )
@@ -207,14 +214,11 @@ describe("fixtures CLI", () => {
     expect(restoreAuth).toHaveBeenCalledOnce()
   })
 
-  it("restores fixture auth when seed command throws", async () => {
-    const restoreAuth = vi.fn()
-    applyFixtureAppAuthIfConfiguredMock.mockResolvedValue(restoreAuth)
+  it("propagates error when seed command throws", async () => {
     seedFixtureManifestMock.mockRejectedValue(new Error("seed failed"))
 
     const { main } = await import("../../src/cli/fixtures.js")
     await expect(main(["seed"])).rejects.toThrow("seed failed")
-    expect(restoreAuth).toHaveBeenCalledOnce()
   })
 
   it("logs and exits when invoked directly and main rejects", async () => {

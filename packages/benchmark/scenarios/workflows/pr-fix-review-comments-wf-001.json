@@ -27,7 +27,7 @@
         "name": "all_threads_resolved",
         "verification_task": "pr.comments.list",
         "verification_input": {
-          "state": "unresolved"
+          "unresolvedOnly": true
         },
         "condition": "empty"
       }

@@ -5,7 +5,7 @@ import { dirname } from "node:path"
 import { z } from "zod"
 
 import type { FixtureManifest } from "../domain/types.js"
-import { runGh, runGhJson, sleep, tryRunGh, tryRunGhJson } from "./gh-client.js"
+import { runGh, runGhJson, sleep, tryRunGh, tryRunGhJson, tryRunGhWithToken } from "./gh-client.js"
 
 type SeedOptions = {
   repo: string
@@ -216,7 +216,14 @@ function createSeedPr(
   const body = `# Benchmark fixture seed\nseed: ${seedId}\n`
   const encodedBody = Buffer.from(body, "utf8").toString("base64")
 
-  runGhJson([
+  const existingFile = tryRunGhJson<{ sha?: string }>([
+    "api",
+    `repos/${owner}/${name}/contents/${contentPath}?ref=${branch}`,
+  ])
+  const existingFileSha =
+    typeof existingFile?.sha === "string" && existingFile.sha.length > 0 ? existingFile.sha : null
+
+  const contentArgs = [
     "api",
     `repos/${owner}/${name}/contents/${contentPath}`,
     "--method",
@@ -227,7 +234,12 @@ function createSeedPr(
     `content=${encodedBody}`,
     "-f",
     `branch=${branch}`,
-  ])
+  ]
+  if (existingFileSha) {
+    contentArgs.push("-f", `sha=${existingFileSha}`)
+  }
+
+  runGhJson(contentArgs)
 
   const existingPrResult = tryRunGhJson([
     "pr",
@@ -301,7 +313,14 @@ function createMainlineFixtureCommit(repo: string, seedId: string): void {
   const body = `# Benchmark mainline seed\nseed: ${seedId}\n`
   const encodedBody = Buffer.from(body, "utf8").toString("base64")
 
-  runGhJson([
+  const existing = tryRunGhJson<{ sha?: string }>([
+    "api",
+    `repos/${owner}/${name}/contents/${contentPath}?ref=main`,
+  ])
+  const existingSha =
+    typeof existing?.sha === "string" && existing.sha.length > 0 ? existing.sha : null
+
+  const args = [
     "api",
     `repos/${owner}/${name}/contents/${contentPath}`,
     "--method",
@@ -312,7 +331,12 @@ function createMainlineFixtureCommit(repo: string, seedId: string): void {
     `content=${encodedBody}`,
     "-f",
     "branch=main",
-  ])
+  ]
+  if (existingSha) {
+    args.push("-f", `sha=${existingSha}`)
+  }
+
+  runGhJson(args)
 }
 
 function getPrHeadSha(repo: string, prNumber: number): string | null {
@@ -398,6 +422,241 @@ function ensurePrThread(repo: string, prNumber: number, seedId: string): string 
   }
 
   return findPrThreadId(repo, prNumber) ?? ""
+}
+
+type PrWithReviews = { id: string; number: number; thread_count: number }
+
+const REVIEW_PR_FILE_PATH = "src/utils/helpers.ts"
+
+const REVIEW_PR_FILE_CONTENT = `// Utility helpers for data processing
+export function processItems(items: any[]) {
+  let result = []
+  for (let i = 0; i < items.length; i++) {
+    if (items[i] != null) {
+      result.push(items[i].name.toUpperCase())
+    }
+  }
+  return result
+}
+
+export function fetchData(url: string) {
+  // TODO: add error handling
+  return fetch(url).then(res => res.json())
+}
+
+export function formatDate(d: Date) {
+  return d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate()
+}
+`
+
+const REVIEW_COMMENTS = [
+  {
+    path: REVIEW_PR_FILE_PATH,
+    line: 2,
+    body: "Please use a proper type instead of `any[]`. Consider defining an `Item` interface with a `name: string` field.",
+  },
+  {
+    path: REVIEW_PR_FILE_PATH,
+    line: 3,
+    body: "Use `const` instead of `let` since `result` is only pushed to, never reassigned. Also consider using `.filter().map()` instead of the imperative loop.",
+  },
+  {
+    path: REVIEW_PR_FILE_PATH,
+    line: 16,
+    body: "This function has no error handling. Please add a try/catch and handle non-OK responses (check `res.ok` before calling `.json()`).",
+  },
+  {
+    path: REVIEW_PR_FILE_PATH,
+    line: 20,
+    body: "`getMonth()` is zero-indexed, so January returns 0. Use `d.getMonth() + 1` and pad single digits with a leading zero for ISO format.",
+  },
+]
+
+function createPrWithReviews(
+  repo: string,
+  seedId: string,
+  seedLabel: string,
+  reviewerToken: string,
+): PrWithReviews {
+  const { owner, name } = parseRepo(repo)
+  const branch = `bench-review-seed-${seedId}`
+
+  const refResult = runGhJson(["api", `repos/${owner}/${name}/git/ref/heads/main`]) as Record<
+    string,
+    unknown
+  >
+  const object = refResult.object as Record<string, unknown>
+  const baseSha = String(object.sha ?? "")
+  if (baseSha.length === 0) {
+    throw new Error("unable to resolve base sha for review PR creation")
+  }
+
+  tryRunGhJson([
+    "api",
+    `repos/${owner}/${name}/git/refs`,
+    "--method",
+    "POST",
+    "-f",
+    `ref=refs/heads/${branch}`,
+    "-f",
+    `sha=${baseSha}`,
+  ])
+
+  const encodedContent = Buffer.from(REVIEW_PR_FILE_CONTENT, "utf8").toString("base64")
+  const existingFile = tryRunGhJson<{ sha?: string }>([
+    "api",
+    `repos/${owner}/${name}/contents/${REVIEW_PR_FILE_PATH}?ref=${branch}`,
+  ])
+  const existingFileSha =
+    typeof existingFile?.sha === "string" && existingFile.sha.length > 0 ? existingFile.sha : null
+
+  const contentArgs = [
+    "api",
+    `repos/${owner}/${name}/contents/${REVIEW_PR_FILE_PATH}`,
+    "--method",
+    "PUT",
+    "-f",
+    `message=feat: add utility helpers`,
+    "-f",
+    `content=${encodedContent}`,
+    "-f",
+    `branch=${branch}`,
+  ]
+  if (existingFileSha) {
+    contentArgs.push("-f", `sha=${existingFileSha}`)
+  }
+  runGhJson(contentArgs)
+
+  const existingPrResult = tryRunGhJson([
+    "pr",
+    "list",
+    "--repo",
+    repo,
+    "--state",
+    "open",
+    "--head",
+    branch,
+    "--limit",
+    "1",
+    "--json",
+    "id,number",
+  ])
+  const existingPrs = parseArrayResponse(existingPrResult)
+  const existingPr = existingPrs[0]
+
+  let prNumber: number
+  let prNodeId: string
+
+  if (
+    typeof existingPr === "object" &&
+    existingPr !== null &&
+    typeof (existingPr as Record<string, unknown>).id === "string" &&
+    typeof (existingPr as Record<string, unknown>).number === "number"
+  ) {
+    prNodeId = String((existingPr as Record<string, unknown>).id)
+    prNumber = Number((existingPr as Record<string, unknown>).number)
+  } else {
+    const prResult = runGhJson([
+      "api",
+      `repos/${owner}/${name}/pulls`,
+      "--method",
+      "POST",
+      "-f",
+      `title=Add utility helpers (${seedLabel})`,
+      "-f",
+      "body=Adds data processing utility functions. Please review.",
+      "-f",
+      `head=${branch}`,
+      "-f",
+      "base=main",
+    ]) as Record<string, unknown>
+
+    prNumber = Number(prResult.number)
+    prNodeId = String(prResult.node_id ?? "")
+
+    if (!Number.isInteger(prNumber) || prNumber <= 0 || prNodeId.length === 0) {
+      throw new Error("failed to create review fixture PR")
+    }
+
+    tryRunGh([
+      "api",
+      `repos/${owner}/${name}/issues/${prNumber}/labels`,
+      "--method",
+      "POST",
+      "-f",
+      "labels[]=bench-fixture",
+      "-f",
+      `labels[]=${seedLabel}`,
+    ])
+  }
+
+  const headSha = getPrHeadSha(repo, prNumber)
+  if (!headSha) {
+    throw new Error("unable to resolve head sha for review comments")
+  }
+
+  const existingThreadCount = countPrThreads(repo, prNumber)
+  let addedThreads = 0
+  if (existingThreadCount < REVIEW_COMMENTS.length) {
+    for (const comment of REVIEW_COMMENTS.slice(existingThreadCount)) {
+      const created = tryRunGhWithToken(
+        [
+          "api",
+          `repos/${owner}/${name}/pulls/${prNumber}/comments`,
+          "--method",
+          "POST",
+          "-f",
+          `body=${comment.body}`,
+          "-f",
+          `commit_id=${headSha}`,
+          "-f",
+          `path=${comment.path}`,
+          "-F",
+          `line=${comment.line}`,
+          "-f",
+          "side=RIGHT",
+        ],
+        reviewerToken,
+      )
+      if (created !== null) {
+        addedThreads++
+      }
+    }
+  }
+
+  return {
+    id: prNodeId,
+    number: prNumber,
+    thread_count: existingThreadCount + addedThreads,
+  }
+}
+
+function countPrThreads(repo: string, prNumber: number): number {
+  const { owner, name } = parseRepo(repo)
+  const result = tryRunGhJson([
+    "api",
+    "graphql",
+    "-f",
+    "query=query($owner:String!,$repo:String!,$num:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$num){reviewThreads(first:100){totalCount}}}}",
+    "-F",
+    `owner=${owner}`,
+    "-F",
+    `repo=${name}`,
+    "-F",
+    `num=${prNumber}`,
+  ])
+
+  if (typeof result !== "object" || result === null) {
+    return 0
+  }
+
+  const data = (result as { data?: unknown }).data as Record<string, unknown> | undefined
+  const repository = data?.repository as Record<string, unknown> | undefined
+  const pullRequest = repository?.pullRequest as Record<string, unknown> | undefined
+  const reviewThreads = pullRequest?.reviewThreads as Record<string, unknown> | undefined
+  const totalCount = reviewThreads?.totalCount
+
+  return typeof totalCount === "number" ? totalCount : 0
 }
 
 function parseWorkflowRunIdFromLink(link: string): number | null {
@@ -848,7 +1107,11 @@ function ensureProjectFixture(
   }
 }
 
-async function buildManifest(repo: string, seedId: string): Promise<FixtureManifest> {
+async function buildManifest(
+  repo: string,
+  seedId: string,
+  reviewerToken: string | null,
+): Promise<FixtureManifest> {
   const { owner, name } = parseRepo(repo)
   const seedLabel = `bench-seed:${seedId}`
 
@@ -859,8 +1122,28 @@ async function buildManifest(repo: string, seedId: string): Promise<FixtureManif
   const blockerIssue = issue
   const parentIssue = issue
   const pr = findSeededPr(repo, seedLabel) ?? createSeedPr(repo, seedId, seedLabel)
-  createMainlineFixtureCommit(repo, seedId)
+  try {
+    createMainlineFixtureCommit(repo, seedId)
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error)
+    console.warn(`warning: skipping mainline fixture commit — ${message}`)
+  }
   const prThreadId = ensurePrThread(repo, pr.number, seedId)
+
+  let prWithReviews: PrWithReviews | null = null
+  if (reviewerToken) {
+    try {
+      prWithReviews = createPrWithReviews(repo, seedId, seedLabel, reviewerToken)
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error)
+      console.warn(`warning: unable to seed pr_with_reviews fixture (${message})`)
+    }
+  } else {
+    console.warn(
+      "warning: skipping pr_with_reviews — no reviewer token available. " +
+        "Configure BENCH_FIXTURE_GH_APP_* env vars to enable.",
+    )
+  }
   let workflowRun: WorkflowRunRef | null = null
   try {
     workflowRun = await ensureFailedRerunWorkflowRun(repo, seedId)
@@ -905,6 +1188,11 @@ async function buildManifest(repo: string, seedId: string): Promise<FixtureManif
       blocker_issue: blockerIssue,
       parent_issue: parentIssue,
       pr,
+      pr_with_reviews: prWithReviews ?? {
+        id: "",
+        number: 0,
+        thread_count: 0,
+      },
       pr_thread: {
         id: prThreadId,
       },
@@ -933,9 +1221,12 @@ async function buildManifest(repo: string, seedId: string): Promise<FixtureManif
   return manifest
 }
 
-export async function seedFixtureManifest(options: SeedOptions): Promise<FixtureManifest> {
+export async function seedFixtureManifest(
+  options: SeedOptions,
+  reviewerToken?: string | null,
+): Promise<FixtureManifest> {
   const parsed = seedOptionsSchema.parse(options)
-  const manifest = await buildManifest(parsed.repo, parsed.seedId)
+  const manifest = await buildManifest(parsed.repo, parsed.seedId, reviewerToken ?? null)
   await mkdir(dirname(parsed.outFile), { recursive: true })
   await writeFile(parsed.outFile, `${JSON.stringify(manifest, null, 2)}\n`, "utf8")
   return manifest

@@ -42,6 +42,7 @@ import {
   forcedToolCommandHint,
   modeScopedAssertions,
   renderPrompt,
+  renderWorkflowPrompt,
 } from "./prompt/prompt-renderer.js"
 import {
   hasAssistantMetadata,
@@ -1035,6 +1036,13 @@ export async function runScenario(
   }
 }
 
+function resolveCheckpointData(data: unknown): unknown {
+  if (isObject(data) && "items" in data && Array.isArray((data as Record<string, unknown>).items)) {
+    return (data as Record<string, unknown>).items
+  }
+  return data
+}
+
 function evaluateCheckpoint(
   checkpoint: WorkflowCheckpoint,
   result: { ok: boolean; data?: unknown },
@@ -1043,7 +1051,7 @@ function evaluateCheckpoint(
     return false
   }
 
-  const data = result.data
+  const data = resolveCheckpointData(result.data)
 
   switch (checkpoint.condition) {
     case "empty":
@@ -1079,6 +1087,11 @@ export async function runWorkflowScenario(
   config?: RunnerConfig,
 ): Promise<BenchmarkRow> {
   const cfg = config ?? loadRunnerConfig()
+  const workflowStallTimeout = Math.floor(scenario.timeout_ms / 3)
+  const workflowConfig: RunnerConfig = {
+    ...cfg,
+    sessionStallTimeoutMs: Math.max(cfg.sessionStallTimeoutMs, workflowStallTimeout),
+  }
   const providerId = modelOverride?.providerId ?? process.env.BENCH_PROVIDER_ID ?? "openai"
   const modelId = modelOverride?.modelId ?? process.env.BENCH_MODEL_ID ?? "gpt-5.3-codex"
   const scenarioStartedAt = Date.now()
@@ -1104,8 +1117,8 @@ export async function runWorkflowScenario(
           path: { id: session.id },
           body: {
             model: { providerID: providerId, modelID: modelId },
-            agent: cfg.openCodeMode ?? undefined,
-            parts: [{ type: "text", text: scenario.prompt }],
+            agent: workflowConfig.openCodeMode ?? undefined,
+            parts: [{ type: "text", text: renderWorkflowPrompt(scenario, mode) }],
           },
         }),
         Math.min(15000, scenario.timeout_ms),
@@ -1125,7 +1138,7 @@ export async function runWorkflowScenario(
           remainingTimeoutMs,
           scenario.id,
           undefined,
-          cfg,
+          workflowConfig,
         ))
       const assistantAndParts = coercePromptResponse(hydrated)
       const assistant = assistantAndParts.assistant

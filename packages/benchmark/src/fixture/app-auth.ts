@@ -2,8 +2,7 @@ import { createSign } from "node:crypto"
 import { readFile } from "node:fs/promises"
 
 type FixtureAppAuthConfig = {
-  appId: string
-  installationId: string
+  clientId: string
   privateKey: string
 }
 
@@ -26,53 +25,83 @@ async function resolvePrivateKeyFromEnv(): Promise<string | null> {
 }
 
 async function resolveAppAuthConfigFromEnv(): Promise<FixtureAppAuthConfig | null> {
-  const appId = process.env.BENCH_FIXTURE_GH_APP_ID?.trim() ?? ""
-  const installationId = process.env.BENCH_FIXTURE_GH_APP_INSTALLATION_ID?.trim() ?? ""
+  const clientId = process.env.BENCH_FIXTURE_GH_APP_CLIENT_ID?.trim() ?? ""
   const privateKey = await resolvePrivateKeyFromEnv()
 
-  const hasAnyAuthInput = appId.length > 0 || installationId.length > 0 || privateKey !== null
+  const hasAnyAuthInput = clientId.length > 0 || privateKey !== null
   if (!hasAnyAuthInput) {
     return null
   }
 
-  if (appId.length === 0 || installationId.length === 0 || privateKey === null || privateKey.trim().length === 0) {
+  if (clientId.length === 0 || privateKey === null || privateKey.trim().length === 0) {
     throw new Error(
-      "Incomplete fixture app auth config. Provide BENCH_FIXTURE_GH_APP_ID, BENCH_FIXTURE_GH_APP_INSTALLATION_ID, and BENCH_FIXTURE_GH_APP_PRIVATE_KEY or BENCH_FIXTURE_GH_APP_PRIVATE_KEY_PATH."
+      "Incomplete fixture app auth config. Provide BENCH_FIXTURE_GH_APP_CLIENT_ID and BENCH_FIXTURE_GH_APP_PRIVATE_KEY or BENCH_FIXTURE_GH_APP_PRIVATE_KEY_PATH.",
     )
   }
 
   return {
-    appId,
-    installationId,
-    privateKey
+    clientId,
+    privateKey,
   }
 }
 
-function buildAppJwt(appId: string, privateKey: string): string {
+function buildAppJwt(clientId: string, privateKey: string): string {
   const now = Math.floor(Date.now() / 1000)
   const header = Buffer.from(JSON.stringify({ alg: "RS256", typ: "JWT" })).toString("base64url")
   const payload = Buffer.from(
     JSON.stringify({
       iat: now - 60,
       exp: now + 600,
-      iss: appId
-    })
+      iss: clientId,
+    }),
   ).toString("base64url")
   const data = `${header}.${payload}`
-  const signature = createSign("RSA-SHA256").update(data).end().sign(privateKey).toString("base64url")
+  const signature = createSign("RSA-SHA256")
+    .update(data)
+    .end()
+    .sign(privateKey)
+    .toString("base64url")
   return `${data}.${signature}`
 }
 
-async function mintInstallationToken(config: FixtureAppAuthConfig): Promise<string> {
-  const jwt = buildAppJwt(config.appId, config.privateKey)
-  const response = await fetch(`https://api.github.com/app/installations/${config.installationId}/access_tokens`, {
-    method: "POST",
+async function discoverInstallationId(jwt: string): Promise<string> {
+  const response = await fetch("https://api.github.com/app/installations", {
     headers: {
       Authorization: `Bearer ${jwt}`,
       Accept: "application/vnd.github+json",
-      "User-Agent": "ghx-benchmark-fixtures"
-    }
+      "User-Agent": "ghx-benchmark-fixtures",
+    },
   })
+
+  if (!response.ok) {
+    const body = await response.text()
+    throw new Error(`Failed to list app installations (${response.status}): ${body}`)
+  }
+
+  const installations = (await response.json()) as Array<{ id?: unknown }>
+  const first = installations[0]
+  if (!first || typeof first.id !== "number") {
+    throw new Error("No installations found for the fixture GitHub App")
+  }
+
+  return String(first.id)
+}
+
+async function mintInstallationToken(config: FixtureAppAuthConfig): Promise<string> {
+  const jwt = buildAppJwt(config.clientId, config.privateKey)
+  const installationId = await discoverInstallationId(jwt)
+
+  const response = await fetch(
+    `https://api.github.com/app/installations/${installationId}/access_tokens`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${jwt}`,
+        Accept: "application/vnd.github+json",
+        "User-Agent": "ghx-benchmark-fixtures",
+      },
+    },
+  )
 
   if (!response.ok) {
     const body = await response.text()
@@ -85,6 +114,15 @@ async function mintInstallationToken(config: FixtureAppAuthConfig): Promise<stri
   }
 
   return payload.token
+}
+
+export async function mintFixtureAppToken(): Promise<string | null> {
+  const config = await resolveAppAuthConfigFromEnv()
+  if (config === null) {
+    return null
+  }
+
+  return await mintInstallationToken(config)
 }
 
 export async function applyFixtureAppAuthIfConfigured(): Promise<() => void> {

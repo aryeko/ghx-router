@@ -18,6 +18,7 @@
     "benchmark": "tsx src/cli/benchmark.ts run",
     "suite:run": "tsx src/cli/run-suite.ts",
     "suite:config": "tsx src/cli/generate-suite-config.ts",
+    "scenario": "tsx src/cli/run-scenario.ts",
     "fixtures": "tsx src/cli/fixtures.ts",
     "fixtures:env:bootstrap": "bash scripts/bootstrap-fixture-app-env.sh",
     "check:scenarios": "tsx src/cli/check-scenarios.ts",
