@@ -16,7 +16,7 @@ import type {
   SessionMessagePart,
 } from "../domain/types.js"
 import { extractAttemptMetrics } from "../extract/attempts.js"
-import { extractFirstJsonObject, validateEnvelope } from "../extract/envelope.js"
+import { extractFirstJsonValue, validateEnvelope } from "../extract/envelope.js"
 import { aggregateToolCounts } from "../extract/tool-usage.js"
 import { loadFixtureManifest, resolveScenarioFixtureBindings } from "../fixture/manifest.js"
 import { seedFixtureManifest } from "../fixture/seed.js"
@@ -452,86 +452,6 @@ export function extractEnvelopeFromParts(parts: SessionMessagePart[]): {
   }
 
   return { text, envelope: null }
-}
-
-function extractFirstJsonArray(input: string): unknown | null {
-  const firstBracket = input.indexOf("[")
-  if (firstBracket === -1) {
-    return null
-  }
-
-  let depth = 0
-  let inString = false
-  let escaping = false
-
-  for (let index = firstBracket; index < input.length; index += 1) {
-    const ch = input[index]
-
-    if (inString) {
-      if (escaping) {
-        escaping = false
-        continue
-      }
-
-      if (ch === "\\") {
-        escaping = true
-        continue
-      }
-
-      if (ch === '"') {
-        inString = false
-      }
-
-      continue
-    }
-
-    if (ch === '"') {
-      inString = true
-      continue
-    }
-
-    if (ch === "[") {
-      depth += 1
-      continue
-    }
-
-    if (ch === "]") {
-      depth -= 1
-      if (depth === 0) {
-        const candidate = input.slice(firstBracket, index + 1)
-        try {
-          return JSON.parse(candidate)
-        } catch {
-          return null
-        }
-      }
-    }
-  }
-
-  return null
-}
-
-function extractFirstJsonValue(input: string): unknown | null {
-  const firstBrace = input.indexOf("{")
-  const firstBracket = input.indexOf("[")
-
-  if (firstBrace === -1 && firstBracket === -1) {
-    return null
-  }
-
-  if (firstBrace === -1) {
-    return extractFirstJsonArray(input)
-  }
-
-  if (firstBracket === -1) {
-    return extractFirstJsonObject(input)
-  }
-
-  if (firstBracket < firstBrace) {
-    return extractFirstJsonArray(input) ?? extractFirstJsonObject(input)
-  }
-
-  return extractFirstJsonObject(input) ?? extractFirstJsonArray(input)
 }
 
 function extractEnvelopeFromMessages(messages: SessionMessageEntry[]): unknown | null {
