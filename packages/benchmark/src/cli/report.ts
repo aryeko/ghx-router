@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile, writeFile } from "node:fs/promises"
+import { mkdir, readdir, writeFile } from "node:fs/promises"
 import { dirname, join } from "node:path"
 import type { BenchmarkMode, BenchmarkRow, GateProfile } from "../domain/types.js"
 import { buildSummary, DEFAULT_GATE_V2_THRESHOLDS, toMarkdown } from "../report/aggregate.js"
@@ -9,6 +9,7 @@ import {
   resolveGateThresholdsForModel,
   resolveModelForExpectations,
 } from "../report/expectations.js"
+import { readJsonlFile } from "../utils/jsonl.js"
 import { runIfDirectEntry } from "./entry.js"
 import { parseMultiFlagValues } from "./flag-utils.js"
 
@@ -104,12 +105,7 @@ export function modeFromFilename(name: string): BenchmarkMode | null {
 }
 
 export async function readRows(filePath: string): Promise<BenchmarkRow[]> {
-  const content = await readFile(filePath, "utf8")
-  return content
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0)
-    .map((line) => JSON.parse(line) as BenchmarkRow)
+  return readJsonlFile<BenchmarkRow>(filePath)
 }
 
 export async function loadLatestRowsPerMode(): Promise<BenchmarkRow[]> {

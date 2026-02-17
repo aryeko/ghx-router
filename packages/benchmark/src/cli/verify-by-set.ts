@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises"
 import { dirname, join } from "node:path"
 import { z } from "zod"
 import { loadScenarioSets } from "../scenario/loader.js"
+import { readJsonlFile } from "../utils/jsonl.js"
 import { runIfDirectEntry } from "./entry.js"
 import { parseFlagValue, parseMultiFlagValues, parseRequiredFlag } from "./flag-utils.js"
 import type { SuiteRunnerConfig } from "./suite-config-schema.js"
@@ -133,15 +134,6 @@ export function resolveSeedPolicy(set: string): SeedPolicy {
   return READ_ONLY_SETS.has(set) ? "read_only" : "with_seed"
 }
 
-function parseSuiteRows(content: string): SuiteRow[] {
-  const lines = content
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0)
-
-  return lines.map((line) => JSON.parse(line) as SuiteRow)
-}
-
 function summarizeSuiteRows(rows: SuiteRow[]): ValidationSummary {
   const failingScenarioIds = new Set<string>()
 
@@ -178,8 +170,7 @@ function summarizeSuiteRows(rows: SuiteRow[]): ValidationSummary {
 }
 
 async function readSuiteRows(filePath: string): Promise<SuiteRow[]> {
-  const content = await readFile(filePath, "utf8")
-  return parseSuiteRows(content)
+  return readJsonlFile<SuiteRow>(filePath)
 }
 
 function rowsByScenarioId(rows: SuiteRow[]): Map<string, SuiteRow> {
