@@ -14,7 +14,7 @@ type OpencodeClient = {
 }
 
 const PROVIDER_ID = process.env.BENCH_PROVIDER_ID ?? "openai"
-const MODEL_ID = process.env.BENCH_MODEL_ID ?? "gpt-5.3-codex"
+const MODEL_ID = process.env.BENCH_MODEL_ID ?? "gpt-5.1-codex-mini"
 const OPENCODE_PORT = Number.parseInt(process.env.BENCH_OPENCODE_PORT ?? "3000", 10)
 
 async function main(): Promise<void> {

@@ -670,7 +670,7 @@ export async function runScenario(
 ): Promise<BenchmarkRow> {
   const cfg = config ?? loadRunnerConfig()
   const providerId = modelOverride?.providerId ?? process.env.BENCH_PROVIDER_ID ?? "openai"
-  const modelId = modelOverride?.modelId ?? process.env.BENCH_MODEL_ID ?? "gpt-5.3-codex"
+  const modelId = modelOverride?.modelId ?? process.env.BENCH_MODEL_ID ?? "gpt-5.1-codex-mini"
   const scenarioStartedAt = Date.now()
   let externalRetryCount = 0
 
@@ -679,15 +679,27 @@ export async function runScenario(
   ): { type: string; message: string; retryable: boolean } => {
     const message = error instanceof Error ? error.message : String(error)
     if (message.includes("No assistant message received in session.messages")) {
-      return { type: "runner_timeout_no_first_assistant", message, retryable: true }
+      return {
+        type: "runner_timeout_no_first_assistant",
+        message,
+        retryable: true,
+      }
     }
 
     if (message.includes("Session message stream stalled in session.messages")) {
-      return { type: "runner_timeout_stalled_session", message, retryable: true }
+      return {
+        type: "runner_timeout_stalled_session",
+        message,
+        retryable: true,
+      }
     }
 
     if (message.includes("Timed out waiting for assistant message in session.messages")) {
-      return { type: "runner_timeout_wait_for_assistant", message, retryable: true }
+      return {
+        type: "runner_timeout_wait_for_assistant",
+        message,
+        retryable: true,
+      }
     }
 
     return { type: "runner_error", message, retryable: false }
@@ -1093,7 +1105,7 @@ export async function runWorkflowScenario(
     sessionStallTimeoutMs: Math.max(cfg.sessionStallTimeoutMs, workflowStallTimeout),
   }
   const providerId = modelOverride?.providerId ?? process.env.BENCH_PROVIDER_ID ?? "openai"
-  const modelId = modelOverride?.modelId ?? process.env.BENCH_MODEL_ID ?? "gpt-5.3-codex"
+  const modelId = modelOverride?.modelId ?? process.env.BENCH_MODEL_ID ?? "gpt-5.1-codex-mini"
   const scenarioStartedAt = Date.now()
   let externalRetryCount = 0
 
@@ -1320,7 +1332,7 @@ export async function runSuite(options: RunSuiteOptions): Promise<void> {
   } = options
   const suiteConfig = optionsConfig ?? loadRunnerConfig()
   const providerId = providerIdOverride ?? process.env.BENCH_PROVIDER_ID ?? "openai"
-  const modelId = modelIdOverride ?? process.env.BENCH_MODEL_ID ?? "gpt-5.3-codex"
+  const modelId = modelIdOverride ?? process.env.BENCH_MODEL_ID ?? "gpt-5.1-codex-mini"
   const suiteRunId = randomUUID()
   const progressEventsEnabled = process.env.BENCH_PROGRESS_EVENTS === BENCH_PROGRESS_EVENTS_MODE
   const emitProgressEvent = (
