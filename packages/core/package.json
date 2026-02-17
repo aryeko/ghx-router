@@ -1,6 +1,6 @@
 {
   "name": "@ghx-dev/core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "GitHub execution router for AI agents with deterministic routing and normalized output.",
   "author": "Arye Kogan",
   "license": "MIT",
