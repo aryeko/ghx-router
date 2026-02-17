@@ -61,16 +61,16 @@
   "devDependencies": {
     "@biomejs/biome": "^2.4.1",
     "@changesets/cli": "^2.29.7",
-    "@eslint/js": "^9.35.0",
+    "@eslint/js": "^10.0.1",
     "@nx/eslint": "22.5.1",
     "@nx/js": "22.5.1",
     "@types/node": "catalog:",
     "@vitest/eslint-plugin": "^1.6.9",
-    "eslint": "^9.35.0",
+    "eslint": "^10.0.0",
     "globals": "^17.3.0",
     "lefthook": "^2.1.1",
     "nx": "22.5.1",
     "typescript": "catalog:",
-    "typescript-eslint": "^8.43.0"
+    "typescript-eslint": "^8.56.0"
   }
 }
