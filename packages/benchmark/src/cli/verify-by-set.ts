@@ -541,6 +541,18 @@ export async function runVerifySet(
   await writeSuiteRows(agentSuite, Array.from(finalAgentRows.values()))
   await writeSuiteRows(ghxSuite, Array.from(finalGhxRows.values()))
 
+  const expectedRowsPerMode = resolvedScenarioIds.length
+  const rowCountMismatch =
+    agentValidation.rowsActual !== expectedRowsPerMode ||
+    ghxValidation.rowsActual !== expectedRowsPerMode
+  if (rowCountMismatch) {
+    const rowCountIssue = `row-count-mismatch: expected=${expectedRowsPerMode} agent_direct=${agentValidation.rowsActual} ghx=${ghxValidation.rowsActual}`
+    if (!failingScenarios.includes(rowCountIssue)) {
+      failingScenarios.push(rowCountIssue)
+    }
+  }
+  failingScenarios.sort()
+
   const tracking: Tracking = {
     set: parsed.set,
     provider: parsed.provider,

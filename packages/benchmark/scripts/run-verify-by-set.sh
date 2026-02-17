@@ -70,4 +70,6 @@ for SET_NAME in "${SETS[@]}"; do
   fi
 done
 
+pnpm --filter @ghx-dev/benchmark run fixtures -- cleanup --out fixtures/latest.json
+
 echo "[verify:mini:by-set] complete"

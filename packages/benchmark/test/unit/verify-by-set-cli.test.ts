@@ -534,4 +534,56 @@ describe("verify-by-set cli", () => {
     expect(agentSuiteRows).toEqual(["scenario-a", "scenario-b"])
     expect(ghxSuiteRows).toEqual(["scenario-a", "scenario-b"])
   })
+
+  it("fails when final row counts do not match expected scenario count", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ghx-verify-set-row-count-"))
+    const outDir = join(root, "reports", "pr-exec")
+    await mkdir(outDir, { recursive: true })
+
+    const commandRunner = vi.fn(async (command: string, args: string[]) => {
+      if (command !== "pnpm") {
+        throw new Error(`unexpected command: ${command}`)
+      }
+
+      const script = args[3]
+      if (script === "suite:config") {
+        const outPath = findFlagValue(args, "--out")
+        if (!outPath) {
+          throw new Error("missing --out for suite:config")
+        }
+        await writeBaseSuiteConfig(outPath)
+        return
+      }
+
+      if (script === "suite:run") {
+        const configPath = findFlagValue(args, "--config")
+        if (!configPath) {
+          throw new Error("missing --config for suite:run")
+        }
+        const config = JSON.parse(await readFile(configPath, "utf8")) as SuiteConfig
+        const agentPath = outputPathFromModeArgs(config.benchmark.direct.args)
+        const ghxPath = outputPathFromModeArgs(config.benchmark.ghx.args)
+
+        await writeFile(agentPath, "", "utf8")
+        await writeFile(ghxPath, "", "utf8")
+
+        const { summaryJson, summaryMd } = reportSummaryPaths(
+          config.reporting.analysis.report.command,
+        )
+        await writeFile(summaryJson, "{}\n", "utf8")
+        await writeFile(summaryMd, "# Summary\n", "utf8")
+      }
+    })
+
+    await expect(
+      runVerifySet(parseArgs(["--set", "pr-exec", "--provider", "openai", "--out-dir", outDir]), {
+        runCommand: commandRunner,
+        resolveScenarioIdsForSet: async () => ["scenario-a"],
+      }),
+    ).rejects.toThrow("row-count-mismatch")
+
+    const tracking = JSON.parse(await readFile(join(outDir, "tracking.json"), "utf8"))
+    expect(tracking.final_status).toBe("terminal_fail")
+    expect(tracking.failing_scenarios.join(",")).toContain("row-count-mismatch")
+  })
 })
