@@ -33,7 +33,7 @@ export function preflightCheck(input: PreflightInput): PreflightResult {
   if (input.route === "cli" && input.ghCliAvailable === false) {
     return {
       ok: false,
-      code: errorCodes.Validation,
+      code: errorCodes.AdapterUnsupported,
       message: "GitHub CLI is required for cli route",
       retryable: false,
       details: { route: input.route },

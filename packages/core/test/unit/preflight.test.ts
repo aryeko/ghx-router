@@ -23,7 +23,7 @@ describe("preflightCheck", () => {
   it("fails cli route when gh CLI is unavailable", () => {
     const result = preflightCheck({ route: "cli", ghCliAvailable: false })
     expect(result.ok).toBe(false)
-    expect(result).toHaveProperty("code", "VALIDATION")
+    expect(result).toHaveProperty("code", "ADAPTER_UNSUPPORTED")
     expect(result).toHaveProperty("message", expect.stringContaining("GitHub CLI"))
   })
 
