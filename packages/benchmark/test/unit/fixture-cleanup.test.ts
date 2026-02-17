@@ -165,6 +165,100 @@ describe("fixture cleanup", () => {
       }),
     ).rejects.toThrow("gh command failed: gh issue list --repo aryeko/ghx-bench-fixtures")
   })
+
+  it("closes seeded PRs and deletes seed branches", async () => {
+    spawnSyncMock.mockImplementation((cmd: string, args: string[]) => {
+      if (cmd !== "gh") {
+        return { status: 1, stdout: "", stderr: "" }
+      }
+      const joined = args.join(" ")
+
+      // Issue list - empty
+      if (joined.includes("issue list")) {
+        return { status: 0, stdout: "[]", stderr: "" }
+      }
+      // PR list by seed label
+      if (joined.includes("pr list") && joined.includes("bench-seed:local")) {
+        return {
+          status: 0,
+          stdout: JSON.stringify([{ number: 20 }]),
+          stderr: "",
+        }
+      }
+      // PR close
+      if (joined.includes("pr close 20")) {
+        return { status: 0, stdout: "", stderr: "" }
+      }
+      // Branch delete bench-seed-local
+      if (joined.includes("--method DELETE") && joined.includes("bench-seed-local")) {
+        return { status: 0, stdout: "", stderr: "" }
+      }
+      // Branch delete bench-review-seed-local
+      if (joined.includes("--method DELETE") && joined.includes("bench-review-seed-local")) {
+        return { status: 0, stdout: "", stderr: "" }
+      }
+      return { status: 0, stdout: "", stderr: "" }
+    })
+
+    const result = await cleanupSeededFixtures({
+      version: 1,
+      repo: {
+        owner: "aryeko",
+        name: "ghx-bench-fixtures",
+        full_name: "aryeko/ghx-bench-fixtures",
+        default_branch: "main",
+      },
+      resources: {
+        metadata: { seed_id: "local" },
+      },
+    })
+
+    expect(result.closedIssues).toBe(0)
+    expect(result.closedPrs).toBe(1)
+    expect(result.deletedBranches).toBe(2)
+    expect(spawnSyncMock).toHaveBeenCalledWith(
+      "gh",
+      ["pr", "close", "20", "--repo", "aryeko/ghx-bench-fixtures", "--delete-branch"],
+      { encoding: "utf8" },
+    )
+  })
+
+  it("handles branch deletion failures gracefully", async () => {
+    spawnSyncMock.mockImplementation((cmd: string, args: string[]) => {
+      if (cmd !== "gh") {
+        return { status: 1, stdout: "", stderr: "" }
+      }
+      const joined = args.join(" ")
+
+      if (joined.includes("issue list")) {
+        return { status: 0, stdout: "[]", stderr: "" }
+      }
+      if (joined.includes("pr list")) {
+        return { status: 0, stdout: "[]", stderr: "" }
+      }
+      // Both branch deletes fail
+      if (joined.includes("--method DELETE")) {
+        return { status: 1, stdout: "", stderr: "not found" }
+      }
+      return { status: 0, stdout: "", stderr: "" }
+    })
+
+    const result = await cleanupSeededFixtures({
+      version: 1,
+      repo: {
+        owner: "aryeko",
+        name: "ghx-bench-fixtures",
+        full_name: "aryeko/ghx-bench-fixtures",
+        default_branch: "main",
+      },
+      resources: {
+        metadata: { seed_id: "local" },
+      },
+    })
+
+    expect(result.closedPrs).toBe(0)
+    expect(result.deletedBranches).toBe(0)
+  })
 })
 
 describe("cleanupAllFixtures", () => {

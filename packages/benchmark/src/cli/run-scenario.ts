@@ -91,11 +91,19 @@ function log(phase: string, message: string): void {
   console.log(`[${phase}] ${message}`)
 }
 
-async function resolveScenarioTimeoutMs(scenarioId: string): Promise<number> {
+type ScenarioMeta = {
+  timeoutMs: number
+  requires: string[]
+}
+
+async function resolveScenarioMeta(scenarioId: string): Promise<ScenarioMeta> {
   const scenariosDir = resolve(import.meta.dirname ?? ".", "../../scenarios")
   const scenarios = await loadScenarios(scenariosDir)
   const match = scenarios.find((s) => s.id === scenarioId)
-  return match?.timeout_ms ?? 180_000
+  return {
+    timeoutMs: match?.timeout_ms ?? 180_000,
+    requires: match?.fixture?.requires ?? [],
+  }
 }
 
 async function checkJsonlResults(jsonlPath: string): Promise<boolean> {
@@ -162,11 +170,18 @@ function spawnBenchmark(
   })
 }
 
-async function seedPhase(args: ParsedScenarioArgs, manifestPath: string): Promise<void> {
-  log("seed", `Seeding fixtures for ${args.repo} (seed-id: ${args.seedId})`)
+async function seedPhase(
+  args: ParsedScenarioArgs,
+  manifestPath: string,
+  requires: string[],
+): Promise<void> {
+  log(
+    "seed",
+    `Seeding fixtures for ${args.repo} (seed-id: ${args.seedId}, requires: [${requires.join(", ")}])`,
+  )
   const reviewerToken = await mintFixtureAppToken()
   const manifest = await seedFixtureManifest(
-    { repo: args.repo, outFile: manifestPath, seedId: args.seedId },
+    { repo: args.repo, outFile: manifestPath, seedId: args.seedId, requires },
     reviewerToken,
   )
   log("seed", `Seeded fixtures for ${manifest.repo.full_name} -> ${manifestPath}`)
@@ -178,7 +193,10 @@ async function cleanupPhase(manifestPath: string): Promise<void> {
     const manifest = await loadFixtureManifest(manifestPath)
     const result = await cleanupSeededFixtures(manifest)
     await rm(manifestPath, { force: true })
-    log("cleanup", `Closed ${result.closedIssues} seeded issue(s), removed manifest`)
+    log(
+      "cleanup",
+      `Closed ${result.closedIssues} issue(s), ${result.closedPrs} PR(s), deleted ${result.deletedBranches} branch(es), removed manifest`,
+    )
   } finally {
     restoreAuth()
   }
@@ -188,11 +206,11 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
   loadEnvLocal()
   const args = parseArgs(argv)
 
-  const timeoutMs = await resolveScenarioTimeoutMs(args.scenario)
-  const stallTimeoutMs = Math.floor(timeoutMs / 3)
+  const meta = await resolveScenarioMeta(args.scenario)
+  const stallTimeoutMs = Math.floor(meta.timeoutMs / 3)
 
   log("plan", `scenario=${args.scenario} mode=${args.mode} retries=${args.retries}`)
-  log("plan", `iterations=${args.iterations} timeout=${timeoutMs}ms stall=${stallTimeoutMs}ms`)
+  log("plan", `iterations=${args.iterations} timeout=${meta.timeoutMs}ms stall=${stallTimeoutMs}ms`)
 
   const outputJsonlPath = resolve(
     import.meta.dirname ?? ".",
@@ -226,7 +244,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
         }
       }
 
-      await seedPhase({ ...args, seedId: iterSeedId }, manifestPath)
+      await seedPhase({ ...args, seedId: iterSeedId }, manifestPath, meta.requires)
 
       log("run", `Starting benchmark (attempt ${attempt}/${maxAttempts})`)
       const result = await spawnBenchmark(args, manifestPath, stallTimeoutMs, outputJsonlPath)

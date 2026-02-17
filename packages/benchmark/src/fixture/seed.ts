@@ -7,16 +7,27 @@ import { z } from "zod"
 import type { FixtureManifest } from "../domain/types.js"
 import { runGh, runGhJson, sleep, tryRunGh, tryRunGhJson, tryRunGhWithToken } from "./gh-client.js"
 
+const VALID_REQUIRES = [
+  "issue",
+  "pr",
+  "pr_with_reviews",
+  "workflow_run",
+  "release",
+  "project",
+] as const
+
 type SeedOptions = {
   repo: string
   outFile: string
   seedId: string
+  requires?: string[]
 }
 
 const seedOptionsSchema = z.object({
   repo: z.string().trim().min(1, "invalid repo format: ; expected owner/name"),
   outFile: z.string().trim().min(1, "seed outFile must be a non-empty path"),
   seedId: z.string().trim().min(1, "seedId must be a non-empty string"),
+  requires: z.array(z.enum(VALID_REQUIRES)).optional(),
 })
 
 const FAILED_RERUN_WORKFLOW_FILE =
@@ -1079,55 +1090,86 @@ async function buildManifest(
   repo: string,
   seedId: string,
   reviewerToken: string | null,
+  requires: ReadonlySet<string>,
 ): Promise<FixtureManifest> {
   const { owner, name } = parseRepo(repo)
   const seedLabel = `bench-seed:${seedId}`
 
+  const needs = (resource: string): boolean => requires.size === 0 || requires.has(resource)
+
   runGh(["label", "create", "bench-fixture", "--repo", repo, "--color", "5319E7", "--force"])
   runGh(["label", "create", seedLabel, "--repo", repo, "--color", "1D76DB", "--force"])
 
-  const issue = findOrCreateIssue(repo, seedLabel)
+  // Issue: needed by "issue", "pr" (pr_thread depends on pr which uses issue for fallback), "project"
+  const needsIssue = needs("issue") || needs("pr") || needs("project")
+  const issue = needsIssue ? findOrCreateIssue(repo, seedLabel) : { id: "", number: 0, url: "" }
   const blockerIssue = issue
   const parentIssue = issue
-  const pr = findSeededPr(repo, seedLabel) ?? createSeedPr(repo, seedId, seedLabel)
-  const prThreadId = ensurePrThread(repo, pr.number, seedId)
 
+  // PR + thread: needed by "pr"
+  const needsPr = needs("pr")
+  const pr = needsPr
+    ? (findSeededPr(repo, seedLabel) ?? createSeedPr(repo, seedId, seedLabel))
+    : { id: "", number: 0 }
+  const prThreadId = needsPr ? ensurePrThread(repo, pr.number, seedId) : ""
+
+  // PR with reviews: needed by "pr_with_reviews"
   let prWithReviews: PrWithReviews | null = null
-  if (reviewerToken) {
+  if (needs("pr_with_reviews")) {
+    if (reviewerToken) {
+      try {
+        prWithReviews = createPrWithReviews(repo, seedId, seedLabel, reviewerToken)
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error)
+        console.warn(`warning: unable to seed pr_with_reviews fixture (${message})`)
+      }
+    } else {
+      console.warn(
+        "warning: skipping pr_with_reviews — no reviewer token available. " +
+          "Configure BENCH_FIXTURE_GH_APP_* env vars to enable.",
+      )
+    }
+  }
+
+  // Workflow run: needed by "workflow_run"
+  let workflowRun: WorkflowRunRef | null = null
+  if (needs("workflow_run")) {
     try {
-      prWithReviews = createPrWithReviews(repo, seedId, seedLabel, reviewerToken)
+      workflowRun = await ensureFailedRerunWorkflowRun(repo, seedId)
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error)
-      console.warn(`warning: unable to seed pr_with_reviews fixture (${message})`)
+      console.warn(
+        `warning: failed rerun fixture workflow unavailable (${message}); falling back to latest workflow run`,
+      )
     }
-  } else {
-    console.warn(
-      "warning: skipping pr_with_reviews — no reviewer token available. " +
-        "Configure BENCH_FIXTURE_GH_APP_* env vars to enable.",
-    )
-  }
-  let workflowRun: WorkflowRunRef | null = null
-  try {
-    workflowRun = await ensureFailedRerunWorkflowRun(repo, seedId)
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error)
-    console.warn(
-      `warning: failed rerun fixture workflow unavailable (${message}); falling back to latest workflow run`,
-    )
+
+    if (!workflowRun && needsPr) {
+      workflowRun = findLatestWorkflowRun(repo, pr.number)
+    }
   }
 
-  if (!workflowRun) {
-    workflowRun = findLatestWorkflowRun(repo, pr.number)
-  }
-  const release = findLatestDraftRelease(repo)
+  // Release: needed by "release"
+  const release = needs("release") ? findLatestDraftRelease(repo) : null
+
+  // Project: needed by "project"
   let project: { number: number; id: string; item_id: string; field_id: string; option_id: string }
-  try {
-    project = ensureProjectFixture(owner, issue.url)
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error)
-    console.warn(
-      `warning: unable to seed project fixture (${message}); using placeholder project fixture values`,
-    )
+  if (needs("project")) {
+    try {
+      project = ensureProjectFixture(owner, issue.url)
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error)
+      console.warn(
+        `warning: unable to seed project fixture (${message}); using placeholder project fixture values`,
+      )
+      project = {
+        number: 1,
+        id: "",
+        item_id: "",
+        field_id: "",
+        option_id: "",
+      }
+    }
+  } else {
     project = {
       number: 1,
       id: "",
@@ -1188,7 +1230,8 @@ export async function seedFixtureManifest(
   reviewerToken?: string | null,
 ): Promise<FixtureManifest> {
   const parsed = seedOptionsSchema.parse(options)
-  const manifest = await buildManifest(parsed.repo, parsed.seedId, reviewerToken ?? null)
+  const requires = new Set(parsed.requires ?? VALID_REQUIRES)
+  const manifest = await buildManifest(parsed.repo, parsed.seedId, reviewerToken ?? null, requires)
   await mkdir(dirname(parsed.outFile), { recursive: true })
   await writeFile(parsed.outFile, `${JSON.stringify(manifest, null, 2)}\n`, "utf8")
   return manifest
