@@ -93,6 +93,11 @@ export function buildOutputSchema(assertions: Scenario["assertions"]): Record<st
     if (field === "pageInfo") {
       dataProperties.pageInfo = {
         type: "object",
+        required: ["hasNextPage", "endCursor"],
+        properties: {
+          hasNextPage: { type: "boolean" },
+          endCursor: { type: ["string", "null"] },
+        },
       }
       continue
     }
@@ -155,7 +160,6 @@ export function buildOutputSchema(assertions: Scenario["assertions"]): Record<st
               details: { type: "object", additionalProperties: true },
             },
           },
-          { type: "string" },
         ],
       },
       meta: {
