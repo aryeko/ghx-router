@@ -1,150 +1,104 @@
-# Benchmark Sandbox Migration and Verification Plan (2026-02-16)
+# Set-by-Set Verification With Benchmark Runner Design Spec
 
-## Goal
+## Objective
 
-Establish a reliable benchmark workflow where scenario execution is meaningful, repeatable, and comparable when targeting `ghx` capabilities. The immediate goal is to validate scenario correctness and harness behavior using `openai/gpt-5.1-codex-mini` (cost-efficient verification phase), then run canonical comparison validation on `openai/gpt-5.3-codex`.
+Define a set-level verification flow that reuses existing benchmark tooling (`benchmark` +
+`report`) and adds strict blocking validation per scenario row.
 
-## Motivation
+## Scope
 
-The previous benchmark setup mixed static fixture assumptions with live repo state, which produced low-signal failures:
+### In Scope
 
-- scenarios tied to `go-modkit/modkit` and stale IDs
-- mutation scenarios configured as expected failures (`must_succeed: false`) despite seeded mutation intent
-- no dedicated sandbox for safe mutation-heavy runs
-- inconsistent fixture quality (missing PR thread, project fields, non-GraphQL issue IDs)
+- Add a wrapper CLI in `@ghx-dev/benchmark` to run verification for a single scenario set.
+- Reuse existing `benchmark` and `report` commands as the execution backbone.
+- Capture per-set artifacts in a deterministic directory layout.
+- Enforce blocking validation on produced suite rows.
+- Add a multi-set driver script that runs required sets in a fixed order.
 
-This made it hard to distinguish real regressions from fixture or assertion noise.
+### Out of Scope
 
-## What We Did in This Session
+- Replacing `benchmark` or `report` internals.
+- Adding a new benchmark execution pipeline.
+- Changing scenario content or scorecard semantics.
 
-### 1) Created sandbox-first benchmark topology
+## Functional Requirements
 
-- Introduced sandbox repository: `aryeko/ghx-bench-fixtures` (now public)
-- Added fixture lifecycle tooling in benchmark package:
-  - `fixtures seed`
-  - `fixtures status`
-  - `fixtures cleanup`
-- Added fixture manifest schema and binding resolution so scenarios can be portable and repo-agnostic.
+1. The wrapper CLI accepts:
+   - `--set` (required)
+   - `--provider` (required)
+   - `--model` (optional, default `gpt-5.1-codex-mini`)
+   - `--repetitions` (optional, default `1`)
+2. The wrapper CLI runs paired benchmark modes for the requested set and then runs report
+   generation.
+3. Seeding behavior differs by set:
+   - `ci-diagnostics` and `ci-log-analysis` are read-only (no seeding).
+   - all other ordered sets run through seed-enabled flow.
+4. The wrapper CLI passes explicit per-set output paths so suite and report artifacts are written
+   directly into the set-specific directory (no copy/snapshot step).
+5. Each set must execute in paired mode (`agent_direct` and `ghx`).
+6. Validation blocks the run when any row violates required fields.
+7. Any wrapper-generated intermediate paths must be unique per execution to avoid collisions under
+   parallel runs.
 
-### 2) Migrated scenarios away from hardcoded repo/IDs
+## CLI Contracts
 
-- Scenario inputs now use fixture bindings from manifest.
-- Removed `go-modkit/modkit` dependencies from benchmark scenario definitions.
-- Split suite intent:
-  - read-only verify sets for CI (`ci-verify-pr`, `ci-verify-release`)
-  - seeded full/mutation sets for sandbox runs (`full-seeded` and roadmap sets).
+The wrapper and called commands must use explicit output and rerun contracts:
 
-### 3) Added model-aware gate expectations
+- `verify:set`
+  - required: `--set`, `--provider`
+  - optional: `--model`, `--repetitions`, `--out-dir`
+  - `--out-dir` default:
+    `packages/benchmark/reports/verification-<date>-<model>-by-set/<set>/`
+- paired benchmark runs (invoked by wrapper):
+  - `benchmark -- agent_direct ... --provider <provider> --model <model> --output-jsonl <out-dir>/agent_direct-suite.jsonl`
+  - `benchmark -- ghx ... --provider <provider> --model <model> --output-jsonl <out-dir>/ghx-suite.jsonl`
+- report generation (invoked by wrapper):
+  - `report -- --gate --gate-profile verify_pr --summary-json <out-dir>/latest-summary.json --summary-md <out-dir>/latest-summary.md`
+- scenario-level rerun contract (for failures):
+  - repeatable flag: `--scenario-id <id>`
+  - wrapper maps `--scenario-id <id>` to benchmark selector flag `--scenario <id>`
+  - wrapper replays paired mode restricted to the provided scenario IDs
 
-- Added expectations config: `packages/benchmark/config/expectations.json`
-- Added report support for model-specific thresholds and explicit overrides:
-  - `--expectations-model`
-  - `--expectations-config`
-- Set current verification default model to `openai/gpt-5.1-codex-mini`.
+Compatibility requirement:
 
-### 4) Fixed fixture seeding quality issues
+- if `report` does not yet support `--summary-json` and `--summary-md`, add support first;
+  wrapper behavior must not depend on copying from shared latest files.
 
-- Ensured seeded manifest includes:
-  - PR + PR thread IDs
-  - project-v2 number/id/item/field/option IDs
-  - GraphQL issue IDs (`I_kw...`) required for mutation tasks
-- Added and updated seed/cleanup unit tests.
+## Validation Rules
 
-### 5) Refactored scenario assertion semantics
+For every row in each generated suite JSONL file:
 
-- Introduced `assertions.expected_outcome` (`success` or `expected_error`).
-- Migrated scenarios to explicit `expected_outcome: "success"` for seeded verification.
-- Added guardrails in scenario checks:
-  - `expected_error` must include `expected_error_code`
-  - roadmap sets must use success outcomes.
+- `success` must be `true`
+- `output_valid` must be `true`
+- `error` must be `null`
 
-### 6) Added config-driven suite orchestration and generation
+If any row fails, the command exits non-zero and reports failing row details.
 
-- Added `suite:run` orchestration CLI for benchmark workflow phases:
-  - optional `fixtures.setup.cleanup`
-  - optional `fixtures.setup.seed`
-  - parallel benchmark execution (`ghx` + `agent_direct`)
-  - `reporting.analysis.report`
-  - optional `reporting.analysis.gate`
-- Added `suite:config` generator CLI to create `config/suite-runner.json`.
-- Config now supports benchmark base command + per-mode extensions (`env`/`args`) to avoid duplicated command definitions.
+## Architecture
 
-### 7) Hardened seeded-run ergonomics and defaults
+### Single-Set Wrapper
 
-- Setup phases are now opt-in in generated config (`--with-cleanup`, `--with-seed`) to prevent accidental remote fixture operations for read-only sets.
-- When seed phase is enabled, `suite:run` now auto-generates `BENCH_FIXTURE_SEED_ID` per run unless explicitly provided, preventing collisions from static `default` seed IDs.
-- Generated benchmark defaults now assign distinct ports per mode (`3001`/`3002`) to avoid parallel run port conflicts.
+Primary module:
 
-### 8) Improved suite execution observability
+- `packages/benchmark/src/cli/verify-by-set.ts`
 
-- Added structured progress events in runner (`suite_started`, `scenario_started`, `scenario_finished`, `suite_finished`, `suite_error`).
-- Added live dashboard output in `suite:run` with:
-  - global suite progress
-  - per-phase status
-  - benchmark sub-progress for `ghx` and `agent_direct`
-- Added quiet-by-default output with `--verbose` opt-in for full child command streaming.
+Responsibilities:
 
-### 9) Removed legacy gate output
+1. Parse CLI arguments and normalize model signature.
+2. Determine whether the selected set requires seed flow.
+3. Build a run identifier and derive per-set output paths.
+4. Run paired `benchmark` modes (`agent_direct`, `ghx`) with explicit `--provider` and `--model`
+   CLI args plus explicit per-set output JSONL paths.
+5. Run `report` with explicit summary output paths scoped to the current set directory.
+6. Validate row-level output and return pass/fail status.
 
-- Removed Legacy Gate (v1) from generated markdown and JSON report outputs.
-- `latest-summary` now reflects Gate V2 only.
+### Multi-Set Driver
 
-## Progress Snapshot (Key Commits)
+Driver script:
 
-- `bdb5672` feat(benchmark): add sandbox fixture manifest workflow
-- `ff9bde1` feat(benchmark): add seeded fixture cleanup
-- `4388cde` feat(benchmark): add model-aware gate expectations
-- `93b4620` fix(benchmark): seed dedicated project-v2 fixtures
-- `91942bd` refactor(benchmark): migrate to expected_outcome assertions
-- `9c36353` fix(benchmark): seed GraphQL issue IDs for mutations
-- `f8d181e` feat(benchmark): add config-driven suite runner with progress events
-- `6e25b6c` feat(benchmark): add generated suite config workflow
-- `1c91a15` fix(benchmark): auto-generate seed ids for seeded suite runs
-- `6491500` feat(benchmark): improve suite dashboard and drop legacy gate output
+- `packages/benchmark/scripts/run-verify-by-set.sh`
 
-## Current Status
-
-### Completed
-
-- sandbox repo and fixture lifecycle are operational
-- scenario binding and fixture-driven targeting are in place
-- model-aware gate configuration is wired
-- scenario assertion model migrated to explicit outcomes
-- benchmark package checks currently pass (tests/typecheck/lint/check-scenarios)
-- config-driven suite workflow is operational (`suite:config` + `suite:run`)
-- live suite dashboard and quiet/verbose output modes are implemented
-- report output no longer includes legacy gate v1
-
-### Partially completed
-
-- paired verification has started and orchestration is in place, but full set-by-set paired validation across all planned sets is still pending.
-- consolidated mini artifact generation and canonical 5.3 confirmation runs are still pending.
-
-## Detailed Execution Plan (Next Steps)
-
-### Phase A: Set-by-set paired verification on mini (active phase)
-
-Use `openai/gpt-5.1-codex-mini`, one iteration, and run both modes for each set before moving on.
-
-#### Preconditions
-
-1. Ensure fixture manifest exists, then validate it:
-
-```bash
-if [ ! -f fixtures/latest.json ]; then
-  pnpm --filter @ghx-dev/benchmark run fixtures -- seed --out fixtures/latest.json --seed-id local
-fi
-pnpm --filter @ghx-dev/benchmark run fixtures -- status --out fixtures/latest.json
-```
-
-2. Set model env:
-
-```bash
-export BENCH_PROVIDER_ID=openai
-export BENCH_MODEL_ID=gpt-5.1-codex-mini
-```
-
-#### Set order (required)
+Execution order:
 
 1. `pr-exec`
 2. `pr-thread-mutations`
@@ -156,105 +110,188 @@ export BENCH_MODEL_ID=gpt-5.1-codex-mini
 8. `ci-diagnostics`
 9. `ci-log-analysis`
 
-#### Per-set loop
+The script invokes the single-set wrapper once per set.
 
-For each set `<SET>`:
+## Artifact Layout
+
+Each run writes to:
+
+- `packages/benchmark/reports/verification-<date>-<model>-by-set/<set>/`
+
+Expected generated artifacts:
+
+- `agent_direct-suite.jsonl`
+- `ghx-suite.jsonl`
+- `latest-summary.json`
+- `latest-summary.md`
+
+All artifacts are generated directly in the target set folder; implementation must not depend on
+copying from shared `results/` or `reports/` latest files.
+
+Required run identifier convention:
+
+- `<run-id>` is timestamp- or UUID-based and unique per execution.
+- `<run-id>` must be included in any intermediate/generated path used by the wrapper.
+
+## Interface and Script Additions
+
+In `packages/benchmark/package.json`:
+
+- `verify:set` -> wrapper CLI entrypoint
+- `verify:mini:by-set` -> ordered multi-set driver script
+
+## Operational Notes
+
+- Preflight executes once before Set 1:
+  - verify fixture manifest exists (`fixtures/latest.json`) and `fixtures status` is healthy
+  - verify required CLI inputs are present (`--provider`, `--model` default or explicit)
+  - create run-level base artifact directory
+    (`packages/benchmark/reports/verification-<date>-<model>-by-set/`)
+- Set execution is strictly blocking by order; no parallel advancement across sets.
+- Only advance to the next set when the current set passes blocking row-level validation.
+- Row-level gating mode is authoritative for progression; `report --gate --gate-profile verify_pr`
+  output is retained for reporting but does not override row-level block status.
+- Required environment/runtime context includes benchmark auth prerequisites.
+- Wrapper flow must remain a thin orchestrator around existing benchmark commands.
+- Error output should prioritize actionable failure details (set name, file, row index, field).
+- Intermediate path generation must be parallel-safe; no shared static filenames.
+- Artifact and summary writes must be parallel-safe via explicit per-set output paths.
+
+Seed lifecycle requirements:
+
+- preflight validates fixture manifest once before Set 1.
+- for sets marked `with seed`, wrapper runs seed-enabled flow for that set with a unique seed ID.
+- for read-only sets, wrapper must skip seed creation.
+- cleanup runs once at post-run stage after all ordered sets are green (or after terminal stop if
+  explicitly requested).
+
+## Command Examples
+
+Single-set run:
 
 ```bash
-# ensure report reads only this set's paired outputs
-rm -f packages/benchmark/results/*-agent_direct-suite.jsonl packages/benchmark/results/*-ghx-suite.jsonl
-
-pnpm --filter @ghx-dev/benchmark run benchmark -- agent_direct 1 --scenario-set <SET> --fixture-manifest fixtures/latest.json
-GHX_SKIP_GH_PREFLIGHT=1 pnpm --filter @ghx-dev/benchmark run benchmark -- ghx 1 --scenario-set <SET> --fixture-manifest fixtures/latest.json
-
-SET_ARTIFACT_DIR="packages/benchmark/reports/verification-$(date +%F)-gpt-5.1-codex-mini-by-set/<SET>"
-mkdir -p "$SET_ARTIFACT_DIR"
-cp packages/benchmark/results/*-agent_direct-suite.jsonl "$SET_ARTIFACT_DIR/agent_direct-suite.jsonl"
-cp packages/benchmark/results/*-ghx-suite.jsonl "$SET_ARTIFACT_DIR/ghx-suite.jsonl"
-
-pnpm --filter @ghx-dev/benchmark run report -- --gate --gate-profile verify_pr --expectations-model openai/gpt-5.1-codex-mini || true
-cp packages/benchmark/reports/latest-summary.json "$SET_ARTIFACT_DIR/latest-summary.json"
-cp packages/benchmark/reports/latest-summary.md "$SET_ARTIFACT_DIR/latest-summary.md"
+pnpm --filter @ghx-dev/benchmark run verify:set -- --set pr-exec --provider openai --model gpt-5.1-codex-mini --repetitions 1
 ```
 
-Run row-level blocking validation before proceeding to the next set:
+Single-set rerun restricted to failures:
 
 ```bash
-pnpm --filter @ghx-dev/benchmark exec node -e '
-const fs = require("node:fs")
-const files = process.argv.slice(1)
-const rows = files.flatMap((file) =>
-  fs.readFileSync(file, "utf8").trim().split("\n").filter(Boolean).map((line) => JSON.parse(line))
-)
-const bad = rows.filter((row) => row.success !== true || row.output_valid !== true || row.error !== null)
-if (bad.length > 0) {
-  console.error("Blocking validation failed:")
-  for (const row of bad) {
-    console.error(` - mode=${row.mode} scenario=${row.scenario_id} success=${row.success} output_valid=${row.output_valid} error=${row.error ?? "<null>"}`)
-  }
-  process.exit(1)
+pnpm --filter @ghx-dev/benchmark run verify:set -- --set pr-exec --provider openai --model gpt-5.1-codex-mini --scenario-id pr-review-submit-approve-001 --scenario-id pr-branch-update-001
+```
+
+Ordered mini flow:
+
+```bash
+pnpm --filter @ghx-dev/benchmark run verify:mini:by-set -- --provider openai --model gpt-5.1-codex-mini --repetitions 1
+```
+
+## Set Namespace Mapping
+
+- The ordered execution sets (`pr-exec`, `issues`, etc.) are benchmark scenario-set identifiers.
+- Read-only seed policy applies to `ci-diagnostics` and `ci-log-analysis`.
+- Implementation must include explicit mapping (or shared classification helper) to avoid
+  accidental seed behavior mismatches across naming schemes.
+
+Required mapping table:
+
+| Ordered Set | Seed Policy |
+| --- | --- |
+| `pr-exec` | with seed |
+| `pr-thread-mutations` | with seed |
+| `issues` | with seed |
+| `release-delivery` | with seed |
+| `workflows` | with seed |
+| `projects-v2` | with seed |
+| `pr-review-reads` | with seed |
+| `ci-diagnostics` | read-only (no seed) |
+| `ci-log-analysis` | read-only (no seed) |
+
+## Failure and Retry Policy
+
+- On set failure, extract failing `scenario_id` values from validator output.
+- Re-run paired mode for failed scenarios to confirm reproducibility.
+- Fix harness/fixture/scenario issues as needed.
+- Re-run the full set and require a clean blocking validation result before continuing.
+
+## Per-Set Tracking Requirements
+
+For each set, record:
+
+- `rows_expected` vs `rows_actual` for `agent_direct` and `ghx`
+- pass/fail counts for `success`, `output_valid`, and `error`
+- failing `scenario_id` list
+- rerun attempts and final disposition
+
+This tracking can be emitted as a machine-readable file or markdown per set, but must be preserved
+in the set artifact directory.
+
+Required file name in each set folder:
+
+- `tracking.json`
+
+Required tracking source rules:
+
+- `rows_expected` is derived from the resolved scenario list for the set (or rerun filter) before
+  execution.
+- `rows_actual` is counted from each produced JSONL.
+- expected row count for paired mode is `rows_expected` per mode.
+
+Example `tracking.json` shape:
+
+```json
+{
+  "set": "pr-exec",
+  "provider": "openai",
+  "model": "gpt-5.1-codex-mini",
+  "rows_expected": {
+    "agent_direct": 9,
+    "ghx": 9
+  },
+  "rows_actual": {
+    "agent_direct": 9,
+    "ghx": 9
+  },
+  "checks": {
+    "success": { "pass": 9, "fail": 0 },
+    "output_valid": { "pass": 9, "fail": 0 },
+    "error_null": { "pass": 9, "fail": 0 }
+  },
+  "failing_scenarios": [],
+  "reruns": [
+    {
+      "attempt": 1,
+      "scenario_ids": [],
+      "result": "pass"
+    }
+  ],
+  "final_status": "pass"
 }
-console.log(`Blocking validation passed (${rows.length} rows)`)
-' "$SET_ARTIFACT_DIR/agent_direct-suite.jsonl" "$SET_ARTIFACT_DIR/ghx-suite.jsonl"
 ```
 
-#### Pass criteria per set (blocking)
+## Post-Run Requirements
 
-- expected row counts produced in both modes
-- all rows `success=true`
-- all rows `output_valid=true`
-- no `error` rows in either mode
+After all nine sets are green:
 
-Gate v2 pass is advisory at single-iteration set granularity, not blocking for this phase.
+1. Generate a consolidated mini summary from all set folders under
+   `verification-<date>-<model>-by-set/`.
+2. Run fixture cleanup (`fixtures cleanup --out fixtures/latest.json`).
+3. Start canonical confirmation on `openai/gpt-5.3-codex` for `verify_pr` and
+   `verify_release` in paired mode.
 
-#### Failure handling
-
-If a set fails blocking criteria:
-
-1. extract failing `scenario_id` values from both mode files
-2. rerun failing scenarios in paired mode (`agent_direct` + `ghx`)
-3. inspect row errors and session traces
-4. fix fixture/scenario/harness issues
-5. rerun the entire failed set before proceeding
-
-### Phase B: Consolidated mini verification artifact
-
-After all sets in Phase A are run:
-
-- generate final JSON + markdown summary from per-set status files
-- store under `packages/benchmark/reports/verification-<date>-gpt-5.1-codex-mini-by-set/`
-
-### Phase C: Cleanup
-
-When verification batch completes:
+Canonical confirmation commands:
 
 ```bash
-pnpm --filter @ghx-dev/benchmark run fixtures -- cleanup --out fixtures/latest.json
+BENCH_PROVIDER_ID=openai BENCH_MODEL_ID=gpt-5.3-codex pnpm --filter @ghx-dev/benchmark run benchmark:verify:pr
+BENCH_PROVIDER_ID=openai BENCH_MODEL_ID=gpt-5.3-codex pnpm --filter @ghx-dev/benchmark run benchmark:verify:release
 ```
 
-### Phase D: Canonical confirmation on 5.3
+## Acceptance Criteria
 
-After mini phase stabilizes and all blocking checks pass:
-
-1. switch to `openai/gpt-5.3-codex`
-2. run paired `verify_pr` (agent_direct + ghx)
-3. run paired `verify_release` (agent_direct + ghx)
-4. run report gate using 5.3 expectations for each profile
-5. decide go/no-go for benchmark baseline update.
-
-## Risks and Mitigations
-
-- **Risk: fixture drift between sets**
-  - Mitigation: validate manifest before run and cleanup after batch.
-- **Risk: false gate negatives at 1 iteration**
-  - Mitigation: treat gate as advisory in Phase A; enforce row-level blocking correctness.
-- **Risk: mutation side effects contaminating subsequent sets**
-  - Mitigation: seeded labels + cleanup; rerun set from clean fixture state when needed.
-
-## Definition of Done for This Workstream
-
-- all planned sets executed in paired mode (`agent_direct` + `ghx`)
-- blocking criteria pass for every set
-- consolidated mini verification report produced
-- fixtures cleaned up
-- canonical 5.3 confirm run completed and documented
+- Single-set verification runs end-to-end via one command and produces per-set artifacts.
+- Multi-set driver runs all required sets in order.
+- Invalid rows always block with non-zero exit and clear diagnostics.
+- Read-only sets skip seed flow; other sets use seed-enabled flow.
+- Preflight runs once and is not repeated per set.
+- Failed sets produce scenario-level retry inputs and do not allow progression until green.
+- Per-set tracking artifacts are present for all nine sets.
+- Post-run summary + cleanup + canonical confirmation handoff are defined and executable.
