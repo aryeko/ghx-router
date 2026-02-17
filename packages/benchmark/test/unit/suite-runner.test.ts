@@ -5,6 +5,7 @@ vi.mock("node:child_process", () => ({
 }))
 
 import { spawnSync } from "node:child_process"
+import { extractEnvelopeFromParts } from "../../src/runner/envelope-recovery.js"
 import { validateFixture } from "../../src/runner/preflight/fixture-preflight.js"
 import { ghOk } from "../../src/runner/preflight/ghx-router-preflight.js"
 import { renderPrompt } from "../../src/runner/prompt/prompt-renderer.js"
@@ -12,7 +13,6 @@ import {
   asNumber,
   assertGhxRouterPreflight,
   coercePromptResponse,
-  extractEnvelopeFromParts,
   extractPromptResponseFromPromptResult,
   extractSnapshotFromParts,
   extractTimingBreakdown,
