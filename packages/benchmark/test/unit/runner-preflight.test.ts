@@ -71,4 +71,81 @@ describe("ghx router preflight", () => {
       }),
     ).toThrow("missing capabilities")
   })
+
+  it("fails with fallback messages when auth or capabilities command fails", () => {
+    const authFails = vi.fn().mockReturnValueOnce({ status: 1, stderr: "" })
+    expect(() =>
+      assertGhxRouterPreflight([scenario], {
+        ghxCommand: "/tmp/ghx",
+        ensureGhxAliasReady: () => undefined,
+        spawnSyncFn: authFails,
+      }),
+    ).toThrow("gh auth status failed")
+
+    const capabilitiesFail = vi
+      .fn()
+      .mockReturnValueOnce({ status: 0, stderr: "" })
+      .mockReturnValueOnce({ status: 1, stderr: "" })
+    expect(() =>
+      assertGhxRouterPreflight([scenario], {
+        ghxCommand: "/tmp/ghx",
+        ensureGhxAliasReady: () => undefined,
+        spawnSyncFn: capabilitiesFail,
+      }),
+    ).toThrow("failed to list ghx capabilities")
+  })
+
+  it("fails for invalid capabilities JSON payloads", () => {
+    const invalidJson = vi
+      .fn()
+      .mockReturnValueOnce({ status: 0, stderr: "" })
+      .mockReturnValueOnce({ status: 0, stdout: "{not-json", stderr: "" })
+    expect(() =>
+      assertGhxRouterPreflight([scenario], {
+        ghxCommand: "/tmp/ghx",
+        ensureGhxAliasReady: () => undefined,
+        spawnSyncFn: invalidJson,
+      }),
+    ).toThrow("ghx capabilities JSON invalid")
+
+    const nonArrayJson = vi
+      .fn()
+      .mockReturnValueOnce({ status: 0, stderr: "" })
+      .mockReturnValueOnce({ status: 0, stdout: JSON.stringify({ capability_id: "repo.view" }) })
+    expect(() =>
+      assertGhxRouterPreflight([scenario], {
+        ghxCommand: "/tmp/ghx",
+        ensureGhxAliasReady: () => undefined,
+        spawnSyncFn: nonArrayJson,
+      }),
+    ).toThrow("expected array")
+
+    const emptyJson = vi
+      .fn()
+      .mockReturnValueOnce({ status: 0, stderr: "" })
+      .mockReturnValueOnce({ status: 0, stdout: "   " })
+    expect(() =>
+      assertGhxRouterPreflight([scenario], {
+        ghxCommand: "/tmp/ghx",
+        ensureGhxAliasReady: () => undefined,
+        spawnSyncFn: emptyJson,
+      }),
+    ).toThrow("returned no capabilities")
+  })
+
+  it("fails on win32 platform", () => {
+    const platformSpy = vi.spyOn(process, "platform", "get").mockReturnValue("win32")
+
+    try {
+      expect(() =>
+        assertGhxRouterPreflight([scenario], {
+          ghxCommand: "/tmp/ghx",
+          ensureGhxAliasReady: () => undefined,
+          spawnSyncFn: vi.fn(),
+        }),
+      ).toThrow("supports Unix-like environments only")
+    } finally {
+      platformSpy.mockRestore()
+    }
+  })
 })

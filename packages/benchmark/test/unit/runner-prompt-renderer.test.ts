@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import type { Scenario } from "../../src/domain/types.js"
 import {
+  buildOutputSchema,
   forcedToolCommandHint,
   modeScopedAssertions,
   renderPrompt,
@@ -48,5 +49,55 @@ describe("prompt renderer", () => {
 
     expect(ghxHint).toContain("ghx run issue.list")
     expect(directHint).toContain("gh issue list")
+  })
+
+  it("adds custom required meta fields to output schema", () => {
+    const schema = buildOutputSchema({
+      ...scenario.assertions,
+      required_meta_fields: ["route_used", "attempts", "custom_meta"],
+    })
+    const customMeta = (
+      ((schema.properties as Record<string, unknown>).meta as Record<string, unknown>)
+        .properties as Record<string, unknown>
+    ).custom_meta as Record<string, unknown>
+
+    expect(Array.isArray(customMeta.anyOf)).toBe(true)
+    expect((customMeta.anyOf as Array<{ type?: string }>).map((item) => item.type)).toContain(
+      "null",
+    )
+  })
+
+  it("builds direct command hints for list/view tasks and fallback", () => {
+    const base = {
+      ...scenario,
+      input: {
+        owner: "octo",
+        name: "hello",
+        first: 7,
+        state: "closed",
+        issueNumber: 12,
+        prNumber: 34,
+      },
+      fixture: { repo: "octo/hello" },
+    } satisfies Scenario
+
+    expect(
+      forcedToolCommandHint({ ...base, task: "issue.comments.list" }, "agent_direct"),
+    ).toContain("gh api repos/octo/hello/issues/12/comments?per_page=7&page=1")
+    expect(forcedToolCommandHint({ ...base, task: "pr.list" }, "agent_direct")).toContain(
+      "gh pr list --repo octo/hello --state closed --limit 7",
+    )
+    expect(forcedToolCommandHint({ ...base, task: "issue.view" }, "agent_direct")).toContain(
+      "gh issue view 12 --repo octo/hello",
+    )
+    expect(forcedToolCommandHint({ ...base, task: "pr.view" }, "agent_direct")).toContain(
+      "gh pr view 34 --repo octo/hello",
+    )
+    expect(forcedToolCommandHint({ ...base, task: "repo.view" }, "agent_direct")).toContain(
+      "gh repo view octo/hello --json",
+    )
+    expect(forcedToolCommandHint({ ...base, task: "unknown.task" }, "agent_direct")).toBe(
+      "gh --version",
+    )
   })
 })

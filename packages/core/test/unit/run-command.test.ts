@@ -48,6 +48,10 @@ describe("runCommand", () => {
     await expect(runCommand(["repo.view"])).rejects.toThrow("Missing --input JSON")
   })
 
+  it("throws usage error for blank task names", async () => {
+    await expect(runCommand(["   ", "--input", "{}"])).rejects.toThrow("Usage: ghx run")
+  })
+
   it("throws for invalid input JSON", async () => {
     await expect(runCommand(["repo.view", "--input", "not-json"])).rejects.toThrow(
       "Invalid JSON for --input",
@@ -130,6 +134,27 @@ describe("runCommand", () => {
       expect.objectContaining({
         skipGhPreflight: false,
       }),
+    )
+  })
+
+  it("accepts inline --input JSON syntax", async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ data: { repository: { id: "r1" } } }),
+    }))
+    vi.stubGlobal("fetch", fetchMock)
+
+    executeTaskMock.mockResolvedValue({ ok: true })
+
+    await runCommand(["repo.view", '--input={"owner":"a","name":"b"}'])
+
+    expect(executeTaskMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        task: "repo.view",
+        input: { owner: "a", name: "b" },
+      }),
+      expect.any(Object),
     )
   })
 
