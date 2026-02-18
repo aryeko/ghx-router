@@ -998,10 +998,20 @@ export async function runSuite(options: RunSuiteOptions): Promise<void> {
 
         const seedSourceRepo = process.env.BENCH_FIXTURE_REPO ?? "aryeko/ghx-bench-fixtures"
 
+        const requiredResources = new Set<string>()
+        for (const scenario of selectedScenarios) {
+          if (scenario.fixture?.requires) {
+            for (const r of scenario.fixture.requires) {
+              requiredResources.add(r)
+            }
+          }
+        }
+
         await seedFixtureManifest({
           repo: seedSourceRepo,
           outFile: fixtureManifestPath,
           seedId: process.env.BENCH_FIXTURE_SEED_ID ?? "default",
+          ...(requiredResources.size > 0 ? { requires: [...requiredResources] } : {}),
         })
       }
 

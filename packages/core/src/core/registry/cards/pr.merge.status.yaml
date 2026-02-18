@@ -22,6 +22,9 @@ output_schema:
 routing:
   preferred: graphql
   fallbacks: [cli]
+graphql:
+  operationName: PrMergeStatus
+  documentPath: src/gql/client.ts
 cli:
   command: pr view
   jsonFields: [mergeable, mergeStateStatus, reviewDecision, isDraft, state]

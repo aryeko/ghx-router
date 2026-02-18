@@ -593,6 +593,77 @@ describe("runSuite", () => {
     expect(appendFileMock).toHaveBeenCalledTimes(1)
   })
 
+  it("passes aggregated requires from scenarios when seeding fixtures", async () => {
+    const session = createSessionMocks()
+    const close = vi.fn()
+    createOpencodeMock.mockResolvedValue({ client: { session }, server: { close } })
+
+    loadScenariosMock.mockResolvedValue([
+      mockWorkflow({
+        id: "wf-a",
+        fixture: {
+          repo: "a/b",
+          requires: ["issue", "pr"],
+          bindings: { "input.issueNumber": "resources.issue.number" },
+        },
+      }),
+      mockWorkflow({
+        id: "wf-b",
+        fixture: {
+          repo: "a/b",
+          requires: ["pr", "release"],
+          bindings: { "input.prNumber": "resources.pr.number" },
+        },
+      }),
+    ])
+
+    const root = await mkdtemp(join(tmpdir(), "ghx-bench-seed-req-"))
+    const fixturePath = join(root, "seeded-fixture.json")
+
+    seedFixtureManifestMock.mockImplementation(async ({ outFile }: { outFile: string }) => {
+      await writeFile(
+        outFile,
+        JSON.stringify({
+          version: 1,
+          repo: {
+            owner: "aryeko",
+            name: "ghx-bench-fixtures",
+            full_name: "aryeko/ghx-bench-fixtures",
+            default_branch: "main",
+          },
+          resources: {
+            issue: { number: 1, title: "test" },
+            pr: { number: 2, title: "test-pr" },
+          },
+        }),
+        "utf8",
+      )
+    })
+
+    accessMock.mockRejectedValueOnce(new Error("missing fixture manifest"))
+
+    const mod = await import("../../src/runner/suite-runner.js")
+    await mod.runSuite({
+      mode: "ghx",
+      repetitions: 1,
+      scenarioFilter: ["wf-a", "wf-b"],
+      fixtureManifestPath: fixturePath,
+      seedIfMissing: true,
+      skipWarmup: true,
+    })
+
+    expect(seedFixtureManifestMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        repo: "aryeko/ghx-bench-fixtures",
+        outFile: fixturePath,
+        seedId: "default",
+        requires: expect.arrayContaining(["issue", "pr", "release"]),
+      }),
+    )
+    const callArgs = seedFixtureManifestMock.mock.calls[0]?.[0] as { requires: string[] }
+    expect(callArgs.requires).toHaveLength(3)
+  })
+
   it("throws when --seed-if-missing is set without a fixture manifest", async () => {
     const session = createSessionMocks()
     const close = vi.fn()
