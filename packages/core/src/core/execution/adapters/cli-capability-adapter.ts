@@ -245,7 +245,7 @@ function buildArgs(
       args.push("--repo", repo)
     }
 
-    args.push("--json", jsonFieldsFromCard(card, "id,number,title,state,url"))
+    args.push("--json", jsonFieldsFromCard(card, "id,number,title,state,url,body,labels"))
     return args
   }
 
@@ -317,7 +317,7 @@ function buildArgs(
       args.push("--repo", repo)
     }
 
-    args.push("--json", jsonFieldsFromCard(card, "id,number,title,state,url"))
+    args.push("--json", jsonFieldsFromCard(card, "id,number,title,state,url,body,labels"))
     return args
   }
 

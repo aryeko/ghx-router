@@ -644,7 +644,7 @@ export async function runWorkflowScenario(
   const workflowStallTimeout = Math.floor(scenario.timeout_ms / 3)
   const workflowConfig: RunnerConfig = {
     ...cfg,
-    sessionStallTimeoutMs: Math.max(cfg.sessionStallTimeoutMs, workflowStallTimeout),
+    sessionStallTimeoutMs: Math.max(cfg.sessionStallTimeoutMs ?? 0, workflowStallTimeout),
   }
   const providerId = modelOverride?.providerId ?? process.env.BENCH_PROVIDER_ID ?? "openai"
   const modelId = modelOverride?.modelId ?? process.env.BENCH_MODEL_ID ?? "gpt-5.1-codex-mini"

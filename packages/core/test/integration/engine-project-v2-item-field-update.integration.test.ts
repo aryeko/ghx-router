@@ -18,6 +18,7 @@ describe("executeTask project_v2.item.field.update", () => {
         projectId: "project-id-1",
         itemId: "item-id-1",
         fieldId: "field-id-1",
+        valueText: "updated-value",
       },
     }
 

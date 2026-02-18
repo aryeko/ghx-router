@@ -412,6 +412,7 @@ describe("cleanupAllFixtures", () => {
       "Warning: failed to delete branch ref refs/heads/bench-seed-abc",
     )
     expect(warnSpy).toHaveBeenCalledWith("Warning: failed to delete label bench-seed:broken")
+    warnSpy.mockRestore()
   })
 
   it("skips bench-fixture label itself when deleting labels", async () => {

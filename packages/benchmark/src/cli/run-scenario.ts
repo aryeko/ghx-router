@@ -162,8 +162,12 @@ function spawnBenchmark(
 
   return new Promise((resolvePromise) => {
     child.once("exit", async (code) => {
-      const scenarioSuccess = code === 0 && (await checkJsonlResults(outputJsonlPath))
-      resolvePromise({ code: code ?? 1, scenarioSuccess })
+      try {
+        const scenarioSuccess = code === 0 && (await checkJsonlResults(outputJsonlPath))
+        resolvePromise({ code: code ?? 1, scenarioSuccess })
+      } catch {
+        resolvePromise({ code: code ?? 1, scenarioSuccess: false })
+      }
     })
     child.once("error", () => {
       resolvePromise({ code: 1, scenarioSuccess: false })
