@@ -159,7 +159,7 @@ describe("runSuite", () => {
     expect(createOpencodeMock).toHaveBeenCalledWith(
       expect.objectContaining({
         config: expect.objectContaining({
-          instructions: expect.arrayContaining([expect.stringContaining("# Using ghx")]),
+          instructions: expect.arrayContaining([expect.stringContaining("# ghx CLI Skill")]),
           plugin: [],
         }),
       }),
