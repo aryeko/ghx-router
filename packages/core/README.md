@@ -119,11 +119,11 @@ npx @ghx-dev/core setup --scope project --verify
 
 The canonical setup skill content is stored in:
 
-- `src/cli/assets/skills/ghx/SKILL.md`
+- `skills/using-ghx/SKILL.md` (package root)
 
 During build/publish it is copied to:
 
-- `dist/cli/assets/skills/ghx/SKILL.md`
+- `dist/skills/using-ghx/SKILL.md`
 
 `ghx setup` writes this content to `.agents/skills/ghx/SKILL.md` in user or project scope.
 

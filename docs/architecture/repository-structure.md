@@ -145,7 +145,7 @@ ghx/
 | `cli/commands/setup.ts` | Skill installation | `setupCommand()` |
 | `cli/commands/capabilities-list.ts` | List capabilities | `capabilitiesListCommand()` |
 | `cli/commands/capabilities-explain.ts` | Explain capability | `capabilitiesExplainCommand()` |
-| `cli/assets/skills/ghx/SKILL.md` | Setup skill template | (markdown) |
+| `skills/using-ghx/SKILL.md` (package root) | Setup skill template / Claude Code plugin skill | (markdown) |
 | `agent-interface/tools/execute-tool.ts` | Execute wrapper | `createExecuteTool()` |
 | `agent-interface/tools/list-capabilities-tool.ts` | List tool | `listCapabilities()` |
 | `agent-interface/tools/explain-tool.ts` | Explain tool | `explainCapability()` |

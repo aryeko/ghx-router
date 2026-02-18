@@ -47,6 +47,8 @@
   },
   "files": [
     "dist",
+    ".claude-plugin",
+    "skills",
     "LICENSE",
     "README.md"
   ],

@@ -75,7 +75,7 @@ describe("setupCommand error handling", () => {
         ...actual,
         readFile: vi.fn(async (path, encoding) => {
           const normalizedPath = String(path).replaceAll("\\", "/")
-          if (normalizedPath.includes("/assets/skills/ghx/SKILL.md")) {
+          if (normalizedPath.includes("/skills/using-ghx/SKILL.md")) {
             const error = new Error("missing") as Error & { code?: string }
             error.code = "ENOENT"
             throw error
@@ -107,7 +107,7 @@ describe("setupCommand error handling", () => {
         ...actual,
         readFile: vi.fn(async (path, encoding) => {
           const normalizedPath = String(path).replaceAll("\\", "/")
-          if (normalizedPath.includes("/assets/skills/ghx/SKILL.md")) {
+          if (normalizedPath.includes("/skills/using-ghx/SKILL.md")) {
             const error = new Error("asset access denied") as Error & { code?: string }
             error.code = "EACCES"
             throw error

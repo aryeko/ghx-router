@@ -18,10 +18,7 @@ const MODULE_DIR = fileURLToPath(new URL(".", import.meta.url))
 const BENCHMARK_PACKAGE_ROOT = resolve(MODULE_DIR, "..", "..")
 const BENCHMARK_BIN_DIR = join(BENCHMARK_PACKAGE_ROOT, "bin")
 const GHX_BENCHMARK_ALIAS_PATH = join(BENCHMARK_BIN_DIR, "ghx")
-const GHX_SKILL_ASSET_PATH = resolve(
-  BENCHMARK_PACKAGE_ROOT,
-  "../core/src/cli/assets/skills/ghx/SKILL.md",
-)
+const GHX_SKILL_ASSET_PATH = resolve(BENCHMARK_PACKAGE_ROOT, "../core/skills/using-ghx/SKILL.md")
 const OPENCODE_PORT = Number.parseInt(process.env.BENCH_OPENCODE_PORT ?? "3000", 10)
 
 function unwrapData<T>(value: unknown, label: string): T {

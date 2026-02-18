@@ -42,9 +42,8 @@ const validateSetupOptions = ajv.compile(setupOptionsSchema)
 
 const setupCommandDirectory = dirname(fileURLToPath(import.meta.url))
 const setupSkillAssetPathCandidates = [
-  join(setupCommandDirectory, "..", "assets", "skills", "ghx", "SKILL.md"),
-  join(setupCommandDirectory, "assets", "skills", "ghx", "SKILL.md"),
-  join(setupCommandDirectory, "cli", "assets", "skills", "ghx", "SKILL.md"),
+  join(setupCommandDirectory, "..", "..", "..", "skills", "using-ghx", "SKILL.md"),
+  join(setupCommandDirectory, "..", "..", "skills", "using-ghx", "SKILL.md"),
 ]
 
 function isENOENT(error: unknown): boolean {
