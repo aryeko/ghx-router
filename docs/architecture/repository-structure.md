@@ -9,6 +9,7 @@ This document provides a comprehensive overview of the ghx repository layout, mo
 ```text
 ghx/
 ├── .changeset/                  # Changesets for versioning
+├── .claude-plugin/              # Claude Code marketplace manifest
 ├── .github/
 │   ├── dependabot.yml          # Automated dependency updates
 │   └── workflows/              # CI/CD workflows
@@ -22,6 +23,9 @@ ghx/
 │   └── archive/                # Archived design docs
 ├── packages/
 │   ├── core/                   # @ghx-dev/core (public npm package)
+│   │   ├── .claude-plugin/     # Claude Code plugin manifest
+│   │   ├── skills/             # Agent skill templates (also used by plugin)
+│   │   │   └── using-ghx/      # ghx usage skill (SKILL.md)
 │   │   ├── src/
 │   │   │   ├── agent-interface/      # Agent tool surface
 │   │   │   ├── cli/                  # ghx CLI entrypoint

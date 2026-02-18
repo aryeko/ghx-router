@@ -14,13 +14,13 @@ const pkg = JSON.parse(await readFile(join(packageRoot, "package.json"), "utf8")
 const repoUrl = pkg.repository.url.replace(/^git\+/, "").replace(/\.git$/, "")
 
 const pluginDescription =
-  "GitHub execution router for AI agents — 67 capabilities with deterministic routing and normalized output"
+  "GitHub execution router for AI agents — 66 capabilities with deterministic routing and normalized output"
 
 const pluginJson = {
   name: "ghx",
   description: pluginDescription,
   version: pkg.version,
-  author: { name: pkg.author },
+  author: { name: typeof pkg.author === "string" ? pkg.author : (pkg.author?.name ?? "") },
   repository: repoUrl,
   homepage: repoUrl,
   license: pkg.license,
@@ -29,7 +29,7 @@ const pluginJson = {
 
 const marketplaceJson = {
   name: "ghx",
-  owner: { name: pkg.author },
+  owner: { name: typeof pkg.author === "string" ? pkg.author : (pkg.author?.name ?? "") },
   plugins: [
     {
       name: "ghx",
@@ -60,7 +60,7 @@ if (checkMode) {
     }
   }
   if (drifted) {
-    process.stderr.write("Run: node packages/core/scripts/sync-plugin-manifests.mjs\n")
+    process.stderr.write("Run: pnpm --filter @ghx-dev/core run plugin:sync\n")
     process.exit(1)
   }
   process.stdout.write("Plugin manifests in sync.\n")
