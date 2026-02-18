@@ -6,9 +6,10 @@
   "plugins": [
     {
       "name": "ghx",
-      "source": { "source": "npm", "package": "@ghx-dev/core" },
-      "description": "GitHub execution router for AI agents — 67 capabilities with deterministic routing and normalized output",
-      "version": "0.1.2"
+      "source": {
+        "source": "npm",
+        "package": "@ghx-dev/core"
+      }
     }
   ]
 }

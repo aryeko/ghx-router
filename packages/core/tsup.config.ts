@@ -7,4 +7,5 @@ export default defineConfig({
   clean: true,
   dts: true,
   sourcemap: true,
+  onSuccess: "node scripts/copy-registry-cards.mjs",
 })

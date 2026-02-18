@@ -57,7 +57,7 @@
     "provenance": true
   },
   "scripts": {
-    "build": "tsup && node scripts/copy-registry-cards.mjs",
+    "build": "tsup",
     "format": "biome check --write .",
     "format:check": "biome check .",
     "lint": "eslint . --max-warnings=0",
@@ -67,6 +67,8 @@
     "test:coverage": "vitest run --project unit --coverage",
     "test:e2e:local": "vitest run --project e2e:local",
     "test:e2e:sdk": "if [ -n \"$OPENAI_API_KEY\" ]; then vitest run --project e2e:sdk; else echo 'Skipping core SDK E2E: OPENAI_API_KEY not set'; fi",
+    "plugin:sync": "node scripts/sync-plugin-manifests.mjs",
+    "plugin:sync:check": "node scripts/sync-plugin-manifests.mjs --check",
     "prepack": "pnpm run build",
     "gql:codegen": "tsx scripts/run-gql-codegen.ts",
     "gql:codegen:watch": "graphql-codegen --config codegen.ts --watch",
@@ -77,7 +79,8 @@
       "ci": {},
       "ci:extra": {
         "dependsOn": [
-          "gql:check"
+          "gql:check",
+          "plugin:sync:check"
         ]
       },
       "test:e2e": {}

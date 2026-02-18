@@ -2,7 +2,9 @@
   "name": "ghx",
   "description": "GitHub execution router for AI agents — 67 capabilities with deterministic routing and normalized output",
   "version": "0.1.2",
-  "author": { "name": "Arye Kogan" },
+  "author": {
+    "name": "Arye Kogan"
+  },
   "repository": "https://github.com/aryeko/ghx",
   "homepage": "https://github.com/aryeko/ghx",
   "license": "MIT",
