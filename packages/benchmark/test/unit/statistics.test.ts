@@ -187,5 +187,66 @@ describe("statistics", () => {
       expect(ciDefault[0]).toBeDefined()
       expect(ciDefault[1]).toBeDefined()
     })
+
+    it("returns bounds for two-element array", () => {
+      const [lower, upper] = bootstrapCI([10, 20], 0.95, 1000)
+      expect(lower).toBeDefined()
+      expect(upper).toBeDefined()
+      expect(lower).toBeLessThanOrEqual(upper)
+    })
+
+    it("handles edge case with very small array", () => {
+      const [lower, upper] = bootstrapCI([5, 10, 15], 0.95, 100)
+      expect(lower).toBeDefined()
+      expect(upper).toBeDefined()
+      expect(lower).toBeGreaterThanOrEqual(0)
+      expect(upper).toBeGreaterThanOrEqual(0)
+    })
+
+    it("handles high confidence levels", () => {
+      const values = Array.from({ length: 50 }, (_, i) => i + 1)
+      const ci99_9 = bootstrapCI(values, 0.999, 1000)
+      expect(ci99_9[0]).toBeLessThanOrEqual(ci99_9[1])
+    })
+
+    it("handles low confidence levels", () => {
+      const values = Array.from({ length: 50 }, (_, i) => i + 1)
+      const ci50 = bootstrapCI(values, 0.5, 1000)
+      expect(ci50[0]).toBeLessThanOrEqual(ci50[1])
+      const ci95 = bootstrapCI(values, 0.95, 1000)
+      expect(ci50[1] - ci50[0]).toBeLessThan(ci95[1] - ci95[0])
+    })
+  })
+
+  describe("percentile edge cases", () => {
+    it("computes percentile with fractional index at boundary", () => {
+      const values = [10, 20, 30, 40, 50]
+      const p = percentile(values, 60)
+      expect(p).toBeGreaterThan(30)
+      expect(p).toBeLessThan(40)
+    })
+
+    it("handles single element with various percentiles", () => {
+      const values = [42]
+      expect(percentile(values, 0)).toBe(42)
+      expect(percentile(values, 50)).toBe(42)
+      expect(percentile(values, 100)).toBe(42)
+    })
+
+    it("computes percentile at exact boundaries", () => {
+      const values = Array.from({ length: 100 }, (_, i) => i + 1)
+      expect(percentile(values, 0)).toBe(1)
+      expect(percentile(values, 100)).toBe(100)
+    })
+
+    it("handles two-element array percentiles", () => {
+      const result25 = percentile([10, 20], 25)
+      const result75 = percentile([10, 20], 75)
+      expect(result25).toBeGreaterThan(10)
+      expect(result25).toBeLessThan(20)
+      expect(result75).toBeGreaterThan(10)
+      expect(result75).toBeLessThan(20)
+      expect(result25).toBeLessThan(result75)
+    })
   })
 })

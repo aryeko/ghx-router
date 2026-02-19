@@ -821,7 +821,13 @@ describe("runCliCapability", () => {
     })
 
     expect(result.ok).toBe(true)
-    expect(result.data).toEqual({ number: 10, url: "", title: "", state: "OPEN", draft: false })
+    expect(result.data).toEqual({
+      number: 10,
+      url: "https://github.com/acme/modkit/pull/10",
+      title: "",
+      state: "OPEN",
+      draft: false,
+    })
     expect(runner.run).toHaveBeenCalledWith(
       "gh",
       ["pr", "ready", "10", "--repo", "acme/modkit"],
@@ -3123,7 +3129,7 @@ describe("runCliCapability", () => {
   it("executes pr.create with title, head, and optional body/base/draft parameters", async () => {
     const runner = {
       run: vi.fn(async () => ({
-        stdout: "",
+        stdout: "https://github.com/acme/modkit/pull/99\n",
         stderr: "",
         exitCode: 0,
       })),
@@ -3148,8 +3154,8 @@ describe("runCliCapability", () => {
 
     expect(basicResult.ok).toBe(true)
     expect(basicResult.data).toEqual({
-      number: 0,
-      url: "",
+      number: 99,
+      url: "https://github.com/acme/modkit/pull/99",
       title: "Add feature",
       state: "OPEN",
       draft: false,
@@ -3157,8 +3163,8 @@ describe("runCliCapability", () => {
 
     expect(fullResult.ok).toBe(true)
     expect(fullResult.data).toEqual({
-      number: 0,
-      url: "",
+      number: 99,
+      url: "https://github.com/acme/modkit/pull/99",
       title: "Add feature",
       state: "OPEN",
       draft: true,
@@ -3265,7 +3271,7 @@ describe("runCliCapability", () => {
     expect(editTitle.ok).toBe(true)
     expect(editTitle.data).toEqual({
       number: 42,
-      url: "",
+      url: "https://github.com/acme/modkit/pull/42",
       title: "",
       state: "OPEN",
       draft: false,
@@ -3274,7 +3280,7 @@ describe("runCliCapability", () => {
     expect(editBody.ok).toBe(true)
     expect(editBody.data).toEqual({
       number: 42,
-      url: "",
+      url: "https://github.com/acme/modkit/pull/42",
       title: "",
       state: "OPEN",
       draft: false,
@@ -3283,7 +3289,7 @@ describe("runCliCapability", () => {
     expect(editBoth.ok).toBe(true)
     expect(editBoth.data).toEqual({
       number: 42,
-      url: "",
+      url: "https://github.com/acme/modkit/pull/42",
       title: "",
       state: "OPEN",
       draft: false,
@@ -3353,7 +3359,7 @@ describe("runCliCapability", () => {
     expect(makeDraft.ok).toBe(true)
     expect(makeDraft.data).toEqual({
       number: 42,
-      url: "",
+      url: "https://github.com/acme/modkit/pull/42",
       title: "",
       state: "OPEN",
       draft: true,
@@ -3362,7 +3368,7 @@ describe("runCliCapability", () => {
     expect(undoDraft.ok).toBe(true)
     expect(undoDraft.data).toEqual({
       number: 42,
-      url: "",
+      url: "https://github.com/acme/modkit/pull/42",
       title: "",
       state: "OPEN",
       draft: false,
@@ -3400,7 +3406,7 @@ describe("runCliCapability", () => {
     expect(result.ok).toBe(true)
     expect(result.data).toEqual({
       number: 42,
-      url: "",
+      url: "https://github.com/acme/modkit/pull/42",
       title: "",
       state: "OPEN",
       draft: false,
@@ -3557,5 +3563,1038 @@ describe("runCliCapability", () => {
       { path: "src/file1.ts", additions: 5, deletions: 2, changeType: "ADDED" },
       { path: "src/file2.ts", additions: 0, deletions: 10, changeType: "DELETED" },
     ])
+  })
+
+  it("handles pr.update edit failure with meaningful error", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "",
+        stderr: "pull request not found",
+        exitCode: 1,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "pr.update", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 999,
+      title: "New title",
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe("NOT_FOUND")
+    expect(result.error?.message).toContain("pull request not found")
+    expect(runner.run).toHaveBeenCalledTimes(1)
+  })
+
+  it("handles pr.update draft status change failure", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "",
+        stderr: "authorization failed",
+        exitCode: 1,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "pr.update", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 10,
+      draft: true,
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe("AUTH")
+    expect(runner.run).toHaveBeenCalledTimes(1)
+  })
+
+  it("handles pr.update when both edit and draft commands are executed and edit fails", async () => {
+    const runner = {
+      run: vi.fn().mockResolvedValueOnce({
+        stdout: "",
+        stderr: "invalid title provided",
+        exitCode: 1,
+      }),
+    }
+
+    const result = await runCliCapability(runner, "pr.update", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 10,
+      title: "New title",
+      draft: false,
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.message).toContain("invalid title provided")
+    expect(runner.run).toHaveBeenCalledTimes(1)
+  })
+
+  it("handles pr.update when both edit and draft commands are executed and draft fails", async () => {
+    const runner = {
+      run: vi
+        .fn()
+        .mockResolvedValueOnce({
+          stdout: "",
+          stderr: "",
+          exitCode: 0,
+        })
+        .mockResolvedValueOnce({
+          stdout: "",
+          stderr: "cannot change draft status",
+          exitCode: 1,
+        }),
+    }
+
+    const result = await runCliCapability(runner, "pr.update", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 10,
+      title: "New title",
+      draft: true,
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.message).toContain("cannot change draft status")
+    expect(runner.run).toHaveBeenCalledTimes(2)
+  })
+
+  it("handles pr.update with empty body string (included as empty string)", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "",
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "pr.update", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 10,
+      title: "New title",
+      body: "",
+    })
+
+    expect(result.ok).toBe(true)
+    expect(runner.run).toHaveBeenCalledTimes(1)
+    const call = runner.run.mock.calls[0] as unknown as [string, string[], number]
+    expect(call[1]).toContain("--title")
+    expect(call[1]).toContain("--body")
+    expect(call[1]).toContain("")
+  })
+
+  it("handles pr.update with non-empty body string", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "",
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "pr.update", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 10,
+      body: "Updated description",
+    })
+
+    expect(result.ok).toBe(true)
+    const call = runner.run.mock.calls[0] as unknown as [string, string[], number]
+    expect(call[1]).toContain("--body")
+    expect(call[1]).toContain("Updated description")
+  })
+
+  it("handles release.publish_draft when draft read check fails", async () => {
+    const runner = {
+      run: vi.fn().mockResolvedValueOnce({
+        stdout: "",
+        stderr: "release not found",
+        exitCode: 1,
+      }),
+    }
+
+    const result = await runCliCapability(runner, "release.publish_draft", {
+      owner: "acme",
+      name: "modkit",
+      releaseId: 999,
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe("NOT_FOUND")
+    expect(runner.run).toHaveBeenCalledTimes(1)
+  })
+
+  it("handles release.publish_draft when publish command fails after draft check passes", async () => {
+    const runner = {
+      run: vi
+        .fn()
+        .mockResolvedValueOnce({
+          stdout: JSON.stringify({ draft: true }),
+          stderr: "",
+          exitCode: 0,
+        })
+        .mockResolvedValueOnce({
+          stdout: "",
+          stderr: "cannot publish at this time",
+          exitCode: 1,
+        }),
+    }
+
+    const result = await runCliCapability(runner, "release.publish_draft", {
+      owner: "acme",
+      name: "modkit",
+      releaseId: 123,
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.message).toContain("cannot publish at this time")
+    expect(runner.run).toHaveBeenCalledTimes(2)
+  })
+
+  it("handles release.publish_draft with non-object draft response", async () => {
+    const runner = {
+      run: vi.fn().mockResolvedValueOnce({
+        stdout: "invalid response",
+        stderr: "",
+        exitCode: 0,
+      }),
+    }
+
+    const result = await runCliCapability(runner, "release.publish_draft", {
+      owner: "acme",
+      name: "modkit",
+      releaseId: 123,
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe("SERVER")
+    expect(result.error?.message).toContain("Failed to parse CLI JSON output")
+  })
+
+  it("handles pr.review.submit with empty body for REQUEST_CHANGES (invalid)", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "",
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "pr.review.submit", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 10,
+      event: "REQUEST_CHANGES",
+      body: "   ",
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe("VALIDATION")
+    expect(result.error?.message).toContain("Missing or invalid body")
+  })
+
+  it("handles pr.review.submit with missing body for COMMENT (invalid)", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "",
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "pr.review.submit", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 10,
+      event: "COMMENT",
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe("VALIDATION")
+    expect(result.error?.message).toContain("Missing or invalid body")
+  })
+
+  it("handles pr.review.submit with APPROVE but optional body", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "",
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "pr.review.submit", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 10,
+      event: "APPROVE",
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.data).toEqual({
+      prNumber: 10,
+      event: "APPROVE",
+      submitted: true,
+      body: null,
+    })
+    const call = runner.run.mock.calls[0] as unknown as [string, string[], number]
+    expect(call[1]).toContain("--approve")
+    expect(call[1]).not.toContain("--body")
+  })
+
+  it("handles pr.merge without explicit method (defaults to merge)", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "",
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "pr.merge", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 10,
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.data).toEqual({
+      prNumber: 10,
+      method: "merge",
+      queued: true,
+      deleteBranch: false,
+    })
+    const call = runner.run.mock.calls[0] as unknown as [string, string[], number]
+    expect(call[1]).toContain("--merge")
+  })
+
+  it("handles pr.merge with invalid deleteBranch value", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "",
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "pr.merge", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 10,
+      deleteBranch: "yes",
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe("VALIDATION")
+    expect(result.error?.message).toContain("deleteBranch")
+  })
+
+  it("handles pr.merge with rebase method", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "",
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "pr.merge", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 10,
+      method: "rebase",
+      deleteBranch: true,
+    })
+
+    expect(result.ok).toBe(true)
+    expect((result.data as Record<string, unknown>)?.method).toBe("rebase")
+    const call = runner.run.mock.calls[0] as unknown as [string, string[], number]
+    expect(call[1]).toContain("--rebase")
+    expect(call[1]).toContain("--delete-branch")
+  })
+
+  it("handles pr.create with only required parameters", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "https://github.com/acme/modkit/pull/7\n",
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "pr.create", {
+      owner: "acme",
+      name: "modkit",
+      title: "Fix bug",
+      head: "bugfix/issue-123",
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.data).toEqual({
+      number: 7,
+      url: "https://github.com/acme/modkit/pull/7",
+      title: "Fix bug",
+      state: "OPEN",
+      draft: false,
+    })
+    const call = runner.run.mock.calls[0] as unknown as [string, string[], number]
+    expect(call[1]).toContain("--title")
+    expect(call[1]).toContain("Fix bug")
+    expect(call[1]).toContain("--head")
+    expect(call[1]).toContain("bugfix/issue-123")
+  })
+
+  it("handles pr.create with all optional parameters", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "",
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "pr.create", {
+      owner: "acme",
+      name: "modkit",
+      title: "Feature: new API",
+      head: "feature/new-api",
+      body: "This PR adds a new API endpoint",
+      base: "develop",
+      draft: true,
+    })
+
+    expect(result.ok).toBe(true)
+    expect((result.data as Record<string, unknown>)?.draft).toBe(true)
+    const call = runner.run.mock.calls[0] as unknown as [string, string[], number]
+    expect(call[1]).toContain("--body")
+    expect(call[1]).toContain("This PR adds a new API endpoint")
+    expect(call[1]).toContain("--base")
+    expect(call[1]).toContain("develop")
+    expect(call[1]).toContain("--draft")
+  })
+
+  it("handles pr.create without required title", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "",
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "pr.create", {
+      owner: "acme",
+      name: "modkit",
+      head: "feature/test",
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe("VALIDATION")
+    expect(result.error?.message).toContain("title")
+  })
+
+  it("handles pr.create without required head", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "",
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "pr.create", {
+      owner: "acme",
+      name: "modkit",
+      title: "Add feature",
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe("VALIDATION")
+    expect(result.error?.message).toContain("head")
+  })
+
+  it("handles workflow.dispatch.run with empty inputs object", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "",
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "workflow.dispatch.run", {
+      owner: "acme",
+      name: "modkit",
+      workflowId: "ci.yml",
+      ref: "main",
+      inputs: {},
+    })
+
+    expect(result.ok).toBe(true)
+    const call = runner.run.mock.calls[0] as unknown as [string, string[], number]
+    expect(call[1].join("/")).toContain("workflows/ci.yml/dispatches")
+  })
+
+  it("handles workflow.dispatch.run with multiple input types", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "",
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "workflow.dispatch.run", {
+      owner: "acme",
+      name: "modkit",
+      workflowId: "ci.yml",
+      ref: "main",
+      inputs: {
+        debug: true,
+        count: 5,
+        name: "test",
+      },
+    })
+
+    expect(result.ok).toBe(true)
+    const call = runner.run.mock.calls[0] as unknown as [string, string[], number]
+    expect(call[1].join(" ")).toContain("inputs[debug]=true")
+    expect(call[1].join(" ")).toContain("inputs[count]=5")
+    expect(call[1].join(" ")).toContain("inputs[name]=test")
+  })
+
+  it("handles workflow.dispatch.run with invalid input value", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "",
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "workflow.dispatch.run", {
+      owner: "acme",
+      name: "modkit",
+      workflowId: "ci.yml",
+      ref: "main",
+      inputs: {
+        config: { nested: "object" },
+      },
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe("VALIDATION")
+    expect(result.error?.message).toContain("inputs")
+  })
+
+  it("handles workflow.dispatch.run with empty input key", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "",
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "workflow.dispatch.run", {
+      owner: "acme",
+      name: "modkit",
+      workflowId: "ci.yml",
+      ref: "main",
+      inputs: {
+        "": "value",
+      },
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe("VALIDATION")
+  })
+
+  it("handles workflow.dispatch.run with invalid inputs type", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "",
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "workflow.dispatch.run", {
+      owner: "acme",
+      name: "modkit",
+      workflowId: "ci.yml",
+      ref: "main",
+      inputs: "not-an-object",
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe("VALIDATION")
+  })
+
+  it("handles project_v2.item.field.update with valueNumber (finite check)", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "",
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "project_v2.item.field.update", {
+      projectId: "PVT_kwDO123",
+      itemId: "ITEM_123",
+      fieldId: "FIELD_123",
+      valueNumber: 42,
+    })
+
+    expect(result.ok).toBe(true)
+    const call = runner.run.mock.calls[0] as unknown as [string, string[], number]
+    expect(call[1]).toContain("--number")
+    expect(call[1]).toContain("42")
+  })
+
+  it("handles project_v2.item.field.update with clear flag", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "",
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "project_v2.item.field.update", {
+      projectId: "PVT_kwDO123",
+      itemId: "ITEM_123",
+      fieldId: "FIELD_123",
+      clear: true,
+    })
+
+    expect(result.ok).toBe(true)
+    const call = runner.run.mock.calls[0] as unknown as [string, string[], number]
+    expect(call[1]).toContain("--clear")
+  })
+
+  it("handles project_v2.item.field.update without any value", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "",
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "project_v2.item.field.update", {
+      projectId: "PVT_kwDO123",
+      itemId: "ITEM_123",
+      fieldId: "FIELD_123",
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe("UNKNOWN")
+    expect(result.error?.message).toContain("Missing field value update")
+  })
+
+  it("handles project_v2.item.field.update with Infinity value", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "",
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "project_v2.item.field.update", {
+      projectId: "PVT_kwDO123",
+      itemId: "ITEM_123",
+      fieldId: "FIELD_123",
+      valueNumber: Infinity,
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe("UNKNOWN")
+  })
+
+  it("handles pr.review.request with whitespace-only reviewers filtered out", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "",
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "pr.review.request", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 10,
+      reviewers: ["alice", "   ", "bob", "\t"],
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.data).toEqual({
+      prNumber: 10,
+      reviewers: ["alice", "bob"],
+      updated: true,
+    })
+    const call = runner.run.mock.calls[0] as unknown as [string, string[], number]
+    expect(call[1]).toContain("--add-reviewer")
+    expect(call[1]).toContain("alice,bob")
+  })
+
+  it("handles pr.assignees.update with add and remove lists", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "",
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "pr.assignees.update", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 10,
+      add: ["alice"],
+      remove: ["bob"],
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.data).toEqual({
+      prNumber: 10,
+      add: ["alice"],
+      remove: ["bob"],
+      updated: true,
+    })
+    const call = runner.run.mock.calls[0] as unknown as [string, string[], number]
+    expect(call[1]).toContain("--add-assignee")
+    expect(call[1]).toContain("alice")
+    expect(call[1]).toContain("--remove-assignee")
+    expect(call[1]).toContain("bob")
+  })
+
+  it("handles workflow.job.logs.get with zero error/warning lines", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "Build started\nCompilation successful\nTests passed",
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "workflow.job.logs.get", {
+      owner: "acme",
+      name: "modkit",
+      jobId: 123,
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.data).toEqual({
+      jobId: 123,
+      truncated: false,
+      summary: {
+        errorCount: 0,
+        warningCount: 0,
+        topErrorLines: [],
+      },
+    })
+  })
+
+  it("handles workflow.job.logs.get with multiple error and warning lines", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: `Error: File not found
+Warning: Deprecated API
+Error: Type mismatch
+Info: Processing complete
+warning: slow operation
+ERROR: Critical issue`,
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "workflow.job.logs.get", {
+      owner: "acme",
+      name: "modkit",
+      jobId: 123,
+    })
+
+    expect(result.ok).toBe(true)
+    const summary = (result.data as Record<string, unknown>)?.summary as Record<string, unknown>
+    expect(summary.errorCount).toBe(3)
+    expect(summary.warningCount).toBe(2)
+    expect(summary.topErrorLines).toHaveLength(3)
+  })
+
+  it("handles issue.comments.list with malformed pageInfo", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: JSON.stringify({
+          data: {
+            repository: {
+              issue: {
+                comments: {
+                  nodes: [],
+                  pageInfo: {
+                    hasNextPage: "not-a-boolean",
+                  },
+                },
+              },
+            },
+          },
+        }),
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "issue.comments.list", {
+      owner: "acme",
+      name: "modkit",
+      issueNumber: 1,
+      first: 20,
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe("SERVER")
+    expect(result.error?.message).toContain("malformed")
+  })
+
+  it("handles repo.issue_types.list with empty after cursor", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: JSON.stringify({
+          data: {
+            repository: {
+              issueTypes: {
+                nodes: [{ id: "1", name: "Bug", color: "FF0000", isEnabled: true }],
+                pageInfo: { hasNextPage: false, endCursor: null },
+              },
+            },
+          },
+        }),
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "repo.issue_types.list", {
+      owner: "acme",
+      name: "modkit",
+      first: 10,
+      after: "",
+    })
+
+    expect(result.ok).toBe(true)
+    expect(runner.run).toHaveBeenCalledWith(
+      "gh",
+      expect.not.arrayContaining(["-f", "after="]),
+      10_000,
+    )
+  })
+
+  it("handles workflow.get with numeric workflowId", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: JSON.stringify({
+          id: 123,
+          name: "CI",
+          path: ".github/workflows/ci.yml",
+          state: "active",
+          url: "https://github.com/acme/modkit/blob/main/.github/workflows/ci.yml",
+        }),
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "workflow.get", {
+      owner: "acme",
+      name: "modkit",
+      workflowId: 456,
+    })
+
+    expect(result.ok).toBe(true)
+    const call = runner.run.mock.calls[0] as unknown as [string, string[], number]
+    expect(call[1]).toContain("456")
+  })
+
+  it("handles pr.review.submit with APPROVE and body", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "",
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "pr.review.submit", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 10,
+      event: "APPROVE",
+      body: "Looks great!",
+    })
+
+    expect(result.ok).toBe(true)
+    const call = runner.run.mock.calls[0] as unknown as [string, string[], number]
+    expect(call[1]).toContain("--approve")
+    expect(call[1]).toContain("--body")
+    expect(call[1]).toContain("Looks great!")
+  })
+
+  it("handles workflow.runs.list with optional branch, event, and status filters", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: JSON.stringify([
+          {
+            databaseId: 1,
+            workflowName: "CI",
+            status: "completed",
+            conclusion: "success",
+            headBranch: "feature/test",
+            url: "https://example.com/run/1",
+          },
+        ]),
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "workflow.runs.list", {
+      owner: "acme",
+      name: "modkit",
+      first: 20,
+      branch: "feature/test",
+      event: "push",
+      status: "completed",
+    })
+
+    expect(result.ok).toBe(true)
+    const call = runner.run.mock.calls[0] as unknown as [string, string[], number]
+    expect(call[1]).toContain("--branch")
+    expect(call[1]).toContain("feature/test")
+    expect(call[1]).toContain("--event")
+    expect(call[1]).toContain("push")
+    expect(call[1]).toContain("--status")
+    expect(call[1]).toContain("completed")
+  })
+
+  it("handles repo.labels.list with default first value when undefined", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: JSON.stringify([{ id: "1", name: "bug", color: "FF0000" }]),
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "repo.labels.list", {
+      owner: "acme",
+      name: "modkit",
+    })
+
+    expect(result.ok).toBe(true)
+    const call = runner.run.mock.calls[0] as unknown as [string, string[], number]
+    expect(call[1]).toContain("--limit")
+    expect(call[1]).toContain("30")
+  })
+
+  it("handles check_run.annotations.list with partial annotation fields", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: JSON.stringify([
+          {
+            path: "src/main.ts",
+          },
+        ]),
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "check_run.annotations.list", {
+      owner: "acme",
+      name: "modkit",
+      checkRunId: 123,
+    })
+
+    expect(result.ok).toBe(true)
+    expect((result.data as Record<string, unknown[]>).items?.[0]).toEqual({
+      path: "src/main.ts",
+      startLine: null,
+      endLine: null,
+      level: null,
+      message: null,
+      title: null,
+      details: null,
+    })
+  })
+
+  it("normalizes workflow.run.view with jobs array containing various states", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: JSON.stringify({
+          databaseId: 1,
+          workflowName: "CI",
+          status: "in_progress",
+          conclusion: null,
+          headBranch: "main",
+          headSha: "abc123",
+          url: "https://example.com/run/1",
+          event: "push",
+          createdAt: "2024-01-01T00:00:00Z",
+          updatedAt: "2024-01-01T00:05:00Z",
+          startedAt: "2024-01-01T00:00:30Z",
+          jobs: [
+            {
+              databaseId: 10,
+              name: "build",
+              status: "in_progress",
+              conclusion: null,
+              startedAt: "2024-01-01T00:00:30Z",
+              completedAt: null,
+              url: "https://example.com/job/10",
+            },
+            {
+              databaseId: 11,
+              name: "test",
+              status: "queued",
+              startedAt: null,
+            },
+          ],
+        }),
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "workflow.run.view", {
+      owner: "acme",
+      name: "modkit",
+      runId: 1,
+    })
+
+    expect(result.ok).toBe(true)
+    const jobs = (result.data as Record<string, unknown[]>).jobs
+    expect(jobs).toHaveLength(2)
+    expect(jobs?.[0]).toEqual(
+      expect.objectContaining({
+        id: 10,
+        name: "build",
+        status: "in_progress",
+        conclusion: null,
+      }),
+    )
+    expect(jobs?.[1]).toEqual(
+      expect.objectContaining({
+        id: 11,
+        name: "test",
+        status: "queued",
+        startedAt: null,
+      }),
+    )
   })
 })

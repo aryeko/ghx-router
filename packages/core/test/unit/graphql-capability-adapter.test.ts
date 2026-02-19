@@ -873,4 +873,80 @@ describe("runGraphqlCapability", () => {
       state: "OPEN",
     })
   })
+
+  it("rejects invalid thread mutation inputs - missing threadId", async () => {
+    const client = {
+      fetchRepoView: vi.fn(),
+      fetchIssueView: vi.fn(),
+      fetchIssueList: vi.fn(),
+      fetchIssueCommentsList: vi.fn(),
+      fetchPrView: vi.fn(),
+      fetchPrList: vi.fn(),
+      fetchPrCommentsList: vi.fn(),
+      fetchPrReviewsList: vi.fn(),
+      fetchPrDiffListFiles: vi.fn(),
+      fetchPrMergeStatus: vi.fn(),
+      replyToReviewThread: vi.fn(),
+      resolveReviewThread: vi.fn(),
+      unresolveReviewThread: vi.fn(),
+    }
+
+    const result = await runGraphqlCapability(client, "pr.thread.reply", {
+      threadId: undefined,
+      body: "comment",
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe("VALIDATION")
+  })
+
+  it("rejects invalid thread mutation inputs - empty body", async () => {
+    const client = {
+      fetchRepoView: vi.fn(),
+      fetchIssueView: vi.fn(),
+      fetchIssueList: vi.fn(),
+      fetchIssueCommentsList: vi.fn(),
+      fetchPrView: vi.fn(),
+      fetchPrList: vi.fn(),
+      fetchPrCommentsList: vi.fn(),
+      fetchPrReviewsList: vi.fn(),
+      fetchPrDiffListFiles: vi.fn(),
+      fetchPrMergeStatus: vi.fn(),
+      replyToReviewThread: vi.fn(),
+      resolveReviewThread: vi.fn(),
+      unresolveReviewThread: vi.fn(),
+    }
+
+    const result = await runGraphqlCapability(client, "pr.thread.reply", {
+      threadId: "thread-1",
+      body: "   ",
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe("VALIDATION")
+  })
+
+  it("handles truly unknown capability id", async () => {
+    const client = {
+      fetchRepoView: vi.fn(),
+      fetchIssueView: vi.fn(),
+      fetchIssueList: vi.fn(),
+      fetchIssueCommentsList: vi.fn(),
+      fetchPrView: vi.fn(),
+      fetchPrList: vi.fn(),
+      fetchPrCommentsList: vi.fn(),
+      fetchPrReviewsList: vi.fn(),
+      fetchPrDiffListFiles: vi.fn(),
+      fetchPrMergeStatus: vi.fn(),
+      replyToReviewThread: vi.fn(),
+      resolveReviewThread: vi.fn(),
+      unresolveReviewThread: vi.fn(),
+    }
+
+    const result = await runGraphqlCapability(client, "completely.unknown.capability" as never, {})
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe("ADAPTER_UNSUPPORTED")
+    expect(result.meta.reason).toBe("CAPABILITY_LIMIT")
+  })
 })

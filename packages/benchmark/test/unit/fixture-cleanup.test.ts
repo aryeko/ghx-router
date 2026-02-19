@@ -448,4 +448,225 @@ describe("cleanupAllFixtures", () => {
     expect(labelDeleteCalls).toHaveLength(1)
     expect(labelDeleteCalls[0]).toContain("bench-seed:local")
   })
+
+  it("handles invalid JSON in label list response", async () => {
+    spawnSyncMock
+      // PR list - empty
+      .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
+      // Issue list - empty
+      .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
+      // Branch list (tryRunGhJson fails)
+      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
+      // Branch list raw fails
+      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
+      // Label list with invalid JSON
+      .mockReturnValueOnce({ status: 0, stdout: "not valid json", stderr: "" })
+      // Project list - empty
+      .mockReturnValueOnce({ status: 0, stdout: JSON.stringify({ projects: [] }), stderr: "" })
+
+    const result = await cleanupAllFixtures("aryeko/ghx-bench-fixtures")
+
+    expect(result.deletedLabels).toBe(0)
+    expect(result.deletedBranches).toBe(0)
+    expect(result.deletedProjects).toBe(0)
+  })
+
+  it("handles invalid JSON in project list response", async () => {
+    spawnSyncMock
+      // PR list - empty
+      .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
+      // Issue list - empty
+      .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
+      // Branch list (tryRunGhJson fails)
+      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
+      // Branch list raw fails
+      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
+      // Label list - empty
+      .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
+      // Project list with invalid JSON
+      .mockReturnValueOnce({ status: 0, stdout: "invalid project json", stderr: "" })
+
+    const result = await cleanupAllFixtures("aryeko/ghx-bench-fixtures")
+
+    expect(result.deletedProjects).toBe(0)
+  })
+
+  it("handles null label output gracefully", async () => {
+    spawnSyncMock
+      // PR list - empty
+      .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
+      // Issue list - empty
+      .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
+      // Branch list (tryRunGhJson fails)
+      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
+      // Branch list raw fails
+      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
+      // Label list returns null/empty
+      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
+      // Project list - empty
+      .mockReturnValueOnce({ status: 0, stdout: JSON.stringify({ projects: [] }), stderr: "" })
+
+    const result = await cleanupAllFixtures("aryeko/ghx-bench-fixtures")
+
+    expect(result.deletedLabels).toBe(0)
+  })
+
+  it("handles project list as direct array instead of wrapper object", async () => {
+    spawnSyncMock
+      // PR list - empty
+      .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
+      // Issue list - empty
+      .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
+      // Branch list (tryRunGhJson fails)
+      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
+      // Branch list raw fails
+      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
+      // Label list - empty
+      .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
+      // Project list as direct array
+      .mockReturnValueOnce({
+        status: 0,
+        stdout: JSON.stringify([
+          { title: "GHX Bench Fixtures (nightly)", number: 42 },
+          { title: "Other Project", number: 99 },
+        ]),
+        stderr: "",
+      })
+      // Delete project 42
+      .mockReturnValueOnce({ status: 0, stdout: "", stderr: "" })
+
+    const result = await cleanupAllFixtures("aryeko/ghx-bench-fixtures")
+
+    expect(result.deletedProjects).toBe(1)
+  })
+
+  it("skips projects with missing number when deleting", async () => {
+    spawnSyncMock
+      // PR list - empty
+      .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
+      // Issue list - empty
+      .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
+      // Branch list (tryRunGhJson fails)
+      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
+      // Branch list raw fails
+      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
+      // Label list - empty
+      .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
+      // Project list with missing number
+      .mockReturnValueOnce({
+        status: 0,
+        stdout: JSON.stringify({
+          projects: [
+            { title: "GHX Bench Fixtures (test)", number: 55 },
+            { title: "GHX Bench Fixtures (invalid)" },
+          ],
+        }),
+        stderr: "",
+      })
+      // Delete project 55
+      .mockReturnValueOnce({ status: 0, stdout: "", stderr: "" })
+
+    const result = await cleanupAllFixtures("aryeko/ghx-bench-fixtures")
+
+    expect(result.deletedProjects).toBe(1)
+  })
+
+  it("handles project deletion failure with warning", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined)
+
+    spawnSyncMock
+      // PR list - empty
+      .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
+      // Issue list - empty
+      .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
+      // Branch list (tryRunGhJson fails)
+      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
+      // Branch list raw fails
+      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
+      // Label list - empty
+      .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
+      // Project list
+      .mockReturnValueOnce({
+        status: 0,
+        stdout: JSON.stringify({
+          projects: [{ title: "GHX Bench Fixtures (fail)", number: 99 }],
+        }),
+        stderr: "",
+      })
+      // Delete project fails
+      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "permission denied" })
+
+    const result = await cleanupAllFixtures("aryeko/ghx-bench-fixtures")
+
+    expect(result.deletedProjects).toBe(0)
+    expect(warnSpy).toHaveBeenCalledWith(
+      "Warning: failed to delete project GHX Bench Fixtures (fail)",
+    )
+    warnSpy.mockRestore()
+  })
+
+  it("handles branch list with null items in response", async () => {
+    spawnSyncMock
+      // PR list - empty
+      .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
+      // Issue list - empty
+      .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
+      // Branch list (tryRunGhJson fails)
+      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
+      // Branch list raw with nulls
+      .mockReturnValueOnce({
+        status: 0,
+        stdout: JSON.stringify([
+          null,
+          { ref: "refs/heads/bench-seed-test" },
+          { ref: 123 },
+          { other: "field" },
+        ]),
+        stderr: "",
+      })
+      // Delete branch succeeds
+      .mockReturnValueOnce({ status: 0, stdout: "", stderr: "" })
+      // Label list - empty
+      .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
+      // Project list - empty
+      .mockReturnValueOnce({ status: 0, stdout: JSON.stringify({ projects: [] }), stderr: "" })
+
+    const result = await cleanupAllFixtures("aryeko/ghx-bench-fixtures")
+
+    expect(result.deletedBranches).toBe(1)
+  })
+
+  it("filters out non-matching branch refs correctly", async () => {
+    spawnSyncMock
+      // PR list - empty
+      .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
+      // Issue list - empty
+      .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
+      // Branch list (tryRunGhJson fails)
+      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
+      // Branch list raw with mixed refs
+      .mockReturnValueOnce({
+        status: 0,
+        stdout: JSON.stringify([
+          { ref: "refs/heads/main" },
+          { ref: "refs/heads/feature" },
+          { ref: "refs/heads/bench-seed-abc" },
+          { ref: "refs/heads/bench-review-seed-xyz" },
+          { ref: "refs/heads/develop" },
+        ]),
+        stderr: "",
+      })
+      // Delete bench-seed-abc
+      .mockReturnValueOnce({ status: 0, stdout: "", stderr: "" })
+      // Delete bench-review-seed-xyz
+      .mockReturnValueOnce({ status: 0, stdout: "", stderr: "" })
+      // Label list - empty
+      .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
+      // Project list - empty
+      .mockReturnValueOnce({ status: 0, stdout: JSON.stringify({ projects: [] }), stderr: "" })
+
+    const result = await cleanupAllFixtures("aryeko/ghx-bench-fixtures")
+
+    expect(result.deletedBranches).toBe(2)
+  })
 })

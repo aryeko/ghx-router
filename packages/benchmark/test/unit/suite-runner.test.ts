@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest"
-
+import type { RunnerConfig } from "../../src/runner/config.js"
 import {
   hasAssistantMetadata,
   hasAssistantSignalParts,
@@ -590,6 +590,213 @@ describe("suite-runner helpers", () => {
     await expect(waitForAssistantFromMessages(sessionApi, "s1", 30, "sc-timeout")).rejects.toThrow(
       "Timed out waiting for assistant message",
     )
+  })
+
+  it("respects config timeouts when calculating budgets", async () => {
+    const sessionApi = {
+      create: vi.fn(),
+      promptAsync: vi.fn(),
+      messages: vi.fn(async () => ({
+        data: [
+          {
+            info: {
+              id: "m-config",
+              role: "assistant",
+              time: { created: 1, completed: 2 },
+              tokens: { input: 1, output: 1, reasoning: 0, cache: { read: 0, write: 0 } },
+              cost: 0,
+            },
+            parts: [{ type: "text", text: "ok" }],
+          },
+        ],
+      })),
+      abort: vi.fn(),
+    }
+
+    const response = await waitForAssistantFromMessages(
+      sessionApi,
+      "s1",
+      5000,
+      "sc-config",
+      undefined,
+      {
+        openCodeMode: null,
+        gitRepo: null,
+        gitCommit: null,
+        firstAssistantTimeoutMs: 1000,
+        sessionStallTimeoutMs: 2000,
+        maxRunnerRetries: 1,
+        runnerRetryBackoffMs: 750,
+      } satisfies RunnerConfig,
+    )
+    expect(response.info?.id).toBe("m-config")
+  })
+
+  it("handles timing breakdown with incomplete metadata gracefully", () => {
+    const breakdown = extractTimingBreakdown([
+      {
+        info: {
+          role: "assistant",
+          time: { created: 100 },
+        },
+        parts: [
+          { type: "reasoning", time: {} },
+          {
+            type: "tool",
+            tool: "bash",
+            state: { time: {} },
+          },
+        ],
+      },
+    ] as unknown as Parameters<typeof extractTimingBreakdown>[0])
+
+    expect(breakdown.assistant_total_ms).toBe(0)
+    expect(breakdown.assistant_reasoning_ms).toBe(0)
+    expect(breakdown.tool_total_ms).toBe(0)
+  })
+
+  it("extracts timing breakdown with negative durations clamped to zero", () => {
+    const breakdown = extractTimingBreakdown([
+      {
+        info: {
+          role: "assistant",
+          time: { created: 1000, completed: 500 },
+        },
+        parts: [
+          { type: "reasoning", time: { start: 400, end: 200 } },
+          {
+            type: "tool",
+            tool: "bash",
+            state: { time: { start: 600, end: 100 } },
+          },
+        ],
+      },
+    ] as unknown as Parameters<typeof extractTimingBreakdown>[0])
+
+    expect(breakdown.assistant_total_ms).toBe(0)
+    expect(breakdown.assistant_reasoning_ms).toBe(0)
+    expect(breakdown.tool_total_ms).toBe(0)
+  })
+
+  it("handles extractSnapshotFromParts with missing object structures", () => {
+    const snapshot = extractSnapshotFromParts([
+      {
+        type: "step-finish",
+        tokens: "not-object",
+        cost: "not-number",
+        time: null,
+      },
+    ] as unknown as Parameters<typeof extractSnapshotFromParts>[0])
+
+    expect(snapshot.input).toBe(0)
+    expect(snapshot.output).toBe(0)
+    expect(snapshot.cost).toBe(0)
+    expect(snapshot.completed).toBeNull()
+  })
+
+  it("handles coercePromptResponse with structured output from info.structured_output", () => {
+    const coerced = coercePromptResponse({
+      info: {
+        id: "m-structured-output",
+        sessionID: "s1",
+        role: "assistant",
+        time: { created: 1, completed: 2 },
+        tokens: { input: 1, output: 1, reasoning: 0, cache: { read: 0, write: 0 } },
+        cost: 0,
+        structured_output: { value: "structured" },
+      } as never,
+      parts: [{ type: "step-finish", reason: "done" }],
+    })
+
+    expect(coerced.assistant.structured_output).toEqual({ value: "structured" })
+  })
+
+  it("correctly identifies assistant by metadata when role is missing", async () => {
+    const sessionApi = {
+      create: vi.fn(),
+      promptAsync: vi.fn(),
+      messages: vi.fn(async () => ({
+        data: [
+          {
+            info: {
+              id: "m-metadata-only",
+              time: { created: 1, completed: 2 },
+              tokens: { input: 1, output: 1, reasoning: 0, cache: { read: 0, write: 0 } },
+              cost: 0,
+            },
+            parts: [
+              { type: "text", text: "result" },
+              { type: "step-finish", reason: "done" },
+            ],
+          },
+        ],
+      })),
+      abort: vi.fn(),
+    }
+
+    const response = await waitForAssistantFromMessages(sessionApi, "s1", 200, "sc-metadata-id")
+    expect(response.info?.id).toBe("m-metadata-only")
+  })
+
+  it("detects step-finish with non-completion reason when deciding isCompletedAssistant", async () => {
+    const sessionApi = {
+      create: vi.fn(),
+      promptAsync: vi.fn(),
+      messages: vi.fn(async () => ({
+        data: [
+          {
+            info: {
+              id: "m1",
+              role: "assistant",
+              time: { created: 1, completed: 2 },
+              tokens: { input: 1, output: 1, reasoning: 0, cache: { read: 0, write: 0 } },
+              cost: 0,
+            },
+            parts: [
+              { type: "step-finish", reason: "error" },
+              { type: "text", text: "error occurred" },
+            ],
+          },
+        ],
+      })),
+      abort: vi.fn(),
+    }
+
+    const response = await waitForAssistantFromMessages(sessionApi, "s1", 200, "sc-error-finish")
+    expect(response.info?.id).toBe("m1")
+  })
+
+  it("accepts assistant response with step-finish as completion without completed time", async () => {
+    const sessionApi = {
+      create: vi.fn(),
+      promptAsync: vi.fn(),
+      messages: vi.fn(async () => ({
+        data: [
+          {
+            info: {
+              id: "m-step-finish-only",
+              role: "assistant",
+              time: { created: 1 },
+              tokens: { input: 1, output: 1, reasoning: 0, cache: { read: 0, write: 0 } },
+              cost: 0,
+            },
+            parts: [
+              { type: "text", text: "response" },
+              { type: "step-finish", reason: "stop" },
+            ],
+          },
+        ],
+      })),
+      abort: vi.fn(),
+    }
+
+    const response = await waitForAssistantFromMessages(
+      sessionApi,
+      "s1",
+      200,
+      "sc-step-finish-only",
+    )
+    expect(response.info?.id).toBe("m-step-finish-only")
   })
 })
 

@@ -13,4 +13,6 @@ comment:
   layout: "reach,diff,flags,files"
 ignore:
   - "packages/core/src/gql/generated/**"
-  - "packages/core/src/gql/operations/*.generated.ts"
+  - "packages/**/src/**/*.generated.ts"
+  - "packages/benchmark/src/cli/run-scenario.ts"
+  - "packages/benchmark/src/fixture/seed.ts"

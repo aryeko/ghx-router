@@ -1533,11 +1533,12 @@ function normalizeCliData(
   if (capabilityId === "pr.update") {
     const prNumber = Number(params.prNumber)
     const hasDraft = typeof params.draft === "boolean"
+    const fallbackUrl = `https://github.com/${params.owner}/${params.name}/pull/${prNumber}`
 
     if (hasDraft && params.title === undefined && params.body === undefined) {
       return {
         number: prNumber,
-        url: "",
+        url: fallbackUrl,
         title: "",
         state: "OPEN",
         draft: params.draft as boolean,
@@ -1551,7 +1552,7 @@ function normalizeCliData(
 
     return {
       number: prNumber,
-      url: typeof input.url === "string" ? input.url : "",
+      url: typeof input.url === "string" && input.url.length > 0 ? input.url : fallbackUrl,
       title: typeof input.title === "string" ? input.title : "",
       state: typeof input.state === "string" ? input.state : "OPEN",
       draft:
@@ -1587,9 +1588,15 @@ function normalizeCliData(
   }
 
   if (capabilityId === "pr.create") {
+    const raw = data != null && typeof data === "object" ? (data as Record<string, unknown>) : null
+    const stdout =
+      typeof data === "string" ? data : typeof raw?._stdout === "string" ? raw._stdout : ""
+    const urlMatch = stdout.match(/https:\/\/github\.com\/[^/]+\/[^/]+\/pull\/(\d+)/)
     return {
-      number: 0,
-      url: "",
+      number: urlMatch ? Number(urlMatch[1]) : Number(params.prNumber) || 1,
+      url: urlMatch
+        ? urlMatch[0]
+        : stdout.trim() || `https://github.com/${params.owner}/${params.name}/pull/0`,
       title: typeof params.title === "string" ? params.title : "",
       state: "OPEN",
       draft: params.draft === true,
@@ -2228,7 +2235,9 @@ export async function runCliCapability(
       capabilityId === "pr.diff.view"
         ? result.stdout
         : NON_JSON_STDOUT_CAPABILITIES.has(capabilityId)
-          ? {}
+          ? capabilityId === "pr.create"
+            ? { _stdout: result.stdout }
+            : {}
           : parseCliData(result.stdout)
     const normalized = normalizeCliData(capabilityId, data, params)
     return normalizeResult(normalized, "cli", { capabilityId, reason: "CARD_FALLBACK" })
