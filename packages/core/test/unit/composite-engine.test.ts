@@ -14,12 +14,8 @@ describe("composite execution in engine", () => {
 
   it("routes composite cards to composite execution path", async () => {
     const queryMock = vi.fn().mockResolvedValue({
-      reply0: {
-        addPullRequestReviewThreadReply: { comment: { id: "c1" } },
-      },
-      resolve1: {
-        resolveReviewThread: { thread: { id: "t1", isResolved: true } },
-      },
+      pr_thread_reply_0: { comment: { id: "c1" } },
+      pr_thread_resolve_1: { thread: { id: "t1", isResolved: true } },
     })
     mockGithubClient.query = queryMock
 
@@ -39,8 +35,10 @@ describe("composite execution in engine", () => {
       skipGhPreflight: true,
     })
 
-    // Composite execution should handle the request
-    expect(result).toHaveProperty("ok")
+    expect(result.ok).toBe(true)
+    expect(result.data).toEqual({
+      results: [{ id: "c1" }, { id: "t1", isResolved: true }],
+    })
     expect(result).toHaveProperty("meta")
     expect(result.meta.capability_id).toBe("pr.threads.composite")
   })

@@ -1,0 +1,60 @@
+capability_id: issue.update.composite
+version: "1.0.0"
+description: "Update issue fields, labels, assignees, and milestone in a single GraphQL batch call."
+input_schema:
+  type: object
+  required: [issueId, title, body, labelIds, assigneeIds, milestoneId]
+  properties:
+    issueId: { type: string, minLength: 1 }
+    title: { type: string }
+    body: { type: string }
+    labelIds:
+      type: array
+      minItems: 1
+      items: { type: string, minLength: 1 }
+    assigneeIds:
+      type: array
+      minItems: 1
+      items: { type: string, minLength: 1 }
+    milestoneId: { type: [string, "null"] }
+  additionalProperties: false
+output_schema:
+  type: object
+  required: [id, number, labels, assignees, milestoneNumber]
+  properties:
+    id: { type: string, minLength: 1 }
+    number: { type: integer, minimum: 1 }
+    title: { type: string }
+    state: { type: string }
+    url: { type: string, minLength: 1 }
+    labels:
+      type: array
+      items: { type: string, minLength: 1 }
+    assignees:
+      type: array
+      items: { type: string, minLength: 1 }
+    milestoneNumber: { type: [integer, "null"] }
+  additionalProperties: false
+routing:
+  preferred: graphql
+  fallbacks: []
+composite:
+  steps:
+    - capability_id: issue.update
+      params_map:
+        issueId: issueId
+        title: title
+        body: body
+    - capability_id: issue.labels.update
+      params_map:
+        issueId: issueId
+        labelIds: labelIds
+    - capability_id: issue.assignees.update
+      params_map:
+        issueId: issueId
+        assigneeIds: assigneeIds
+    - capability_id: issue.milestone.set
+      params_map:
+        issueId: issueId
+        milestoneId: milestoneId
+  output_strategy: merge

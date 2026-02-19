@@ -237,11 +237,6 @@ export async function executeTask(
     )
   }
 
-  // Handle composite cards separately
-  if (card.composite) {
-    return executeComposite(card, request.input as Record<string, unknown>, deps, reason)
-  }
-
   const cliRunner = deps.cliRunner ?? defaultCliRunner
 
   return execute({
@@ -299,12 +294,17 @@ export async function executeTask(
       return preflightCheck(preflightInput)
     },
     routes: {
-      graphql: async () =>
-        runGraphqlCapability(
+      graphql: async () => {
+        if (card.composite) {
+          return executeComposite(card, request.input as Record<string, unknown>, deps, reason)
+        }
+
+        return runGraphqlCapability(
           deps.githubClient,
           request.task as GraphqlCapabilityId,
           request.input as Record<string, unknown>,
-        ),
+        )
+      },
       cli: async () => {
         return runCliCapability(
           cliRunner,

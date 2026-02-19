@@ -64,9 +64,9 @@ export function expandCompositeSteps(
       }
 
       const built = builder.build(stepInput)
-      const aliasBase = capId.split(".").pop() ?? capId
+      const aliasBase = capId.replace(/[^a-zA-Z0-9]/g, "_")
       operations.push({
-        alias: `${aliasBase}${i}`,
+        alias: `${aliasBase}_${i}`,
         mutation: built.mutation,
         variables: built.variables,
         mapResponse: builder.mapResponse,

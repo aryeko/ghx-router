@@ -1565,13 +1565,10 @@ function normalizeCliData(
   }
 
   if (capabilityId === "pr.review.submit") {
-    const prNumber = Number(params.prNumber)
-    const event = String(params.event)
-
     return {
-      prNumber,
-      event,
-      submitted: true,
+      id: null,
+      state: null,
+      url: null,
       body: typeof params.body === "string" ? params.body : null,
     }
   }

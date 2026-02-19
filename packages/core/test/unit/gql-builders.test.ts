@@ -33,9 +33,7 @@ describe("pr.thread.reply builder", () => {
   })
 
   it("mapResponse() extracts comment id", () => {
-    const raw = {
-      addPullRequestReviewThreadReply: { comment: { id: "c1" } },
-    }
+    const raw = { comment: { id: "c1" } }
     const result = replyBuilder.mapResponse(raw)
     expect(result).toEqual({ id: "c1" })
   })
@@ -49,9 +47,7 @@ describe("pr.thread.resolve builder", () => {
   })
 
   it("mapResponse() extracts thread state", () => {
-    const raw = {
-      resolveReviewThread: { thread: { id: "t1", isResolved: true } },
-    }
+    const raw = { thread: { id: "t1", isResolved: true } }
     const result = resolveBuilder.mapResponse(raw)
     expect(result).toEqual({ id: "t1", isResolved: true })
   })
@@ -65,9 +61,7 @@ describe("pr.thread.unresolve builder", () => {
   })
 
   it("mapResponse() extracts thread state", () => {
-    const raw = {
-      unresolveReviewThread: { thread: { id: "t1", isResolved: false } },
-    }
+    const raw = { thread: { id: "t1", isResolved: false } }
     const result = unresolveBuilder.mapResponse(raw)
     expect(result).toEqual({ id: "t1", isResolved: false })
   })

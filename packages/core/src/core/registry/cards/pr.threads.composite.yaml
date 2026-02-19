@@ -31,15 +31,12 @@ output_schema:
       type: array
       items:
         type: object
+        required: [id]
         properties:
-          threadId:
+          id:
             type: string
-          action:
-            type: string
-          ok:
+          isResolved:
             type: boolean
-          error:
-            type: string
         additionalProperties: false
   additionalProperties: false
 routing:

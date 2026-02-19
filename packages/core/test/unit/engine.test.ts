@@ -25,6 +25,28 @@ const baseCard: OperationCard = {
   },
 }
 
+const compositeCard: OperationCard = {
+  capability_id: "pr.threads.composite",
+  version: "1.0.0",
+  description: "Composite review thread operations",
+  input_schema: { type: "object" },
+  output_schema: { type: "object" },
+  routing: {
+    preferred: "graphql",
+    fallbacks: [],
+  },
+  composite: {
+    steps: [
+      {
+        capability_id: "pr.thread.reply",
+        foreach: "threads",
+        params_map: { threadId: "threadId", body: "body" },
+      },
+    ],
+    output_strategy: "array",
+  },
+}
+
 describe("executeTask engine wiring", () => {
   beforeEach(() => {
     executeMock.mockReset()
@@ -133,6 +155,43 @@ describe("executeTask engine wiring", () => {
     )
 
     expect(cliRunner.run).not.toHaveBeenCalled()
+    expect(result).toEqual({ ok: true })
+  })
+
+  it("uses execute() pipeline for composite cards", async () => {
+    getOperationCardMock.mockReturnValue(compositeCard)
+    executeMock.mockResolvedValue({ ok: true })
+
+    const { executeTask } = await import("../../src/core/routing/engine.js")
+
+    const result = await executeTask(
+      {
+        task: "pr.threads.composite",
+        input: { threads: [{ threadId: "T", action: "reply", body: "x" }] },
+      },
+      {
+        githubClient: {
+          fetchRepoView: vi.fn(),
+          fetchIssueCommentsList: vi.fn(),
+          fetchIssueList: vi.fn(),
+          fetchIssueView: vi.fn(),
+          fetchPrList: vi.fn(),
+          fetchPrView: vi.fn(),
+          fetchPrCommentsList: vi.fn(),
+          fetchPrReviewsList: vi.fn(),
+          fetchPrDiffListFiles: vi.fn(),
+          fetchPrMergeStatus: vi.fn(),
+          replyToReviewThread: vi.fn(),
+          resolveReviewThread: vi.fn(),
+          unresolveReviewThread: vi.fn(),
+          submitPrReview: vi.fn(),
+          query: vi.fn(),
+        },
+        skipGhPreflight: true,
+      },
+    )
+
+    expect(executeMock).toHaveBeenCalledTimes(1)
     expect(result).toEqual({ ok: true })
   })
 })

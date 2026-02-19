@@ -26,20 +26,16 @@ input_schema:
   additionalProperties: false
 output_schema:
   type: object
-  required: [prNumber, event, submitted, body]
+  required: [id, state, url, body]
   properties:
-    prNumber: { type: integer, minimum: 1 }
-    event: { type: string, enum: [APPROVE, COMMENT, REQUEST_CHANGES] }
-    submitted: { type: boolean }
+    id: { type: [string, "null"] }
+    state: { type: [string, "null"] }
+    url: { type: [string, "null"] }
     body: { type: [string, "null"] }
   additionalProperties: false
 routing:
   preferred: graphql
   fallbacks: [cli]
-  suitability:
-    - when: params
-      predicate: "cli if comments == undefined"
-      reason: "CLI route sufficient when no inline comments"
 graphql:
   operationName: PrReviewSubmit
   documentPath: pr-review-submit.graphql

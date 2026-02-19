@@ -3834,9 +3834,9 @@ describe("runCliCapability", () => {
 
     expect(result.ok).toBe(true)
     expect(result.data).toEqual({
-      prNumber: 10,
-      event: "APPROVE",
-      submitted: true,
+      id: null,
+      state: null,
+      url: null,
       body: null,
     })
     const call = runner.run.mock.calls[0] as unknown as [string, string[], number]

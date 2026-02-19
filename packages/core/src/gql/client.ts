@@ -401,7 +401,7 @@ export type PrReviewSubmitData = {
   id: string
   state: string
   url: string
-  body: string
+  body: string | null
 }
 
 export interface GithubClient extends GraphqlClient {
@@ -2107,7 +2107,7 @@ async function runReplyToReviewThread(
 
   const { mutation, variables } = replyBuilder.build(input)
   const result = await graphqlClient.query<unknown, GraphqlVariables>(mutation, variables)
-  replyBuilder.mapResponse(result)
+  replyBuilder.mapResponse(asRecord(result)?.addPullRequestReviewThreadReply)
 
   const threadStateResult = await graphqlClient.query<unknown, GraphqlVariables>(
     REVIEW_THREAD_STATE_QUERY,
@@ -2134,7 +2134,7 @@ async function runResolveReviewThread(
 
   const { mutation, variables } = resolveBuilder.build(input)
   const result = await graphqlClient.query<unknown, GraphqlVariables>(mutation, variables)
-  const mapped = resolveBuilder.mapResponse(result)
+  const mapped = resolveBuilder.mapResponse(asRecord(result)?.resolveReviewThread)
   const mappedRecord = mapped as Record<string, unknown>
   return {
     id: mappedRecord.id as string,
@@ -2150,7 +2150,7 @@ async function runUnresolveReviewThread(
 
   const { mutation, variables } = unresolveBuilder.build(input)
   const result = await graphqlClient.query<unknown, GraphqlVariables>(mutation, variables)
-  const mapped = unresolveBuilder.mapResponse(result)
+  const mapped = unresolveBuilder.mapResponse(asRecord(result)?.unresolveReviewThread)
   const mappedRecord = mapped as Record<string, unknown>
   return {
     id: mappedRecord.id as string,
@@ -2234,7 +2234,7 @@ async function runSubmitPrReview(
     id: review.id,
     state: String(review.state),
     url: String(review.url),
-    body: String(review.body),
+    body: typeof review.body === "string" ? review.body : null,
   }
 }
 
