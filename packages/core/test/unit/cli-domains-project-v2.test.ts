@@ -897,9 +897,9 @@ describe("project-v2 domain handlers", () => {
       expect(result.error?.message).toContain("user")
     })
 
-    it("project_v2.item.field.update returns SyntaxError path when runner throws SyntaxError", async () => {
+    it("project_v2.item.field.update returns error when runner throws", async () => {
       const runner = {
-        run: vi.fn().mockRejectedValue(new SyntaxError("Unexpected token")),
+        run: vi.fn().mockRejectedValue(new Error("runner failure")),
       } as unknown as import("@core/core/execution/adapters/cli-adapter.js").CliCommandRunner
 
       const result = await h("project_v2.item.field.update")(
@@ -908,7 +908,7 @@ describe("project-v2 domain handlers", () => {
         undefined,
       )
       expect(result.ok).toBe(false)
-      expect(result.error?.message).toContain("Failed to parse CLI JSON output")
+      expect(result.error?.message).toContain("runner failure")
     })
 
     it("project_v2.fields.list handles non-object field item", async () => {
