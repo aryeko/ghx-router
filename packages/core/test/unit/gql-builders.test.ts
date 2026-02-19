@@ -1,5 +1,20 @@
 import { describe, expect, it } from "vitest"
-import { replyBuilder, resolveBuilder, unresolveBuilder } from "../../src/gql/builders.js"
+import {
+  OPERATION_BUILDERS,
+  type OperationBuilder,
+  replyBuilder,
+  resolveBuilder,
+  unresolveBuilder,
+} from "../../src/gql/builders.js"
+
+function expectBuilder(capabilityId: string): OperationBuilder {
+  const builder = OPERATION_BUILDERS[capabilityId]
+  expect(builder).toBeDefined()
+  if (!builder) {
+    throw new Error(`Missing builder for ${capabilityId}`)
+  }
+  return builder
+}
 
 describe("OperationBuilder exports", () => {
   it("exports replyBuilder", () => {
@@ -64,5 +79,118 @@ describe("pr.thread.unresolve builder", () => {
     const raw = { thread: { id: "t1", isResolved: false } }
     const result = unresolveBuilder.mapResponse(raw)
     expect(result).toEqual({ id: "t1", isResolved: false })
+  })
+})
+
+describe("issue builders", () => {
+  it("issue.update requires issueId and at least one update field", () => {
+    const builder = expectBuilder("issue.update")
+    expect(() => builder.build({ issueId: "i1" })).toThrow(
+      "issue.update requires at least one field",
+    )
+    expect(() => builder.build({ body: "Body only" })).toThrow("issueId is required")
+
+    const built = builder.build({ issueId: "i1", title: "New", body: "Body" })
+    expect(built.variables).toEqual({
+      issueId: "i1",
+      title: "New",
+      body: "Body",
+    })
+  })
+
+  it("issue.update maps response and rejects malformed payload", () => {
+    const builder = expectBuilder("issue.update")
+
+    expect(() => builder.mapResponse({ issue: { id: "i1" } })).toThrow("Issue update failed")
+
+    const mapped = builder.mapResponse({
+      issue: {
+        id: "i1",
+        number: 7,
+        title: "T",
+        state: "OPEN",
+        url: "https://example.com",
+      },
+    })
+    expect(mapped).toEqual({
+      id: "i1",
+      number: 7,
+      title: "T",
+      state: "OPEN",
+      url: "https://example.com",
+    })
+  })
+
+  it("issue.labels.update validates label ids and maps names", () => {
+    const builder = expectBuilder("issue.labels.update")
+    expect(() => builder.build({ issueId: "i1", labelIds: [1] })).toThrow(
+      "labelIds must be an array of strings",
+    )
+
+    const built = builder.build({ issueId: "i1", labelIds: ["l1", "l2"] })
+    expect(built.variables).toEqual({ issueId: "i1", labelIds: ["l1", "l2"] })
+
+    expect(() => builder.mapResponse({ issue: {} })).toThrow("Issue labels update failed")
+
+    const mapped = builder.mapResponse({
+      issue: { id: "i1", labels: { nodes: [{ name: "bug" }, { name: 42 }] } },
+    })
+    expect(mapped).toEqual({ id: "i1", labels: ["bug"] })
+  })
+
+  it("issue.assignees.update validates ids and maps logins", () => {
+    const builder = expectBuilder("issue.assignees.update")
+    expect(() => builder.build({ issueId: "i1", assigneeIds: [true] })).toThrow(
+      "assigneeIds must be an array of strings",
+    )
+
+    const built = builder.build({ issueId: "i1", assigneeIds: ["u1"] })
+    expect(built.variables).toEqual({ issueId: "i1", assigneeIds: ["u1"] })
+
+    expect(() => builder.mapResponse({ issue: {} })).toThrow("Issue assignees update failed")
+
+    const mapped = builder.mapResponse({
+      issue: { id: "i1", assignees: { nodes: [{ login: "octocat" }, { login: 10 }] } },
+    })
+    expect(mapped).toEqual({ id: "i1", assignees: ["octocat"] })
+  })
+
+  it("issue.milestone.set validates milestone id and maps nullable milestone", () => {
+    const builder = expectBuilder("issue.milestone.set")
+    expect(() => builder.build({ issueId: "i1", milestoneId: 1 })).toThrow(
+      "milestoneId must be a string or null",
+    )
+
+    const built = builder.build({ issueId: "i1", milestoneId: null })
+    expect(built.variables).toEqual({ issueId: "i1", milestoneId: null })
+
+    expect(() => builder.mapResponse({ issue: {} })).toThrow("Issue milestone update failed")
+
+    const mapped = builder.mapResponse({
+      issue: { id: "i1", milestone: { number: 12 } },
+    })
+    expect(mapped).toEqual({ id: "i1", milestoneNumber: 12 })
+  })
+
+  it("issue.comments.create validates input and maps response", () => {
+    const builder = expectBuilder("issue.comments.create")
+    expect(() => builder.build({ issueId: "" })).toThrow("issueId is required")
+    expect(() => builder.build({ issueId: "i1", body: "" })).toThrow("body is required")
+
+    const built = builder.build({ issueId: "i1", body: "hello" })
+    expect(built.variables).toEqual({ issueId: "i1", body: "hello" })
+
+    expect(() => builder.mapResponse({ commentEdge: { node: { id: "c1" } } })).toThrow(
+      "Issue comment creation failed",
+    )
+
+    const mapped = builder.mapResponse({
+      commentEdge: { node: { id: "c1", body: "hello", url: "https://example.com/c1" } },
+    })
+    expect(mapped).toEqual({
+      id: "c1",
+      body: "hello",
+      url: "https://example.com/c1",
+    })
   })
 })

@@ -98,4 +98,28 @@ describe("buildBatchMutation", () => {
     expect(result.document).toContain("resolve1: resolveReviewThread")
     expect(result.document).toContain("resolve2: resolveReviewThread")
   })
+
+  it("throws when mutation body has no opening brace", () => {
+    expect(() =>
+      buildBatchMutation([
+        {
+          alias: "broken",
+          mutation: "mutation Broken($id: ID!)",
+          variables: { id: "x" },
+        },
+      ]),
+    ).toThrow("Invalid mutation: no opening brace found")
+  })
+
+  it("throws when mutation has unbalanced braces", () => {
+    expect(() =>
+      buildBatchMutation([
+        {
+          alias: "broken",
+          mutation: "mutation Broken($id: ID!) { resolveReviewThread(input: { threadId: $id })",
+          variables: { id: "x" },
+        },
+      ]),
+    ).toThrow("Invalid mutation: unbalanced braces")
+  })
 })
