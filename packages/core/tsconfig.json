@@ -1,4 +1,10 @@
 {
   "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@core/*": ["./src/*"]
+    }
+  },
   "include": ["src/**/*.ts", "test/**/*.ts", "scripts/**/*.ts", "codegen.ts"]
 }
