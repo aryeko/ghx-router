@@ -1,16 +1,15 @@
+import type { OperationCard } from "@core/core/registry/types.js"
+import type { GithubClient } from "@core/gql/github-client.js"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-
-import type { OperationCard } from "../../src/core/registry/types.js"
-import type { GithubClient } from "../../src/gql/github-client.js"
 
 const executeMock = vi.fn()
 const getOperationCardMock = vi.fn()
 
-vi.mock("../../src/core/execute/execute.js", () => ({
+vi.mock("@core/core/execute/execute.js", () => ({
   execute: (...args: unknown[]) => executeMock(...args),
 }))
 
-vi.mock("../../src/core/registry/index.js", () => ({
+vi.mock("@core/core/registry/index.js", () => ({
   getOperationCard: (...args: unknown[]) => getOperationCardMock(...args),
 }))
 
@@ -42,7 +41,7 @@ describe("executeTask engine wiring", () => {
       },
     )
 
-    const { executeTask } = await import("../../src/core/routing/engine.js")
+    const { executeTask } = await import("@core/core/routing/engine.js")
 
     const result = await executeTask(
       {
@@ -103,7 +102,7 @@ describe("executeTask engine wiring", () => {
       },
     )
 
-    const { executeTask } = await import("../../src/core/routing/engine.js")
+    const { executeTask } = await import("@core/core/routing/engine.js")
 
     const result = await executeTask(
       {

@@ -29,7 +29,7 @@ describe("setupCommand error handling", () => {
       }
     })
 
-    const { setupCommand } = await import("../../src/cli/commands/setup.js")
+    const { setupCommand } = await import("@core/cli/commands/setup.js")
     const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true)
 
     const code = await setupCommand(["--scope", "user", "--verify"])
@@ -55,7 +55,7 @@ describe("setupCommand error handling", () => {
       }
     })
 
-    const { setupCommand } = await import("../../src/cli/commands/setup.js")
+    const { setupCommand } = await import("@core/cli/commands/setup.js")
     const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true)
 
     const code = await setupCommand(["--scope", "user", "--yes"])
@@ -86,7 +86,7 @@ describe("setupCommand error handling", () => {
       }
     })
 
-    const { setupCommand } = await import("../../src/cli/commands/setup.js")
+    const { setupCommand } = await import("@core/cli/commands/setup.js")
     const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true)
 
     const code = await setupCommand(["--scope", "user", "--yes"])
@@ -118,7 +118,7 @@ describe("setupCommand error handling", () => {
       }
     })
 
-    const { setupCommand } = await import("../../src/cli/commands/setup.js")
+    const { setupCommand } = await import("@core/cli/commands/setup.js")
     const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true)
 
     const code = await setupCommand(["--scope", "user", "--yes"])

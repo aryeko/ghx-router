@@ -212,9 +212,9 @@ const handlers = new Map<string, GraphqlHandler>([
   ["pr.review.list", (c, p) => c.fetchPrReviewsList(withDefaultFirst(p) as PrReviewsListInput)],
   ["pr.diff.files", (c, p) => c.fetchPrDiffListFiles(withDefaultFirst(p) as PrDiffListFilesInput)],
   ["pr.merge.status", (c, p) => c.fetchPrMergeStatus(p as PrMergeStatusInput)],
+  ["pr.thread.list", (c, p) => c.fetchPrCommentsList(withDefaultFirst(p) as PrCommentsListInput)],
 
   // PR mutations
-  ["pr.thread.list", (c, p) => c.fetchPrCommentsList(withDefaultFirst(p) as PrCommentsListInput)],
   [
     "pr.thread.reply",
     (c, p) => {

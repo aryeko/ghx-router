@@ -24,7 +24,7 @@
 **Step 1: Rename the file**
 
 ```bash
-cd /Users/aryekogan/repos/ghx/.worktrees/gql-refactor
+cd <repo-root>
 git mv packages/core/src/gql/generated/common-types.ts packages/core/src/gql/generated/common-types.generated.ts
 ```
 

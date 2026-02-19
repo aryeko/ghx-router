@@ -83,7 +83,7 @@ describe("createSafeCliCommandRunner", () => {
 
     try {
       const { createSafeCliCommandRunner: createMockedRunner } = await import(
-        "../../src/core/execution/cli/safe-runner.js"
+        "@core/core/execution/cli/safe-runner.js"
       )
       const runner = createMockedRunner({ maxOutputBytes: 4 })
 
@@ -122,7 +122,7 @@ describe("createSafeCliCommandRunner", () => {
 
     try {
       const { createSafeCliCommandRunner: createMockedRunner } = await import(
-        "../../src/core/execution/cli/safe-runner.js"
+        "@core/core/execution/cli/safe-runner.js"
       )
       const runner = createMockedRunner({ maxOutputBytes: 4 })
 
@@ -156,7 +156,7 @@ describe("createSafeCliCommandRunner", () => {
 
     try {
       const { createSafeCliCommandRunner: createMockedRunner } = await import(
-        "../../src/core/execution/cli/safe-runner.js"
+        "@core/core/execution/cli/safe-runner.js"
       )
       const runner = createMockedRunner({ maxOutputBytes: 1024 })
 
@@ -195,7 +195,7 @@ describe("createSafeCliCommandRunner", () => {
 
     try {
       const { createSafeCliCommandRunner: createMockedRunner } = await import(
-        "../../src/core/execution/cli/safe-runner.js"
+        "@core/core/execution/cli/safe-runner.js"
       )
       const runner = createMockedRunner({ maxOutputBytes: 4 })
 

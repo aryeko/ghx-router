@@ -1,6 +1,6 @@
+import { runGraphqlCapability } from "@core/core/execution/adapters/graphql-capability-adapter.js"
+import type { GithubClient } from "@core/gql/github-client.js"
 import { describe, expect, it, vi } from "vitest"
-import { runGraphqlCapability } from "../../src/core/execution/adapters/graphql-capability-adapter.js"
-import type { GithubClient } from "../../src/gql/github-client.js"
 
 describe("runGraphqlCapability", () => {
   it("returns normalized data for supported capability", async () => {

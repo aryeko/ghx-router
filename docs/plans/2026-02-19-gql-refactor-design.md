@@ -18,7 +18,7 @@ Additionally, ~22 operations in `client.ts` use inline GQL template strings inst
 
 New file structure under `packages/core/src/gql/`:
 
-```
+```text
 gql/
   transport.ts          # GraphqlTransport, GraphqlClient, createGraphqlClient, createTokenTransport, resolveGraphqlUrl
   types.ts              # All *Input and *Data type exports (pure types, zero runtime)

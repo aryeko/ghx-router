@@ -4,15 +4,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 const createGithubClientMock = vi.fn()
 const executeTaskMock = vi.fn()
 
-vi.mock("../../src/gql/github-client.js", () => ({
+vi.mock("@core/gql/github-client.js", () => ({
   createGithubClient: (...args: unknown[]) => createGithubClientMock(...args),
 }))
 
-vi.mock("../../src/core/routing/engine.js", () => ({
+vi.mock("@core/core/routing/engine.js", () => ({
   executeTask: (...args: unknown[]) => executeTaskMock(...args),
 }))
 
-import { readStdin, runCommand } from "../../src/cli/commands/run.js"
+import { readStdin, runCommand } from "@core/cli/commands/run.js"
 
 function mockStdin(content: string): void {
   const readable = new Readable({

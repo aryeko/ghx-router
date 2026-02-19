@@ -1,13 +1,12 @@
 import { existsSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
-import { describe, expect, it } from "vitest"
-
 import {
   getOperationCard,
   listOperationCards,
   validateOperationCard,
-} from "../../src/core/registry/index.js"
+} from "@core/core/registry/index.js"
+import { describe, expect, it } from "vitest"
 
 describe("operation cards registry", () => {
   it("lists all v1 thin-slice capabilities", () => {
