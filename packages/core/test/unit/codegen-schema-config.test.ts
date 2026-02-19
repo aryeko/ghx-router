@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 
 async function importFreshConfig() {
   vi.resetModules()
-  return import("../../codegen.schema.js")
+  return import("../../codegen-schema.js")
 }
 
 describe("codegen schema update config", () => {
@@ -10,8 +10,16 @@ describe("codegen schema update config", () => {
   const originalGhToken = process.env.GH_TOKEN
 
   afterEach(() => {
-    process.env.GITHUB_TOKEN = originalGithubToken
-    process.env.GH_TOKEN = originalGhToken
+    if (originalGithubToken === undefined) {
+      delete process.env.GITHUB_TOKEN
+    } else {
+      process.env.GITHUB_TOKEN = originalGithubToken
+    }
+    if (originalGhToken === undefined) {
+      delete process.env.GH_TOKEN
+    } else {
+      process.env.GH_TOKEN = originalGhToken
+    }
   })
 
   it("throws a clear error when no token is available", async () => {
