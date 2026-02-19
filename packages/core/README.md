@@ -127,16 +127,16 @@ During build/publish it is copied to:
 
 `ghx setup` writes this content to `.agents/skills/ghx/SKILL.md` in user or project scope.
 
-## Agent Tools (`@ghx-dev/core/agent`)
+## Agent Tools
 
 ```ts
 import {
   createExecuteTool,
-  listCapabilities,
+  createGithubClientFromToken,
+  executeTask,
   explainCapability,
-  MAIN_SKILL_TEXT,
-} from "@ghx-dev/core/agent"
-import { createGithubClientFromToken, executeTask } from "@ghx-dev/core"
+  listCapabilities,
+} from "@ghx-dev/core"
 
 // Wire the execute tool to the real engine
 const token = process.env.GITHUB_TOKEN!
@@ -151,8 +151,6 @@ console.log(listCapabilities())
 console.log(explainCapability("repo.view"))
 const result = await tool.execute("repo.view", { owner: "aryeko", name: "ghx" })
 ```
-
-`MAIN_SKILL_TEXT` provides a ready-to-use system prompt describing all capabilities.
 
 ## 66 Capabilities
 
@@ -233,7 +231,6 @@ Root (`@ghx-dev/core`):
 
 Subpaths:
 
-- `@ghx-dev/core/agent` -- `createExecuteTool`, `listCapabilities`, `explainCapability`, `MAIN_SKILL_TEXT`
 - `@ghx-dev/core/cli` -- CLI entrypoint
 
 ## Custom GraphQL Transport

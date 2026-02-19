@@ -1,4 +1,4 @@
-import { getOperationCard } from "../../core/registry/index.js"
+import { getOperationCard } from "./index.js"
 import { extractOutputFields, extractRequiredInputs } from "./schema-utils.js"
 
 export type CapabilityExplanation = {

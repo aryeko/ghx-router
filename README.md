@@ -99,7 +99,7 @@ ghx run workflow_job.logs.analyze --input '{"owner":"aryeko","name":"ghx","job_i
 ghx run pr.merge.execute --input '{"owner":"aryeko","name":"ghx","number":14,"method":"squash"}'
 ```
 
-The same flow can be run by agents through the public library API or `@ghx-dev/core/agent` tools.
+The same flow can be run by agents through the public library API.
 
 ## Capabilities at a Glance
 

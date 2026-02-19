@@ -1,4 +1,4 @@
-import { listOperationCards } from "../../core/registry/index.js"
+import { listOperationCards } from "./index.js"
 import { extractRequiredInputs } from "./schema-utils.js"
 
 export type CapabilityListItem = {

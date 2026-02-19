@@ -1,4 +1,4 @@
-import type { ResultEnvelope } from "../../core/contracts/envelope.js"
+import type { ResultEnvelope } from "../contracts/envelope.js"
 
 type ExecuteTaskFn = (request: {
   task: string
