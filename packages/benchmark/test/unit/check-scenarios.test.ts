@@ -10,7 +10,7 @@ vi.mock("../../src/scenario/loader.js", () => ({
   loadScenarioSets: loadScenarioSetsMock,
 }))
 
-import { main } from "../../src/cli/check-scenarios.js"
+import { main } from "@bench/cli/check-scenarios.js"
 
 function createWorkflowScenario(id: string) {
   return {

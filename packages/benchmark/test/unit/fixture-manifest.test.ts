@@ -1,10 +1,9 @@
 import { mkdtemp, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-
+import type { WorkflowScenario } from "@bench/domain/types.js"
+import { loadFixtureManifest, resolveWorkflowFixtureBindings } from "@bench/fixture/manifest.js"
 import { describe, expect, it } from "vitest"
-import type { WorkflowScenario } from "../../src/domain/types.js"
-import { loadFixtureManifest, resolveWorkflowFixtureBindings } from "../../src/fixture/manifest.js"
 import { makeWorkflowScenario } from "../helpers/scenario-factory.js"
 
 function createBaseWorkflowScenario(): WorkflowScenario {

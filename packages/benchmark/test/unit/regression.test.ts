@@ -1,13 +1,13 @@
 import { mkdir, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { afterEach, beforeEach, describe, expect, it } from "vitest"
-import type { BenchmarkSummary, HistoryEntry, ModeSummary } from "../../src/domain/types.js"
+import type { BenchmarkSummary, HistoryEntry, ModeSummary } from "@bench/domain/types.js"
 import {
   detectRegressions,
   formatRegressionWarnings,
   loadHistory,
-} from "../../src/report/regression.js"
+} from "@bench/report/regression.js"
+import { afterEach, beforeEach, describe, expect, it } from "vitest"
 
 const createModeSummary = (overrides?: Partial<ModeSummary>): ModeSummary => ({
   mode: "ghx",

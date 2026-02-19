@@ -1,9 +1,9 @@
-import { describe, expect, it, vi } from "vitest"
 import {
   AGENT_DIRECT_INSTRUCTION,
   MCP_INSTRUCTION,
   modeInstructions,
-} from "../../src/runner/mode/mode-instructions.js"
+} from "@bench/runner/mode/mode-instructions.js"
+import { describe, expect, it, vi } from "vitest"
 
 describe("modeInstructions", () => {
   it("loads ghx skill content for ghx mode", async () => {

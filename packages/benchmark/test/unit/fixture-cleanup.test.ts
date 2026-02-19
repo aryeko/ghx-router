@@ -6,7 +6,7 @@ vi.mock("node:child_process", () => ({
   spawnSync: spawnSyncMock,
 }))
 
-import { cleanupAllFixtures, cleanupSeededFixtures } from "../../src/fixture/cleanup.js"
+import { cleanupAllFixtures, cleanupSeededFixtures } from "@bench/fixture/cleanup.js"
 
 describe("fixture cleanup", () => {
   beforeEach(() => {

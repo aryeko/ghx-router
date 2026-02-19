@@ -1,15 +1,13 @@
 import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
-
-import { describe, expect, it, vi } from "vitest"
-
 import {
   parseArgs,
   resolveSeedPolicy,
   runVerifySet,
   validateSuiteRows,
-} from "../../src/cli/verify-by-set.js"
+} from "@bench/cli/verify-by-set.js"
+import { describe, expect, it, vi } from "vitest"
 
 type SuiteConfig = {
   benchmark: {

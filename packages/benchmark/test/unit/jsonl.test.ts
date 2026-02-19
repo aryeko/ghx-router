@@ -1,6 +1,6 @@
+import { parseJsonlLines } from "@bench/utils/jsonl.js"
 import { describe, expect, it } from "vitest"
 import { z } from "zod"
-import { parseJsonlLines } from "../../src/utils/jsonl.js"
 
 const testSchema = z.object({ id: z.string(), value: z.number() })
 

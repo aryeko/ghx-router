@@ -1,4 +1,4 @@
-import type { BenchmarkMode } from "../../domain/types.js"
+import type { BenchmarkMode } from "@bench/domain/types.js"
 
 export const AGENT_DIRECT_INSTRUCTION =
   "Use GitHub CLI (`gh`) commands directly to complete the task."

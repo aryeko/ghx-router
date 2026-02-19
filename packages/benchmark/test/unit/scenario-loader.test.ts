@@ -1,6 +1,5 @@
+import { validateScenario } from "@bench/scenario/schema.js"
 import { describe, expect, it } from "vitest"
-
-import { validateScenario } from "../../src/scenario/schema.js"
 
 describe("validateScenario", () => {
   it("accepts a valid workflow scenario", () => {

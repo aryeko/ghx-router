@@ -1,10 +1,5 @@
+import { bootstrapCI, coefficientOfVariation, iqr, percentile } from "@bench/report/statistics.js"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
-import {
-  bootstrapCI,
-  coefficientOfVariation,
-  iqr,
-  percentile,
-} from "../../src/report/statistics.js"
 
 // Deterministic PRNG (mulberry32) to make bootstrapCI tests repeatable
 function mulberry32(seed: number) {

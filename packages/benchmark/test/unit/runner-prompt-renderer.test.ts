@@ -1,6 +1,6 @@
+import type { WorkflowScenario } from "@bench/domain/types.js"
+import { renderWorkflowPrompt } from "@bench/runner/prompt/prompt-renderer.js"
 import { describe, expect, it } from "vitest"
-import type { WorkflowScenario } from "../../src/domain/types.js"
-import { renderWorkflowPrompt } from "../../src/runner/prompt/prompt-renderer.js"
 
 const workflowScenario: WorkflowScenario = {
   type: "workflow",

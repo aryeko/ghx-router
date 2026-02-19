@@ -13,7 +13,7 @@ import {
   tryRunGh,
   tryRunGhJson,
   tryRunGhWithToken,
-} from "../../src/fixture/gh-client.js"
+} from "@bench/fixture/gh-client.js"
 
 describe("runGh", () => {
   beforeEach(() => {

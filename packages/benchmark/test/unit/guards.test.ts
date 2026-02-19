@@ -1,5 +1,5 @@
+import { isObject } from "@bench/utils/guards.js"
 import { describe, expect, it } from "vitest"
-import { isObject } from "../../src/utils/guards.js"
 
 describe("isObject", () => {
   it("returns true for plain objects", () => {
