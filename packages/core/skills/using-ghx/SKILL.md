@@ -29,6 +29,13 @@ Required inputs shown in brackets (e.g. `[owner, name, prNumber]`).
 
 Use `ghx capabilities explain <capability_id>` to see full input/output schema.
 
+## Composite Capabilities
+
+When a workflow involves multiple operations on the same resource,
+prefer composite capabilities (suffixed with `.composite`) over
+sequential atomic calls. Check `ghx capabilities list` for available
+composites — their descriptions explain what they combine.
+
 ## Examples
 
 ```bash
