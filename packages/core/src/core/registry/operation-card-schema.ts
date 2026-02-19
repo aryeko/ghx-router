@@ -93,6 +93,28 @@ export const operationCardSchema = {
       },
       additionalProperties: false,
     },
+    composite: {
+      type: "object",
+      required: ["steps", "output_strategy"],
+      properties: {
+        steps: {
+          type: "array",
+          minItems: 1,
+          items: {
+            type: "object",
+            required: ["capability_id", "params_map"],
+            properties: {
+              capability_id: { type: "string", minLength: 1 },
+              foreach: { type: "string", minLength: 1 },
+              params_map: { type: "object" },
+            },
+            additionalProperties: false,
+          },
+        },
+        output_strategy: { enum: ["merge", "array", "last"] },
+      },
+      additionalProperties: false,
+    },
     examples: {
       type: "array",
       items: {
