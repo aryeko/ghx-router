@@ -1,29 +1,27 @@
+/* global console, process */
 import { spawnSync } from "node:child_process"
 import { readdirSync, readFileSync, writeFileSync } from "node:fs"
 import { join, resolve } from "node:path"
 
-import { resolveGithubToken } from "./get-github-token.js"
-
-function fixGeneratedImportExtensions(packageRoot: string): void {
+function fixGeneratedImportExtensions(packageRoot) {
   const opsDir = join(packageRoot, "src", "gql", "operations")
   fixGeneratedArtifactsInDir(opsDir)
-
-  const fragmentsDir = join(opsDir, "fragments")
-  try {
-    readdirSync(fragmentsDir)
-  } catch {
-    // fragments directory may not exist yet
-    return
-  }
-  fixGeneratedArtifactsInDir(fragmentsDir)
 }
 
-function fixGeneratedArtifactsInDir(dir: string): void {
-  const files = readdirSync(dir).filter((f) => f.endsWith(".generated.ts"))
+function fixGeneratedArtifactsInDir(dir) {
+  const entries = readdirSync(dir, { withFileTypes: true })
 
-  for (const file of files) {
-    const filePath = join(dir, file)
-    const content = readFileSync(filePath, "utf8")
+  for (const entry of entries) {
+    const entryPath = join(dir, entry.name)
+    if (entry.isDirectory()) {
+      fixGeneratedArtifactsInDir(entryPath)
+      continue
+    }
+    if (!entry.isFile() || !entry.name.endsWith(".generated.ts")) {
+      continue
+    }
+
+    const content = readFileSync(entryPath, "utf8")
     const fixedImports = content.replace(/from '(\.\.?\/[^']+?)(?<!\.js)'/g, "from '$1.js'")
     // GitHub's GraphQL schema introspection varies by token capabilities for a few thread types.
     // Normalize these members to keep generated artifacts stable across local and CI tokens.
@@ -31,22 +29,17 @@ function fixGeneratedArtifactsInDir(dir: string): void {
       .replace(/^\s+\| { __typename\?: ["']NotificationThread["'] }\r?$/gm, "")
       .replace(/^\s+\| { __typename\?: ["']RepositoryDependabotAlertsThread["'] }\r?$/gm, "")
     if (fixed !== content) {
-      writeFileSync(filePath, fixed, "utf8")
+      writeFileSync(entryPath, fixed, "utf8")
     }
   }
 }
 
-async function main(): Promise<void> {
-  const token = await resolveGithubToken()
+async function main() {
   const packageRoot = resolve(process.cwd())
 
   const result = spawnSync("pnpm", ["exec", "graphql-codegen", "--config", "codegen.ts"], {
     cwd: packageRoot,
     stdio: "inherit",
-    env: {
-      ...process.env,
-      GITHUB_TOKEN: token,
-    },
   })
 
   if (result.status !== 0) {
@@ -56,7 +49,7 @@ async function main(): Promise<void> {
   fixGeneratedImportExtensions(packageRoot)
 }
 
-main().catch((error: unknown) => {
+main().catch((error) => {
   console.error(error)
   process.exit(1)
 })

@@ -66,7 +66,8 @@ The monorepo is structured with Nx. Root scripts map to Nx targets and are the p
 
 ### Project-Specific Commands
 
-- `pnpm run ghx:gql:check` – enforce generated GraphQL artifacts are in sync
+- `pnpm run ghx:gql:verify` – enforce generated GraphQL artifacts are in sync (offline check)
+- `pnpm --filter @ghx-dev/core run gql:schema:refresh` – refresh `packages/core/src/gql/schema.graphql` from GitHub GraphQL (on-demand; requires `GITHUB_TOKEN` or `GH_TOKEN`)
 - `pnpm --filter @ghx-dev/benchmark run check:scenarios` – validate benchmark scenarios
 - `pnpm run benchmark`, `pnpm --filter @ghx-dev/benchmark run report`, `pnpm --filter @ghx-dev/benchmark run report:gate`
 

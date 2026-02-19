@@ -144,7 +144,7 @@ If the operation has a preferred `graphql` routing, implement the GraphQL adapte
 2. **Regenerate GraphQL types**
 
    ```bash
-   pnpm run ghx:gql:check
+   pnpm run ghx:gql:verify
    ```
 
 3. **Implement the GraphQL adapter** in `packages/core/src/core/execution/adapters/graphql-capability-adapter.ts`
@@ -308,7 +308,7 @@ Before submitting a PR:
 - [ ] Benchmark scenario added (if integration-testing is needed)
 - [ ] Changeset created (if user-facing)
 - [ ] `pnpm run ci` passes
-- [ ] `pnpm run ghx:gql:check` passes (if GraphQL changes made)
+- [ ] `pnpm run ghx:gql:verify` passes (if GraphQL changes made)
 - [ ] Affected tests pass: `pnpm --filter @ghx-dev/core run test`
 
 ## Complete Example
