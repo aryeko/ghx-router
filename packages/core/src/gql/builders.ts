@@ -15,7 +15,7 @@ export type OperationBuilder = {
   mapResponse: (raw: unknown) => unknown
 }
 
-const replyBuilder: OperationBuilder = {
+export const replyBuilder: OperationBuilder = {
   build(input) {
     if (!input.threadId || typeof input.threadId !== "string") {
       throw new Error("threadId is required")
@@ -40,7 +40,7 @@ const replyBuilder: OperationBuilder = {
   },
 }
 
-const resolveBuilder: OperationBuilder = {
+export const resolveBuilder: OperationBuilder = {
   build(input) {
     if (!input.threadId || typeof input.threadId !== "string") {
       throw new Error("threadId is required")
@@ -61,7 +61,7 @@ const resolveBuilder: OperationBuilder = {
   },
 }
 
-const unresolveBuilder: OperationBuilder = {
+export const unresolveBuilder: OperationBuilder = {
   build(input) {
     if (!input.threadId || typeof input.threadId !== "string") {
       throw new Error("threadId is required")
@@ -86,5 +86,4 @@ export const OPERATION_BUILDERS: Record<string, OperationBuilder> = {
   "pr.thread.reply": replyBuilder,
   "pr.thread.resolve": resolveBuilder,
   "pr.thread.unresolve": unresolveBuilder,
-  // Issue builders added in Task 6 when those composites need them
 }

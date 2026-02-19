@@ -208,7 +208,6 @@ describe("operation cards registry", () => {
 
   it("documents mutating PR capabilities as CLI-preferred operations", () => {
     const mutatingCapabilities = [
-      "pr.review.submit",
       "pr.merge",
       "pr.create",
       "pr.update",
@@ -227,5 +226,13 @@ describe("operation cards registry", () => {
       expect(card?.routing.fallbacks).toEqual([])
       expect(card?.cli?.command).toMatch(/^pr |^run /)
     }
+  })
+
+  it("pr.review.submit prefers GraphQL for inline comments support", () => {
+    const card = getOperationCard("pr.review.submit")
+    expect(card).toBeDefined()
+    expect(card?.routing.preferred).toBe("graphql")
+    expect(card?.routing.fallbacks).toContain("cli")
+    expect(card?.graphql).toBeDefined()
   })
 })

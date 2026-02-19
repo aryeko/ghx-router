@@ -1,0 +1,22 @@
+mutation PrReviewSubmit(
+  $pullRequestId: ID!
+  $event: PullRequestReviewEvent!
+  $body: String
+  $threads: [DraftPullRequestReviewThread!]
+) {
+  addPullRequestReview(
+    input: {
+      pullRequestId: $pullRequestId
+      event: $event
+      body: $body
+      threads: $threads
+    }
+  ) {
+    pullRequestReview {
+      id
+      state
+      url
+      body
+    }
+  }
+}

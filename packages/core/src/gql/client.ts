@@ -1,5 +1,6 @@
 import { type DocumentNode, print } from "graphql"
 import type { GraphQLClient, RequestDocument, RequestOptions } from "graphql-request"
+import { replyBuilder, resolveBuilder, unresolveBuilder } from "./builders.js"
 import type {
   IssueCommentsListQuery,
   IssueCommentsListQueryVariables,
@@ -380,6 +381,29 @@ export type ReviewThreadMutationData = {
   isResolved: boolean
 }
 
+export type DraftComment = {
+  path: string
+  body: string
+  line: number
+  side?: "LEFT" | "RIGHT"
+}
+
+export type PrReviewSubmitInput = {
+  owner: string
+  name: string
+  prNumber: number
+  event: string
+  body?: string
+  comments?: DraftComment[]
+}
+
+export type PrReviewSubmitData = {
+  id: string
+  state: string
+  url: string
+  body: string
+}
+
 export interface GithubClient extends GraphqlClient {
   fetchRepoView(input: RepoViewInput): Promise<RepoViewData>
   fetchIssueCommentsList(input: IssueCommentsListInput): Promise<IssueCommentsListData>
@@ -410,6 +434,7 @@ export interface GithubClient extends GraphqlClient {
   replyToReviewThread(input: ReplyToReviewThreadInput): Promise<ReviewThreadMutationData>
   resolveReviewThread(input: ReviewThreadMutationInput): Promise<ReviewThreadMutationData>
   unresolveReviewThread(input: ReviewThreadMutationInput): Promise<ReviewThreadMutationData>
+  submitPrReview(input: PrReviewSubmitInput): Promise<PrReviewSubmitData>
 }
 
 function assertRepoInput(input: RepoViewInput): void {
@@ -2062,20 +2087,27 @@ function assertReplyToReviewThreadInput(input: ReplyToReviewThreadInput): void {
   }
 }
 
+function assertPrReviewSubmitInput(input: PrReviewSubmitInput): void {
+  if (input.owner.trim().length === 0 || input.name.trim().length === 0) {
+    throw new Error("Repository owner and name are required")
+  }
+  if (!Number.isInteger(input.prNumber) || input.prNumber <= 0) {
+    throw new Error("PR number must be a positive integer")
+  }
+  if (!input.event || typeof input.event !== "string") {
+    throw new Error("Review event is required")
+  }
+}
+
 async function runReplyToReviewThread(
   graphqlClient: GraphqlClient,
   input: ReplyToReviewThreadInput,
 ): Promise<ReviewThreadMutationData> {
   assertReplyToReviewThreadInput(input)
 
-  const { OPERATION_BUILDERS } = await import("./builders.js")
-  const builder = OPERATION_BUILDERS["pr.thread.reply"]
-  if (!builder) {
-    throw new Error("Builder not found for pr.thread.reply")
-  }
-  const { mutation, variables } = builder.build(input)
+  const { mutation, variables } = replyBuilder.build(input)
   const result = await graphqlClient.query<unknown, GraphqlVariables>(mutation, variables)
-  builder.mapResponse(result)
+  replyBuilder.mapResponse(result)
 
   const threadStateResult = await graphqlClient.query<unknown, GraphqlVariables>(
     REVIEW_THREAD_STATE_QUERY,
@@ -2100,14 +2132,9 @@ async function runResolveReviewThread(
 ): Promise<ReviewThreadMutationData> {
   assertReviewThreadInput(input)
 
-  const { OPERATION_BUILDERS } = await import("./builders.js")
-  const builder = OPERATION_BUILDERS["pr.thread.resolve"]
-  if (!builder) {
-    throw new Error("Builder not found for pr.thread.resolve")
-  }
-  const { mutation, variables } = builder.build(input)
+  const { mutation, variables } = resolveBuilder.build(input)
   const result = await graphqlClient.query<unknown, GraphqlVariables>(mutation, variables)
-  const mapped = builder.mapResponse(result)
+  const mapped = resolveBuilder.mapResponse(result)
   const mappedRecord = mapped as Record<string, unknown>
   return {
     id: mappedRecord.id as string,
@@ -2121,18 +2148,87 @@ async function runUnresolveReviewThread(
 ): Promise<ReviewThreadMutationData> {
   assertReviewThreadInput(input)
 
-  const { OPERATION_BUILDERS } = await import("./builders.js")
-  const builder = OPERATION_BUILDERS["pr.thread.unresolve"]
-  if (!builder) {
-    throw new Error("Builder not found for pr.thread.unresolve")
-  }
-  const { mutation, variables } = builder.build(input)
+  const { mutation, variables } = unresolveBuilder.build(input)
   const result = await graphqlClient.query<unknown, GraphqlVariables>(mutation, variables)
-  const mapped = builder.mapResponse(result)
+  const mapped = unresolveBuilder.mapResponse(result)
   const mappedRecord = mapped as Record<string, unknown>
   return {
     id: mappedRecord.id as string,
     isResolved: mappedRecord.isResolved as boolean,
+  }
+}
+
+async function runSubmitPrReview(
+  graphqlClient: GraphqlClient,
+  input: PrReviewSubmitInput,
+): Promise<PrReviewSubmitData> {
+  assertPrReviewSubmitInput(input)
+
+  const prViewData = await runPrView(graphqlClient, {
+    owner: input.owner,
+    name: input.name,
+    prNumber: input.prNumber,
+  })
+
+  const pullRequestId = (prViewData as Record<string, unknown>).id as string
+  if (!pullRequestId) {
+    throw new Error("Failed to retrieve pull request ID")
+  }
+
+  const threads = input.comments
+    ? input.comments.map((comment) => ({
+        path: comment.path,
+        body: comment.body,
+        line: comment.line,
+        side: comment.side,
+      }))
+    : []
+
+  const query = `
+    mutation PrReviewSubmit(
+      $pullRequestId: ID!
+      $event: PullRequestReviewEvent!
+      $body: String
+      $threads: [DraftPullRequestReviewThread!]
+    ) {
+      addPullRequestReview(
+        input: {
+          pullRequestId: $pullRequestId
+          event: $event
+          body: $body
+          threads: $threads
+        }
+      ) {
+        pullRequestReview {
+          id
+          state
+          url
+          body
+        }
+      }
+    }
+  `
+
+  const result = await graphqlClient.query<unknown, GraphqlVariables>(query, {
+    pullRequestId,
+    event: input.event,
+    body: input.body,
+    threads: threads.length > 0 ? threads : undefined,
+  })
+
+  const resultRecord = result as Record<string, unknown>
+  const addReviewData = resultRecord?.addPullRequestReview as Record<string, unknown>
+  const review = addReviewData?.pullRequestReview as Record<string, unknown>
+
+  if (!review || typeof review.id !== "string") {
+    throw new Error("Failed to parse pull request review response")
+  }
+
+  return {
+    id: review.id,
+    state: String(review.state),
+    url: String(review.url),
+    body: String(review.body),
   }
 }
 
@@ -2275,5 +2371,6 @@ export function createGithubClient(transport: GraphqlTransport): GithubClient {
     replyToReviewThread: (input) => runReplyToReviewThread(graphqlClient, input),
     resolveReviewThread: (input) => runResolveReviewThread(graphqlClient, input),
     unresolveReviewThread: (input) => runUnresolveReviewThread(graphqlClient, input),
+    submitPrReview: (input) => runSubmitPrReview(graphqlClient, input),
   }
 }

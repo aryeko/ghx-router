@@ -12,6 +12,17 @@ input_schema:
       type: string
       enum: [APPROVE, COMMENT, REQUEST_CHANGES]
     body: { type: string, minLength: 1 }
+    comments:
+      type: array
+      items:
+        type: object
+        required: [path, body, line]
+        properties:
+          path: { type: string, minLength: 1 }
+          body: { type: string, minLength: 1 }
+          line: { type: integer, minimum: 1 }
+          side: { type: string, enum: [LEFT, RIGHT] }
+        additionalProperties: false
   additionalProperties: false
 output_schema:
   type: object
@@ -23,7 +34,14 @@ output_schema:
     body: { type: [string, "null"] }
   additionalProperties: false
 routing:
-  preferred: cli
-  fallbacks: []
+  preferred: graphql
+  fallbacks: [cli]
+  suitability:
+    - when: params
+      predicate: "cli if comments == undefined"
+      reason: "CLI route sufficient when no inline comments"
+graphql:
+  operationName: PrReviewSubmit
+  documentPath: pr-review-submit.graphql
 cli:
   command: pr review

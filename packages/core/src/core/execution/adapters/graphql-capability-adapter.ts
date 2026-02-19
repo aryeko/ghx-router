@@ -21,6 +21,7 @@ import type {
   PrListInput,
   PrMergeStatusInput,
   PrReviewsListInput,
+  PrReviewSubmitInput,
   PrViewInput,
   RepoViewInput,
 } from "../../../gql/client.js"
@@ -60,6 +61,7 @@ export type GraphqlCapabilityId =
   | "pr.merge.status"
   | "pr.thread.resolve"
   | "pr.thread.unresolve"
+  | "pr.review.submit"
 
 const DEFAULT_LIST_FIRST = 30
 
@@ -115,6 +117,7 @@ export async function runGraphqlCapability(
     | "replyToReviewThread"
     | "resolveReviewThread"
     | "unresolveReviewThread"
+    | "submitPrReview"
   > &
     Partial<
       Pick<
@@ -337,6 +340,11 @@ export async function runGraphqlCapability(
     if (capabilityId === "pr.thread.unresolve") {
       const threadId = requireNonEmptyString(params, "threadId", capabilityId)
       const data = await client.unresolveReviewThread({ threadId })
+      return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
+    }
+
+    if (capabilityId === "pr.review.submit") {
+      const data = await client.submitPrReview(params as PrReviewSubmitInput)
       return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
     }
 
