@@ -1,7 +1,10 @@
+import { buildBatchMutation } from "../../gql/batch.js"
 import type { GithubClient } from "../../gql/client.js"
 import type { ResultEnvelope, RouteSource } from "../contracts/envelope.js"
 import type { TaskRequest } from "../contracts/task.js"
 import { errorCodes } from "../errors/codes.js"
+import { mapErrorToCode } from "../errors/map-error.js"
+import { expandCompositeSteps } from "../execute/composite.js"
 import { execute } from "../execute/execute.js"
 import {
   type CliCapabilityId,
@@ -35,7 +38,9 @@ type ExecutionDeps = {
     | "replyToReviewThread"
     | "resolveReviewThread"
     | "unresolveReviewThread"
-  >
+  > & {
+    query?: GithubClient["query"]
+  }
   githubToken?: string | null
   cliRunner?: CliCommandRunner
   ghCliAvailable?: boolean
@@ -111,6 +116,107 @@ async function detectCliEnvironmentCached(runner: CliCommandRunner): Promise<Cli
   return probePromise
 }
 
+async function executeComposite(
+  card: NonNullable<ReturnType<typeof getOperationCard>>,
+  input: Record<string, unknown>,
+  deps: ExecutionDeps,
+  reason: RouteReasonCode,
+): Promise<ResultEnvelope> {
+  if (!card.composite) {
+    return normalizeError(
+      {
+        code: errorCodes.Validation,
+        message: "Card does not have composite config",
+        retryable: false,
+      },
+      "graphql",
+      { capabilityId: card.capability_id, reason },
+    )
+  }
+
+  try {
+    // Expand composite steps into individual operations
+    const expandedOperations = await expandCompositeSteps(card.composite, input)
+
+    if (expandedOperations.length === 0) {
+      return normalizeError(
+        {
+          code: errorCodes.Validation,
+          message: "No operations to execute",
+          retryable: false,
+        },
+        "graphql",
+        { capabilityId: card.capability_id, reason },
+      )
+    }
+
+    // Build batch mutation from expanded operations
+    const batchInput = expandedOperations.map((op) => ({
+      alias: op.alias,
+      mutation: op.mutation,
+      variables: op.variables,
+    }))
+    const { document, variables } = buildBatchMutation(batchInput)
+
+    // Execute single GraphQL request
+    if (!deps.githubClient.query) {
+      return normalizeError(
+        {
+          code: errorCodes.AdapterUnsupported,
+          message: "GitHub client query method not available for composite execution",
+          retryable: false,
+        },
+        "graphql",
+        { capabilityId: card.capability_id, reason },
+      )
+    }
+    const batchResult = await deps.githubClient.query(document, variables)
+
+    // Map results back through each builder's mapResponse
+    const results: unknown[] = []
+    const resultsByAlias = batchResult as Record<string, unknown>
+    for (const op of expandedOperations) {
+      const aliasedResult = resultsByAlias[op.alias]
+      const mapped = op.mapResponse(aliasedResult)
+      results.push(mapped)
+    }
+
+    // Aggregate results per output_strategy
+    let aggregatedData: unknown
+    if (card.composite.output_strategy === "array") {
+      aggregatedData = { results }
+    } else if (card.composite.output_strategy === "merge") {
+      // Merge all results into a single object
+      aggregatedData = Object.assign({}, ...results)
+    } else if (card.composite.output_strategy === "last") {
+      // Return only the last result
+      aggregatedData = results[results.length - 1]
+    }
+
+    return {
+      ok: true,
+      data: aggregatedData,
+      meta: {
+        capability_id: card.capability_id,
+        route_used: "graphql",
+        reason,
+      },
+    }
+  } catch (error) {
+    const code = mapErrorToCode(error)
+    const message = error instanceof Error ? error.message : String(error) || "Unknown error"
+    return normalizeError(
+      {
+        code,
+        message,
+        retryable: code !== errorCodes.Validation,
+      },
+      "graphql",
+      { capabilityId: card.capability_id, reason },
+    )
+  }
+}
+
 export async function executeTask(
   request: TaskRequest,
   deps: ExecutionDeps,
@@ -127,6 +233,11 @@ export async function executeTask(
       routePreferenceOrder[0],
       { capabilityId: request.task, reason },
     )
+  }
+
+  // Handle composite cards separately
+  if (card.composite) {
+    return executeComposite(card, request.input as Record<string, unknown>, deps, reason)
   }
 
   const cliRunner = deps.cliRunner ?? defaultCliRunner
