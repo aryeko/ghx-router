@@ -11,6 +11,7 @@ export interface SuitabilityRule {
 export interface CompositeStep {
   capability_id: string
   foreach?: string
+  actions?: string[]
   params_map: Record<string, string>
 }
 

@@ -66,4 +66,30 @@ describe("expandCompositeSteps", () => {
       }),
     ).toThrow("No builder registered for capability: pr.thread.missing")
   })
+
+  it("throws when action is not mapped by composite steps", () => {
+    const composite: CompositeConfig = {
+      steps: [
+        {
+          capability_id: "pr.thread.reply",
+          foreach: "threads",
+          actions: ["reply", "reply_and_resolve"],
+          params_map: { threadId: "threadId", body: "body" },
+        },
+        {
+          capability_id: "pr.thread.resolve",
+          foreach: "threads",
+          actions: ["resolve", "reply_and_resolve"],
+          params_map: { threadId: "threadId" },
+        },
+      ],
+      output_strategy: "array",
+    }
+
+    expect(() =>
+      expandCompositeSteps(composite, {
+        threads: [{ threadId: "T_1", action: "unknown_action", body: "reply body" }],
+      }),
+    ).toThrow('Invalid action "unknown_action" for composite item at index 0')
+  })
 })

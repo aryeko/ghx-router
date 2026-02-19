@@ -35,9 +35,7 @@ output_schema:
   additionalProperties: false
 routing:
   preferred: graphql
-  fallbacks: [cli]
+  fallbacks: []
 graphql:
   operationName: PrReviewSubmit
   documentPath: src/gql/operations/pr-review-submit.graphql
-cli:
-  command: pr review

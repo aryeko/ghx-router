@@ -247,7 +247,7 @@ describe("operation cards registry", () => {
     const card = getOperationCard("pr.review.submit")
     expect(card).toBeDefined()
     expect(card?.routing.preferred).toBe("graphql")
-    expect(card?.routing.fallbacks).toContain("cli")
+    expect(card?.routing.fallbacks).toEqual([])
     expect(card?.graphql).toBeDefined()
   })
 })

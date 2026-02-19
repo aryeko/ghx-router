@@ -106,6 +106,11 @@ export const operationCardSchema = {
             properties: {
               capability_id: { type: "string", minLength: 1 },
               foreach: { type: "string", minLength: 1 },
+              actions: {
+                type: "array",
+                minItems: 1,
+                items: { type: "string", minLength: 1 },
+              },
               params_map: { type: "object" },
             },
             additionalProperties: false,

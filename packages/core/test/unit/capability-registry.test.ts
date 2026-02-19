@@ -183,7 +183,7 @@ describe("capabilityRegistry", () => {
       {
         task: "pr.review.submit",
         defaultRoute: "graphql",
-        fallbackRoutes: ["cli"],
+        fallbackRoutes: [],
       },
       {
         task: "pr.diff.files",

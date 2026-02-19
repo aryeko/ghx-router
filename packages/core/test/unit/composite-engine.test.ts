@@ -43,7 +43,7 @@ describe("composite execution in engine", () => {
     expect(result.meta.capability_id).toBe("pr.threads.composite")
   })
 
-  it("returns error envelope when builder lookup fails", async () => {
+  it("returns validation error envelope for unknown action", async () => {
     const request: TaskRequest = {
       task: "pr.threads.composite",
       input: {
@@ -57,10 +57,10 @@ describe("composite execution in engine", () => {
       skipGhPreflight: true,
     })
 
-    // Assert: result.ok === false (no builders for invalid action)
     expect(result.ok).toBe(false)
-    // Assert: result.error exists
     expect(result.error).toBeDefined()
+    expect(result.error?.code).toBe("VALIDATION")
+    expect(result.error?.message).toContain("Input schema validation failed")
   })
 
   it("falls through to normal execute for non-composite cards", async () => {

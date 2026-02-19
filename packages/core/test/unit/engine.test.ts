@@ -40,6 +40,7 @@ const compositeCard: OperationCard = {
       {
         capability_id: "pr.thread.reply",
         foreach: "threads",
+        actions: ["reply"],
         params_map: { threadId: "threadId", body: "body" },
       },
     ],
@@ -334,7 +335,7 @@ describe("executeTask engine wiring", () => {
     expect(result.meta.route_used).toBe("graphql")
   })
 
-  it("returns validation error when composite expansion yields no operations", async () => {
+  it("returns validation error when composite receives unknown action", async () => {
     getOperationCardMock.mockReturnValue(compositeCard)
     executeMock.mockImplementation(
       async (options: { routes: { graphql: () => Promise<unknown> } }) => options.routes.graphql(),
@@ -356,7 +357,7 @@ describe("executeTask engine wiring", () => {
     )
 
     expect(result.ok).toBe(false)
-    expect(result.error?.message).toContain("No operations to execute")
+    expect(result.error?.message).toContain('Invalid action "invalid_action"')
   })
 
   it("handles cached CLI probe post-processing errors by clearing in-flight entry", async () => {

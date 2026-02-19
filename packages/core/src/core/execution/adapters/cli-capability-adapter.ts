@@ -19,7 +19,6 @@ export type CliCapabilityId =
   | "pr.checks.list"
   | "pr.checks.failed"
   | "pr.merge.status"
-  | "pr.review.submit"
   | "pr.merge"
   | "pr.checks.rerun_failed"
   | "pr.checks.rerun_all"
@@ -70,7 +69,6 @@ const NON_JSON_STDOUT_CAPABILITIES = new Set<CliCapabilityId>([
   "pr.checks.rerun_failed",
   "pr.checks.rerun_all",
   "pr.review.request",
-  "pr.review.submit",
   "pr.merge",
   "pr.assignees.update",
   "pr.branch.update",
@@ -415,45 +413,6 @@ function buildArgs(
       args.push("--undo")
     }
 
-    return args
-  }
-
-  if (capabilityId === "pr.review.submit") {
-    const prNumber = parseStrictPositiveInt(params.prNumber)
-    if (prNumber === null) {
-      throw new Error("Missing or invalid prNumber for pr.review.submit")
-    }
-
-    const event = params.event
-    if (event !== "APPROVE" && event !== "COMMENT" && event !== "REQUEST_CHANGES") {
-      throw new Error("Missing or invalid event for pr.review.submit")
-    }
-
-    const args = [...commandTokens(card, "pr review"), String(prNumber)]
-    if (repo) {
-      args.push("--repo", repo)
-    }
-
-    if (event === "APPROVE") {
-      args.push("--approve")
-      const body = parseNonEmptyString(params.body)
-      if (body) {
-        args.push("--body", body)
-      }
-      return args
-    }
-
-    const body = parseNonEmptyString(params.body)
-    if (body === null) {
-      throw new Error("Missing or invalid body for pr.review.submit")
-    }
-
-    if (event === "REQUEST_CHANGES") {
-      args.push("--request-changes", "--body", body)
-      return args
-    }
-
-    args.push("--comment", "--body", body)
     return args
   }
 
@@ -1561,15 +1520,6 @@ function normalizeCliData(
           : typeof params.draft === "boolean"
             ? params.draft
             : false,
-    }
-  }
-
-  if (capabilityId === "pr.review.submit") {
-    return {
-      id: null,
-      state: null,
-      url: null,
-      body: typeof params.body === "string" ? params.body : null,
     }
   }
 

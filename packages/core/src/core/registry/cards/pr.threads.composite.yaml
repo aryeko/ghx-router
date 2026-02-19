@@ -46,15 +46,18 @@ composite:
   steps:
     - capability_id: pr.thread.reply
       foreach: threads
+      actions: [reply, reply_and_resolve]
       params_map:
         threadId: threadId
         body: body
     - capability_id: pr.thread.resolve
       foreach: threads
+      actions: [resolve, reply_and_resolve]
       params_map:
         threadId: threadId
     - capability_id: pr.thread.unresolve
       foreach: threads
+      actions: [unresolve]
       params_map:
         threadId: threadId
   output_strategy: array

@@ -6,28 +6,11 @@ export type ExpandedOperation = BatchOperationInput & {
   mapResponse: (raw: unknown) => unknown
 }
 
-/**
- * Maps action values to the capability_ids that should execute for that action.
- * Used by composites with per-item action routing (e.g., pr.threads.composite).
- */
-const ACTION_TO_CAPABILITIES: Record<string, string[]> = {
-  reply: ["pr.thread.reply"],
-  resolve: ["pr.thread.resolve"],
-  reply_and_resolve: ["pr.thread.reply", "pr.thread.resolve"],
-  unresolve: ["pr.thread.unresolve"],
-}
-
 export function expandCompositeSteps(
   composite: CompositeConfig,
   input: Record<string, unknown>,
 ): ExpandedOperation[] {
   const operations: ExpandedOperation[] = []
-
-  // Build a map of capability_id → step config for param mapping lookup
-  const stepsByCapId = new Map<string, CompositeStep>()
-  for (const step of composite.steps) {
-    stepsByCapId.set(step.capability_id, step)
-  }
 
   // Determine iteration: if any step has foreach, iterate over that array
   const foreachKey = composite.steps.find((s) => s.foreach)?.foreach
@@ -43,19 +26,22 @@ export function expandCompositeSteps(
     const item = items[i]
     if (!item) continue
 
-    // Action-aware: if item has an `action` field, select builders by action
+    // Action-aware: if item has an `action` field, select steps that declare matching actions.
     const action = item.action as string | undefined
-    const capabilityIds = action
-      ? (ACTION_TO_CAPABILITIES[action] ?? [])
-      : composite.steps.map((s) => s.capability_id)
+    const selectedSteps: CompositeStep[] = action
+      ? composite.steps.filter((step) => step.actions?.includes(action) === true)
+      : composite.steps
 
-    for (const capId of capabilityIds) {
+    if (action && selectedSteps.length === 0) {
+      throw new Error(`Invalid action "${action}" for composite item at index ${i}`)
+    }
+
+    for (const step of selectedSteps) {
+      const capId = step.capability_id
       const builder = OPERATION_BUILDERS[capId]
       if (!builder) {
         throw new Error(`No builder registered for capability: ${capId}`)
       }
-      const step = stepsByCapId.get(capId)
-      if (!step) continue
 
       // Map item fields to builder input via params_map
       const stepInput: Record<string, unknown> = {}
