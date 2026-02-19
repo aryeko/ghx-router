@@ -8,7 +8,7 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text-summary", "lcov"],
       include: ["src/**/*.ts"],
-      exclude: ["src/gql/generated/**", "src/gql/operations/*.generated.ts"],
+      exclude: ["src/gql/generated/**", "src/**/*.generated.ts"],
     },
   },
 })
