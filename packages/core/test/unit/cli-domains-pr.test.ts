@@ -826,3 +826,855 @@ describe("pr domain handlers", () => {
     })
   })
 })
+
+describe("pr domain handlers – additional coverage", () => {
+  describe("pr.view", () => {
+    it("returns error on malformed JSON", async () => {
+      const result = await h("pr.view")(
+        mockRunner(0, "not-json"),
+        { owner: "o", name: "r", prNumber: 1 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("Failed to parse CLI JSON output")
+    })
+
+    it("returns success with empty body when response is a JSON array", async () => {
+      const result = await h("pr.view")(
+        mockRunner(0, "[1,2,3]"),
+        { owner: "o", name: "r", prNumber: 1 },
+        undefined,
+      )
+      expect(result.ok).toBe(true)
+      expect((result.data as Record<string, unknown>).body).toBe("")
+    })
+
+    it("filters out non-object label items", async () => {
+      const result = await h("pr.view")(
+        mockRunner(
+          0,
+          JSON.stringify({
+            id: "PR_1",
+            number: 1,
+            title: "T",
+            state: "OPEN",
+            url: "http://x",
+            labels: ["string-label", null, 42],
+          }),
+        ),
+        { owner: "o", name: "r", prNumber: 1 },
+        undefined,
+      )
+      expect(result.ok).toBe(true)
+      expect((result.data as { labels: unknown[] }).labels).toHaveLength(0)
+    })
+
+    it("returns empty labels when labels field is not an array", async () => {
+      const result = await h("pr.view")(
+        mockRunner(
+          0,
+          JSON.stringify({
+            id: "PR_1",
+            number: 1,
+            title: "T",
+            state: "OPEN",
+            url: "http://x",
+            labels: "not-an-array",
+          }),
+        ),
+        { owner: "o", name: "r", prNumber: 1 },
+        undefined,
+      )
+      expect(result.ok).toBe(true)
+      expect((result.data as { labels: unknown[] }).labels).toEqual([])
+    })
+  })
+
+  describe("pr.list", () => {
+    it("returns error on non-zero exit code", async () => {
+      const result = await h("pr.list")(
+        mockRunner(1, "", "api error"),
+        { owner: "o", name: "r", first: 30 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.code).toBeDefined()
+    })
+
+    it("returns error for missing first param", async () => {
+      const result = await h("pr.list")(
+        mockRunner(0, "[]"),
+        { owner: "o", name: "r", first: 0 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+    })
+
+    it("returns error on malformed JSON", async () => {
+      const result = await h("pr.list")(
+        mockRunner(0, "not-json"),
+        { owner: "o", name: "r", first: 30 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("Failed to parse CLI JSON output")
+    })
+  })
+
+  describe("pr.create", () => {
+    it("returns error for missing title", async () => {
+      const result = await h("pr.create")(
+        mockRunner(0, ""),
+        { owner: "o", name: "r", head: "feature" },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("title")
+    })
+
+    it("returns error for missing head", async () => {
+      const result = await h("pr.create")(
+        mockRunner(0, ""),
+        { owner: "o", name: "r", title: "PR title" },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("head")
+    })
+
+    it("includes optional body, base, draft in args", async () => {
+      const runSpy = vi
+        .fn()
+        .mockResolvedValue({ exitCode: 0, stdout: "https://github.com/o/r/pull/5", stderr: "" })
+      const runner = { run: runSpy } as unknown as CliCommandRunner
+
+      const result = await h("pr.create")(
+        runner,
+        {
+          owner: "o",
+          name: "r",
+          title: "New PR",
+          head: "feature",
+          body: "body text",
+          base: "main",
+          draft: true,
+        },
+        undefined,
+      )
+
+      expect(result.ok).toBe(true)
+      expect(runSpy).toHaveBeenCalledWith(
+        "gh",
+        expect.arrayContaining(["--body", "body text", "--base", "main", "--draft"]),
+        expect.any(Number),
+      )
+    })
+
+    it("handles stdout without URL match", async () => {
+      const runner = mockRunner(0, "Pull request created successfully")
+
+      const result = await h("pr.create")(
+        runner,
+        { owner: "owner", name: "repo", title: "PR title", head: "feature" },
+        undefined,
+      )
+
+      expect(result.ok).toBe(true)
+      expect((result.data as Record<string, unknown>).number).toBe(1)
+    })
+  })
+
+  describe("pr.update", () => {
+    it("returns error for missing prNumber", async () => {
+      const result = await h("pr.update")(
+        mockRunner(0, ""),
+        { owner: "o", name: "r", title: "t" },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("prNumber")
+    })
+
+    it("returns error when neither fields nor draft provided", async () => {
+      const result = await h("pr.update")(
+        mockRunner(0, ""),
+        { owner: "o", name: "r", prNumber: 1 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("draft")
+    })
+
+    it("returns error when edit call fails", async () => {
+      const result = await h("pr.update")(
+        mockRunner(1, "", "edit failed"),
+        { owner: "o", name: "r", prNumber: 1, title: "new title" },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.code).toBeDefined()
+    })
+
+    it("returns error when ready call fails", async () => {
+      const runSpy = vi
+        .fn()
+        .mockResolvedValueOnce({ exitCode: 0, stdout: "", stderr: "" })
+        .mockResolvedValueOnce({ exitCode: 1, stdout: "", stderr: "ready failed" })
+      const runner = { run: runSpy } as unknown as CliCommandRunner
+
+      const result = await h("pr.update")(
+        runner,
+        { owner: "o", name: "r", prNumber: 1, title: "new title", draft: false },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.code).toBeDefined()
+    })
+  })
+
+  describe("pr.checks.list", () => {
+    it("returns error for missing prNumber", async () => {
+      const result = await h("pr.checks.list")(
+        mockRunner(0, "[]"),
+        { owner: "o", name: "r" },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("prNumber")
+    })
+
+    it("returns error on non-zero exit code", async () => {
+      const result = await h("pr.checks.list")(
+        mockRunner(1, "", "checks failed"),
+        { owner: "o", name: "r", prNumber: 1 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.code).toBeDefined()
+    })
+
+    it("returns error on malformed JSON", async () => {
+      const result = await h("pr.checks.list")(
+        mockRunner(0, "not-json"),
+        { owner: "o", name: "r", prNumber: 1 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("Failed to parse CLI JSON output")
+    })
+  })
+
+  describe("pr.checks.failed", () => {
+    it("returns error for missing prNumber", async () => {
+      const result = await h("pr.checks.failed")(
+        mockRunner(0, "[]"),
+        { owner: "o", name: "r" },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+    })
+
+    it("returns error on non-zero exit code", async () => {
+      const result = await h("pr.checks.failed")(
+        mockRunner(1, "", "error"),
+        { owner: "o", name: "r", prNumber: 1 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.code).toBeDefined()
+    })
+
+    it("returns error on malformed JSON", async () => {
+      const result = await h("pr.checks.failed")(
+        mockRunner(0, "not-json"),
+        { owner: "o", name: "r", prNumber: 1 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("Failed to parse CLI JSON output")
+    })
+  })
+
+  describe("pr.merge.status", () => {
+    it("returns error for missing prNumber", async () => {
+      const result = await h("pr.merge.status")(
+        mockRunner(0, "{}"),
+        { owner: "o", name: "r" },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+    })
+
+    it("returns error on non-zero exit code", async () => {
+      const result = await h("pr.merge.status")(
+        mockRunner(1, "", "not found"),
+        { owner: "o", name: "r", prNumber: 1 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.code).toBeDefined()
+    })
+
+    it("returns error on malformed JSON", async () => {
+      const result = await h("pr.merge.status")(
+        mockRunner(0, "not-json"),
+        { owner: "o", name: "r", prNumber: 1 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("Failed to parse CLI JSON output")
+    })
+  })
+
+  describe("pr.review.submit", () => {
+    it("returns error for missing prNumber", async () => {
+      const result = await h("pr.review.submit")(
+        mockRunner(0, ""),
+        { owner: "o", name: "r", event: "APPROVE" },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("prNumber")
+    })
+
+    it("returns error for invalid event", async () => {
+      const result = await h("pr.review.submit")(
+        mockRunner(0, ""),
+        { owner: "o", name: "r", prNumber: 1, event: "INVALID" },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("event")
+    })
+
+    it("returns error for REQUEST_CHANGES without body", async () => {
+      const result = await h("pr.review.submit")(
+        mockRunner(0, ""),
+        { owner: "o", name: "r", prNumber: 1, event: "REQUEST_CHANGES" },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("body")
+    })
+
+    it("returns error for COMMENT without body", async () => {
+      const result = await h("pr.review.submit")(
+        mockRunner(0, ""),
+        { owner: "o", name: "r", prNumber: 1, event: "COMMENT" },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+    })
+
+    it("APPROVE without body does not include --body flag", async () => {
+      const runSpy = vi.fn().mockResolvedValue({ exitCode: 0, stdout: "", stderr: "" })
+      const runner = { run: runSpy } as unknown as CliCommandRunner
+
+      await h("pr.review.submit")(
+        runner,
+        { owner: "o", name: "r", prNumber: 1, event: "APPROVE" },
+        undefined,
+      )
+
+      const args = runSpy.mock.calls[0]?.[1] as string[]
+      expect(args).toContain("--approve")
+      expect(args).not.toContain("--body")
+    })
+
+    it("returns error on non-zero exit code", async () => {
+      const result = await h("pr.review.submit")(
+        mockRunner(1, "", "review failed"),
+        { owner: "o", name: "r", prNumber: 1, event: "APPROVE" },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.code).toBeDefined()
+    })
+  })
+
+  describe("pr.merge", () => {
+    it("returns error for missing prNumber", async () => {
+      const result = await h("pr.merge")(mockRunner(0, ""), { owner: "o", name: "r" }, undefined)
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("prNumber")
+    })
+
+    it("returns error for invalid method", async () => {
+      const result = await h("pr.merge")(
+        mockRunner(0, ""),
+        { owner: "o", name: "r", prNumber: 1, method: "fast-forward" },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("method")
+    })
+
+    it("returns error for non-boolean deleteBranch", async () => {
+      const result = await h("pr.merge")(
+        mockRunner(0, ""),
+        { owner: "o", name: "r", prNumber: 1, deleteBranch: "yes" },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("deleteBranch")
+    })
+
+    it("returns error on non-zero exit code", async () => {
+      const result = await h("pr.merge")(
+        mockRunner(1, "", "merge conflict"),
+        { owner: "o", name: "r", prNumber: 1 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.code).toBeDefined()
+    })
+
+    it("succeeds with rebase method", async () => {
+      const runSpy = vi.fn().mockResolvedValue({ exitCode: 0, stdout: "", stderr: "" })
+      const runner = { run: runSpy } as unknown as CliCommandRunner
+
+      const result = await h("pr.merge")(
+        runner,
+        { owner: "o", name: "r", prNumber: 1, method: "rebase" },
+        undefined,
+      )
+
+      expect(result.ok).toBe(true)
+      expect((result.data as Record<string, unknown>).method).toBe("rebase")
+      expect(runSpy).toHaveBeenCalledWith(
+        "gh",
+        expect.arrayContaining(["--rebase"]),
+        expect.any(Number),
+      )
+    })
+  })
+
+  describe("pr.checks.rerun_failed", () => {
+    it("returns error for missing prNumber", async () => {
+      const result = await h("pr.checks.rerun_failed")(
+        mockRunner(0, ""),
+        { owner: "o", name: "r", runId: 999 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("prNumber")
+    })
+
+    it("returns error for missing runId", async () => {
+      const result = await h("pr.checks.rerun_failed")(
+        mockRunner(0, ""),
+        { owner: "o", name: "r", prNumber: 1 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("runId")
+    })
+
+    it("returns error when fallback-to-all also fails", async () => {
+      const runSpy = vi
+        .fn()
+        .mockResolvedValueOnce({
+          exitCode: 1,
+          stdout: "",
+          stderr: "the workflow run cannot be rerun because it cannot be retried",
+        })
+        .mockResolvedValueOnce({ exitCode: 1, stdout: "", stderr: "rerun all failed" })
+      const runner = { run: runSpy } as unknown as CliCommandRunner
+
+      const result = await h("pr.checks.rerun_failed")(
+        runner,
+        { owner: "o", name: "r", prNumber: 1, runId: 999 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.code).toBeDefined()
+      expect(runSpy).toHaveBeenCalledTimes(2)
+    })
+  })
+
+  describe("pr.checks.rerun_all", () => {
+    it("returns error for missing prNumber", async () => {
+      const result = await h("pr.checks.rerun_all")(
+        mockRunner(0, ""),
+        { owner: "o", name: "r", runId: 999 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("prNumber")
+    })
+
+    it("returns error for missing runId", async () => {
+      const result = await h("pr.checks.rerun_all")(
+        mockRunner(0, ""),
+        { owner: "o", name: "r", prNumber: 1 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("runId")
+    })
+
+    it("returns error on non-zero exit code", async () => {
+      const result = await h("pr.checks.rerun_all")(
+        mockRunner(1, "", "rerun failed"),
+        { owner: "o", name: "r", prNumber: 1, runId: 999 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.code).toBeDefined()
+    })
+  })
+
+  describe("pr.review.request", () => {
+    it("returns error for missing prNumber", async () => {
+      const result = await h("pr.review.request")(
+        mockRunner(0, ""),
+        { owner: "o", name: "r", reviewers: ["alice"] },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("prNumber")
+    })
+
+    it("returns error for empty reviewers", async () => {
+      const result = await h("pr.review.request")(
+        mockRunner(0, ""),
+        { owner: "o", name: "r", prNumber: 1, reviewers: [] },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("reviewers")
+    })
+
+    it("returns error when reviewers is not an array", async () => {
+      const result = await h("pr.review.request")(
+        mockRunner(0, ""),
+        { owner: "o", name: "r", prNumber: 1, reviewers: "alice" },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("reviewers")
+    })
+
+    it("returns error on non-zero exit code", async () => {
+      const result = await h("pr.review.request")(
+        mockRunner(1, "", "reviewer not found"),
+        { owner: "o", name: "r", prNumber: 1, reviewers: ["alice"] },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.code).toBeDefined()
+    })
+  })
+
+  describe("pr.assignees.update", () => {
+    it("returns error for missing prNumber", async () => {
+      const result = await h("pr.assignees.update")(
+        mockRunner(0, ""),
+        { owner: "o", name: "r", add: ["alice"] },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("prNumber")
+    })
+
+    it("returns error for empty add and remove", async () => {
+      const result = await h("pr.assignees.update")(
+        mockRunner(0, ""),
+        { owner: "o", name: "r", prNumber: 1, add: [], remove: [] },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("assignees")
+    })
+
+    it("returns error when add is not an array and remove is not an array", async () => {
+      const result = await h("pr.assignees.update")(
+        mockRunner(0, ""),
+        { owner: "o", name: "r", prNumber: 1, add: "alice", remove: "bob" },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("assignees")
+    })
+
+    it("returns error on non-zero exit code", async () => {
+      const result = await h("pr.assignees.update")(
+        mockRunner(1, "", "assignee error"),
+        { owner: "o", name: "r", prNumber: 1, add: ["alice"] },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.code).toBeDefined()
+    })
+  })
+
+  describe("pr.branch.update", () => {
+    it("returns error for missing prNumber", async () => {
+      const result = await h("pr.branch.update")(
+        mockRunner(0, ""),
+        { owner: "o", name: "r" },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("prNumber")
+    })
+
+    it("returns error on non-zero exit code", async () => {
+      const result = await h("pr.branch.update")(
+        mockRunner(1, "", "update failed"),
+        { owner: "o", name: "r", prNumber: 1 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.code).toBeDefined()
+    })
+  })
+
+  describe("pr.diff.view", () => {
+    it("returns error for missing prNumber", async () => {
+      const result = await h("pr.diff.view")(
+        mockRunner(0, ""),
+        { owner: "o", name: "r" },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("prNumber")
+    })
+
+    it("returns error on non-zero exit code", async () => {
+      const result = await h("pr.diff.view")(
+        mockRunner(1, "", "diff failed"),
+        { owner: "o", name: "r", prNumber: 1 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.code).toBeDefined()
+    })
+  })
+
+  describe("pr.diff.files", () => {
+    it("returns error for missing prNumber", async () => {
+      const result = await h("pr.diff.files")(
+        mockRunner(0, "{}"),
+        { owner: "o", name: "r", first: 30 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("prNumber")
+    })
+
+    it("returns error for missing first", async () => {
+      const result = await h("pr.diff.files")(
+        mockRunner(0, "{}"),
+        { owner: "o", name: "r", prNumber: 1, first: 0 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+    })
+
+    it("returns error on non-zero exit code", async () => {
+      const result = await h("pr.diff.files")(
+        mockRunner(1, "", "diff files failed"),
+        { owner: "o", name: "r", prNumber: 1, first: 30 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.code).toBeDefined()
+    })
+
+    it("returns error on malformed JSON", async () => {
+      const result = await h("pr.diff.files")(
+        mockRunner(0, "not-json"),
+        { owner: "o", name: "r", prNumber: 1, first: 30 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("Failed to parse CLI JSON output")
+    })
+  })
+
+  describe("check_run.annotations.list", () => {
+    it("returns error for missing owner", async () => {
+      const result = await h("check_run.annotations.list")(
+        mockRunner(0, "[]"),
+        { owner: "", name: "repo", checkRunId: 1 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("Missing owner/name")
+    })
+
+    it("returns error for missing checkRunId", async () => {
+      const result = await h("check_run.annotations.list")(
+        mockRunner(0, "[]"),
+        { owner: "owner", name: "repo" },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("checkRunId")
+    })
+
+    it("returns error on malformed JSON", async () => {
+      const result = await h("check_run.annotations.list")(
+        mockRunner(0, "not-json"),
+        { owner: "owner", name: "repo", checkRunId: 1 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("Failed to parse CLI JSON output")
+    })
+
+    it("handles non-object annotation items gracefully", async () => {
+      const result = await h("check_run.annotations.list")(
+        mockRunner(0, JSON.stringify([null, "bad", 42])),
+        { owner: "owner", name: "repo", checkRunId: 1 },
+        undefined,
+      )
+      expect(result.ok).toBe(true)
+      const items = (result.data as { items: unknown[] }).items
+      expect(items).toHaveLength(3)
+      expect(items[0]).toMatchObject({ path: null, message: null })
+    })
+  })
+})
+
+describe("pr domain handlers – null owner/name ?? branch coverage", () => {
+  const nr = () => mockRunner(1, "", "err")
+
+  it("pr.view covers owner/name null branches", async () => {
+    const result = await h("pr.view")(nr(), { owner: null, name: null, prNumber: 1 }, undefined)
+    expect(result.ok).toBe(false)
+  })
+
+  it("pr.list covers owner/name null branches", async () => {
+    const result = await h("pr.list")(nr(), { owner: null, name: null, first: 30 }, undefined)
+    expect(result.ok).toBe(false)
+  })
+
+  it("pr.create covers owner/name null branches", async () => {
+    const result = await h("pr.create")(
+      nr(),
+      { owner: null, name: null, title: "T", head: "b" },
+      undefined,
+    )
+    expect(result.ok).toBe(false)
+  })
+
+  it("pr.update covers owner/name null branches", async () => {
+    const result = await h("pr.update")(nr(), { owner: null, name: null, prNumber: 1 }, undefined)
+    expect(result.ok).toBe(false)
+  })
+
+  it("pr.checks.list covers owner/name null branches", async () => {
+    const result = await h("pr.checks.list")(
+      nr(),
+      { owner: null, name: null, prNumber: 1 },
+      undefined,
+    )
+    expect(result.ok).toBe(false)
+  })
+
+  it("pr.checks.failed covers owner/name null branches", async () => {
+    const result = await h("pr.checks.failed")(
+      nr(),
+      { owner: null, name: null, prNumber: 1 },
+      undefined,
+    )
+    expect(result.ok).toBe(false)
+  })
+
+  it("pr.merge.status covers owner/name null branches", async () => {
+    const result = await h("pr.merge.status")(
+      nr(),
+      { owner: null, name: null, prNumber: 1 },
+      undefined,
+    )
+    expect(result.ok).toBe(false)
+  })
+
+  it("pr.review.submit covers owner/name null branches", async () => {
+    const result = await h("pr.review.submit")(
+      nr(),
+      { owner: null, name: null, prNumber: 1, event: "APPROVE" },
+      undefined,
+    )
+    expect(result.ok).toBe(false)
+  })
+
+  it("pr.merge covers owner/name null branches", async () => {
+    const result = await h("pr.merge")(nr(), { owner: null, name: null, prNumber: 1 }, undefined)
+    expect(result.ok).toBe(false)
+  })
+
+  it("pr.checks.rerun_failed covers owner/name null branches", async () => {
+    const result = await h("pr.checks.rerun_failed")(
+      nr(),
+      { owner: null, name: null, prNumber: 1 },
+      undefined,
+    )
+    expect(result.ok).toBe(false)
+  })
+
+  it("pr.checks.rerun_all covers owner/name null branches", async () => {
+    const result = await h("pr.checks.rerun_all")(
+      nr(),
+      { owner: null, name: null, prNumber: 1 },
+      undefined,
+    )
+    expect(result.ok).toBe(false)
+  })
+
+  it("pr.review.request covers owner/name null branches", async () => {
+    const result = await h("pr.review.request")(
+      nr(),
+      { owner: null, name: null, prNumber: 1, reviewers: ["alice"] },
+      undefined,
+    )
+    expect(result.ok).toBe(false)
+  })
+
+  it("pr.assignees.update covers owner/name null branches", async () => {
+    const result = await h("pr.assignees.update")(
+      nr(),
+      { owner: null, name: null, prNumber: 1, add: ["alice"], remove: [] },
+      undefined,
+    )
+    expect(result.ok).toBe(false)
+  })
+
+  it("pr.branch.update covers owner/name null branches", async () => {
+    const result = await h("pr.branch.update")(
+      nr(),
+      { owner: null, name: null, prNumber: 1 },
+      undefined,
+    )
+    expect(result.ok).toBe(false)
+  })
+
+  it("pr.diff.view covers owner/name null branches", async () => {
+    const result = await h("pr.diff.view")(
+      nr(),
+      { owner: null, name: null, prNumber: 1 },
+      undefined,
+    )
+    expect(result.ok).toBe(false)
+  })
+
+  it("pr.diff.files covers owner/name null branches", async () => {
+    const result = await h("pr.diff.files")(
+      nr(),
+      { owner: null, name: null, prNumber: 1 },
+      undefined,
+    )
+    expect(result.ok).toBe(false)
+  })
+
+  it("check_run.annotations.list covers owner/name null branches", async () => {
+    const result = await h("check_run.annotations.list")(
+      nr(),
+      { owner: null, name: null, checkRunId: 1 },
+      undefined,
+    )
+    expect(result.ok).toBe(false)
+  })
+})

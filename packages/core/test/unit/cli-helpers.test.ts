@@ -66,3 +66,37 @@ describe("check bucket helpers", () => {
     expect(isCheckPendingBucket("pass")).toBe(false)
   })
 })
+
+import {
+  requireRepo,
+  shouldFallbackRerunFailedToAll,
+} from "@core/core/execution/adapters/cli/helpers.js"
+
+describe("requireRepo", () => {
+  it("throws when owner is empty", () => {
+    expect(() => requireRepo("", "repo", "test.cap")).toThrow("Missing owner/name for test.cap")
+  })
+  it("throws when name is empty", () => {
+    expect(() => requireRepo("owner", "", "test.cap")).toThrow("Missing owner/name for test.cap")
+  })
+  it("does not throw when both owner and name are provided", () => {
+    expect(() => requireRepo("owner", "repo", "test.cap")).not.toThrow()
+  })
+})
+
+describe("shouldFallbackRerunFailedToAll", () => {
+  it("returns true when stderr contains both cannot be rerun and cannot be retried", () => {
+    expect(shouldFallbackRerunFailedToAll("This run cannot be rerun and cannot be retried")).toBe(
+      true,
+    )
+  })
+  it("returns false when stderr contains only cannot be rerun", () => {
+    expect(shouldFallbackRerunFailedToAll("This run cannot be rerun")).toBe(false)
+  })
+  it("returns false when stderr contains only cannot be retried", () => {
+    expect(shouldFallbackRerunFailedToAll("This run cannot be retried")).toBe(false)
+  })
+  it("returns false for unrelated stderr", () => {
+    expect(shouldFallbackRerunFailedToAll("permission denied")).toBe(false)
+  })
+})

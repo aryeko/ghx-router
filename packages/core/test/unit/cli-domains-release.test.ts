@@ -401,3 +401,305 @@ describe("release domain handlers", () => {
     })
   })
 })
+
+describe("release domain handlers – additional coverage", () => {
+  describe("requireRepo failures", () => {
+    it("release.list returns error for missing owner", async () => {
+      const result = await handleReleaseList(
+        mockRunner(0, "[]"),
+        { owner: "", name: "repo", first: 30 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("owner/name")
+    })
+
+    it("release.get returns error for missing name", async () => {
+      const result = await handleReleaseGet(
+        mockRunner(0, "{}"),
+        { owner: "acme", name: "", tagName: "v1.0.0" },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("owner/name")
+    })
+
+    it("release.create_draft returns error for missing owner", async () => {
+      const result = await handleReleaseCreateDraft(
+        mockRunner(0, "{}"),
+        { owner: "", name: "repo", tagName: "v1.0.0" },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("owner/name")
+    })
+
+    it("release.update returns error for missing owner", async () => {
+      const result = await handleReleaseUpdate(
+        mockRunner(0, "{}"),
+        { owner: "", name: "repo", releaseId: 1 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("owner/name")
+    })
+
+    it("release.publish_draft returns error for missing owner", async () => {
+      const result = await handleReleasePublishDraft(
+        mockRunner(0, "{}"),
+        { owner: "", name: "repo", releaseId: 1 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("owner/name")
+    })
+  })
+
+  describe("SyntaxError paths", () => {
+    it("release.list returns error on malformed JSON", async () => {
+      const result = await handleReleaseList(
+        mockRunner(0, "not-json"),
+        { owner: "acme", name: "repo", first: 30 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("Failed to parse CLI JSON output")
+    })
+
+    it("release.get returns error on malformed JSON", async () => {
+      const result = await handleReleaseGet(
+        mockRunner(0, "not-json"),
+        { owner: "acme", name: "repo", tagName: "v1.0.0" },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("Failed to parse CLI JSON output")
+    })
+
+    it("release.create_draft returns error on malformed JSON", async () => {
+      const result = await handleReleaseCreateDraft(
+        mockRunner(0, "not-json"),
+        { owner: "acme", name: "repo", tagName: "v1.0.0" },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("Failed to parse CLI JSON output")
+    })
+
+    it("release.update returns error on malformed JSON", async () => {
+      const result = await handleReleaseUpdate(
+        mockRunner(0, "not-json"),
+        { owner: "acme", name: "repo", releaseId: 1, title: "Updated" },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("Failed to parse CLI JSON output")
+    })
+
+    it("release.publish_draft returns error on malformed JSON in read step", async () => {
+      const result = await handleReleasePublishDraft(
+        mockRunner(0, "not-json"),
+        { owner: "acme", name: "repo", releaseId: 1 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("Failed to parse CLI JSON output")
+    })
+  })
+
+  describe("missing required params", () => {
+    it("release.get returns error for missing tagName", async () => {
+      const result = await handleReleaseGet(
+        mockRunner(0, "{}"),
+        { owner: "acme", name: "repo", tagName: "" },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+    })
+
+    it("release.update returns error for missing releaseId", async () => {
+      const result = await handleReleaseUpdate(
+        mockRunner(0, "{}"),
+        { owner: "acme", name: "repo", releaseId: 0, title: "x" },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+    })
+
+    it("release.publish_draft returns error for missing releaseId", async () => {
+      const result = await handleReleasePublishDraft(
+        mockRunner(0, "{}"),
+        { owner: "acme", name: "repo", releaseId: 0 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+    })
+  })
+
+  describe("optional params in create_draft", () => {
+    it("includes notes and prerelease when provided", async () => {
+      const runSpy = vi.fn().mockResolvedValue({
+        exitCode: 0,
+        stdout: JSON.stringify({ tag_name: "v1.0.0", draft: true }),
+        stderr: "",
+      })
+      const runner = { run: runSpy } as unknown as CliCommandRunner
+
+      await handleReleaseCreateDraft(
+        runner,
+        {
+          owner: "acme",
+          name: "repo",
+          tagName: "v1.0.0",
+          notes: "Release notes here",
+          prerelease: true,
+          targetCommitish: "main",
+        },
+        undefined,
+      )
+
+      expect(runSpy).toHaveBeenCalledWith(
+        "gh",
+        expect.arrayContaining(["body=Release notes here"]),
+        expect.any(Number),
+      )
+      expect(runSpy).toHaveBeenCalledWith(
+        "gh",
+        expect.arrayContaining(["prerelease=true"]),
+        expect.any(Number),
+      )
+      expect(runSpy).toHaveBeenCalledWith(
+        "gh",
+        expect.arrayContaining(["target_commitish=main"]),
+        expect.any(Number),
+      )
+    })
+  })
+
+  describe("optional params in update", () => {
+    it("includes tagName, notes and prerelease when provided", async () => {
+      const runSpy = vi.fn().mockResolvedValue({
+        exitCode: 0,
+        stdout: JSON.stringify({ tag_name: "v1.0.1", draft: true }),
+        stderr: "",
+      })
+      const runner = { run: runSpy } as unknown as CliCommandRunner
+
+      await handleReleaseUpdate(
+        runner,
+        {
+          owner: "acme",
+          name: "repo",
+          releaseId: 42,
+          tagName: "v1.0.1",
+          notes: "Updated notes",
+          prerelease: false,
+          targetCommitish: "dev",
+        },
+        undefined,
+      )
+
+      expect(runSpy).toHaveBeenCalledWith(
+        "gh",
+        expect.arrayContaining(["tag_name=v1.0.1"]),
+        expect.any(Number),
+      )
+      expect(runSpy).toHaveBeenCalledWith(
+        "gh",
+        expect.arrayContaining(["body=Updated notes"]),
+        expect.any(Number),
+      )
+    })
+  })
+
+  describe("normalizeRelease with null/non-object input", () => {
+    it("release.list handles non-object entries in array", async () => {
+      const result = await handleReleaseList(
+        mockRunner(0, JSON.stringify([null, "bad", 42])),
+        { owner: "acme", name: "repo", first: 30 },
+        undefined,
+      )
+      expect(result.ok).toBe(true)
+      const items = (result.data as { items: unknown[] }).items
+      expect(items).toHaveLength(3)
+      expect(items[0]).toMatchObject({ id: 0, tagName: null })
+    })
+  })
+
+  describe("release.publish_draft – optional params and non-draft guard", () => {
+    it("includes notes, prerelease in publish call when provided", async () => {
+      let callCount = 0
+      const runSpy = vi.fn().mockImplementation(async () => {
+        callCount++
+        if (callCount === 1) {
+          return { exitCode: 0, stdout: JSON.stringify({ draft: true }), stderr: "" }
+        }
+        return {
+          exitCode: 0,
+          stdout: JSON.stringify({ tag_name: "v1.0.0", draft: false }),
+          stderr: "",
+        }
+      })
+      const runner = { run: runSpy } as unknown as CliCommandRunner
+
+      await handleReleasePublishDraft(
+        runner,
+        { owner: "acme", name: "repo", releaseId: 1, notes: "Final notes", prerelease: false },
+        undefined,
+      )
+
+      expect(runSpy).toHaveBeenCalledTimes(2)
+      expect(runSpy).toHaveBeenNthCalledWith(
+        2,
+        "gh",
+        expect.arrayContaining(["body=Final notes"]),
+        expect.any(Number),
+      )
+    })
+  })
+})
+
+describe("release domain handlers – null owner/name ?? branch coverage", () => {
+  const nr = () => mockRunner(1, "", "err")
+
+  it("handleReleaseList covers owner/name null branches", async () => {
+    const result = await handleReleaseList(nr(), { owner: null, name: null, first: 30 }, undefined)
+    expect(result.ok).toBe(false)
+  })
+
+  it("handleReleaseGet covers owner/name null branches", async () => {
+    const result = await handleReleaseGet(
+      nr(),
+      { owner: null, name: null, releaseId: 1 },
+      undefined,
+    )
+    expect(result.ok).toBe(false)
+  })
+
+  it("handleReleaseCreateDraft covers owner/name null branches", async () => {
+    const result = await handleReleaseCreateDraft(
+      nr(),
+      { owner: null, name: null, tag: "v1.0.0" },
+      undefined,
+    )
+    expect(result.ok).toBe(false)
+  })
+
+  it("handleReleaseUpdate covers owner/name null branches", async () => {
+    const result = await handleReleaseUpdate(
+      nr(),
+      { owner: null, name: null, releaseId: 1 },
+      undefined,
+    )
+    expect(result.ok).toBe(false)
+  })
+
+  it("handleReleasePublishDraft covers owner/name null branches", async () => {
+    const result = await handleReleasePublishDraft(
+      nr(),
+      { owner: null, name: null, releaseId: 1 },
+      undefined,
+    )
+    expect(result.ok).toBe(false)
+  })
+})

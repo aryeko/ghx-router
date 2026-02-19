@@ -725,5 +725,214 @@ describe("project-v2 domain handlers", () => {
         expect.any(Number),
       )
     })
+
+    it("uses valueDate when provided", async () => {
+      const runSpy = vi.fn().mockResolvedValue({ exitCode: 0, stdout: "{}", stderr: "" })
+      const runner = { run: runSpy } as unknown as CliCommandRunner
+
+      await h("project_v2.item.field.update")(
+        runner,
+        { projectId: "PVT_1", itemId: "PVT_I_1", fieldId: "F_4", valueDate: "2024-03-01" },
+        undefined,
+      )
+
+      expect(runSpy).toHaveBeenCalledWith(
+        "gh",
+        expect.arrayContaining(["--date", "2024-03-01"]),
+        expect.any(Number),
+      )
+    })
+
+    it("uses valueSingleSelectOptionId when provided", async () => {
+      const runSpy = vi.fn().mockResolvedValue({ exitCode: 0, stdout: "{}", stderr: "" })
+      const runner = { run: runSpy } as unknown as CliCommandRunner
+
+      await h("project_v2.item.field.update")(
+        runner,
+        {
+          projectId: "PVT_1",
+          itemId: "PVT_I_1",
+          fieldId: "F_5",
+          valueSingleSelectOptionId: "OPTION_123",
+        },
+        undefined,
+      )
+
+      expect(runSpy).toHaveBeenCalledWith(
+        "gh",
+        expect.arrayContaining(["--single-select-option-id", "OPTION_123"]),
+        expect.any(Number),
+      )
+    })
+
+    it("uses valueIterationId when provided", async () => {
+      const runSpy = vi.fn().mockResolvedValue({ exitCode: 0, stdout: "{}", stderr: "" })
+      const runner = { run: runSpy } as unknown as CliCommandRunner
+
+      await h("project_v2.item.field.update")(
+        runner,
+        {
+          projectId: "PVT_1",
+          itemId: "PVT_I_1",
+          fieldId: "F_6",
+          valueIterationId: "ITER_456",
+        },
+        undefined,
+      )
+
+      expect(runSpy).toHaveBeenCalledWith(
+        "gh",
+        expect.arrayContaining(["--iteration-id", "ITER_456"]),
+        expect.any(Number),
+      )
+    })
+  })
+
+  describe("SyntaxError paths", () => {
+    it("project_v2.org.get returns error on malformed JSON", async () => {
+      const result = await h("project_v2.org.get")(
+        mockRunner(0, "not-json"),
+        { org: "myorg", projectNumber: 1 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("Failed to parse CLI JSON output")
+    })
+
+    it("project_v2.user.get returns error on malformed JSON", async () => {
+      const result = await h("project_v2.user.get")(
+        mockRunner(0, "not-json"),
+        { user: "myuser", projectNumber: 1 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("Failed to parse CLI JSON output")
+    })
+
+    it("project_v2.fields.list returns error on malformed JSON", async () => {
+      const result = await h("project_v2.fields.list")(
+        mockRunner(0, "not-json"),
+        { owner: "myorg", projectNumber: 1 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("Failed to parse CLI JSON output")
+    })
+
+    it("project_v2.items.list returns error on malformed JSON", async () => {
+      const result = await h("project_v2.items.list")(
+        mockRunner(0, "not-json"),
+        { owner: "myorg", projectNumber: 1, first: 30 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("Failed to parse CLI JSON output")
+    })
+
+    it("project_v2.item.add_issue returns error on malformed JSON", async () => {
+      const result = await h("project_v2.item.add_issue")(
+        mockRunner(0, "not-json"),
+        { owner: "myorg", projectNumber: 1, issueUrl: "https://github.com/myorg/repo/issues/1" },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("Failed to parse CLI JSON output")
+    })
+  })
+
+  describe("missing params paths", () => {
+    it("project_v2.user.get returns error for missing projectNumber", async () => {
+      const result = await h("project_v2.user.get")(
+        mockRunner(0, "{}"),
+        { user: "myuser", projectNumber: 0 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("projectNumber")
+    })
+
+    it("project_v2.fields.list returns error for missing owner", async () => {
+      const result = await h("project_v2.fields.list")(
+        mockRunner(0, "{}"),
+        { owner: "", projectNumber: 1 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+    })
+
+    it("project_v2.items.list returns error for missing first", async () => {
+      const result = await h("project_v2.items.list")(
+        mockRunner(0, "{}"),
+        { owner: "myorg", projectNumber: 1, first: 0 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+    })
+
+    it("project_v2.item.add_issue returns error for missing issueUrl", async () => {
+      const result = await h("project_v2.item.add_issue")(
+        mockRunner(0, "{}"),
+        { owner: "myorg", projectNumber: 1, issueUrl: "" },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+    })
+
+    it("project_v2.item.field.update returns error for missing projectId", async () => {
+      const result = await h("project_v2.item.field.update")(
+        mockRunner(0, "{}"),
+        { projectId: "", itemId: "PVT_I_1", fieldId: "F_1", valueText: "x" },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+    })
+
+    it("project_v2.user.get returns error for missing user", async () => {
+      const result = await h("project_v2.user.get")(
+        mockRunner(0, "{}"),
+        { user: "", projectNumber: 1 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("user")
+    })
+
+    it("project_v2.item.field.update returns SyntaxError path when runner throws SyntaxError", async () => {
+      const runner = {
+        run: vi.fn().mockRejectedValue(new SyntaxError("Unexpected token")),
+      } as unknown as import("@core/core/execution/adapters/cli-adapter.js").CliCommandRunner
+
+      const result = await h("project_v2.item.field.update")(
+        runner,
+        { projectId: "PVT_1", itemId: "PVT_I_1", fieldId: "F_1", valueText: "x" },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("Failed to parse CLI JSON output")
+    })
+
+    it("project_v2.fields.list handles non-object field item", async () => {
+      const result = await h("project_v2.fields.list")(
+        mockRunner(0, JSON.stringify({ fields: [null, "bad", 42] })),
+        { owner: "myorg", projectNumber: 1 },
+        undefined,
+      )
+      expect(result.ok).toBe(true)
+      const items = (result.data as { items: unknown[] }).items
+      expect(items).toHaveLength(3)
+      expect(items[0]).toMatchObject({ id: null, name: null, dataType: null })
+    })
+
+    it("project_v2.items.list handles non-object item", async () => {
+      const result = await h("project_v2.items.list")(
+        mockRunner(0, JSON.stringify({ items: [null, "bad"] })),
+        { owner: "myorg", projectNumber: 1, first: 30 },
+        undefined,
+      )
+      expect(result.ok).toBe(true)
+      const items = (result.data as { items: unknown[] }).items
+      expect(items).toHaveLength(2)
+      expect(items[0]).toMatchObject({ id: null, contentType: null })
+    })
   })
 })

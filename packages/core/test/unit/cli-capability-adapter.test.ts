@@ -4422,4 +4422,18 @@ ERROR: Critical issue`,
       }),
     )
   })
+
+  it("returns error when no handler is registered for unknown capability ID", async () => {
+    const runner = { run: vi.fn() }
+
+    const result = await runCliCapability(
+      runner as Parameters<typeof runCliCapability>[0],
+      "unknown.capability" as Parameters<typeof runCliCapability>[1],
+      {},
+    )
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.message).toContain("No CLI handler registered for capability")
+    expect(result.meta.route_used).toBe("cli")
+  })
 })

@@ -216,3 +216,153 @@ describe("repo domain handlers", () => {
     })
   })
 })
+
+describe("repo domain handlers – additional coverage", () => {
+  describe("handleRepoView SyntaxError path", () => {
+    it("returns error on malformed JSON", async () => {
+      const result = await handleRepoView(
+        mockRunner(0, "not-json"),
+        { owner: "acme", name: "modkit" },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("Failed to parse CLI JSON output")
+    })
+
+    it("handles null defaultBranchRef gracefully", async () => {
+      const result = await handleRepoView(
+        mockRunner(
+          0,
+          JSON.stringify({
+            id: "R_1",
+            name: "modkit",
+            nameWithOwner: "acme/modkit",
+            isPrivate: false,
+            stargazerCount: 0,
+            forkCount: 0,
+            url: "https://github.com/acme/modkit",
+            defaultBranchRef: null,
+          }),
+        ),
+        { owner: "acme", name: "modkit" },
+        undefined,
+      )
+      expect(result.ok).toBe(true)
+      expect((result.data as Record<string, unknown>).defaultBranch).toBeNull()
+    })
+  })
+
+  describe("handleRepoLabelsList additional coverage", () => {
+    it("returns error on malformed JSON", async () => {
+      const result = await handleRepoLabelsList(
+        mockRunner(0, "not-json"),
+        { owner: "acme", name: "modkit", first: 30 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("Failed to parse CLI JSON output")
+    })
+
+    it("handles non-object label items gracefully", async () => {
+      const result = await handleRepoLabelsList(
+        mockRunner(0, JSON.stringify([null, "bad", 42])),
+        { owner: "acme", name: "modkit", first: 30 },
+        undefined,
+      )
+      expect(result.ok).toBe(true)
+      const items = (result.data as { items: unknown[] }).items
+      expect(items).toHaveLength(3)
+      expect(items[0]).toMatchObject({ id: null, name: null })
+    })
+
+    it("returns error for missing first param", async () => {
+      const result = await handleRepoLabelsList(
+        mockRunner(0, "[]"),
+        { owner: "acme", name: "modkit", first: 0 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+    })
+  })
+
+  describe("handleRepoIssueTypesList additional coverage", () => {
+    it("returns error on malformed JSON", async () => {
+      const result = await handleRepoIssueTypesList(
+        mockRunner(0, "not-json"),
+        { owner: "acme", name: "modkit", first: 30 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("Failed to parse CLI JSON output")
+    })
+
+    it("returns error for invalid after cursor type", async () => {
+      const result = await handleRepoIssueTypesList(
+        mockRunner(0, "{}"),
+        { owner: "acme", name: "modkit", first: 30, after: 123 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+    })
+
+    it("returns error for missing owner", async () => {
+      const result = await handleRepoIssueTypesList(
+        mockRunner(0, "{}"),
+        { owner: "", name: "modkit", first: 30 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+    })
+
+    it("handles non-object issue type nodes gracefully", async () => {
+      const result = await handleRepoIssueTypesList(
+        mockRunner(
+          0,
+          JSON.stringify({
+            data: {
+              repository: {
+                issueTypes: {
+                  nodes: [null, "bad", 42],
+                  pageInfo: { hasNextPage: false, endCursor: null },
+                },
+              },
+            },
+          }),
+        ),
+        { owner: "acme", name: "modkit", first: 30 },
+        undefined,
+      )
+      expect(result.ok).toBe(true)
+      const items = (result.data as { items: unknown[] }).items
+      expect(items).toHaveLength(3)
+      expect(items[0]).toMatchObject({ id: null, name: null, isEnabled: null })
+    })
+  })
+})
+
+describe("repo domain handlers – null owner/name ?? branch coverage", () => {
+  const nr = () => mockRunner(1, "", "err")
+
+  it("handleRepoView covers owner/name null branches", async () => {
+    const result = await handleRepoView(nr(), { owner: null, name: null }, undefined)
+    expect(result.ok).toBe(false)
+  })
+
+  it("handleRepoLabelsList covers owner/name null branches", async () => {
+    const result = await handleRepoLabelsList(
+      nr(),
+      { owner: null, name: null, first: 30 },
+      undefined,
+    )
+    expect(result.ok).toBe(false)
+  })
+
+  it("handleRepoIssueTypesList covers owner/name null branches", async () => {
+    const result = await handleRepoIssueTypesList(
+      nr(),
+      { owner: null, name: null, first: 10 },
+      undefined,
+    )
+    expect(result.ok).toBe(false)
+  })
+})

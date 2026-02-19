@@ -250,3 +250,159 @@ describe("issue domain handlers", () => {
     })
   })
 })
+
+describe("issue domain handlers – additional coverage", () => {
+  describe("handleIssueView SyntaxError path", () => {
+    it("returns error on malformed JSON", async () => {
+      const result = await handleIssueView(
+        mockRunner(0, "not-json"),
+        { owner: "owner", name: "repo", issueNumber: 1 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("Failed to parse CLI JSON output")
+    })
+
+    it("returns success with empty body when response is a JSON array", async () => {
+      const result = await handleIssueView(
+        mockRunner(0, "[1,2,3]"),
+        { owner: "owner", name: "repo", issueNumber: 1 },
+        undefined,
+      )
+      expect(result.ok).toBe(true)
+      expect((result.data as Record<string, unknown>).body).toBe("")
+    })
+
+    it("filters out non-object label items", async () => {
+      const result = await handleIssueView(
+        mockRunner(
+          0,
+          JSON.stringify({
+            id: "I_1",
+            number: 1,
+            title: "T",
+            state: "OPEN",
+            url: "http://x",
+            labels: ["string-label", null, 42],
+          }),
+        ),
+        { owner: "owner", name: "repo", issueNumber: 1 },
+        undefined,
+      )
+      expect(result.ok).toBe(true)
+      expect((result.data as { labels: unknown[] }).labels).toHaveLength(0)
+    })
+  })
+
+  describe("handleIssueList SyntaxError path", () => {
+    it("returns error on malformed JSON", async () => {
+      const result = await handleIssueList(
+        mockRunner(0, "not-json"),
+        { owner: "owner", name: "repo", first: 30 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("Failed to parse CLI JSON output")
+    })
+
+    it("returns error for missing first param", async () => {
+      const result = await handleIssueList(
+        mockRunner(0, "[]"),
+        { owner: "owner", name: "repo", first: 0 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+    })
+  })
+
+  describe("handleIssueCommentsList first=0 path", () => {
+    it("returns error when first is zero", async () => {
+      const result = await handleIssueCommentsList(
+        mockRunner(0, "{}"),
+        { owner: "owner", name: "repo", issueNumber: 1, first: 0 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("first")
+    })
+  })
+
+  describe("handleIssueCommentsList additional coverage", () => {
+    it("returns error on malformed JSON", async () => {
+      const result = await handleIssueCommentsList(
+        mockRunner(0, "not-json"),
+        { owner: "owner", name: "repo", issueNumber: 1, first: 10 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("Failed to parse CLI JSON output")
+    })
+
+    it("returns error when owner is empty", async () => {
+      const result = await handleIssueCommentsList(
+        mockRunner(0, "{}"),
+        { owner: "", name: "repo", issueNumber: 1, first: 10 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("Missing owner/name")
+    })
+
+    it("returns error when name is empty", async () => {
+      const result = await handleIssueCommentsList(
+        mockRunner(0, "{}"),
+        { owner: "owner", name: "", issueNumber: 1, first: 10 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+    })
+
+    it("returns server error for non-object comment item", async () => {
+      const result = await handleIssueCommentsList(
+        mockRunner(
+          0,
+          JSON.stringify({
+            data: {
+              repository: {
+                issue: {
+                  comments: {
+                    nodes: ["not-an-object"],
+                    pageInfo: { hasNextPage: false, endCursor: null },
+                  },
+                },
+              },
+            },
+          }),
+        ),
+        { owner: "owner", name: "repo", issueNumber: 1, first: 10 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("Invalid CLI payload")
+    })
+
+    it("returns server error for comment with invalid field types", async () => {
+      const result = await handleIssueCommentsList(
+        mockRunner(
+          0,
+          JSON.stringify({
+            data: {
+              repository: {
+                issue: {
+                  comments: {
+                    nodes: [{ id: 123, body: null, url: null, createdAt: null }],
+                    pageInfo: { hasNextPage: false, endCursor: null },
+                  },
+                },
+              },
+            },
+          }),
+        ),
+        { owner: "owner", name: "repo", issueNumber: 1, first: 10 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("Invalid CLI payload")
+    })
+  })
+})
