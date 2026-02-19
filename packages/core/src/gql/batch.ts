@@ -96,7 +96,7 @@ function parseOperation(document: string): ParsedOperation {
   // Extract body: everything between the outermost { } after the header
   const headerEnd = document.indexOf("{")
   if (headerEnd === -1) {
-    throw new Error("Invalid operation: no opening brace found")
+    throw new Error("Invalid mutation: no opening brace found")
   }
 
   let depth = 0
@@ -116,7 +116,7 @@ function parseOperation(document: string): ParsedOperation {
   }
 
   if (bodyStart === -1 || bodyEnd === -1) {
-    throw new Error("Invalid operation: unbalanced braces")
+    throw new Error("Invalid mutation: unbalanced braces")
   }
 
   const body = document.slice(bodyStart, bodyEnd).trim()
