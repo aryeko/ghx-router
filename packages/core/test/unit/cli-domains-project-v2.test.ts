@@ -938,25 +938,25 @@ describe("project-v2 domain handlers", () => {
     describe("project_v2.items.issue.remove", () => {
       it("returns success with itemId and removed: true", async () => {
         const result = await h("project_v2.items.issue.remove")(
-          mockRunner(0, "{}"),
-          { projectId: "PVT_1", itemId: "PVT_I_abc" },
+          mockRunner(0, ""),
+          { owner: "myorg", projectNumber: 123, itemId: "PVTI_abc123" },
           undefined,
         )
         expect(result.ok).toBe(true)
-        expect(result.data).toMatchObject({ itemId: "PVT_I_abc", removed: true })
+        expect(result.data).toMatchObject({ itemId: "PVTI_abc123", removed: true })
         expect(result.meta.capability_id).toBe("project_v2.items.issue.remove")
         expect(result.meta.route_used).toBe("cli")
       })
 
       it("verifies correct gh args are used", async () => {
-        const runSpy = vi.fn().mockResolvedValue({ exitCode: 0, stdout: "{}", stderr: "" })
+        const runSpy = vi.fn().mockResolvedValue({ exitCode: 0, stdout: "", stderr: "" })
         const runner = {
           run: runSpy,
         } as unknown as import("@core/core/execution/adapters/cli-adapter.js").CliCommandRunner
 
         await h("project_v2.items.issue.remove")(
           runner,
-          { projectId: "PVT_1", itemId: "PVT_I_abc" },
+          { owner: "myorg", projectNumber: 123, itemId: "PVTI_abc123" },
           undefined,
         )
 
@@ -965,31 +965,40 @@ describe("project-v2 domain handlers", () => {
           expect.arrayContaining([
             "project",
             "item-delete",
-            "--project-id",
-            "PVT_1",
+            "123",
+            "--owner",
+            "myorg",
             "--id",
-            "PVT_I_abc",
-            "--format",
-            "json",
+            "PVTI_abc123",
           ]),
           expect.any(Number),
         )
       })
 
-      it("returns error for missing projectId", async () => {
+      it("returns error for missing owner", async () => {
         const result = await h("project_v2.items.issue.remove")(
-          mockRunner(0, "{}"),
-          { projectId: "", itemId: "PVT_I_abc" },
+          mockRunner(0, ""),
+          { owner: "", projectNumber: 123, itemId: "PVTI_abc123" },
           undefined,
         )
         expect(result.ok).toBe(false)
-        expect(result.error?.message).toContain("projectId")
+        expect(result.error?.message).toContain("owner")
+      })
+
+      it("returns error for missing projectNumber", async () => {
+        const result = await h("project_v2.items.issue.remove")(
+          mockRunner(0, ""),
+          { owner: "myorg", projectNumber: 0, itemId: "PVTI_abc123" },
+          undefined,
+        )
+        expect(result.ok).toBe(false)
+        expect(result.error?.message).toContain("projectNumber")
       })
 
       it("returns error for missing itemId", async () => {
         const result = await h("project_v2.items.issue.remove")(
-          mockRunner(0, "{}"),
-          { projectId: "PVT_1", itemId: "" },
+          mockRunner(0, ""),
+          { owner: "myorg", projectNumber: 123, itemId: "" },
           undefined,
         )
         expect(result.ok).toBe(false)
@@ -999,7 +1008,7 @@ describe("project-v2 domain handlers", () => {
       it("returns error on non-zero exit code", async () => {
         const result = await h("project_v2.items.issue.remove")(
           mockRunner(1, "", "item not found"),
-          { projectId: "PVT_1", itemId: "PVT_I_abc" },
+          { owner: "myorg", projectNumber: 123, itemId: "PVTI_abc123" },
           undefined,
         )
         expect(result.ok).toBe(false)
@@ -1014,7 +1023,7 @@ describe("project-v2 domain handlers", () => {
 
         const result = await h("project_v2.items.issue.remove")(
           runner,
-          { projectId: "PVT_1", itemId: "PVT_I_abc" },
+          { owner: "myorg", projectNumber: 123, itemId: "PVTI_abc123" },
           undefined,
         )
         expect(result.ok).toBe(false)

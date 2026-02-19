@@ -50,7 +50,7 @@ Standardize all capability IDs to consistent naming conventions.
 
 **Output schema changes:**
 
-- All rerun capabilities now return `{ runId: string, queued: boolean }` (normalized)
+- All rerun capabilities now return `{ runId: integer, queued: boolean }` (normalized)
 - `pr.threads.reply` output now includes `commentId` and `commentUrl`
 - `issue.relations.parent.set` output now includes `updated: boolean`
 - `issue.relations.blocked_by.add` output now includes `added: boolean`

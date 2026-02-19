@@ -13,7 +13,7 @@ output_schema:
   type: object
   required: [runId, queued]
   properties:
-    runId: { type: integer }
+    runId: { type: integer, minimum: 1 }
     queued: { type: boolean }
   additionalProperties: false
 routing:

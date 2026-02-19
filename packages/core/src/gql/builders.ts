@@ -69,6 +69,7 @@ export const replyBuilder: OperationBuilder = {
 
     return {
       id: comment.id,
+      isResolved: false,
       commentId: comment.id,
       commentUrl: typeof comment.url === "string" ? comment.url : "",
     }

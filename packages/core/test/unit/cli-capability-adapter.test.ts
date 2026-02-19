@@ -1261,16 +1261,16 @@ describe("runCliCapability", () => {
           expect.objectContaining({
             name: null,
             state: null,
-            bucket: null,
             workflow: null,
             link: null,
+            annotations: [],
           }),
           expect.objectContaining({
             name: null,
             state: null,
-            bucket: null,
             workflow: null,
             link: null,
+            annotations: [],
           }),
         ],
       }),

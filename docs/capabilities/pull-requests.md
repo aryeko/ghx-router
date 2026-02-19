@@ -214,8 +214,7 @@ npx ghx run pr.update --input '{
 | Field | Type | Description |
 |-------|------|-------------|
 | prNumber | integer | PR number |
-| assignees | array | Added usernames |
-| updated | boolean | true if changed |
+| added | array | Added usernames |
 
 **Routes:** cli (preferred)
 
@@ -250,8 +249,7 @@ npx ghx run pr.assignees.add --input '{
 | Field | Type | Description |
 |-------|------|-------------|
 | prNumber | integer | PR number |
-| assignees | array | Removed usernames |
-| updated | boolean | true if changed |
+| removed | array | Removed usernames |
 
 **Routes:** cli (preferred)
 

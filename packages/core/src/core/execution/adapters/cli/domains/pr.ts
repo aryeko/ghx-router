@@ -334,7 +334,10 @@ const handlePrChecksList: CliHandler = async (runner, params, card) => {
           : state === "passed"
             ? passed
             : checks
-    const itemsWithAnnotations = filteredItems.map((item) => ({ ...item, annotations: [] }))
+    const itemsWithAnnotations = filteredItems.map(({ bucket: _bucket, ...rest }) => ({
+      ...rest,
+      annotations: [],
+    }))
 
     return normalizeResult(
       {

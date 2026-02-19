@@ -20,7 +20,7 @@ output_schema:
     issueNumber: { type: integer, minimum: 1 }
     removed:
       type: array
-      items: { type: string }
+      items: { type: string, minLength: 1 }
   additionalProperties: false
 routing:
   preferred: cli

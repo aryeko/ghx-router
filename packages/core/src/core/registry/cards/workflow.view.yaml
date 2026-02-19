@@ -1,6 +1,6 @@
 capability_id: workflow.view
 version: "1.0.0"
-description: Get one repository workflow.
+description: View one repository workflow.
 input_schema:
   type: object
   required: [owner, name, workflowId]

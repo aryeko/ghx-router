@@ -272,9 +272,9 @@ describe("pr domain handlers", () => {
       expect(result.ok).toBe(true)
       expect(result.data).toMatchObject({
         items: [
-          { name: "test", state: "PASS", bucket: "PASS" },
-          { name: "lint", state: "FAIL", bucket: "FAIL" },
-          { name: "build", state: "PENDING", bucket: "PENDING" },
+          { name: "test", state: "PASS" },
+          { name: "lint", state: "FAIL" },
+          { name: "build", state: "PENDING" },
         ],
         summary: { total: 3, failed: 1, pending: 1, passed: 1 },
       })

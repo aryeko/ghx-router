@@ -23,12 +23,6 @@ Only if you need the full input/output schema for a specific capability:
 ghx capabilities explain <capability_id>
 ```
 
-### Composite Capabilities
-
-Composites (suffixed with `.composite`) batch multiple related operations into a single call — cheaper, faster, and atomic.
-
-**CRITICAL:** After listing capabilities above, check the results for any `.composite` entry that covers your workflow. If one exists, use it. Never chain atomic calls when a composite applies.
-
 ## Execute
 
 ```bash

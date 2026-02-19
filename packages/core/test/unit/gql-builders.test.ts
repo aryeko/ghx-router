@@ -50,7 +50,7 @@ describe("pr.threads.reply builder", () => {
   it("mapResponse() extracts comment id", () => {
     const raw = { comment: { id: "c1" } }
     const result = replyBuilder.mapResponse(raw)
-    expect(result).toEqual({ id: "c1", commentId: "c1", commentUrl: "" })
+    expect(result).toEqual({ id: "c1", isResolved: false, commentId: "c1", commentUrl: "" })
   })
 
   it("mapResponse() includes commentUrl when comment.url is a string", () => {
@@ -58,6 +58,7 @@ describe("pr.threads.reply builder", () => {
     const result = replyBuilder.mapResponse(raw)
     expect(result).toEqual({
       id: "c2",
+      isResolved: false,
       commentId: "c2",
       commentUrl: "https://github.com/owner/repo/pull/1#comment-42",
     })

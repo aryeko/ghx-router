@@ -466,22 +466,16 @@ const handleProjectV2ItemFieldUpdate: CliHandler = async (runner, params, _card)
 
 const handleProjectV2ItemsIssueRemove: CliHandler = async (runner, params, _card) => {
   try {
-    const projectId = parseNonEmptyString(params.projectId)
+    const owner = parseNonEmptyString(params.owner)
+    const projectNumber = parseStrictPositiveInt(params.projectNumber)
     const itemId = parseNonEmptyString(params.itemId)
-    if (projectId === null || itemId === null) {
-      throw new Error("Missing or invalid projectId/itemId for project_v2.items.issue.remove")
+    if (owner === null || projectNumber === null || itemId === null) {
+      throw new Error(
+        "Missing or invalid owner/projectNumber/itemId for project_v2.items.issue.remove",
+      )
     }
 
-    const args = [
-      "project",
-      "item-delete",
-      "--project-id",
-      projectId,
-      "--id",
-      itemId,
-      "--format",
-      "json",
-    ]
+    const args = ["project", "item-delete", String(projectNumber), "--owner", owner, "--id", itemId]
 
     const result = await runner.run("gh", args, DEFAULT_TIMEOUT_MS)
 
