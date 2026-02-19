@@ -590,14 +590,14 @@ export function extractPromptResponseFromPromptResult(value: unknown): PromptRes
   return null
 }
 
-function resolveCheckpointData(data: unknown): unknown {
+export function resolveCheckpointData(data: unknown): unknown {
   if (isObject(data) && "items" in data && Array.isArray((data as Record<string, unknown>).items)) {
     return (data as Record<string, unknown>).items
   }
   return data
 }
 
-function evaluateCheckpoint(
+export function evaluateCheckpoint(
   checkpoint: WorkflowCheckpoint,
   result: { ok: boolean; data?: unknown },
 ): boolean {

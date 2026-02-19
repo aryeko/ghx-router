@@ -744,4 +744,133 @@ describe("runGraphqlCapability", () => {
       expect(result.meta.reason).toBe("CAPABILITY_LIMIT")
     }
   })
+
+  it("handles label not found error in issue.labels.add", async () => {
+    const client = {
+      fetchRepoView: vi.fn(),
+      fetchIssueView: vi.fn(),
+      fetchIssueList: vi.fn(),
+      fetchIssueCommentsList: vi.fn(),
+      addIssueLabels: vi.fn(async () => {
+        throw new Error("Label not found: nonexistent-label")
+      }),
+      fetchPrView: vi.fn(),
+      fetchPrList: vi.fn(),
+      fetchPrCommentsList: vi.fn(),
+      fetchPrReviewsList: vi.fn(),
+      fetchPrDiffListFiles: vi.fn(),
+      fetchPrMergeStatus: vi.fn(),
+      replyToReviewThread: vi.fn(),
+      resolveReviewThread: vi.fn(),
+      unresolveReviewThread: vi.fn(),
+    }
+
+    const result = await runGraphqlCapability(client, "issue.labels.add", {
+      issueId: "issue-1",
+      labels: ["nonexistent-label"],
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe("NOT_FOUND")
+    expect(result.error?.message).toContain("Label not found")
+  })
+
+  it("handles empty array for labels in issue.labels.add response", async () => {
+    const client = {
+      fetchRepoView: vi.fn(),
+      fetchIssueView: vi.fn(),
+      fetchIssueList: vi.fn(),
+      fetchIssueCommentsList: vi.fn(),
+      addIssueLabels: vi.fn(async () => ({
+        id: "issue-1",
+        labels: [],
+      })),
+      fetchPrView: vi.fn(),
+      fetchPrList: vi.fn(),
+      fetchPrCommentsList: vi.fn(),
+      fetchPrReviewsList: vi.fn(),
+      fetchPrDiffListFiles: vi.fn(),
+      fetchPrMergeStatus: vi.fn(),
+      replyToReviewThread: vi.fn(),
+      resolveReviewThread: vi.fn(),
+      unresolveReviewThread: vi.fn(),
+    }
+
+    const result = await runGraphqlCapability(client, "issue.labels.add", {
+      issueId: "issue-1",
+      labels: ["bug"],
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.data).toEqual({ id: "issue-1", labels: [] })
+  })
+
+  it("handles PR not found error in pr.merge.status", async () => {
+    const client = {
+      fetchRepoView: vi.fn(),
+      fetchIssueView: vi.fn(),
+      fetchIssueList: vi.fn(),
+      fetchIssueCommentsList: vi.fn(),
+      fetchPrView: vi.fn(),
+      fetchPrList: vi.fn(),
+      fetchPrCommentsList: vi.fn(),
+      fetchPrReviewsList: vi.fn(),
+      fetchPrDiffListFiles: vi.fn(),
+      fetchPrMergeStatus: vi.fn(async () => {
+        throw new Error("Pull request not found")
+      }),
+      replyToReviewThread: vi.fn(),
+      resolveReviewThread: vi.fn(),
+      unresolveReviewThread: vi.fn(),
+    }
+
+    const result = await runGraphqlCapability(client, "pr.merge.status", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 9999,
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe("NOT_FOUND")
+    expect(result.error?.message).toContain("Pull request not found")
+  })
+
+  it("handles null field defaults in pr.merge.status", async () => {
+    const client = {
+      fetchRepoView: vi.fn(),
+      fetchIssueView: vi.fn(),
+      fetchIssueList: vi.fn(),
+      fetchIssueCommentsList: vi.fn(),
+      fetchPrView: vi.fn(),
+      fetchPrList: vi.fn(),
+      fetchPrCommentsList: vi.fn(),
+      fetchPrReviewsList: vi.fn(),
+      fetchPrDiffListFiles: vi.fn(),
+      fetchPrMergeStatus: vi.fn(async () => ({
+        mergeable: null,
+        mergeStateStatus: null,
+        reviewDecision: null,
+        isDraft: false,
+        state: "OPEN",
+      })),
+      replyToReviewThread: vi.fn(),
+      resolveReviewThread: vi.fn(),
+      unresolveReviewThread: vi.fn(),
+    }
+
+    const result = await runGraphqlCapability(client, "pr.merge.status", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 1,
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.data).toEqual({
+      mergeable: null,
+      mergeStateStatus: null,
+      reviewDecision: null,
+      isDraft: false,
+      state: "OPEN",
+    })
+  })
 })

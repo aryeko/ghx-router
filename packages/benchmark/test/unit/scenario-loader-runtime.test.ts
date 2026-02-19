@@ -45,6 +45,143 @@ describe("loadScenarios", () => {
     ])
   })
 
+  it("recursively loads scenarios from subdirectories", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ghx-bench-recursive-scenarios-"))
+    await mkdir(join(root, "subdir"), { recursive: true })
+    await mkdir(join(root, "subdir", "nested"), { recursive: true })
+
+    const baseScenario = {
+      type: "workflow",
+      name: "Scenario",
+      prompt: "Do something.",
+      expected_capabilities: ["repo.view"],
+      timeout_ms: 1000,
+      allowed_retries: 0,
+      assertions: {
+        expected_outcome: "success",
+        checkpoints: [
+          {
+            name: "check",
+            verification_task: "repo.view",
+            verification_input: { owner: "a", name: "b" },
+            condition: "non_empty",
+          },
+        ],
+      },
+      tags: [],
+    }
+
+    await writeFile(
+      join(root, "root.json"),
+      JSON.stringify({ ...baseScenario, id: "root-wf-001" }),
+      "utf8",
+    )
+    await writeFile(
+      join(root, "subdir", "sub.json"),
+      JSON.stringify({ ...baseScenario, id: "sub-wf-001" }),
+      "utf8",
+    )
+    await writeFile(
+      join(root, "subdir", "nested", "deep.json"),
+      JSON.stringify({ ...baseScenario, id: "deep-wf-001" }),
+      "utf8",
+    )
+
+    const scenarios = await loadScenarios(root)
+    expect(scenarios).toHaveLength(3)
+    expect(scenarios.map((s) => s.id)).toEqual(["deep-wf-001", "root-wf-001", "sub-wf-001"])
+  })
+
+  it("sorts scenarios by id across all directories", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ghx-bench-sort-scenarios-"))
+    await mkdir(join(root, "alpha"), { recursive: true })
+    await mkdir(join(root, "zeta"), { recursive: true })
+
+    const baseScenario = {
+      type: "workflow",
+      name: "Scenario",
+      prompt: "Do something.",
+      expected_capabilities: ["repo.view"],
+      timeout_ms: 1000,
+      allowed_retries: 0,
+      assertions: {
+        expected_outcome: "success",
+        checkpoints: [
+          {
+            name: "check",
+            verification_task: "repo.view",
+            verification_input: { owner: "a", name: "b" },
+            condition: "non_empty",
+          },
+        ],
+      },
+      tags: [],
+    }
+
+    await writeFile(
+      join(root, "zeta", "z.json"),
+      JSON.stringify({ ...baseScenario, id: "zzzz-wf-001" }),
+      "utf8",
+    )
+    await writeFile(
+      join(root, "alpha", "a.json"),
+      JSON.stringify({ ...baseScenario, id: "aaaa-wf-001" }),
+      "utf8",
+    )
+    await writeFile(
+      join(root, "m.json"),
+      JSON.stringify({ ...baseScenario, id: "mmmm-wf-001" }),
+      "utf8",
+    )
+
+    const scenarios = await loadScenarios(root)
+    expect(scenarios.map((s) => s.id)).toEqual(["aaaa-wf-001", "mmmm-wf-001", "zzzz-wf-001"])
+  })
+
+  it("ignores non-json files in subdirectories", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ghx-bench-ignore-files-"))
+    await mkdir(join(root, "subdir"), { recursive: true })
+
+    const scenario = {
+      type: "workflow",
+      id: "test-wf-001",
+      name: "Scenario",
+      prompt: "Do something.",
+      expected_capabilities: ["repo.view"],
+      timeout_ms: 1000,
+      allowed_retries: 0,
+      assertions: {
+        expected_outcome: "success",
+        checkpoints: [
+          {
+            name: "check",
+            verification_task: "repo.view",
+            verification_input: { owner: "a", name: "b" },
+            condition: "non_empty",
+          },
+        ],
+      },
+      tags: [],
+    }
+
+    await writeFile(join(root, "valid.json"), JSON.stringify(scenario), "utf8")
+    await writeFile(join(root, "subdir", "README.md"), "Readme content", "utf8")
+    await writeFile(join(root, "subdir", "config.yaml"), "yaml: content", "utf8")
+
+    const scenarios = await loadScenarios(root)
+    expect(scenarios).toHaveLength(1)
+    expect(scenarios[0]?.id).toBe("test-wf-001")
+  })
+
+  it("handles empty directories gracefully", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ghx-bench-empty-dirs-"))
+    await mkdir(join(root, "empty-subdir"), { recursive: true })
+    await mkdir(join(root, "empty-subdir", "nested-empty"), { recursive: true })
+
+    const scenarios = await loadScenarios(root)
+    expect(scenarios).toHaveLength(0)
+  })
+
   it("loads scenario sets manifest", async () => {
     const root = await mkdtemp(join(tmpdir(), "ghx-bench-scenario-sets-"))
     await mkdir(root, { recursive: true })

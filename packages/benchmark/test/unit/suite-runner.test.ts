@@ -8,11 +8,13 @@ import {
 import {
   asNumber,
   coercePromptResponse,
+  evaluateCheckpoint,
   extractPromptResponseFromPromptResult,
   extractSnapshotFromParts,
   extractTimingBreakdown,
   fetchSessionMessages,
   getSessionApi,
+  resolveCheckpointData,
   shouldRequestContinuation,
   unwrapData,
   waitForAssistantFromMessages,
@@ -588,5 +590,449 @@ describe("suite-runner helpers", () => {
     await expect(waitForAssistantFromMessages(sessionApi, "s1", 30, "sc-timeout")).rejects.toThrow(
       "Timed out waiting for assistant message",
     )
+  })
+})
+
+describe("checkpoint evaluation", () => {
+  describe("resolveCheckpointData", () => {
+    it("extracts items array from object with items property", () => {
+      const data = { items: [1, 2, 3], other: "field" }
+      expect(resolveCheckpointData(data)).toEqual([1, 2, 3])
+    })
+
+    it("returns data as-is when items is not an array", () => {
+      const data = { items: "not-an-array" }
+      expect(resolveCheckpointData(data)).toBe(data)
+    })
+
+    it("returns data as-is when no items property", () => {
+      const data = { key: "value" }
+      expect(resolveCheckpointData(data)).toBe(data)
+    })
+
+    it("returns non-object data as-is", () => {
+      expect(resolveCheckpointData([1, 2, 3])).toEqual([1, 2, 3])
+      expect(resolveCheckpointData("string")).toBe("string")
+      expect(resolveCheckpointData(null)).toBe(null)
+      expect(resolveCheckpointData(42)).toBe(42)
+    })
+
+    it("returns empty items array when items is empty", () => {
+      const data = { items: [] }
+      expect(resolveCheckpointData(data)).toEqual([])
+    })
+  })
+
+  describe("evaluateCheckpoint", () => {
+    describe("empty condition", () => {
+      it("passes when array is empty", () => {
+        const checkpoint = {
+          name: "check",
+          verification_task: "test",
+          verification_input: {},
+          condition: "empty" as const,
+        }
+        expect(evaluateCheckpoint(checkpoint, { ok: true, data: [] })).toBe(true)
+      })
+
+      it("passes when data is null", () => {
+        const checkpoint = {
+          name: "check",
+          verification_task: "test",
+          verification_input: {},
+          condition: "empty" as const,
+        }
+        expect(evaluateCheckpoint(checkpoint, { ok: true, data: null })).toBe(true)
+      })
+
+      it("passes when data is undefined", () => {
+        const checkpoint = {
+          name: "check",
+          verification_task: "test",
+          verification_input: {},
+          condition: "empty" as const,
+        }
+        expect(evaluateCheckpoint(checkpoint, { ok: true, data: undefined })).toBe(true)
+      })
+
+      it("fails when array is non-empty", () => {
+        const checkpoint = {
+          name: "check",
+          verification_task: "test",
+          verification_input: {},
+          condition: "empty" as const,
+        }
+        expect(evaluateCheckpoint(checkpoint, { ok: true, data: [1] })).toBe(false)
+      })
+
+      it("fails when data is non-null object", () => {
+        const checkpoint = {
+          name: "check",
+          verification_task: "test",
+          verification_input: {},
+          condition: "empty" as const,
+        }
+        expect(evaluateCheckpoint(checkpoint, { ok: true, data: { key: "value" } })).toBe(false)
+      })
+
+      it("fails when result is not ok", () => {
+        const checkpoint = {
+          name: "check",
+          verification_task: "test",
+          verification_input: {},
+          condition: "empty" as const,
+        }
+        expect(evaluateCheckpoint(checkpoint, { ok: false, data: [] })).toBe(false)
+      })
+    })
+
+    describe("non_empty condition", () => {
+      it("passes when array has elements", () => {
+        const checkpoint = {
+          name: "check",
+          verification_task: "test",
+          verification_input: {},
+          condition: "non_empty" as const,
+        }
+        expect(evaluateCheckpoint(checkpoint, { ok: true, data: [1, 2] })).toBe(true)
+      })
+
+      it("passes when data is non-null object", () => {
+        const checkpoint = {
+          name: "check",
+          verification_task: "test",
+          verification_input: {},
+          condition: "non_empty" as const,
+        }
+        expect(evaluateCheckpoint(checkpoint, { ok: true, data: { key: "value" } })).toBe(true)
+      })
+
+      it("fails when array is empty", () => {
+        const checkpoint = {
+          name: "check",
+          verification_task: "test",
+          verification_input: {},
+          condition: "non_empty" as const,
+        }
+        expect(evaluateCheckpoint(checkpoint, { ok: true, data: [] })).toBe(false)
+      })
+
+      it("fails when data is null", () => {
+        const checkpoint = {
+          name: "check",
+          verification_task: "test",
+          verification_input: {},
+          condition: "non_empty" as const,
+        }
+        expect(evaluateCheckpoint(checkpoint, { ok: true, data: null })).toBe(false)
+      })
+
+      it("fails when data is undefined", () => {
+        const checkpoint = {
+          name: "check",
+          verification_task: "test",
+          verification_input: {},
+          condition: "non_empty" as const,
+        }
+        expect(evaluateCheckpoint(checkpoint, { ok: true, data: undefined })).toBe(false)
+      })
+
+      it("fails when result is not ok", () => {
+        const checkpoint = {
+          name: "check",
+          verification_task: "test",
+          verification_input: {},
+          condition: "non_empty" as const,
+        }
+        expect(evaluateCheckpoint(checkpoint, { ok: false, data: [1] })).toBe(false)
+      })
+    })
+
+    describe("count_gte condition", () => {
+      it("passes when array length is greater than expected", () => {
+        const checkpoint = {
+          name: "check",
+          verification_task: "test",
+          verification_input: {},
+          condition: "count_gte" as const,
+          expected_value: 2,
+        }
+        expect(evaluateCheckpoint(checkpoint, { ok: true, data: [1, 2, 3] })).toBe(true)
+      })
+
+      it("passes when array length equals expected", () => {
+        const checkpoint = {
+          name: "check",
+          verification_task: "test",
+          verification_input: {},
+          condition: "count_gte" as const,
+          expected_value: 3,
+        }
+        expect(evaluateCheckpoint(checkpoint, { ok: true, data: [1, 2, 3] })).toBe(true)
+      })
+
+      it("fails when array length is less than expected", () => {
+        const checkpoint = {
+          name: "check",
+          verification_task: "test",
+          verification_input: {},
+          condition: "count_gte" as const,
+          expected_value: 5,
+        }
+        expect(evaluateCheckpoint(checkpoint, { ok: true, data: [1, 2, 3] })).toBe(false)
+      })
+
+      it("fails when data is not an array", () => {
+        const checkpoint = {
+          name: "check",
+          verification_task: "test",
+          verification_input: {},
+          condition: "count_gte" as const,
+          expected_value: 1,
+        }
+        expect(evaluateCheckpoint(checkpoint, { ok: true, data: { key: "value" } })).toBe(false)
+      })
+
+      it("fails when result is not ok", () => {
+        const checkpoint = {
+          name: "check",
+          verification_task: "test",
+          verification_input: {},
+          condition: "count_gte" as const,
+          expected_value: 1,
+        }
+        expect(evaluateCheckpoint(checkpoint, { ok: false, data: [1, 2] })).toBe(false)
+      })
+
+      it("handles string expected value by converting to number", () => {
+        const checkpoint = {
+          name: "check",
+          verification_task: "test",
+          verification_input: {},
+          condition: "count_gte" as const,
+          expected_value: "2",
+        }
+        expect(evaluateCheckpoint(checkpoint, { ok: true, data: [1, 2, 3] })).toBe(true)
+      })
+    })
+
+    describe("count_eq condition", () => {
+      it("passes when array length exactly matches expected", () => {
+        const checkpoint = {
+          name: "check",
+          verification_task: "test",
+          verification_input: {},
+          condition: "count_eq" as const,
+          expected_value: 3,
+        }
+        expect(evaluateCheckpoint(checkpoint, { ok: true, data: [1, 2, 3] })).toBe(true)
+      })
+
+      it("fails when array length is greater than expected", () => {
+        const checkpoint = {
+          name: "check",
+          verification_task: "test",
+          verification_input: {},
+          condition: "count_eq" as const,
+          expected_value: 2,
+        }
+        expect(evaluateCheckpoint(checkpoint, { ok: true, data: [1, 2, 3] })).toBe(false)
+      })
+
+      it("fails when array length is less than expected", () => {
+        const checkpoint = {
+          name: "check",
+          verification_task: "test",
+          verification_input: {},
+          condition: "count_eq" as const,
+          expected_value: 5,
+        }
+        expect(evaluateCheckpoint(checkpoint, { ok: true, data: [1, 2, 3] })).toBe(false)
+      })
+
+      it("fails when data is not an array", () => {
+        const checkpoint = {
+          name: "check",
+          verification_task: "test",
+          verification_input: {},
+          condition: "count_eq" as const,
+          expected_value: 1,
+        }
+        expect(evaluateCheckpoint(checkpoint, { ok: true, data: "string" })).toBe(false)
+      })
+
+      it("fails when result is not ok", () => {
+        const checkpoint = {
+          name: "check",
+          verification_task: "test",
+          verification_input: {},
+          condition: "count_eq" as const,
+          expected_value: 3,
+        }
+        expect(evaluateCheckpoint(checkpoint, { ok: false, data: [1, 2, 3] })).toBe(false)
+      })
+
+      it("passes with zero count", () => {
+        const checkpoint = {
+          name: "check",
+          verification_task: "test",
+          verification_input: {},
+          condition: "count_eq" as const,
+          expected_value: 0,
+        }
+        expect(evaluateCheckpoint(checkpoint, { ok: true, data: [] })).toBe(true)
+      })
+    })
+
+    describe("field_equals condition", () => {
+      it("passes when single field matches exactly", () => {
+        const checkpoint = {
+          name: "check",
+          verification_task: "test",
+          verification_input: {},
+          condition: "field_equals" as const,
+          expected_value: { status: "success" },
+        }
+        expect(
+          evaluateCheckpoint(checkpoint, { ok: true, data: { status: "success", other: "field" } }),
+        ).toBe(true)
+      })
+
+      it("passes when multiple fields all match", () => {
+        const checkpoint = {
+          name: "check",
+          verification_task: "test",
+          verification_input: {},
+          condition: "field_equals" as const,
+          expected_value: { status: "success", count: 5 },
+        }
+        expect(
+          evaluateCheckpoint(checkpoint, {
+            ok: true,
+            data: { status: "success", count: 5, other: "field" },
+          }),
+        ).toBe(true)
+      })
+
+      it("fails when field value does not match", () => {
+        const checkpoint = {
+          name: "check",
+          verification_task: "test",
+          verification_input: {},
+          condition: "field_equals" as const,
+          expected_value: { status: "failed" },
+        }
+        expect(evaluateCheckpoint(checkpoint, { ok: true, data: { status: "success" } })).toBe(
+          false,
+        )
+      })
+
+      it("fails when expected field is missing in data", () => {
+        const checkpoint = {
+          name: "check",
+          verification_task: "test",
+          verification_input: {},
+          condition: "field_equals" as const,
+          expected_value: { missing: "field" },
+        }
+        expect(evaluateCheckpoint(checkpoint, { ok: true, data: { status: "success" } })).toBe(
+          false,
+        )
+      })
+
+      it("fails when data is not an object", () => {
+        const checkpoint = {
+          name: "check",
+          verification_task: "test",
+          verification_input: {},
+          condition: "field_equals" as const,
+          expected_value: { key: "value" },
+        }
+        expect(evaluateCheckpoint(checkpoint, { ok: true, data: [1, 2, 3] })).toBe(false)
+      })
+
+      it("fails when expected_value is not an object", () => {
+        const checkpoint = {
+          name: "check",
+          verification_task: "test",
+          verification_input: {},
+          condition: "field_equals" as const,
+          expected_value: "string",
+        }
+        expect(evaluateCheckpoint(checkpoint, { ok: true, data: { key: "value" } })).toBe(false)
+      })
+
+      it("compares nested objects using JSON stringification", () => {
+        const checkpoint = {
+          name: "check",
+          verification_task: "test",
+          verification_input: {},
+          condition: "field_equals" as const,
+          expected_value: { nested: { key: "value" } },
+        }
+        expect(
+          evaluateCheckpoint(checkpoint, { ok: true, data: { nested: { key: "value" } } }),
+        ).toBe(true)
+      })
+
+      it("handles numeric field comparison", () => {
+        const checkpoint = {
+          name: "check",
+          verification_task: "test",
+          verification_input: {},
+          condition: "field_equals" as const,
+          expected_value: { count: 42 },
+        }
+        expect(evaluateCheckpoint(checkpoint, { ok: true, data: { count: 42 } })).toBe(true)
+      })
+
+      it("fails when result is not ok", () => {
+        const checkpoint = {
+          name: "check",
+          verification_task: "test",
+          verification_input: {},
+          condition: "field_equals" as const,
+          expected_value: { status: "success" },
+        }
+        expect(evaluateCheckpoint(checkpoint, { ok: false, data: { status: "success" } })).toBe(
+          false,
+        )
+      })
+    })
+
+    it("returns false for unknown condition types", () => {
+      const checkpoint = {
+        name: "check",
+        verification_task: "test",
+        verification_input: {},
+        condition: "unknown" as never,
+      }
+      expect(evaluateCheckpoint(checkpoint, { ok: true, data: [1, 2] })).toBe(false)
+    })
+
+    describe("integration with resolveCheckpointData", () => {
+      it("evaluates checkpoint on resolved items array", () => {
+        const checkpoint = {
+          name: "check",
+          verification_task: "test",
+          verification_input: {},
+          condition: "count_eq" as const,
+          expected_value: 2,
+        }
+        const result = { ok: true, data: { items: [1, 2] } }
+        expect(evaluateCheckpoint(checkpoint, result)).toBe(true)
+      })
+
+      it("evaluates non_empty checkpoint on items from wrapped response", () => {
+        const checkpoint = {
+          name: "check",
+          verification_task: "test",
+          verification_input: {},
+          condition: "non_empty" as const,
+        }
+        const result = { ok: true, data: { items: [{ id: 1 }] } }
+        expect(evaluateCheckpoint(checkpoint, result)).toBe(true)
+      })
+    })
   })
 })

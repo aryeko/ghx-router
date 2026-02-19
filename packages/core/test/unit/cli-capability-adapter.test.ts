@@ -3119,4 +3119,443 @@ describe("runCliCapability", () => {
       },
     })
   })
+
+  it("executes pr.create with title, head, and optional body/base/draft parameters", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "",
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const basicResult = await runCliCapability(runner, "pr.create", {
+      owner: "acme",
+      name: "modkit",
+      title: "Add feature",
+      head: "feature-branch",
+    })
+
+    const fullResult = await runCliCapability(runner, "pr.create", {
+      owner: "acme",
+      name: "modkit",
+      title: "Add feature",
+      head: "feature-branch",
+      body: "This adds the new feature",
+      base: "develop",
+      draft: true,
+    })
+
+    expect(basicResult.ok).toBe(true)
+    expect(basicResult.data).toEqual({
+      number: 0,
+      url: "",
+      title: "Add feature",
+      state: "OPEN",
+      draft: false,
+    })
+
+    expect(fullResult.ok).toBe(true)
+    expect(fullResult.data).toEqual({
+      number: 0,
+      url: "",
+      title: "Add feature",
+      state: "OPEN",
+      draft: true,
+    })
+
+    const calls = runner.run.mock.calls as unknown as [string, string[], number][]
+    expect(calls[0]?.[1]).toEqual(
+      expect.arrayContaining([
+        "pr",
+        "create",
+        "--title",
+        "Add feature",
+        "--head",
+        "feature-branch",
+      ]),
+    )
+    expect(calls[0]?.[1]).not.toContain("--body")
+    expect(calls[0]?.[1]).not.toContain("--base")
+    expect(calls[0]?.[1]).not.toContain("--draft")
+
+    expect(calls[1]?.[1]).toEqual(
+      expect.arrayContaining([
+        "pr",
+        "create",
+        "--title",
+        "Add feature",
+        "--head",
+        "feature-branch",
+        "--body",
+        "This adds the new feature",
+        "--base",
+        "develop",
+        "--draft",
+      ]),
+    )
+  })
+
+  it("validates pr.create requires title and head parameters", async () => {
+    const runner = {
+      run: vi.fn(async () => {
+        throw new Error("runner should not be invoked for validation failures")
+      }),
+    }
+
+    const missingTitle = await runCliCapability(runner, "pr.create", {
+      owner: "acme",
+      name: "modkit",
+      head: "feature-branch",
+    })
+
+    const missingHead = await runCliCapability(runner, "pr.create", {
+      owner: "acme",
+      name: "modkit",
+      title: "Add feature",
+    })
+
+    const emptyTitle = await runCliCapability(runner, "pr.create", {
+      owner: "acme",
+      name: "modkit",
+      title: "  ",
+      head: "feature-branch",
+    })
+
+    expect(missingTitle.ok).toBe(false)
+    expect(missingTitle.error?.message).toContain("title")
+    expect(missingHead.ok).toBe(false)
+    expect(missingHead.error?.message).toContain("head")
+    expect(emptyTitle.ok).toBe(false)
+    expect(emptyTitle.error?.message).toContain("title")
+    expect(runner.run).not.toHaveBeenCalled()
+  })
+
+  it("executes pr.update with title/body edit or draft status change", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "",
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const editTitle = await runCliCapability(runner, "pr.update", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 42,
+      title: "Updated title",
+    })
+
+    const editBody = await runCliCapability(runner, "pr.update", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 42,
+      body: "Updated description",
+    })
+
+    const editBoth = await runCliCapability(runner, "pr.update", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 42,
+      title: "New title",
+      body: "New body",
+    })
+
+    expect(editTitle.ok).toBe(true)
+    expect(editTitle.data).toEqual({
+      number: 42,
+      url: "",
+      title: "",
+      state: "OPEN",
+      draft: false,
+    })
+
+    expect(editBody.ok).toBe(true)
+    expect(editBody.data).toEqual({
+      number: 42,
+      url: "",
+      title: "",
+      state: "OPEN",
+      draft: false,
+    })
+
+    expect(editBoth.ok).toBe(true)
+    expect(editBoth.data).toEqual({
+      number: 42,
+      url: "",
+      title: "",
+      state: "OPEN",
+      draft: false,
+    })
+
+    const calls = runner.run.mock.calls as unknown as [string, string[], number][]
+    expect(calls[0]?.[1]).toEqual(
+      expect.arrayContaining([
+        "pr",
+        "edit",
+        "42",
+        "--repo",
+        "acme/modkit",
+        "--title",
+        "Updated title",
+      ]),
+    )
+    expect(calls[1]?.[1]).toEqual(
+      expect.arrayContaining([
+        "pr",
+        "edit",
+        "42",
+        "--repo",
+        "acme/modkit",
+        "--body",
+        "Updated description",
+      ]),
+    )
+    expect(calls[2]?.[1]).toEqual(
+      expect.arrayContaining([
+        "pr",
+        "edit",
+        "42",
+        "--repo",
+        "acme/modkit",
+        "--title",
+        "New title",
+        "--body",
+        "New body",
+      ]),
+    )
+  })
+
+  it("executes pr.update draft status change through gh pr ready --undo", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: "",
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const makeDraft = await runCliCapability(runner, "pr.update", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 42,
+      draft: true,
+    })
+
+    const undoDraft = await runCliCapability(runner, "pr.update", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 42,
+      draft: false,
+    })
+
+    expect(makeDraft.ok).toBe(true)
+    expect(makeDraft.data).toEqual({
+      number: 42,
+      url: "",
+      title: "",
+      state: "OPEN",
+      draft: true,
+    })
+
+    expect(undoDraft.ok).toBe(true)
+    expect(undoDraft.data).toEqual({
+      number: 42,
+      url: "",
+      title: "",
+      state: "OPEN",
+      draft: false,
+    })
+
+    const calls = runner.run.mock.calls as unknown as [string, string[], number][]
+    expect(calls[0]?.[1]).toEqual(["pr", "ready", "42", "--repo", "acme/modkit", "--undo"])
+    expect(calls[1]?.[1]).toEqual(["pr", "ready", "42", "--repo", "acme/modkit"])
+  })
+
+  it("executes pr.update with combined edit and draft status change", async () => {
+    const runner = {
+      run: vi
+        .fn()
+        .mockResolvedValueOnce({
+          stdout: "",
+          stderr: "",
+          exitCode: 0,
+        })
+        .mockResolvedValueOnce({
+          stdout: "",
+          stderr: "",
+          exitCode: 0,
+        }),
+    }
+
+    const result = await runCliCapability(runner, "pr.update", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 42,
+      title: "Updated title",
+      draft: false,
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.data).toEqual({
+      number: 42,
+      url: "",
+      title: "",
+      state: "OPEN",
+      draft: false,
+    })
+
+    const calls = runner.run.mock.calls as unknown as [string, string[], number][]
+    expect(calls).toHaveLength(2)
+    expect(calls[0]?.[1]).toEqual(
+      expect.arrayContaining([
+        "pr",
+        "edit",
+        "42",
+        "--repo",
+        "acme/modkit",
+        "--title",
+        "Updated title",
+      ]),
+    )
+    expect(calls[1]?.[1]).toEqual(
+      expect.arrayContaining(["pr", "ready", "42", "--repo", "acme/modkit"]),
+    )
+  })
+
+  it("validates pr.update requires at least one of title, body, or draft", async () => {
+    const runner = {
+      run: vi.fn(async () => {
+        throw new Error("runner should not be invoked for validation failures")
+      }),
+    }
+
+    const noParams = await runCliCapability(runner, "pr.update", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 42,
+    })
+
+    const invalidPrNumber = await runCliCapability(runner, "pr.update", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 0,
+      title: "Update",
+    })
+
+    expect(noParams.ok).toBe(false)
+    expect(noParams.error?.message).toContain("title, body, or draft")
+    expect(invalidPrNumber.ok).toBe(false)
+    expect(invalidPrNumber.error?.message).toContain("prNumber")
+    expect(runner.run).not.toHaveBeenCalled()
+  })
+
+  it("executes pr.diff.files with prNumber and optional first parameter", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: JSON.stringify([
+          { path: "src/index.ts", additions: 10, deletions: 5, changeType: "MODIFIED" },
+          { path: "README.md", additions: 2, deletions: 1, changeType: "MODIFIED" },
+        ]),
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const defaultFirst = await runCliCapability(runner, "pr.diff.files", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 42,
+    })
+
+    const customFirst = await runCliCapability(runner, "pr.diff.files", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 42,
+      first: 50,
+    })
+
+    expect(defaultFirst.ok).toBe(true)
+    expect(defaultFirst.data).toEqual([
+      { path: "src/index.ts", additions: 10, deletions: 5, changeType: "MODIFIED" },
+      { path: "README.md", additions: 2, deletions: 1, changeType: "MODIFIED" },
+    ])
+
+    expect(customFirst.ok).toBe(true)
+    expect(customFirst.data).toEqual([
+      { path: "src/index.ts", additions: 10, deletions: 5, changeType: "MODIFIED" },
+      { path: "README.md", additions: 2, deletions: 1, changeType: "MODIFIED" },
+    ])
+
+    const calls = runner.run.mock.calls as unknown as [string, string[], number][]
+    expect(calls[0]?.[1]).toEqual(
+      expect.arrayContaining(["pr", "view", "42", "--repo", "acme/modkit", "--json", "files"]),
+    )
+    expect(calls[1]?.[1]).toEqual(
+      expect.arrayContaining(["pr", "view", "42", "--repo", "acme/modkit", "--json", "files"]),
+    )
+  })
+
+  it("validates pr.diff.files requires valid prNumber and first parameters", async () => {
+    const runner = {
+      run: vi.fn(async () => {
+        throw new Error("runner should not be invoked for validation failures")
+      }),
+    }
+
+    const invalidPrNumber = await runCliCapability(runner, "pr.diff.files", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 0,
+    })
+
+    const invalidFirst = await runCliCapability(runner, "pr.diff.files", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 42,
+      first: -5,
+    })
+
+    const floatFirst = await runCliCapability(runner, "pr.diff.files", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 42,
+      first: 10.5,
+    })
+
+    expect(invalidPrNumber.ok).toBe(false)
+    expect(invalidPrNumber.error?.message).toContain("prNumber")
+    expect(invalidFirst.ok).toBe(false)
+    expect(invalidFirst.error?.message).toContain("first")
+    expect(floatFirst.ok).toBe(false)
+    expect(floatFirst.error?.message).toContain("first")
+    expect(runner.run).not.toHaveBeenCalled()
+  })
+
+  it("normalizes pr.diff.files output with file change information", async () => {
+    const runner = {
+      run: vi.fn(async () => ({
+        stdout: JSON.stringify([
+          { path: "src/file1.ts", additions: 5, deletions: 2, changeType: "ADDED" },
+          { path: "src/file2.ts", additions: 0, deletions: 10, changeType: "DELETED" },
+        ]),
+        stderr: "",
+        exitCode: 0,
+      })),
+    }
+
+    const result = await runCliCapability(runner, "pr.diff.files", {
+      owner: "acme",
+      name: "modkit",
+      prNumber: 42,
+      first: 2,
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.data).toEqual([
+      { path: "src/file1.ts", additions: 5, deletions: 2, changeType: "ADDED" },
+      { path: "src/file2.ts", additions: 0, deletions: 10, changeType: "DELETED" },
+    ])
+  })
 })

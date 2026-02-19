@@ -12,7 +12,7 @@ vi.mock("../../src/core/routing/engine.js", () => ({
   executeTask: (...args: unknown[]) => executeTaskMock(...args),
 }))
 
-import { runCommand } from "../../src/cli/commands/run.js"
+import { readStdin, runCommand } from "../../src/cli/commands/run.js"
 
 function mockStdin(content: string): void {
   const readable = new Readable({
@@ -274,5 +274,93 @@ describe("runCommand", () => {
         }),
       )
     })
+  })
+})
+
+describe("readStdin", () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it("reads data from stdin stream", async () => {
+    mockStdin("test data")
+
+    const result = await readStdin()
+
+    expect(result).toBe("test data")
+  })
+
+  it("concatenates multiple chunks from stdin", async () => {
+    const readable = new Readable({
+      read() {
+        this.push("chunk1")
+        this.push("chunk2")
+        this.push("chunk3")
+        this.push(null)
+      },
+    })
+    vi.spyOn(process, "stdin", "get").mockReturnValue(readable as unknown as typeof process.stdin)
+
+    const result = await readStdin()
+
+    expect(result).toBe("chunk1chunk2chunk3")
+  })
+
+  it("rejects when stdin stream times out", async () => {
+    const readable = new Readable({
+      read() {
+        // Never send data or end
+      },
+    })
+    vi.spyOn(process, "stdin", "get").mockReturnValue(readable as unknown as typeof process.stdin)
+
+    await expect(readStdin(100)).rejects.toThrow("Timed out reading from stdin")
+  })
+
+  it("rejects when stdin stream emits error", async () => {
+    const readable = new Readable({
+      read() {
+        // Trigger error after a short delay
+        setTimeout(() => {
+          this.destroy(new Error("Stream error"))
+        }, 10)
+      },
+    })
+    vi.spyOn(process, "stdin", "get").mockReturnValue(readable as unknown as typeof process.stdin)
+
+    await expect(readStdin()).rejects.toThrow("Stream error")
+  })
+
+  it("clears timeout when stream ends normally", async () => {
+    const setTimeoutSpy = vi.spyOn(global, "setTimeout")
+    const clearTimeoutSpy = vi.spyOn(global, "clearTimeout")
+
+    mockStdin("data")
+
+    await readStdin()
+
+    expect(setTimeoutSpy).toHaveBeenCalled()
+    expect(clearTimeoutSpy).toHaveBeenCalled()
+  })
+
+  it("clears timeout when stream errors", async () => {
+    const clearTimeoutSpy = vi.spyOn(global, "clearTimeout")
+
+    const readable = new Readable({
+      read() {
+        setTimeout(() => {
+          this.destroy(new Error("Stream error"))
+        }, 10)
+      },
+    })
+    vi.spyOn(process, "stdin", "get").mockReturnValue(readable as unknown as typeof process.stdin)
+
+    try {
+      await readStdin()
+    } catch {
+      // Ignore error
+    }
+
+    expect(clearTimeoutSpy).toHaveBeenCalled()
   })
 })
