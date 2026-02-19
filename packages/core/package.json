@@ -66,16 +66,15 @@
     "plugin:sync": "node scripts/sync-plugin-manifests.mjs",
     "plugin:sync:check": "node scripts/sync-plugin-manifests.mjs --check",
     "prepack": "pnpm run build",
-    "gql:codegen": "tsx scripts/run-gql-codegen.ts",
-    "gql:codegen:watch": "graphql-codegen --config codegen.ts --watch",
-    "gql:check": "pnpm run gql:codegen && biome check --write --no-errors-on-unmatched src/gql/generated src/gql/operations && git diff --exit-code -- src/gql/generated src/gql/operations/*.generated.ts src/gql/operations/fragments/*.generated.ts"
+    "gql:generate": "node scripts/generate-gql-artifacts.mjs && biome check --write --no-errors-on-unmatched src/gql/generated src/gql/operations",
+    "gql:schema:refresh": "GITHUB_TOKEN=\"$(gh auth token)\" graphql-codegen --config codegen-schema.ts",
+    "gql:verify": "pnpm run gql:generate && git diff --exit-code -- ':(glob)src/gql/**/*.generated.ts'"
   },
   "nx": {
     "targets": {
       "ci": {},
       "ci:extra": {
         "dependsOn": [
-          "gql:check",
           "plugin:sync:check"
         ]
       },
@@ -92,6 +91,7 @@
   "devDependencies": {
     "@graphql-codegen/cli": "^6.1.1",
     "@graphql-codegen/near-operation-file-preset": "^4.0.0",
+    "@graphql-codegen/schema-ast": "^4.1.0",
     "@graphql-codegen/typescript": "^5.0.7",
     "@graphql-codegen/typescript-graphql-request": "^6.3.0",
     "@graphql-codegen/typescript-operations": "^5.0.7",

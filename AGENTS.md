@@ -63,7 +63,7 @@ pnpm run format:affected
 Useful extras:
 
 ```bash
-pnpm run ghx:gql:check
+pnpm run ghx:gql:verify
 pnpm run benchmark
 pnpm run benchmark:verify:pr
 pnpm run benchmark:verify:release
@@ -142,7 +142,7 @@ pnpm --filter @ghx-dev/core exec vitest run test/unit/run-command.test.ts -t "pa
 - Keep tests deterministic and isolated.
 - Mock external systems (`gh`, network, SDK/session APIs).
 - Update or add tests in the same package when behavior changes.
-- If GraphQL operations or generated artifacts may change, run `pnpm run ghx:gql:check`.
+- If GraphQL operations or generated artifacts may change, run `pnpm run ghx:gql:verify`.
 
 ### Lint/TS Config Notes
 - ESLint uses the `strict` preset from `typescript-eslint`.
@@ -193,5 +193,5 @@ pnpm run ci --outputStyle=static
 ```
 
 Conditional checks from the template:
-- Run `pnpm run ghx:gql:check` if GraphQL operations changed.
+- Run `pnpm run ghx:gql:verify` if GraphQL operations changed.
 - Confirm tests were added/updated as needed for behavior changes.

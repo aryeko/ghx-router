@@ -15,6 +15,13 @@ const repoUrl = pkg.repository.url.replace(/^git\+/, "").replace(/\.git$/, "")
 
 const pluginDescription =
   "GitHub execution router for AI agents — 66 capabilities with deterministic routing and normalized output"
+const packageKeywords = Array.isArray(pkg.keywords)
+  ? pkg.keywords.filter((value) => typeof value === "string")
+  : []
+const pluginKeywords =
+  packageKeywords.length > 0
+    ? [...new Set(packageKeywords)]
+    : ["github", "ai-agents", "cli", "automation"]
 
 const pluginJson = {
   name: "ghx",
@@ -24,7 +31,7 @@ const pluginJson = {
   repository: repoUrl,
   homepage: repoUrl,
   license: pkg.license,
-  keywords: ["github", "ai-agents", "cli", "automation"],
+  keywords: pluginKeywords,
 }
 
 const marketplaceJson = {
