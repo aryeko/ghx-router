@@ -27,7 +27,6 @@ ghx/
 │   │   ├── skills/             # Agent skill templates (also used by plugin)
 │   │   │   └── using-ghx/      # ghx usage skill (SKILL.md)
 │   │   ├── src/
-│   │   │   ├── agent-interface/      # Agent tool surface
 │   │   │   ├── cli/                  # ghx CLI entrypoint
 │   │   │   ├── core/                 # Core runtime
 │   │   │   │   ├── contracts/        # Stable envelope & task contracts
@@ -150,17 +149,15 @@ ghx/
 | `cli/commands/capabilities-list.ts` | List capabilities | `capabilitiesListCommand()` |
 | `cli/commands/capabilities-explain.ts` | Explain capability | `capabilitiesExplainCommand()` |
 | `skills/using-ghx/SKILL.md` (package root) | Setup skill template / Claude Code plugin skill | (markdown) |
-| `agent-interface/tools/execute-tool.ts` | Execute wrapper | `createExecuteTool()` |
-| `agent-interface/tools/list-capabilities-tool.ts` | List tool | `listCapabilities()` |
-| `agent-interface/tools/explain-tool.ts` | Explain tool | `explainCapability()` |
-| `agent-interface/prompt/main-skill.ts` | Agent safety text | `MAIN_SKILL_TEXT` |
+| `core/execute/execute-tool.ts` | Execute wrapper | `createExecuteTool()` |
+| `core/registry/list-capabilities.ts` | List tool | `listCapabilities()` |
+| `core/registry/explain-capability.ts` | Explain tool | `explainCapability()` |
 
 ### Package Entrypoints
 
 | File | Purpose |
 |------|---------|
 | `index.ts` | Public npm package API |
-| `agent.ts` | Agent-facing tool exports |
 
 ## Benchmark Package Modules
 
@@ -226,10 +223,9 @@ ghx/
 
 ### Agent Tools
 
-- `packages/core/src/agent.ts` - agent tool exports
-- `packages/core/src/agent-interface/tools/execute-tool.ts` - execute wrapper
-- `packages/core/src/agent-interface/tools/list-capabilities-tool.ts` - list tool
-- `packages/core/src/agent-interface/prompt/main-skill.ts` - agent constraints
+- `packages/core/src/core/execute/execute-tool.ts` - execute wrapper
+- `packages/core/src/core/registry/list-capabilities.ts` - list tool
+- `packages/core/src/core/registry/explain-capability.ts` - explain tool
 
 ### Benchmark Orchestration
 

@@ -84,7 +84,7 @@ User/Agent → CLI (packages/core/src/cli/) → executeTask() [core/routing/engi
 
 4. **Adapters** live in `core/execution/adapters/`. CLI adapter shells out to `gh`/`gh api`; GraphQL adapter runs GitHub GQL queries from `packages/core/src/gql/`.
 
-5. **Public API** — `packages/core/src/index.ts` (library) and `packages/core/src/agent.ts` (agent tools: `listCapabilities`, `createExecuteTool`, `explainCapability`).
+5. **Public API** — `packages/core/src/index.ts` (library exports including agent tools: `listCapabilities`, `createExecuteTool`, `explainCapability`).
 
 ### Benchmark Flow
 
@@ -121,7 +121,7 @@ Lefthook runs automatically on commit (installed via `pnpm install`):
 ## Documentation
 
 Documentation hub: `docs/README.md`. Key sections:
-- `docs/architecture/` — system-design, routing-engine, operation-cards, adapters, agent-interface, repository-structure, telemetry
+- `docs/architecture/` — system-design, routing-engine, operation-cards, adapters, repository-structure, telemetry
 - `docs/capabilities/` — per-domain capability reference (issues, PRs, workflows, releases, etc.)
 - `docs/getting-started/` — installation, first-task, setup-for-agents, how-it-works
 - `docs/guides/` — CLI usage, library API, agent integration, result envelope, error handling, routing explained

@@ -21,8 +21,7 @@ npx @ghx-dev/core setup --scope project --verify
 
 ### For Custom Agents
 
-Add ghx to your agent's tool/skill registry using the `@ghx-dev/core/agent`
-exports.
+Add ghx to your agent's tool/skill registry using the `@ghx-dev/core` exports.
 
 ## The Three Agent Tools
 
@@ -35,7 +34,7 @@ Discover all 66 capabilities available.
 **Usage:**
 
 ```ts
-import { listCapabilities } from "@ghx-dev/core/agent"
+import { listCapabilities } from "@ghx-dev/core"
 
 const capabilities = listCapabilities()
 // Returns:
@@ -59,7 +58,7 @@ routing.
 **Usage:**
 
 ```ts
-import { explainCapability } from "@ghx-dev/core/agent"
+import { explainCapability } from "@ghx-dev/core"
 
 const explanation = explainCapability("repo.view")
 // Returns:
@@ -88,11 +87,9 @@ envelope parsing.
 ```ts
 import {
   createExecuteTool,
-  listCapabilities,
-  explainCapability,
-  MAIN_SKILL_TEXT,
-} from "@ghx-dev/core/agent"
-import { createGithubClientFromToken, executeTask } from "@ghx-dev/core"
+  createGithubClientFromToken,
+  executeTask,
+} from "@ghx-dev/core"
 
 const token = process.env.GITHUB_TOKEN!
 const githubClient = createGithubClientFromToken(token)
@@ -117,31 +114,6 @@ if (result.ok) {
 } else {
   console.error(result.error?.code)
 }
-```
-
-## System Prompt Template
-
-Use `MAIN_SKILL_TEXT` as your agent's system prompt for ghx operations:
-
-```ts
-import { MAIN_SKILL_TEXT } from "@ghx-dev/core/agent"
-
-console.log(MAIN_SKILL_TEXT)
-// Output:
-// Use execute(capability_id, params) for all GitHub actions.
-// Never call gh help and never fetch GraphQL schema/introspection.
-// If required params are unknown, call explain(capability_id) or ask the user.
-// Treat ResultEnvelope.ok=false as a failure.
-// If error.retryable=true, retry once unless user requested otherwise.
-// Only reason about ResultEnvelope.data and ResultEnvelope.error.
-```
-
-Include this in your agent's system prompt to guide correct usage:
-
-```text
-You are a helpful GitHub agent. Use the ghx library for all GitHub operations.
-
-${MAIN_SKILL_TEXT}
 ```
 
 ## Result Envelope Handling

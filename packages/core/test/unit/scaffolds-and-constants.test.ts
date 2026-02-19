@@ -1,6 +1,4 @@
 import { describe, expect, it } from "vitest"
-
-import { MAIN_SKILL_TEXT } from "../../src/agent-interface/prompt/main-skill.js"
 import { runCommand } from "../../src/cli/commands/run.js"
 import { formatJson } from "../../src/cli/formatters/json.js"
 import { main } from "../../src/cli/index.js"
@@ -10,11 +8,6 @@ import { projectName } from "../../src/shared/constants.js"
 import { isObject } from "../../src/shared/utils.js"
 
 describe("scaffolds and constants", () => {
-  it("keeps main skill prompt text stable", () => {
-    expect(MAIN_SKILL_TEXT).toContain("execute(capability_id, params)")
-    expect(MAIN_SKILL_TEXT).toContain("ResultEnvelope")
-  })
-
   it("executes scaffold command entrypoints without throwing", () => {
     expect(() => main()).not.toThrow()
     expect(() => runCommand()).not.toThrow()

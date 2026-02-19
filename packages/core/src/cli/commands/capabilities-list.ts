@@ -1,4 +1,4 @@
-import { listCapabilities } from "../../agent-interface/tools/list-capabilities-tool.js"
+import { listCapabilities } from "../../core/registry/list-capabilities.js"
 
 function parseArgs(argv: string[]): { asJson: boolean } {
   return {

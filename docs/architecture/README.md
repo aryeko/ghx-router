@@ -55,7 +55,6 @@ flowchart TB
 | **[routing-engine.md](routing-engine.md)** | Route planning rules, preflight evaluation, fallback logic, and reason codes |
 | **[operation-cards.md](operation-cards.md)** | Capability card registry, schema, current capabilities, and adding new ones |
 | **[adapters.md](adapters.md)** | CLI, GraphQL, and REST adapters — how capabilities are executed |
-| **[agent-interface.md](agent-interface.md)** | Agent-facing tools (execute, explain, list_capabilities) and main-skill text |
 | **[Result Envelope Guide](../guides/result-envelope.md)** | Stable ResultEnvelope parsing, fields, and response handling |
 | **[Error Handling Guide](../guides/error-handling.md)** | Error taxonomy, retryability semantics, and debugging strategies |
 | **[repository-structure.md](repository-structure.md)** | Package layout, module organization, directory tree, and reading paths |

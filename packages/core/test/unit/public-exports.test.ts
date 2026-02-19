@@ -2,16 +2,13 @@ import { describe, expect, it } from "vitest"
 
 import {
   createExecuteTool,
-  explainCapability,
-  listCapabilities,
-  MAIN_SKILL_TEXT,
-} from "../../src/agent.js"
-import {
   createGithubClient,
   createGithubClientFromToken,
   createGraphqlClient,
   createSafeCliCommandRunner,
   executeTask,
+  explainCapability,
+  listCapabilities,
 } from "../../src/index.js"
 
 describe("public exports", () => {
@@ -27,7 +24,5 @@ describe("public exports", () => {
     expect(typeof createExecuteTool).toBe("function")
     expect(typeof explainCapability).toBe("function")
     expect(typeof listCapabilities).toBe("function")
-    expect(typeof MAIN_SKILL_TEXT).toBe("string")
-    expect(MAIN_SKILL_TEXT.length).toBeGreaterThan(0)
   })
 })

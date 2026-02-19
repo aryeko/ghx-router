@@ -1,4 +1,4 @@
-import { listOperationCards } from "../../core/registry/index.js"
+import { listOperationCards } from "./index.js"
 
 export type CapabilityListItem = {
   capability_id: string
