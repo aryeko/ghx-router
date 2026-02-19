@@ -1120,6 +1120,8 @@ describe("createGithubClient", () => {
     ).resolves.toEqual({
       id: "thread-1",
       isResolved: true,
+      commentId: "comment-1",
+      commentUrl: "",
     })
     await expect(client.resolveReviewThread({ threadId: "thread-1" })).resolves.toEqual({
       id: "thread-1",

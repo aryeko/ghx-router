@@ -208,6 +208,7 @@ export type IssueRelationsGetData = {
 export type IssueParentSetData = {
   issueId: string
   parentIssueId: string
+  updated: boolean
 }
 
 export type IssueParentRemoveData = {
@@ -218,6 +219,7 @@ export type IssueParentRemoveData = {
 export type IssueBlockedByData = {
   issueId: string
   blockedByIssueId: string
+  added?: boolean
   removed?: boolean
 }
 
@@ -345,6 +347,11 @@ export type ReplyToReviewThreadInput = ReviewThreadMutationInput & {
 export type ReviewThreadMutationData = {
   id: string
   isResolved: boolean
+}
+
+export type ReplyToReviewThreadData = ReviewThreadMutationData & {
+  commentId: string
+  commentUrl: string
 }
 
 export type DraftComment = {

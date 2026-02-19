@@ -538,6 +538,7 @@ export async function runIssueParentSet(
   return {
     issueId: subIssue.id,
     parentIssueId: parentIssue.id,
+    updated: true,
   }
 }
 
@@ -598,6 +599,7 @@ export async function runIssueBlockedByAdd(
   return {
     issueId: issue.id,
     blockedByIssueId: blockingIssue.id,
+    added: true,
   }
 }
 

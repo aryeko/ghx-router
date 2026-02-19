@@ -4,7 +4,7 @@ import { createGithubClient } from "@core/gql/github-client.js"
 import { describe, expect, it } from "vitest"
 
 describe("executeTask project_v2.items.issue.remove", () => {
-  it("returns validation error envelope for missing projectNumber", async () => {
+  it("returns validation error envelope for missing projectId", async () => {
     const githubClient = createGithubClient({
       async execute<TData>(): Promise<TData> {
         return {} as TData
@@ -13,7 +13,7 @@ describe("executeTask project_v2.items.issue.remove", () => {
 
     const request: TaskRequest = {
       task: "project_v2.items.issue.remove",
-      input: { org: "acme", itemId: "PVTI_abc123" },
+      input: { itemId: "PVTI_abc123" },
     }
 
     const result = await executeTask(request, {
@@ -37,7 +37,7 @@ describe("executeTask project_v2.items.issue.remove", () => {
 
     const request: TaskRequest = {
       task: "project_v2.items.issue.remove",
-      input: { org: "acme", projectNumber: 1 },
+      input: { projectId: "PVT_abc123" },
     }
 
     const result = await executeTask(request, {

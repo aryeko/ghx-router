@@ -3,11 +3,9 @@ version: "1.0.0"
 description: Remove an issue from a Projects v2 project.
 input_schema:
   type: object
-  required: [projectNumber, itemId]
+  required: [projectId, itemId]
   properties:
-    org: { type: string, minLength: 1 }
-    owner: { type: string, minLength: 1 }
-    projectNumber: { type: integer, minimum: 1 }
+    projectId: { type: string, minLength: 1 }
     itemId: { type: string, minLength: 1 }
   additionalProperties: false
 output_schema:
