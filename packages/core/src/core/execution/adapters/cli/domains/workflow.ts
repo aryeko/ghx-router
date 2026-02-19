@@ -235,13 +235,21 @@ export const handleWorkflowJobLogsGet: CliHandler = async (runner, params, card)
     const lines = logContent.split(/\r?\n/)
     const errorLines: string[] = []
     const warningLines: string[] = []
+    let totalErrorCount = 0
+    let totalWarningCount = 0
 
     for (const line of lines) {
-      if (/\berror\b/i.test(line) && errorLines.length < 10) {
-        errorLines.push(line)
+      if (/\berror\b/i.test(line)) {
+        totalErrorCount++
+        if (errorLines.length < 10) {
+          errorLines.push(line)
+        }
       }
-      if (/\bwarn(ing)?\b/i.test(line) && warningLines.length < 10) {
-        warningLines.push(line)
+      if (/\bwarn(ing)?\b/i.test(line)) {
+        totalWarningCount++
+        if (warningLines.length < 10) {
+          warningLines.push(line)
+        }
       }
     }
 
@@ -249,8 +257,8 @@ export const handleWorkflowJobLogsGet: CliHandler = async (runner, params, card)
       jobId,
       truncated,
       summary: {
-        errorCount: errorLines.length,
-        warningCount: warningLines.length,
+        errorCount: totalErrorCount,
+        warningCount: totalWarningCount,
         topErrorLines: errorLines.slice(0, 10),
       },
     }
@@ -707,7 +715,7 @@ export const handleWorkflowRunArtifactsList: CliHandler = async (runner, params,
       items: artifactsArray.map((artifact) => {
         if (typeof artifact !== "object" || artifact === null || Array.isArray(artifact)) {
           return {
-            id: 0,
+            id: null,
             name: null,
             sizeInBytes: null,
             archiveDownloadUrl: null,
@@ -716,7 +724,7 @@ export const handleWorkflowRunArtifactsList: CliHandler = async (runner, params,
 
         const input = artifact as Record<string, unknown>
         return {
-          id: input.id,
+          id: typeof input.id === "string" || typeof input.id === "number" ? input.id : null,
           name: typeof input.name === "string" ? input.name : null,
           sizeInBytes: typeof input.sizeInBytes === "number" ? input.sizeInBytes : null,
           archiveDownloadUrl:

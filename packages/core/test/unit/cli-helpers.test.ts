@@ -15,6 +15,7 @@ describe("parseStrictPositiveInt", () => {
   it("accepts positive integers", () => expect(parseStrictPositiveInt(5)).toBe(5))
   it("rejects zero", () => expect(parseStrictPositiveInt(0)).toBeNull())
   it("rejects floats", () => expect(parseStrictPositiveInt(1.5)).toBeNull())
+  it("rejects negative integers", () => expect(parseStrictPositiveInt(-5)).toBeNull())
   it("rejects strings", () => expect(parseStrictPositiveInt("5")).toBeNull())
 })
 

@@ -223,7 +223,7 @@ Final line`
       expect(result.ok).toBe(true)
       const data = result.data as Record<string, unknown>
       const summary = data.summary as Record<string, unknown>
-      expect(summary.errorCount).toBe(10)
+      expect(summary.errorCount).toBe(15)
       expect((summary.topErrorLines as unknown[]).length).toBe(10)
     })
 
@@ -969,7 +969,7 @@ Final line`
       expect(result.ok).toBe(true)
       const items = (result.data as { items: unknown[] }).items
       expect(items).toHaveLength(2)
-      expect(items[0]).toMatchObject({ id: 0, name: null })
+      expect(items[0]).toMatchObject({ id: null, name: null })
     })
 
     it("returns error on SyntaxError from malformed JSON", async () => {

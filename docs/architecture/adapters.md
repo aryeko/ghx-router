@@ -227,8 +227,9 @@ To add adapter support for a new capability:
 
 2. Add the handler to the appropriate domain module in `core/execution/adapters/cli/domains/*.ts`:
    - Use the shared helpers from `cli/helpers.ts` for common arg-building patterns
-   - Register the handler via `registerCliHandler()` in `cli/capability-registry.ts` (or add it alongside existing registrations in the domain file)
-   - The `CliCapabilityId` union in `cli-capability-adapter.ts` must include the new capability ID
+   - Add an entry to the domain file's exported `handlers: Record<string, CliHandler>` map
+   - `cli/capability-registry.ts` imports and spreads domain `handlers` maps, so no explicit registration call is needed
+   - Update the `CliCapabilityId` union in `cli-capability-adapter.ts` to include the new capability ID
 
 3. Add tests in `packages/core/test/unit/` and `packages/core/test/integration/`
 

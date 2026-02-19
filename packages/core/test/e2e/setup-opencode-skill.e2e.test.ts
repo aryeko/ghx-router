@@ -241,7 +241,7 @@ describe.skipIf(!process.env.OPENAI_API_KEY)("ghx setup OpenCode skill e2e", () 
     const modelID = process.env.BENCH_MODEL_ID ?? "gpt-5.3-codex"
 
     opencode = await createOpencode({
-      port: 3000,
+      port: 0,
       config: {
         model: `${providerID}/${modelID}`,
         instructions: [],

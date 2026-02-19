@@ -609,6 +609,16 @@ describe("release domain handlers – additional coverage", () => {
         expect.arrayContaining(["body=Updated notes"]),
         expect.any(Number),
       )
+      expect(runSpy).toHaveBeenCalledWith(
+        "gh",
+        expect.arrayContaining(["prerelease=false"]),
+        expect.any(Number),
+      )
+      expect(runSpy).toHaveBeenCalledWith(
+        "gh",
+        expect.arrayContaining(["target_commitish=dev"]),
+        expect.any(Number),
+      )
     })
   })
 
@@ -628,18 +638,14 @@ describe("release domain handlers – additional coverage", () => {
 
   describe("release.publish_draft – optional params and non-draft guard", () => {
     it("includes notes, prerelease in publish call when provided", async () => {
-      let callCount = 0
-      const runSpy = vi.fn().mockImplementation(async () => {
-        callCount++
-        if (callCount === 1) {
-          return { exitCode: 0, stdout: JSON.stringify({ draft: true }), stderr: "" }
-        }
-        return {
+      const runSpy = vi
+        .fn()
+        .mockResolvedValueOnce({ exitCode: 0, stdout: JSON.stringify({ draft: true }), stderr: "" })
+        .mockResolvedValueOnce({
           exitCode: 0,
           stdout: JSON.stringify({ tag_name: "v1.0.0", draft: false }),
           stderr: "",
-        }
-      })
+        })
       const runner = { run: runSpy } as unknown as CliCommandRunner
 
       await handleReleasePublishDraft(
@@ -670,7 +676,7 @@ describe("release domain handlers – null owner/name ?? branch coverage", () =>
   it("handleReleaseGet covers owner/name null branches", async () => {
     const result = await handleReleaseGet(
       nr(),
-      { owner: null, name: null, releaseId: 1 },
+      { owner: null, name: null, tagName: "v1.0.0" },
       undefined,
     )
     expect(result.ok).toBe(false)
@@ -679,7 +685,7 @@ describe("release domain handlers – null owner/name ?? branch coverage", () =>
   it("handleReleaseCreateDraft covers owner/name null branches", async () => {
     const result = await handleReleaseCreateDraft(
       nr(),
-      { owner: null, name: null, tag: "v1.0.0" },
+      { owner: null, name: null, tagName: "v1.0.0" },
       undefined,
     )
     expect(result.ok).toBe(false)

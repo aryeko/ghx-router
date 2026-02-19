@@ -647,9 +647,9 @@ const handlePrChecksRerunFailed: CliHandler = async (runner, params, card) => {
         return normalizeError(
           {
             code,
-            message: sanitizeCliErrorMessage(failureStderr, result.exitCode),
+            message: sanitizeCliErrorMessage(failureStderr, rerunAllResult.exitCode),
             retryable: isRetryableErrorCode(code),
-            details: { capabilityId: "pr.checks.rerun_failed", exitCode: result.exitCode },
+            details: { capabilityId: "pr.checks.rerun_failed", exitCode: rerunAllResult.exitCode },
           },
           "cli",
           { capabilityId: "pr.checks.rerun_failed", reason: "CARD_FALLBACK" },

@@ -451,13 +451,6 @@ const handleProjectV2ItemFieldUpdate: CliHandler = async (runner, params, _card)
       reason: "CARD_FALLBACK",
     })
   } catch (error: unknown) {
-    if (error instanceof SyntaxError) {
-      return normalizeError(
-        { code: errorCodes.Server, message: "Failed to parse CLI JSON output", retryable: false },
-        "cli",
-        { capabilityId: "project_v2.item.field.update", reason: "CARD_FALLBACK" },
-      )
-    }
     const code = mapErrorToCode(error)
     return normalizeError(
       {

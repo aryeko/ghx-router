@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process"
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs"
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
@@ -42,13 +42,20 @@ function runOrThrow(command: string, args: string[], cwd: string): CommandResult
 
 describe("ghx setup e2e install/verify", () => {
   let originalXdg: string | undefined
+  let xdgTempDir: string | undefined
 
   beforeEach(() => {
     originalXdg = process.env.XDG_CONFIG_HOME
-    process.env.XDG_CONFIG_HOME = mkdtempSync(join(tmpdir(), "ghx-e2e-install-xdg-"))
+    xdgTempDir = mkdtempSync(join(tmpdir(), "ghx-e2e-install-xdg-"))
+    process.env.XDG_CONFIG_HOME = xdgTempDir
   })
 
   afterEach(() => {
+    if (xdgTempDir !== undefined) {
+      rmSync(xdgTempDir, { recursive: true, force: true })
+      xdgTempDir = undefined
+    }
+
     if (originalXdg === undefined) {
       delete process.env.XDG_CONFIG_HOME
     } else {
@@ -81,9 +88,10 @@ describe("ghx setup e2e install/verify", () => {
       .find((line) => line.endsWith(".tgz"))
 
     expect(tarballName).toBeDefined()
-    const tarballPath = (tarballName as string).startsWith("/")
-      ? (tarballName as string)
-      : join(packDir, tarballName as string)
+    const tarballNameStr = tarballName as string
+    const tarballPath = tarballNameStr.startsWith("/")
+      ? tarballNameStr
+      : join(packDir, tarballNameStr)
 
     runOrThrow("pnpm", ["add", tarballPath], projectDir)
 

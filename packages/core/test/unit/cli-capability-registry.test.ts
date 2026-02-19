@@ -69,7 +69,7 @@ describe("getCliHandler", () => {
 })
 
 describe("listCliCapabilities", () => {
-  it("lists all 45 registered capability IDs", () => {
+  it(`lists all ${ALL_CLI_CAPABILITY_IDS.length} registered capability IDs`, () => {
     expect(listCliCapabilities()).toHaveLength(ALL_CLI_CAPABILITY_IDS.length)
   })
 

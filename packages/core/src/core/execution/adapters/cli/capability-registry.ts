@@ -6,7 +6,7 @@ import { handlers as repoHandlers } from "./domains/repo.js"
 import { handlers as workflowHandlers } from "./domains/workflow.js"
 import type { CliHandler } from "./helpers.js"
 
-const allHandlers: Record<string, CliHandler> = {
+const ALL_HANDLERS: Record<string, CliHandler> = {
   ...repoHandlers,
   ...issueHandlers,
   ...prHandlers,
@@ -16,9 +16,9 @@ const allHandlers: Record<string, CliHandler> = {
 }
 
 export function getCliHandler(capabilityId: string): CliHandler | undefined {
-  return allHandlers[capabilityId]
+  return ALL_HANDLERS[capabilityId]
 }
 
 export function listCliCapabilities(): string[] {
-  return Object.keys(allHandlers)
+  return Object.keys(ALL_HANDLERS)
 }
