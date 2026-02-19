@@ -39,6 +39,7 @@ function loadCardsFromYaml(): OperationCard[] {
     "issue.parent.remove",
     "issue.blocked_by.add",
     "issue.blocked_by.remove",
+    "pr.threads.composite",
     "pr.view",
     "pr.list",
     "pr.create",
