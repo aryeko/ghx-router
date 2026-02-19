@@ -1,4 +1,4 @@
-import type { GraphqlClient, GraphqlVariables } from "../../../gql/client.js"
+import type { GraphqlClient, GraphqlVariables } from "../../../gql/transport.js"
 import type { ResultEnvelope } from "../../contracts/envelope.js"
 import { mapErrorToCode } from "../../errors/map-error.js"
 import { isRetryableErrorCode } from "../../errors/retryability.js"

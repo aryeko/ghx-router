@@ -1,5 +1,5 @@
+import type { GithubClient } from "../../../gql/github-client.js"
 import type {
-  GithubClient,
   IssueAssigneesUpdateInput,
   IssueBlockedByInput,
   IssueCommentCreateInput,
@@ -23,7 +23,7 @@ import type {
   PrReviewsListInput,
   PrViewInput,
   RepoViewInput,
-} from "../../../gql/client.js"
+} from "../../../gql/types.js"
 import type { ResultEnvelope } from "../../contracts/envelope.js"
 import { errorCodes } from "../../errors/codes.js"
 import { mapErrorToCode } from "../../errors/map-error.js"

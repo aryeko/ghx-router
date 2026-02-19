@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import type { TaskRequest } from "../../src/core/contracts/task.js"
 import { executeTask } from "../../src/core/routing/engine.js"
-import { createGithubClient } from "../../src/gql/client.js"
+import { createGithubClient } from "../../src/gql/github-client.js"
 
 describe("executeTask release.create_draft", () => {
   it("returns cli envelope for release.create_draft", async () => {

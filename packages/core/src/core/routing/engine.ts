@@ -1,4 +1,4 @@
-import type { GithubClient } from "../../gql/client.js"
+import type { GithubClient } from "../../gql/github-client.js"
 import type { ResultEnvelope, RouteSource } from "../contracts/envelope.js"
 import type { TaskRequest } from "../contracts/task.js"
 import { errorCodes } from "../errors/codes.js"

@@ -51,7 +51,7 @@ describe("createGithubClient sdk integration", () => {
     }))
     vi.doMock("../../src/gql/operations/pr-view.generated.js", () => ({ getSdk: getPrViewSdk }))
 
-    const { createGithubClient } = await import("../../src/gql/client.js")
+    const { createGithubClient } = await import("../../src/gql/github-client.js")
 
     const client = createGithubClient({
       async execute<TData>(): Promise<TData> {

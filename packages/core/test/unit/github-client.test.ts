@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
 
-import { createGithubClient, createGithubClientFromToken } from "../../src/gql/client.js"
+import { createGithubClient, createGithubClientFromToken } from "../../src/gql/github-client.js"
 
 describe("createGithubClient", () => {
   it("exposes typed repo.view helper", async () => {
