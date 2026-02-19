@@ -680,7 +680,7 @@ const PR_COMMENTS_LIST_QUERY = `
   }
 `
 
-const PR_COMMENT_REPLY_MUTATION = `
+export const PR_COMMENT_REPLY_MUTATION = `
   mutation PrCommentReply($threadId: ID!, $body: String!) {
     addPullRequestReviewThreadReply(input: { pullRequestReviewThreadId: $threadId, body: $body }) {
       comment {
@@ -690,7 +690,7 @@ const PR_COMMENT_REPLY_MUTATION = `
   }
 `
 
-const PR_COMMENT_RESOLVE_MUTATION = `
+export const PR_COMMENT_RESOLVE_MUTATION = `
   mutation PrCommentResolve($threadId: ID!) {
     resolveReviewThread(input: { threadId: $threadId }) {
       thread {
@@ -701,7 +701,7 @@ const PR_COMMENT_RESOLVE_MUTATION = `
   }
 `
 
-const PR_COMMENT_UNRESOLVE_MUTATION = `
+export const PR_COMMENT_UNRESOLVE_MUTATION = `
   mutation PrCommentUnresolve($threadId: ID!) {
     unresolveReviewThread(input: { threadId: $threadId }) {
       thread {
@@ -2062,39 +2062,20 @@ function assertReplyToReviewThreadInput(input: ReplyToReviewThreadInput): void {
   }
 }
 
-function parseReviewThreadMutationResult(
-  result: unknown,
-  mutationKey: string,
-): ReviewThreadMutationData {
-  const root = asRecord(result)
-  const mutation = asRecord(root?.[mutationKey])
-  const thread = asRecord(mutation?.thread)
-  if (!thread || typeof thread.id !== "string") {
-    throw new Error("Review thread mutation failed")
-  }
-
-  return {
-    id: thread.id,
-    isResolved: Boolean(thread.isResolved),
-  }
-}
-
 async function runReplyToReviewThread(
   graphqlClient: GraphqlClient,
   input: ReplyToReviewThreadInput,
 ): Promise<ReviewThreadMutationData> {
   assertReplyToReviewThreadInput(input)
 
-  const result = await graphqlClient.query<unknown, GraphqlVariables>(PR_COMMENT_REPLY_MUTATION, {
-    threadId: input.threadId,
-    body: input.body,
-  })
-  const root = asRecord(result)
-  const mutation = asRecord(root?.addPullRequestReviewThreadReply)
-  const comment = asRecord(mutation?.comment)
-  if (!comment || typeof comment.id !== "string") {
-    throw new Error("Review thread mutation failed")
+  const { OPERATION_BUILDERS } = await import("./builders.js")
+  const builder = OPERATION_BUILDERS["pr.thread.reply"]
+  if (!builder) {
+    throw new Error("Builder not found for pr.thread.reply")
   }
+  const { mutation, variables } = builder.build(input)
+  const result = await graphqlClient.query<unknown, GraphqlVariables>(mutation, variables)
+  builder.mapResponse(result)
 
   const threadStateResult = await graphqlClient.query<unknown, GraphqlVariables>(
     REVIEW_THREAD_STATE_QUERY,
@@ -2119,10 +2100,19 @@ async function runResolveReviewThread(
 ): Promise<ReviewThreadMutationData> {
   assertReviewThreadInput(input)
 
-  const result = await graphqlClient.query<unknown, GraphqlVariables>(PR_COMMENT_RESOLVE_MUTATION, {
-    threadId: input.threadId,
-  })
-  return parseReviewThreadMutationResult(result, "resolveReviewThread")
+  const { OPERATION_BUILDERS } = await import("./builders.js")
+  const builder = OPERATION_BUILDERS["pr.thread.resolve"]
+  if (!builder) {
+    throw new Error("Builder not found for pr.thread.resolve")
+  }
+  const { mutation, variables } = builder.build(input)
+  const result = await graphqlClient.query<unknown, GraphqlVariables>(mutation, variables)
+  const mapped = builder.mapResponse(result)
+  const mappedRecord = mapped as Record<string, unknown>
+  return {
+    id: mappedRecord.id as string,
+    isResolved: mappedRecord.isResolved as boolean,
+  }
 }
 
 async function runUnresolveReviewThread(
@@ -2131,13 +2121,19 @@ async function runUnresolveReviewThread(
 ): Promise<ReviewThreadMutationData> {
   assertReviewThreadInput(input)
 
-  const result = await graphqlClient.query<unknown, GraphqlVariables>(
-    PR_COMMENT_UNRESOLVE_MUTATION,
-    {
-      threadId: input.threadId,
-    },
-  )
-  return parseReviewThreadMutationResult(result, "unresolveReviewThread")
+  const { OPERATION_BUILDERS } = await import("./builders.js")
+  const builder = OPERATION_BUILDERS["pr.thread.unresolve"]
+  if (!builder) {
+    throw new Error("Builder not found for pr.thread.unresolve")
+  }
+  const { mutation, variables } = builder.build(input)
+  const result = await graphqlClient.query<unknown, GraphqlVariables>(mutation, variables)
+  const mapped = builder.mapResponse(result)
+  const mappedRecord = mapped as Record<string, unknown>
+  return {
+    id: mappedRecord.id as string,
+    isResolved: mappedRecord.isResolved as boolean,
+  }
 }
 
 function queryToString(query: QueryLike): string {
