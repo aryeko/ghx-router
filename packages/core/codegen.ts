@@ -4,6 +4,14 @@ const config = {
   schema: "src/gql/schema.graphql",
   documents: ["src/gql/operations/**/*.graphql"],
   generates: {
+    "src/gql/generated/common-types.generated.ts": {
+      plugins: ["typescript"],
+      config: {
+        useTypeImports: true,
+        enumsAsTypes: true,
+        emitLegacyCommonJSImports: false,
+      },
+    },
     "src/gql/operations/": {
       preset: "near-operation-file",
       presetConfig: {
