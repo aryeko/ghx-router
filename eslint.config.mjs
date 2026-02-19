@@ -53,14 +53,4 @@ export default tseslint.config(
       },
     },
   },
-  {
-    files: ["**/*.e2e.test.ts"],
-    plugins: {
-      vitest,
-    },
-    rules: {
-      "vitest/no-standalone-expect": "off",
-      "vitest/no-conditional-expect": "off",
-    },
-  },
 )

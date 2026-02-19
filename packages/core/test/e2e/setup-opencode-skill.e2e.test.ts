@@ -4,7 +4,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { createOpencode } from "@opencode-ai/sdk"
-import { describe, expect, it } from "vitest"
+import { afterEach, beforeEach, describe, expect, it } from "vitest"
 
 type CommandResult = {
   status: number
@@ -181,129 +181,127 @@ async function waitForMessages(
   return []
 }
 
-const maybeIt = process.env.OPENAI_API_KEY ? it : it.skip
+describe.skipIf(!process.env.OPENAI_API_KEY)("ghx setup OpenCode skill e2e", () => {
+  let originalXdg: string | undefined
+  let originalCwd: string
+  let opencode: Awaited<ReturnType<typeof createOpencode>> | null = null
 
-describe("ghx setup OpenCode skill e2e", () => {
-  maybeIt(
-    "uses SDK agent session in isolated config and runs ghx capabilities list",
-    async () => {
-      const workspacePath = fileURLToPath(new URL("../../../../", import.meta.url))
-      const tempRoot = mkdtempSync(join(tmpdir(), "ghx-e2e-sdk-"))
-      const packDir = join(tempRoot, "pack")
-      const projectDir = join(tempRoot, "project")
-      const isolatedXdgConfig = mkdtempSync(join(tmpdir(), "ghx-e2e-sdk-xdg-"))
-      const originalCwd = process.cwd()
-      const originalXdg = process.env.XDG_CONFIG_HOME
+  beforeEach(() => {
+    originalXdg = process.env.XDG_CONFIG_HOME
+    originalCwd = process.cwd()
+  })
 
-      runOrThrow("mkdir", ["-p", packDir, projectDir], workspacePath)
-      writeFileSync(
-        join(projectDir, "package.json"),
-        JSON.stringify({ name: "ghx-e2e-sdk-project", private: true, version: "0.0.0" }, null, 2),
-        "utf8",
-      )
+  afterEach(() => {
+    opencode?.server.close()
+    opencode = null
+    process.chdir(originalCwd)
+    if (originalXdg === undefined) {
+      delete process.env.XDG_CONFIG_HOME
+    } else {
+      process.env.XDG_CONFIG_HOME = originalXdg
+    }
+  })
 
-      runOrThrow("pnpm", ["--filter", "@ghx-dev/core", "run", "build"], workspacePath)
-      const packResult = runOrThrow(
-        "pnpm",
-        ["--filter", "@ghx-dev/core", "pack", "--pack-destination", packDir],
-        workspacePath,
-      )
-      const tarballName = packResult.stdout
-        .split("\n")
-        .map((line) => line.trim())
-        .find((line) => line.endsWith(".tgz"))
+  it("uses SDK agent session in isolated config and runs ghx capabilities list", async () => {
+    const workspacePath = fileURLToPath(new URL("../../../../", import.meta.url))
+    const tempRoot = mkdtempSync(join(tmpdir(), "ghx-e2e-sdk-"))
+    const packDir = join(tempRoot, "pack")
+    const projectDir = join(tempRoot, "project")
+    const isolatedXdgConfig = mkdtempSync(join(tmpdir(), "ghx-e2e-sdk-xdg-"))
 
-      if (!tarballName) {
-        throw new Error("pnpm pack did not produce a .tgz tarball")
-      }
-      const tarballPath = tarballName.startsWith("/") ? tarballName : join(packDir, tarballName)
-      runOrThrow("pnpm", ["add", tarballPath], projectDir)
+    runOrThrow("mkdir", ["-p", packDir, projectDir], workspacePath)
+    writeFileSync(
+      join(projectDir, "package.json"),
+      JSON.stringify({ name: "ghx-e2e-sdk-project", private: true, version: "0.0.0" }, null, 2),
+      "utf8",
+    )
 
-      let opencode: Awaited<ReturnType<typeof createOpencode>> | null = null
-      try {
-        process.env.XDG_CONFIG_HOME = isolatedXdgConfig
-        process.chdir(projectDir)
-        runOrThrow("pnpm", ["exec", "ghx", "setup", "--scope", "project", "--yes"], projectDir)
+    runOrThrow("pnpm", ["--filter", "@ghx-dev/core", "run", "build"], workspacePath)
+    const packResult = runOrThrow(
+      "pnpm",
+      ["--filter", "@ghx-dev/core", "pack", "--pack-destination", packDir],
+      workspacePath,
+    )
+    const tarballName = packResult.stdout
+      .split("\n")
+      .map((line) => line.trim())
+      .find((line) => line.endsWith(".tgz"))
 
-        const providerID = process.env.BENCH_PROVIDER_ID ?? "openai"
-        const modelID = process.env.BENCH_MODEL_ID ?? "gpt-5.3-codex"
+    if (!tarballName) {
+      throw new Error("pnpm pack did not produce a .tgz tarball")
+    }
+    const tarballPath = tarballName.startsWith("/") ? tarballName : join(packDir, tarballName)
+    runOrThrow("pnpm", ["add", tarballPath], projectDir)
 
-        opencode = await createOpencode({
-          port: 3000,
-          config: {
-            model: `${providerID}/${modelID}`,
-            instructions: [],
-            plugin: [],
-            mcp: {},
-            agent: {},
-            command: {},
-            permission: {
-              edit: "deny",
-              bash: "allow",
-              webfetch: "deny",
-              doom_loop: "deny",
-              external_directory: "deny",
-            },
+    process.env.XDG_CONFIG_HOME = isolatedXdgConfig
+    process.chdir(projectDir)
+    runOrThrow("pnpm", ["exec", "ghx", "setup", "--scope", "project", "--yes"], projectDir)
+
+    const providerID = process.env.BENCH_PROVIDER_ID ?? "openai"
+    const modelID = process.env.BENCH_MODEL_ID ?? "gpt-5.3-codex"
+
+    opencode = await createOpencode({
+      port: 3000,
+      config: {
+        model: `${providerID}/${modelID}`,
+        instructions: [],
+        plugin: [],
+        mcp: {},
+        agent: {},
+        command: {},
+        permission: {
+          edit: "deny",
+          bash: "allow",
+          webfetch: "deny",
+          doom_loop: "deny",
+          external_directory: "deny",
+        },
+      },
+    })
+
+    const sessionApi = getSessionApi(opencode.client)
+
+    const sessionResult = await sessionApi.create({ url: "/session" })
+    const session = unwrapData<{ id: string }>(sessionResult)
+
+    const promptResult = await sessionApi.promptAsync({
+      url: "/session/{id}/prompt_async",
+      path: { id: session.id },
+      body: {
+        model: { providerID, modelID },
+        parts: [
+          {
+            type: "text",
+            text: [
+              "Run this exact command: pnpm exec ghx capabilities list.",
+              "Then return plain text containing only the command output.",
+            ].join(" "),
           },
-        })
+        ],
+      },
+    })
 
-        const sessionApi = getSessionApi(opencode.client)
+    const messagesPayload = await waitForMessages(sessionApi, session.id, 20000)
+    const messages = asMessageArray(messagesPayload)
 
-        const sessionResult = await sessionApi.create({ url: "/session" })
-        const session = unwrapData<{ id: string }>(sessionResult)
+    const assistantTextFromMessages = messages
+      .filter((message) => message.info?.role === "assistant")
+      .flatMap((message) => message.parts ?? [])
+      .filter((part) => part.type === "text")
+      .map((part) => part.text ?? "")
+      .join("\n")
 
-        const promptResult = await sessionApi.promptAsync({
-          url: "/session/{id}/prompt_async",
-          path: { id: session.id },
-          body: {
-            model: { providerID, modelID },
-            parts: [
-              {
-                type: "text",
-                text: [
-                  "Run this exact command: pnpm exec ghx capabilities list.",
-                  "Then return plain text containing only the command output.",
-                ].join(" "),
-              },
-            ],
-          },
-        })
+    const assistantTextFromPrompt = extractAssistantTextFromPromptResult(promptResult)
+    const assistantText = [assistantTextFromPrompt, assistantTextFromMessages]
+      .filter((chunk) => chunk.length > 0)
+      .join("\n")
 
-        const messagesPayload = await waitForMessages(sessionApi, session.id, 20000)
-        const messages = asMessageArray(messagesPayload)
+    const rawMessages = JSON.stringify(messages)
+    const rawPrompt = JSON.stringify(promptResult)
+    const combinedEvidence = `${assistantText}\n${rawMessages}\n${rawPrompt}`
 
-        const assistantTextFromMessages = messages
-          .filter((message) => message.info?.role === "assistant")
-          .flatMap((message) => message.parts ?? [])
-          .filter((part) => part.type === "text")
-          .map((part) => part.text ?? "")
-          .join("\n")
-
-        const assistantTextFromPrompt = extractAssistantTextFromPromptResult(promptResult)
-        const assistantText = [assistantTextFromPrompt, assistantTextFromMessages]
-          .filter((chunk) => chunk.length > 0)
-          .join("\n")
-
-        const assistantMessages = messages.filter((message) => message.info?.role === "assistant")
-        const rawMessages = JSON.stringify(messages)
-        const rawPrompt = JSON.stringify(promptResult)
-        const combinedEvidence = `${assistantText}\n${rawMessages}\n${rawPrompt}`
-
-        expect(rawPrompt.length).toBeGreaterThan(2)
-        expect(combinedEvidence).toContain("repo.view")
-        if (assistantMessages.length > 0) {
-          expect(combinedEvidence).toContain("ghx capabilities list")
-        }
-      } finally {
-        opencode?.server.close()
-        process.chdir(originalCwd)
-        if (originalXdg === undefined) {
-          delete process.env.XDG_CONFIG_HOME
-        } else {
-          process.env.XDG_CONFIG_HOME = originalXdg
-        }
-      }
-    },
-    120000,
-  )
+    expect(rawPrompt.length).toBeGreaterThan(2)
+    expect(combinedEvidence).toContain("repo.view")
+    expect(combinedEvidence).toContain("ghx capabilities list")
+  }, 120000)
 })
