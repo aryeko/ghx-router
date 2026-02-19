@@ -84,16 +84,15 @@ graph TB
 | **Workflows (12)** |
 | `workflow.list` | List repository workflows. | cli (preferred) |
 | `workflow.get` | Get one repository workflow. | cli (preferred) |
-| `workflow_dispatch.run` | Trigger a workflow dispatch event. | cli (preferred) |
-| `workflow_runs.list` | List workflow runs for a repository. | cli (preferred) |
-| `workflow_run.view` | View a workflow run with its jobs. | cli (preferred) |
-
-| `workflow_run.cancel` | Cancel a workflow run. | cli (preferred) |
-| `workflow_run.rerun_all` | Rerun all jobs in a workflow run. | cli (preferred) |
-| `workflow_run.rerun_failed` | Rerun failed jobs for a workflow run. | cli (preferred) |
-| `workflow_run.artifacts.list` | List artifacts for a workflow run. | cli (preferred) |
-| `workflow_job.logs.get` | Fetch logs for a workflow job. | cli (preferred) |
-| `workflow_job.logs.analyze` | Fetch and analyze workflow job logs. | cli (preferred) |
+| `workflow.dispatch.run` | Trigger a workflow dispatch event. | cli (preferred) |
+| `workflow.runs.list` | List workflow runs for a repository. | cli (preferred) |
+| `workflow.run.view` | View a workflow run with its jobs. | cli (preferred) |
+| `workflow.run.cancel` | Cancel a workflow run. | cli (preferred) |
+| `workflow.run.rerun_all` | Rerun all jobs in a workflow run. | cli (preferred) |
+| `workflow.run.rerun_failed` | Rerun failed jobs for a workflow run. | cli (preferred) |
+| `workflow.run.artifacts.list` | List artifacts for a workflow run. | cli (preferred) |
+| `workflow.job.logs.raw` | Fetch raw (unprocessed) logs for a workflow job. | cli (preferred) |
+| `workflow.job.logs.get` | Fetch and analyze workflow job logs. | cli (preferred) |
 | **Repositories (3)** |
 | `repo.view` | Fetch repository metadata. | cli (preferred), graphql (fallback) |
 | `repo.labels.list` | List repository labels. | cli (preferred) |

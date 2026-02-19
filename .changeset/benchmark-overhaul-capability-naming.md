@@ -10,7 +10,7 @@ Renamed all capabilities to follow a consistent `domain.resource.action` pattern
 - `pr.status.checks` → `pr.checks.list`, `pr.checks.get_failed` → `pr.checks.failed`
 - `pr.reviews.list` → `pr.review.list`, `pr.reviewers.request` → `pr.review.request`
 - `pr.review.submit_approve`/`submit_comment`/`submit_request_changes` → unified `pr.review.submit` with `event` parameter
-- `pr.diff.list_files` → `pr.diff.files`, `pr.ready_for_review.set` → consolidated into `pr.diff.view`
+- `pr.diff.list_files` → `pr.diff.files`, `pr.ready_for_review.set` → removed (replaced by `pr.update`)
 - `workflow_run.get` → `workflow.run.view`, `workflow_runs.list` → `workflow.runs.list`, `workflow_run.*` → `workflow.run.*`
 - `workflow_job.logs.get` → `workflow.job.logs.raw`, `workflow_job.logs.analyze` → `workflow.job.logs.get`
 - Removed redundant `workflow.run.jobs.list` capability

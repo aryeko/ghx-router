@@ -1,6 +1,6 @@
 capability_id: workflow.job.logs.raw
 version: "1.0.0"
-description: Fetch logs for a workflow job.
+description: Fetch raw (unprocessed) logs for a workflow job.
 input_schema:
   type: object
   required: [owner, name, jobId]

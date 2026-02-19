@@ -10,10 +10,12 @@ function fixGeneratedImportExtensions(packageRoot: string): void {
 
   const fragmentsDir = join(opsDir, "fragments")
   try {
-    fixImportsInDir(fragmentsDir)
+    readdirSync(fragmentsDir)
   } catch {
-    // fragments directory may not exist
+    // fragments directory may not exist yet
+    return
   }
+  fixImportsInDir(fragmentsDir)
 }
 
 function fixImportsInDir(dir: string): void {
