@@ -84,16 +84,16 @@ Repository (3)
 ├─ repo.labels.list
 └─ repo.issue_types.list
 
-Issues (18)
+Issues (21)
 ├─ issue.view
 ├─ issue.create
 ├─ issue.update
 ...
 
-Pull Requests (21)
+Pull Requests (22)
 ├─ pr.view
 ├─ pr.list
-├─ pr.merge.execute
+├─ pr.merge
 ...
 ```
 

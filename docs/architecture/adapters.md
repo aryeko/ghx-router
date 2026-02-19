@@ -117,7 +117,7 @@ The GraphQL adapter executes capabilities through GitHub's GraphQL API.
 ### Features
 
 - **Typed queries**: Generated operation SDKs with type safety
-- **Selective coverage**: 28 capabilities support GraphQL routes (typically read-heavy operations)
+- **Selective coverage**: ~28 atomic + 3 composite capabilities support GraphQL routes (typically read-heavy or batch operations)
 - **Authentication**: Requires `GITHUB_TOKEN` environment variable
 - **Error classification**: Maps GraphQL errors (auth, rate limit, not found, etc.) to normalized error codes
 - **Field mapping**: Adapts GitHub's response shape to capability output schema

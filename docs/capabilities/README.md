@@ -11,10 +11,10 @@ orchestrating workflows and tracking projects.
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#F5A623', 'primaryTextColor': '#fff', 'primaryBorderColor': '#D4891A', 'lineColor': '#666'}}}%%
 graph TB
-    Issues["Issues<br/>(19 capabilities)"]
+    Issues["Issues<br/>(21 capabilities)"]
     PRs["Pull Requests<br/>(22 capabilities)"]
     Releases["Releases<br/>(5 capabilities)"]
-    Workflows["Workflows<br/>(12 capabilities)"]
+    Workflows["Workflows<br/>(11 capabilities)"]
     Repos["Repositories<br/>(3 capabilities)"]
     Projects["Projects V2<br/>(6 capabilities)"]
     CheckRuns["Check Runs<br/>(1 capability)"]
@@ -32,7 +32,7 @@ graph TB
 
 | Capability ID | Description | Routes |
 |---|---|---|
-| **Issues (19)** |
+| **Issues (21)** |
 | `issue.create` | Create a new issue. | graphql (preferred) |
 | `issue.view` | Fetch one issue by number. | cli (preferred), graphql (fallback) |
 | `issue.list` | List repository issues. | cli (preferred), graphql (fallback) |
@@ -52,36 +52,38 @@ graph TB
 | `issue.blocked_by.remove` | Remove a blocked-by relation for an issue. | graphql (preferred) |
 | `issue.linked_prs.list` | List pull requests linked to an issue. | graphql (preferred) |
 | `issue.relations.get` | Get issue parent/children/blocking relations. | graphql (preferred) |
+| `issue.triage.composite` | Set issue labels and create a comment in a single GraphQL batch call. | graphql (preferred) |
+| `issue.update.composite` | Update issue fields, labels, assignees, and milestone in a single GraphQL batch call. | graphql (preferred) |
 | **Pull Requests (22)** |
-| `pr.view` | Fetch one pull request by number. | cli (preferred), graphql (fallback) |
+| `pr.view` | Fetch one pull request by number. | graphql (preferred), cli (fallback) |
 | `pr.list` | List repository pull requests. | cli (preferred), graphql (fallback) |
-| `pr.merge.execute` | Execute a pull request merge. | cli (preferred) |
+| `pr.create` | Create a pull request. | cli (preferred) |
+| `pr.update` | Update pull request metadata (title, body, draft status). | cli (preferred) |
+| `pr.merge` | Execute a pull request merge. | cli (preferred) |
+| `pr.merge.status` | View pull request mergeability and readiness signals. | graphql (preferred), cli (fallback) |
 | `pr.branch.update` | Update pull request branch with latest base changes. | cli (preferred) |
 | `pr.assignees.update` | Update pull request assignees. | cli (preferred) |
-| `pr.comments.list` | List PR review threads with unresolved filtering. | graphql (preferred) |
-| `pr.comment.reply` | Reply to a pull request review thread. | graphql (preferred) |
-| `pr.comment.resolve` | Resolve a pull request review thread. | graphql (preferred) |
-| `pr.comment.unresolve` | Unresolve a pull request review thread. | graphql (preferred) |
-| `pr.reviews.list` | List pull request reviews. | graphql (preferred) |
-| `pr.review.submit_approve` | Submit an approving pull request review. | cli (preferred) |
-| `pr.review.submit_comment` | Submit a comment-only pull request review. | cli (preferred) |
-| `pr.review.submit_request_changes` | Submit a PR review requesting changes. | cli (preferred) |
-| `pr.reviewers.request` | Request pull request reviewers. | cli (preferred) |
-| `pr.checks.get_failed` | List failed pull request checks. | cli (preferred) |
+| `pr.thread.list` | List pull request review threads. | graphql (preferred) |
+| `pr.thread.reply` | Reply to a pull request review thread. | graphql (preferred) |
+| `pr.thread.resolve` | Resolve a pull request review thread. | graphql (preferred) |
+| `pr.thread.unresolve` | Unresolve a pull request review thread. | graphql (preferred) |
+| `pr.review.list` | List pull request reviews. | graphql (preferred) |
+| `pr.review.submit` | Submit a pull request review (approve, request changes, or comment). | graphql (preferred) |
+| `pr.review.request` | Request pull request reviewers. | cli (preferred) |
+| `pr.checks.list` | List PR check statuses with summary counts. | cli (preferred) |
+| `pr.checks.failed` | List failed pull request checks. | cli (preferred) |
 | `pr.checks.rerun_all` | Rerun all PR workflow checks for a selected run. | cli (preferred) |
 | `pr.checks.rerun_failed` | Rerun failed PR workflow checks for a selected run. | cli (preferred) |
-| `pr.diff.list_files` | List changed files in a pull request diff. | graphql (preferred) |
+| `pr.diff.files` | List changed files in a pull request diff. | graphql (preferred) |
 | `pr.diff.view` | View the unified diff for a pull request. | cli (preferred) |
-| `pr.mergeability.view` | View PR mergeability and readiness signals. | cli (preferred) |
-| `pr.ready_for_review.set` | Mark pull request as ready for review or draft. | cli (preferred) |
-| `pr.status.checks` | List PR check statuses with summary counts. | cli (preferred) |
+| `pr.threads.composite` | Batch thread reply/resolve operations in a single GraphQL call. | graphql (preferred) |
 | **Releases (5)** |
 | `release.create_draft` | Create a draft release. | cli (preferred) |
 | `release.get` | Get release details by tag name. | cli (preferred) |
 | `release.list` | List releases for a repository. | cli (preferred) |
 | `release.publish_draft` | Publish an existing draft release. | cli (preferred) |
 | `release.update` | Update a draft release without publishing it. | cli (preferred) |
-| **Workflows (12)** |
+| **Workflows (11)** |
 | `workflow.list` | List repository workflows. | cli (preferred) |
 | `workflow.get` | Get one repository workflow. | cli (preferred) |
 | `workflow.dispatch.run` | Trigger a workflow dispatch event. | cli (preferred) |

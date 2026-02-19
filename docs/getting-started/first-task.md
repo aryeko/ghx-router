@@ -333,15 +333,15 @@ npx ghx capabilities list
 See what you can do with PRs:
 
 ```bash
-npx ghx capabilities explain pr.merge.execute
-npx ghx capabilities explain pr.review.submit_approve
+npx ghx capabilities explain pr.merge
+npx ghx capabilities explain pr.review.submit
 ```
 
 Or workflows:
 
 ```bash
-npx ghx capabilities explain workflow_dispatch.run
-npx ghx capabilities explain workflow_run.logs.get
+npx ghx capabilities explain workflow.dispatch.run
+npx ghx capabilities explain workflow.job.logs.get
 ```
 
 ### Build a Real Workflow

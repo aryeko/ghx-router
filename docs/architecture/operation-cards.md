@@ -34,6 +34,11 @@ classDiagram
         field_mapping?: Record
     }
 
+    class CompositeMetadata {
+        steps: CompositeStep[]
+        output_strategy: string
+    }
+
     class Route {
         name: string
     }
@@ -41,6 +46,7 @@ classDiagram
     OperationCard --> RoutingPolicy
     OperationCard --> CLIMetadata
     OperationCard --> GraphQLMetadata
+    OperationCard --> CompositeMetadata
     RoutingPolicy --> Route
 ```
 
