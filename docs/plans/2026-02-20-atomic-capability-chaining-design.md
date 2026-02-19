@@ -10,7 +10,7 @@ The current execution model supports one capability per tool call. Agents that n
 
 ## Goal
 
-Allow callers to specify an arbitrary list of `[capabilityId, input]` pairs in a single tool call, batched into as few GitHub API requests as possible (1 for pure query or pure mutation chains; 2 concurrent for mixed).
+Allow callers to specify an arbitrary list of `[capabilityId, input]` pairs in a single tool call. Steps execute concurrently (via `Promise.all`) using the existing GraphQL handler registry, reducing agent round-trips without requiring single-document batching.
 
 ## Decisions
 
@@ -19,9 +19,11 @@ Allow callers to specify an arbitrary list of `[capabilityId, input]` pairs in a
 | Dynamic or card-based? | Dynamic runtime API — no card needed |
 | Input data flow | All inputs specified upfront; no inter-step data flow |
 | Error model | Partial results — per-step ok/error; chain continues regardless |
-| Routes supported | GraphQL only — CLI doesn't support batching |
+| Routes supported | GraphQL only — CLI doesn't support chaining |
 | Composite cards | Deleted — never published (0.1.2 is last release) |
 | API surface | `executeTasks` (primary) + `executeTask` as 1-item wrapper |
+| Execution model | Concurrent `Promise.all` via existing `getGraphqlHandler` — no single-document batching |
+| CLI interface | `ghx chain --steps '<json>' \| --steps -` |
 
 ## API Contract
 
@@ -59,7 +61,7 @@ executeTasks(
 ```
 
 - **1 item:** full routing engine with CLI fallback (identical to current `executeTask` behaviour)
-- **2+ items:** GraphQL-only batch; pre-flight rejects if any step has no `card.graphql`
+- **2+ items:** GraphQL-only; pre-flight rejects if any step has no `card.graphql`
 
 ### `executeTask` — thin wrapper (unchanged signature)
 
@@ -88,67 +90,63 @@ export { executeTasks } from "./core/routing/engine.js"
 export type { ChainResultEnvelope, ChainStepResult, ChainStatus } from "./core/contracts/envelope.js"
 ```
 
-## Batching Engine
+### CLI interface
+
+```
+ghx chain --steps '<json-array>'
+ghx chain --steps -           # read from stdin
+```
+
+`--steps` accepts a JSON array of `{ task, input }` objects — identical structure to `executeTasks` requests. Mirrors `ghx run --input` ergonomics. Output is the `ChainResultEnvelope` serialised as JSON.
+
+## Execution Engine
 
 ### Step 1 — Card resolution & input validation
 
 For each `{ task, input }`:
-1. `getOperationCard(task)` — `ChainStepResult` error if not found
+1. `getOperationCard(task)` — reject whole chain if not found
 2. Validate `input` against `card.input_schema` (AJV)
-3. Assert `card.graphql` exists — design invariant; all caps must have a GQL route
+3. Assert `card.graphql` exists — all chainable caps must have a GQL route
 
 Pre-flight failures (missing card, schema error, no graphql config) reject the **whole chain** before any HTTP call — no partial execution for caller errors.
 
-### Step 2 — Variable mapping from card
+### Step 2 — Concurrent dispatch via handler registry
 
-`card.graphql.variables` maps GQL variable names → input field names. No separate builder registry needed:
+Each step dispatches through the existing `getGraphqlHandler` registry (in `gql/capability-registry.ts`), which maps capability ID → typed `GraphqlHandler` function:
 
 ```ts
-const gqlVars: GraphqlVariables = {}
-for (const [gqlVar, inputField] of Object.entries(card.graphql.variables ?? {})) {
-  gqlVars[gqlVar] = step.input[inputField]
-}
+const stepPromises = requests.map(async ({ task, input }, i) => {
+  const handler = getGraphqlHandler(task)
+  try {
+    const data = await handler(input, deps.githubClient)
+    return { task, ok: true, data } satisfies ChainStepResult
+  } catch (err) {
+    return { task, ok: false, error: mapError(err) } satisfies ChainStepResult
+  }
+})
+
+const results = await Promise.all(stepPromises)
 ```
 
-Each step is assigned a deterministic alias: `${capId.replace(/\W/g, "_")}_${index}`.
+This approach:
+- Naturally handles capabilities that do multi-step internal HTTP calls (label lookup → update, repo ID lookup → create, etc.)
+- Requires no single-document GQL batching or variable mapping from cards
+- Executes all steps concurrently, independent of whether individual steps are queries or mutations
+- Reuses the same execution path as `runGraphqlCapability`
 
-### Step 3 — Operation type detection & grouping
+### Step 3 — Result assembly
 
-Extend existing `parseMutation` → `parseOperation` to extract `type: "query" | "mutation"` from the leading keyword of the GQL document. Split steps into `querySteps[]` and `mutationSteps[]`.
-
-### Step 4 — Batch document construction
-
-- `mutationSteps` → `buildBatchMutation` (existing, unchanged)
-- `querySteps` → `buildBatchQuery` (new, mirrors `buildBatchMutation`, emits `query BatchChain(...)`)
-
-Both return `{ document: string, variables: GraphqlVariables }`.
-
-### Step 5 — Execution
-
-Per GraphQL spec:
-
-| Chain composition | HTTP calls | GitHub execution |
-|---|---|---|
-| All mutations | 1 | Sequential (spec guarantee) |
-| All queries | 1 | Parallel (spec guarantee) |
-| Mixed | 2, concurrent via `Promise.all` | Minimum possible per spec |
-
-HTTP-level array batching is not officially supported by GitHub's GraphQL API. The 2-call path for mixed chains is the minimum achievable within the spec.
-
-Note: sequential mutation execution on GitHub's side is a GraphQL spec property, not a ghx design choice. Callers should be aware that mutation order within a chain is preserved and significant.
-
-### Step 6 — Result assembly
-
-Merge `queryResult` and `mutationResult` by alias key. For each step in original input order:
-- Alias present in response → validate against `card.output_schema` → `ChainStepResult { ok: true, data }`
-- Alias absent + present in `errors[]` → `ChainStepResult { ok: false, error }`
-
-Derive `ChainStatus`:
 ```ts
 const succeeded = results.filter(r => r.ok).length
 const status: ChainStatus =
   succeeded === results.length ? "success" :
   succeeded === 0              ? "failed"  : "partial"
+
+return {
+  status,
+  results,
+  meta: { route_used: "graphql", total: results.length, succeeded, failed: results.length - succeeded },
+}
 ```
 
 ## Migration
@@ -162,6 +160,8 @@ const status: ChainStatus =
 | `executeComposite` | `core/routing/engine.ts` |
 | `CompositeConfig`, `CompositeStep` types | `core/registry/types.ts` |
 | `composite?` field on `OperationCard` | `core/registry/types.ts` |
+| `composite` property in card JSON schema | `core/registry/operation-card-schema.ts` |
+| Composite IDs from `preferredOrder` | `core/registry/index.ts` |
 | `pr.threads.composite.yaml` | `core/registry/cards/` |
 | `issue.triage.composite.yaml` | `core/registry/cards/` |
 | `issue.update.composite.yaml` | `core/registry/cards/` |
@@ -172,8 +172,8 @@ const status: ChainStatus =
 |---|---|
 | `executeTasks` | `core/routing/engine.ts` |
 | `ChainResultEnvelope`, `ChainStepResult`, `ChainStatus` | `core/contracts/envelope.ts` |
-| `buildBatchQuery` | `gql/batch.ts` |
-| `parseOperation` | `gql/batch.ts` |
+| `ghx chain` subcommand | `cli/commands/chain.ts` |
+| Dispatch in CLI entry | `cli/index.ts` |
 | New exports | `index.ts` |
 
 ### Changeset
