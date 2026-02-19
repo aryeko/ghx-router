@@ -22,6 +22,16 @@ describe("capabilityRegistry", () => {
         fallbackRoutes: [],
       },
       {
+        task: "issue.triage.composite",
+        defaultRoute: "graphql",
+        fallbackRoutes: [],
+      },
+      {
+        task: "issue.update.composite",
+        defaultRoute: "graphql",
+        fallbackRoutes: [],
+      },
+      {
         task: "issue.view",
         defaultRoute: "graphql",
         fallbackRoutes: ["cli"],
@@ -361,5 +371,28 @@ describe("composite capability cards", () => {
     const compositeIdx = cards.findIndex((c) => c.capability_id === "pr.threads.composite")
     const viewIdx = cards.findIndex((c) => c.capability_id === "pr.view")
     expect(compositeIdx).toBeLessThan(viewIdx)
+  })
+
+  it("loads issue.triage.composite card", () => {
+    const card = getOperationCard("issue.triage.composite")
+    expect(card).toBeDefined()
+    expect(card!.composite).toBeDefined()
+    expect(card!.routing.preferred).toBe("graphql")
+    expect(card!.composite!.output_strategy).toBe("merge")
+  })
+
+  it("loads issue.update.composite card", () => {
+    const card = getOperationCard("issue.update.composite")
+    expect(card).toBeDefined()
+    expect(card!.composite).toBeDefined()
+  })
+
+  it("lists issue composites before issue.view", () => {
+    const cards = listOperationCards()
+    const triageIdx = cards.findIndex((c) => c.capability_id === "issue.triage.composite")
+    const updateCompIdx = cards.findIndex((c) => c.capability_id === "issue.update.composite")
+    const viewIdx = cards.findIndex((c) => c.capability_id === "issue.view")
+    expect(triageIdx).toBeLessThan(viewIdx)
+    expect(updateCompIdx).toBeLessThan(viewIdx)
   })
 })

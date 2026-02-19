@@ -1,0 +1,51 @@
+capability_id: issue.triage.composite
+version: "1.0.0"
+description: "Set labels and add a comment to an issue in a single batched call. Requires the issue's node ID (from issue.view)."
+input_schema:
+  type: object
+  required: [issueId]
+  properties:
+    issueId:
+      type: string
+      minLength: 1
+    labels:
+      type: array
+      items:
+        type: string
+        minLength: 1
+    body:
+      type: string
+      minLength: 1
+  additionalProperties: false
+output_schema:
+  type: object
+  properties:
+    labels:
+      type: array
+      items:
+        type: string
+    comment:
+      type: object
+      properties:
+        id:
+          type: string
+        body:
+          type: string
+        url:
+          type: string
+      additionalProperties: false
+  additionalProperties: false
+routing:
+  preferred: graphql
+  fallbacks: []
+composite:
+  steps:
+    - capability_id: issue.labels.update
+      params_map:
+        issueId: issueId
+        labels: labels
+    - capability_id: issue.comments.create
+      params_map:
+        issueId: issueId
+        body: body
+  output_strategy: merge
