@@ -1,0 +1,8 @@
+query ReviewThreadState($threadId: ID!) {
+  node(id: $threadId) {
+    ... on PullRequestReviewThread {
+      id
+      isResolved
+    }
+  }
+}

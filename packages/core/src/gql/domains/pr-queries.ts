@@ -1,5 +1,4 @@
 import {
-  asRecord,
   assertPrDiffListFilesInput,
   assertPrInput,
   assertPrListInput,
@@ -9,11 +8,12 @@ import type { PrDiffListFilesQuery } from "../operations/pr-diff-list-files.gene
 import { getSdk as getPrDiffListFilesSdk } from "../operations/pr-diff-list-files.generated.js"
 import type { PrListQuery } from "../operations/pr-list.generated.js"
 import { getSdk as getPrListSdk } from "../operations/pr-list.generated.js"
+import { getSdk as getPrMergeStatusSdk } from "../operations/pr-merge-status.generated.js"
 import type { PrReviewsListQuery } from "../operations/pr-reviews-list.generated.js"
 import { getSdk as getPrReviewsListSdk } from "../operations/pr-reviews-list.generated.js"
 import type { PrViewQuery } from "../operations/pr-view.generated.js"
 import { getSdk as getPrViewSdk } from "../operations/pr-view.generated.js"
-import type { GraphqlClient, GraphqlTransport, GraphqlVariables } from "../transport.js"
+import type { GraphqlTransport } from "../transport.js"
 import { createGraphqlRequestClient } from "../transport.js"
 import type {
   PrDiffListFilesData,
@@ -27,20 +27,6 @@ import type {
   PrViewData,
   PrViewInput,
 } from "../types.js"
-
-const PR_MERGE_STATUS_QUERY = `
-  query PrMergeStatus($owner: String!, $name: String!, $prNumber: Int!) {
-    repository(owner: $owner, name: $name) {
-      pullRequest(number: $prNumber) {
-        mergeable
-        mergeStateStatus
-        reviewDecision
-        isDraft
-        state
-      }
-    }
-  }
-`
 
 export async function runPrView(
   transport: GraphqlTransport,
@@ -169,26 +155,27 @@ export async function runPrDiffListFiles(
 }
 
 export async function runPrMergeStatus(
-  graphqlClient: GraphqlClient,
+  transport: GraphqlTransport,
   input: PrMergeStatusInput,
 ): Promise<PrMergeStatusData> {
   assertPrInput({ owner: input.owner, name: input.name, prNumber: input.prNumber })
 
-  const result = await graphqlClient.query<unknown, GraphqlVariables>(PR_MERGE_STATUS_QUERY, {
+  const result = await getPrMergeStatusSdk(createGraphqlRequestClient(transport)).PrMergeStatus({
     owner: input.owner,
     name: input.name,
     prNumber: input.prNumber,
   })
-  const pr = asRecord(asRecord(asRecord(result)?.repository)?.pullRequest)
+
+  const pr = result.repository?.pullRequest
   if (!pr) {
     throw new Error("Pull request not found")
   }
 
   return {
-    mergeable: typeof pr.mergeable === "string" ? pr.mergeable : null,
-    mergeStateStatus: typeof pr.mergeStateStatus === "string" ? pr.mergeStateStatus : null,
-    reviewDecision: typeof pr.reviewDecision === "string" ? pr.reviewDecision : null,
-    isDraft: Boolean(pr.isDraft),
-    state: typeof pr.state === "string" ? pr.state : "UNKNOWN",
+    mergeable: pr.mergeable ?? null,
+    mergeStateStatus: pr.mergeStateStatus ?? null,
+    reviewDecision: pr.reviewDecision ?? null,
+    isDraft: pr.isDraft,
+    state: pr.state,
   }
 }

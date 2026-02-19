@@ -133,9 +133,13 @@ ghx/
 
 | Module | Purpose | Key Exports |
 |--------|---------|-------------|
-| `gql/client.ts` | GraphQL client factory | `createGraphqlClient()`, `createGithubClient()` |
+| `gql/transport.ts` | GraphQL transport and low-level client | `createGraphqlClient()`, `createTokenTransport()` |
+| `gql/github-client.ts` | Lazy-loaded GitHub GraphQL facade | `createGithubClient()`, `createGithubClientFromToken()` |
+| `gql/types.ts` | GQL input/output contracts | GraphQL domain input/data types |
+| `gql/assertions.ts` | GraphQL input validation helpers | `assert*` validation utilities |
+| `gql/domains/*.ts` | Domain operation modules | `run*` operation handlers |
 | `gql/operations/*.generated.ts` | Generated operation SDKs | Operation-specific `getSdk()` |
-| `gql/generated/common-types.ts` | Generated scalar types | Type aliases |
+| `gql/generated/common-types.generated.ts` | Generated scalar types | Type aliases |
 
 ### CLI & Agent Interface
 
@@ -285,7 +289,7 @@ Use these paths when debugging common concerns:
 | Input/output validation | `packages/core/src/core/execute/execute.ts` + `packages/core/src/core/registry/schema-validator.ts` |
 | Capability metadata | `packages/core/src/core/registry/cards/*.yaml` |
 | CLI command shape | `packages/core/src/core/execution/adapters/cli-capability-adapter.ts` |
-| GraphQL field mismatch | `packages/core/src/gql/client.ts` + `packages/core/src/gql/operations/*.generated.ts` |
+| GraphQL field mismatch | `packages/core/src/gql/domains/*.ts` + `packages/core/src/gql/operations/*.generated.ts` |
 | Benchmark scenario failure | `packages/benchmark/src/scenario/schema.ts` |
 | Scenario coverage | `packages/benchmark/src/cli/check-scenarios.ts` + `packages/benchmark/scenario-sets.json` |
 | Gate failure | `packages/benchmark/src/report/aggregate.ts` |
@@ -321,7 +325,7 @@ Use these paths when debugging common concerns:
 
 ## External Integration Points
 
-- **GitHub GraphQL API** — `packages/core/src/gql/client.ts`
+- **GitHub GraphQL API** — `packages/core/src/gql/github-client.ts`
 - **GitHub CLI (`gh`)** — `packages/core/src/core/execution/adapters/cli-capability-adapter.ts`
 - **OpenCode SDK** — `packages/benchmark/src/runner/suite-runner.ts`
 - **JSON Schema Validation (AJV)** — `packages/core/src/core/registry/`

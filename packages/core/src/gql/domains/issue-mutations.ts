@@ -15,7 +15,29 @@ import {
   assertIssueUpdateInput,
   assertNonEmptyString,
 } from "../assertions.js"
-import type { GraphqlClient, GraphqlVariables } from "../transport.js"
+import { getSdk as getIssueAssigneesLookupSdk } from "../operations/issue-assignees-lookup.generated.js"
+import { getSdk as getIssueAssigneesUpdateSdk } from "../operations/issue-assignees-update.generated.js"
+import { getSdk as getIssueBlockedByAddSdk } from "../operations/issue-blocked-by-add.generated.js"
+import { getSdk as getIssueBlockedByRemoveSdk } from "../operations/issue-blocked-by-remove.generated.js"
+import { getSdk as getIssueCloseSdk } from "../operations/issue-close.generated.js"
+import { getSdk as getIssueCommentCreateSdk } from "../operations/issue-comment-create.generated.js"
+import { getSdk as getIssueCreateSdk } from "../operations/issue-create.generated.js"
+import { getSdk as getIssueCreateRepositoryIdSdk } from "../operations/issue-create-repository-id.generated.js"
+import { getSdk as getIssueDeleteSdk } from "../operations/issue-delete.generated.js"
+import { getSdk as getIssueLabelsAddSdk } from "../operations/issue-labels-add.generated.js"
+import { getSdk as getIssueLabelsLookupSdk } from "../operations/issue-labels-lookup.generated.js"
+import { getSdk as getIssueLabelsUpdateSdk } from "../operations/issue-labels-update.generated.js"
+import { getSdk as getIssueLinkedPrsListSdk } from "../operations/issue-linked-prs-list.generated.js"
+import { getSdk as getIssueMilestoneLookupSdk } from "../operations/issue-milestone-lookup.generated.js"
+import { getSdk as getIssueMilestoneSetSdk } from "../operations/issue-milestone-set.generated.js"
+import { getSdk as getIssueParentLookupSdk } from "../operations/issue-parent-lookup.generated.js"
+import { getSdk as getIssueParentRemoveSdk } from "../operations/issue-parent-remove.generated.js"
+import { getSdk as getIssueParentSetSdk } from "../operations/issue-parent-set.generated.js"
+import { getSdk as getIssueRelationsGetSdk } from "../operations/issue-relations-get.generated.js"
+import { getSdk as getIssueReopenSdk } from "../operations/issue-reopen.generated.js"
+import { getSdk as getIssueUpdateSdk } from "../operations/issue-update.generated.js"
+import type { GraphqlTransport } from "../transport.js"
+import { createGraphqlRequestClient } from "../transport.js"
 import type {
   IssueAssigneesUpdateData,
   IssueAssigneesUpdateInput,
@@ -43,298 +65,6 @@ import type {
   IssueRelationsGetInput,
   IssueUpdateInput,
 } from "../types.js"
-
-const ISSUE_CREATE_REPOSITORY_ID_QUERY = `
-  query IssueCreateRepositoryId($owner: String!, $name: String!) {
-    repository(owner: $owner, name: $name) {
-      id
-    }
-  }
-`
-
-const ISSUE_CREATE_MUTATION = `
-  mutation IssueCreate($repositoryId: ID!, $title: String!, $body: String) {
-    createIssue(input: { repositoryId: $repositoryId, title: $title, body: $body }) {
-      issue {
-        id
-        number
-        title
-        state
-        url
-      }
-    }
-  }
-`
-
-const ISSUE_UPDATE_MUTATION = `
-  mutation IssueUpdate($issueId: ID!, $title: String, $body: String) {
-    updateIssue(input: { id: $issueId, title: $title, body: $body }) {
-      issue {
-        id
-        number
-        title
-        state
-        url
-      }
-    }
-  }
-`
-
-const ISSUE_CLOSE_MUTATION = `
-  mutation IssueClose($issueId: ID!) {
-    closeIssue(input: { issueId: $issueId }) {
-      issue {
-        id
-        number
-        state
-      }
-    }
-  }
-`
-
-const ISSUE_REOPEN_MUTATION = `
-  mutation IssueReopen($issueId: ID!) {
-    reopenIssue(input: { issueId: $issueId }) {
-      issue {
-        id
-        number
-        state
-      }
-    }
-  }
-`
-
-const ISSUE_DELETE_MUTATION = `
-  mutation IssueDelete($issueId: ID!) {
-    deleteIssue(input: { issueId: $issueId }) {
-      clientMutationId
-    }
-  }
-`
-
-const ISSUE_LABELS_UPDATE_MUTATION = `
-  mutation IssueLabelsUpdate($issueId: ID!, $labelIds: [ID!]!) {
-    updateIssue(input: { id: $issueId, labelIds: $labelIds }) {
-      issue {
-        id
-        labels(first: 50) {
-          nodes {
-            name
-          }
-        }
-      }
-    }
-  }
-`
-
-const ISSUE_LABELS_ADD_MUTATION = `
-  mutation IssueLabelsAdd($labelableId: ID!, $labelIds: [ID!]!) {
-    addLabelsToLabelable(input: { labelableId: $labelableId, labelIds: $labelIds }) {
-      labelable {
-        ... on Issue {
-          id
-          labels(first: 50) {
-            nodes {
-              name
-            }
-          }
-        }
-      }
-    }
-  }
-`
-
-const ISSUE_ASSIGNEES_UPDATE_MUTATION = `
-  mutation IssueAssigneesUpdate($issueId: ID!, $assigneeIds: [ID!]!) {
-    updateIssue(input: { id: $issueId, assigneeIds: $assigneeIds }) {
-      issue {
-        id
-        assignees(first: 50) {
-          nodes {
-            login
-          }
-        }
-      }
-    }
-  }
-`
-
-const ISSUE_MILESTONE_SET_MUTATION = `
-  mutation IssueMilestoneSet($issueId: ID!, $milestoneId: ID) {
-    updateIssue(input: { id: $issueId, milestoneId: $milestoneId }) {
-      issue {
-        id
-        milestone {
-          number
-        }
-      }
-    }
-  }
-`
-
-const ISSUE_LABELS_LOOKUP_QUERY = `
-  query IssueLabelsLookup($issueId: ID!) {
-    node(id: $issueId) {
-      ... on Issue {
-        repository {
-          labels(first: 100) {
-            nodes {
-              id
-              name
-            }
-          }
-        }
-      }
-    }
-  }
-`
-
-const ISSUE_ASSIGNEES_LOOKUP_QUERY = `
-  query IssueAssigneesLookup($issueId: ID!) {
-    node(id: $issueId) {
-      ... on Issue {
-        repository {
-          assignableUsers(first: 100) {
-            nodes {
-              id
-              login
-            }
-          }
-        }
-      }
-    }
-  }
-`
-
-const ISSUE_MILESTONE_LOOKUP_QUERY = `
-  query IssueMilestoneLookup($issueId: ID!, $milestoneNumber: Int!) {
-    node(id: $issueId) {
-      ... on Issue {
-        repository {
-          milestone(number: $milestoneNumber) {
-            id
-          }
-        }
-      }
-    }
-  }
-`
-
-const ISSUE_COMMENT_CREATE_MUTATION = `
-  mutation IssueCommentCreate($issueId: ID!, $body: String!) {
-    addComment(input: { subjectId: $issueId, body: $body }) {
-      commentEdge {
-        node {
-          id
-          body
-          url
-        }
-      }
-    }
-  }
-`
-
-const ISSUE_LINKED_PRS_LIST_QUERY = `
-  query IssueLinkedPrsList($owner: String!, $name: String!, $issueNumber: Int!) {
-    repository(owner: $owner, name: $name) {
-      issue(number: $issueNumber) {
-        timelineItems(first: 50, itemTypes: [CONNECTED_EVENT]) {
-          nodes {
-            __typename
-            ... on ConnectedEvent {
-              subject {
-                __typename
-                ... on PullRequest {
-                  id
-                  number
-                  title
-                  state
-                  url
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-`
-
-const ISSUE_RELATIONS_GET_QUERY = `
-  query IssueRelationsGet($owner: String!, $name: String!, $issueNumber: Int!) {
-    repository(owner: $owner, name: $name) {
-      issue(number: $issueNumber) {
-        id
-        number
-        parent {
-          id
-          number
-        }
-        subIssues(first: 50) {
-          nodes {
-            id
-            number
-          }
-        }
-        blockedBy(first: 50) {
-          nodes {
-            id
-            number
-          }
-        }
-      }
-    }
-  }
-`
-
-const ISSUE_PARENT_LOOKUP_QUERY = `
-  query IssueParentLookup($issueId: ID!) {
-    node(id: $issueId) {
-      ... on Issue {
-        id
-        parent {
-          id
-        }
-      }
-    }
-  }
-`
-
-const ISSUE_PARENT_SET_MUTATION = `
-  mutation IssueParentSet($issueId: ID!, $parentIssueId: ID!) {
-    addSubIssue(input: { issueId: $parentIssueId, subIssueId: $issueId }) {
-      issue { id }
-      subIssue { id }
-    }
-  }
-`
-
-const ISSUE_PARENT_REMOVE_MUTATION = `
-  mutation IssueParentRemove($issueId: ID!, $parentIssueId: ID!) {
-    removeSubIssue(input: { issueId: $parentIssueId, subIssueId: $issueId }) {
-      issue { id }
-      subIssue { id }
-    }
-  }
-`
-
-const ISSUE_BLOCKED_BY_ADD_MUTATION = `
-  mutation IssueBlockedByAdd($issueId: ID!, $blockedByIssueId: ID!) {
-    addBlockedBy(input: { issueId: $issueId, blockingIssueId: $blockedByIssueId }) {
-      issue { id }
-      blockingIssue { id }
-    }
-  }
-`
-
-const ISSUE_BLOCKED_BY_REMOVE_MUTATION = `
-  mutation IssueBlockedByRemove($issueId: ID!, $blockedByIssueId: ID!) {
-    removeBlockedBy(input: { issueId: $issueId, blockingIssueId: $blockedByIssueId }) {
-      issue { id }
-      blockingIssue { id }
-    }
-  }
-`
 
 function parseIssueNode(issue: unknown): IssueMutationData {
   const issueRecord = asRecord(issue)
@@ -365,54 +95,56 @@ function parseIssueNode(issue: unknown): IssueMutationData {
 }
 
 export async function runIssueCreate(
-  graphqlClient: GraphqlClient,
+  transport: GraphqlTransport,
   input: IssueCreateInput,
 ): Promise<IssueMutationData> {
   assertIssueCreateInput(input)
 
-  const repositoryLookupResult = await graphqlClient.query<unknown, GraphqlVariables>(
-    ISSUE_CREATE_REPOSITORY_ID_QUERY,
-    {
-      owner: input.owner,
-      name: input.name,
-    },
-  )
-  const repositoryId = asRecord(asRecord(repositoryLookupResult)?.repository)?.id
+  const client = createGraphqlRequestClient(transport)
+  const repositoryLookupResult = await getIssueCreateRepositoryIdSdk(
+    client,
+  ).IssueCreateRepositoryId({
+    owner: input.owner,
+    name: input.name,
+  })
+
+  const repositoryId = asRecord(repositoryLookupResult.repository)?.id
   if (typeof repositoryId !== "string" || repositoryId.length === 0) {
     throw new Error("Repository not found")
   }
 
-  const result = await graphqlClient.query<unknown, GraphqlVariables>(ISSUE_CREATE_MUTATION, {
+  const result = await getIssueCreateSdk(client).IssueCreate({
     repositoryId,
     title: input.title,
-    body: input.body,
+    ...(input.body === undefined ? {} : { body: input.body }),
   })
+
   const issue = asRecord(asRecord(result)?.createIssue)?.issue
   return parseIssueNode(issue)
 }
 
 export async function runIssueUpdate(
-  graphqlClient: GraphqlClient,
+  transport: GraphqlTransport,
   input: IssueUpdateInput,
 ): Promise<IssueMutationData> {
   assertIssueUpdateInput(input)
 
-  const result = await graphqlClient.query<unknown, GraphqlVariables>(ISSUE_UPDATE_MUTATION, {
+  const result = await getIssueUpdateSdk(createGraphqlRequestClient(transport)).IssueUpdate({
     issueId: input.issueId,
-    title: input.title,
-    body: input.body,
+    ...(input.title === undefined ? {} : { title: input.title }),
+    ...(input.body === undefined ? {} : { body: input.body }),
   })
   const issue = asRecord(asRecord(result)?.updateIssue)?.issue
   return parseIssueNode(issue)
 }
 
 export async function runIssueClose(
-  graphqlClient: GraphqlClient,
+  transport: GraphqlTransport,
   input: IssueMutationInput,
 ): Promise<IssueMutationData> {
   assertIssueMutationInput(input)
 
-  const result = await graphqlClient.query<unknown, GraphqlVariables>(ISSUE_CLOSE_MUTATION, {
+  const result = await getIssueCloseSdk(createGraphqlRequestClient(transport)).IssueClose({
     issueId: input.issueId,
   })
   const issueData = parseIssueNode(asRecord(asRecord(result)?.closeIssue)?.issue)
@@ -423,12 +155,12 @@ export async function runIssueClose(
 }
 
 export async function runIssueReopen(
-  graphqlClient: GraphqlClient,
+  transport: GraphqlTransport,
   input: IssueMutationInput,
 ): Promise<IssueMutationData> {
   assertIssueMutationInput(input)
 
-  const result = await graphqlClient.query<unknown, GraphqlVariables>(ISSUE_REOPEN_MUTATION, {
+  const result = await getIssueReopenSdk(createGraphqlRequestClient(transport)).IssueReopen({
     issueId: input.issueId,
   })
   const issueData = parseIssueNode(asRecord(asRecord(result)?.reopenIssue)?.issue)
@@ -439,12 +171,12 @@ export async function runIssueReopen(
 }
 
 export async function runIssueDelete(
-  graphqlClient: GraphqlClient,
+  transport: GraphqlTransport,
   input: IssueMutationInput,
 ): Promise<IssueMutationData> {
   assertIssueMutationInput(input)
 
-  const result = await graphqlClient.query<unknown, GraphqlVariables>(ISSUE_DELETE_MUTATION, {
+  const result = await getIssueDeleteSdk(createGraphqlRequestClient(transport)).IssueDelete({
     issueId: input.issueId,
   })
   const mutation = asRecord(asRecord(result)?.deleteIssue)
@@ -460,23 +192,23 @@ export async function runIssueDelete(
 }
 
 export async function runIssueLabelsUpdate(
-  graphqlClient: GraphqlClient,
+  transport: GraphqlTransport,
   input: IssueLabelsUpdateInput,
 ): Promise<IssueLabelsUpdateData> {
   assertIssueLabelsUpdateInput(input)
 
-  const lookupResult = await graphqlClient.query<unknown, GraphqlVariables>(
-    ISSUE_LABELS_LOOKUP_QUERY,
-    {
-      issueId: input.issueId,
-    },
-  )
+  const client = createGraphqlRequestClient(transport)
+  const lookupResult = await getIssueLabelsLookupSdk(client).IssueLabelsLookup({
+    issueId: input.issueId,
+  })
+
   const availableLabels = Array.isArray(
     asRecord(asRecord(asRecord(asRecord(lookupResult)?.node)?.repository)?.labels)?.nodes,
   )
     ? (asRecord(asRecord(asRecord(asRecord(lookupResult)?.node)?.repository)?.labels)
         ?.nodes as unknown[])
     : []
+
   const labelIdsByName = new Map<string, string>()
   for (const label of availableLabels) {
     const labelRecord = asRecord(label)
@@ -484,6 +216,7 @@ export async function runIssueLabelsUpdate(
       labelIdsByName.set(labelRecord.name.toLowerCase(), labelRecord.id)
     }
   }
+
   const labelIds = input.labels.map((labelName) => {
     const id = labelIdsByName.get(labelName.toLowerCase())
     if (!id) {
@@ -492,13 +225,11 @@ export async function runIssueLabelsUpdate(
     return id
   })
 
-  const result = await graphqlClient.query<unknown, GraphqlVariables>(
-    ISSUE_LABELS_UPDATE_MUTATION,
-    {
-      issueId: input.issueId,
-      labelIds,
-    },
-  )
+  const result = await getIssueLabelsUpdateSdk(client).IssueLabelsUpdate({
+    issueId: input.issueId,
+    labelIds,
+  })
+
   const mutation = asRecord(asRecord(result)?.["updateIssue"])
   const issue = asRecord(mutation?.["issue"])
   const labels = asRecord(issue?.["labels"])
@@ -513,23 +244,23 @@ export async function runIssueLabelsUpdate(
 }
 
 export async function runIssueLabelsAdd(
-  graphqlClient: GraphqlClient,
+  transport: GraphqlTransport,
   input: IssueLabelsAddInput,
 ): Promise<IssueLabelsAddData> {
   assertIssueLabelsAddInput(input)
 
-  const lookupResult = await graphqlClient.query<unknown, GraphqlVariables>(
-    ISSUE_LABELS_LOOKUP_QUERY,
-    {
-      issueId: input.issueId,
-    },
-  )
+  const client = createGraphqlRequestClient(transport)
+  const lookupResult = await getIssueLabelsLookupSdk(client).IssueLabelsLookup({
+    issueId: input.issueId,
+  })
+
   const availableLabels = Array.isArray(
     asRecord(asRecord(asRecord(asRecord(lookupResult)?.node)?.repository)?.labels)?.nodes,
   )
     ? (asRecord(asRecord(asRecord(asRecord(lookupResult)?.node)?.repository)?.labels)
         ?.nodes as unknown[])
     : []
+
   const labelIdsByName = new Map<string, string>()
   for (const label of availableLabels) {
     const labelRecord = asRecord(label)
@@ -537,6 +268,7 @@ export async function runIssueLabelsAdd(
       labelIdsByName.set(labelRecord.name.toLowerCase(), labelRecord.id)
     }
   }
+
   const labelIds = input.labels.map((labelName) => {
     const id = labelIdsByName.get(labelName.toLowerCase())
     if (!id) {
@@ -545,10 +277,11 @@ export async function runIssueLabelsAdd(
     return id
   })
 
-  const result = await graphqlClient.query<unknown, GraphqlVariables>(ISSUE_LABELS_ADD_MUTATION, {
+  const result = await getIssueLabelsAddSdk(client).IssueLabelsAdd({
     labelableId: input.issueId,
     labelIds,
   })
+
   const mutation = asRecord(asRecord(result)?.["addLabelsToLabelable"])
   const labelable = asRecord(mutation?.["labelable"])
   const labels = asRecord(labelable?.["labels"])
@@ -563,23 +296,23 @@ export async function runIssueLabelsAdd(
 }
 
 export async function runIssueAssigneesUpdate(
-  graphqlClient: GraphqlClient,
+  transport: GraphqlTransport,
   input: IssueAssigneesUpdateInput,
 ): Promise<IssueAssigneesUpdateData> {
   assertIssueAssigneesUpdateInput(input)
 
-  const lookupResult = await graphqlClient.query<unknown, GraphqlVariables>(
-    ISSUE_ASSIGNEES_LOOKUP_QUERY,
-    {
-      issueId: input.issueId,
-    },
-  )
+  const client = createGraphqlRequestClient(transport)
+  const lookupResult = await getIssueAssigneesLookupSdk(client).IssueAssigneesLookup({
+    issueId: input.issueId,
+  })
+
   const availableAssignees = Array.isArray(
     asRecord(asRecord(asRecord(asRecord(lookupResult)?.node)?.repository)?.assignableUsers)?.nodes,
   )
     ? (asRecord(asRecord(asRecord(asRecord(lookupResult)?.node)?.repository)?.assignableUsers)
         ?.nodes as unknown[])
     : []
+
   const assigneeIdsByLogin = new Map<string, string>()
   for (const assignee of availableAssignees) {
     const assigneeRecord = asRecord(assignee)
@@ -587,6 +320,7 @@ export async function runIssueAssigneesUpdate(
       assigneeIdsByLogin.set(assigneeRecord.login.toLowerCase(), assigneeRecord.id)
     }
   }
+
   const assigneeIds = input.assignees.map((login) => {
     const id = assigneeIdsByLogin.get(login.toLowerCase())
     if (!id) {
@@ -595,13 +329,11 @@ export async function runIssueAssigneesUpdate(
     return id
   })
 
-  const result = await graphqlClient.query<unknown, GraphqlVariables>(
-    ISSUE_ASSIGNEES_UPDATE_MUTATION,
-    {
-      issueId: input.issueId,
-      assigneeIds,
-    },
-  )
+  const result = await getIssueAssigneesUpdateSdk(client).IssueAssigneesUpdate({
+    issueId: input.issueId,
+    assigneeIds,
+  })
+
   const mutation = asRecord(asRecord(result)?.["updateIssue"])
   const issue = asRecord(mutation?.["issue"])
   const assignees = asRecord(issue?.["assignees"])
@@ -616,20 +348,19 @@ export async function runIssueAssigneesUpdate(
 }
 
 export async function runIssueMilestoneSet(
-  graphqlClient: GraphqlClient,
+  transport: GraphqlTransport,
   input: IssueMilestoneSetInput,
 ): Promise<IssueMilestoneSetData> {
   assertIssueMilestoneSetInput(input)
 
+  const client = createGraphqlRequestClient(transport)
   let milestoneId: string | null = null
   if (input.milestoneNumber !== null) {
-    const lookupResult = await graphqlClient.query<unknown, GraphqlVariables>(
-      ISSUE_MILESTONE_LOOKUP_QUERY,
-      {
-        issueId: input.issueId,
-        milestoneNumber: input.milestoneNumber,
-      },
-    )
+    const lookupResult = await getIssueMilestoneLookupSdk(client).IssueMilestoneLookup({
+      issueId: input.issueId,
+      milestoneNumber: input.milestoneNumber,
+    })
+
     const resolvedId = asRecord(
       asRecord(asRecord(asRecord(lookupResult)?.node)?.repository)?.milestone,
     )?.id
@@ -639,13 +370,11 @@ export async function runIssueMilestoneSet(
     milestoneId = resolvedId
   }
 
-  const result = await graphqlClient.query<unknown, GraphqlVariables>(
-    ISSUE_MILESTONE_SET_MUTATION,
-    {
-      issueId: input.issueId,
-      milestoneId,
-    },
-  )
+  const result = await getIssueMilestoneSetSdk(client).IssueMilestoneSet({
+    issueId: input.issueId,
+    milestoneId,
+  })
+
   const mutation = asRecord(asRecord(result)?.["updateIssue"])
   const issue = asRecord(mutation?.["issue"])
   const milestone = asRecord(issue?.["milestone"])
@@ -657,18 +386,18 @@ export async function runIssueMilestoneSet(
 }
 
 export async function runIssueCommentCreate(
-  graphqlClient: GraphqlClient,
+  transport: GraphqlTransport,
   input: IssueCommentCreateInput,
 ): Promise<IssueCommentCreateData> {
   assertIssueCommentCreateInput(input)
 
-  const result = await graphqlClient.query<unknown, GraphqlVariables>(
-    ISSUE_COMMENT_CREATE_MUTATION,
-    {
-      issueId: input.issueId,
-      body: input.body,
-    },
-  )
+  const result = await getIssueCommentCreateSdk(
+    createGraphqlRequestClient(transport),
+  ).IssueCommentCreate({
+    issueId: input.issueId,
+    body: input.body,
+  })
+
   const mutation = asRecord(asRecord(result)?.["addComment"])
   const commentEdge = asRecord(mutation?.["commentEdge"])
   const node = asRecord(commentEdge?.["node"])
@@ -684,16 +413,19 @@ export async function runIssueCommentCreate(
 }
 
 export async function runIssueLinkedPrsList(
-  graphqlClient: GraphqlClient,
+  transport: GraphqlTransport,
   input: IssueLinkedPrsListInput,
 ): Promise<IssueLinkedPrsListData> {
   assertIssueLinkedPrsListInput(input)
 
-  const result = await graphqlClient.query<unknown, GraphqlVariables>(ISSUE_LINKED_PRS_LIST_QUERY, {
+  const result = await getIssueLinkedPrsListSdk(
+    createGraphqlRequestClient(transport),
+  ).IssueLinkedPrsList({
     owner: input.owner,
     name: input.name,
     issueNumber: input.issueNumber,
   })
+
   const issue = asRecord(asRecord(asRecord(result)?.repository)?.issue)
   const timelineItems = asRecord(issue?.timelineItems)
   const nodes = Array.isArray(timelineItems?.nodes) ? timelineItems.nodes : []
@@ -746,16 +478,19 @@ function parseIssueRelationNode(node: unknown): IssueRelationNodeData | null {
 }
 
 export async function runIssueRelationsGet(
-  graphqlClient: GraphqlClient,
+  transport: GraphqlTransport,
   input: IssueRelationsGetInput,
 ): Promise<IssueRelationsGetData> {
   assertIssueRelationsGetInput(input)
 
-  const result = await graphqlClient.query<unknown, GraphqlVariables>(ISSUE_RELATIONS_GET_QUERY, {
+  const result = await getIssueRelationsGetSdk(
+    createGraphqlRequestClient(transport),
+  ).IssueRelationsGet({
     owner: input.owner,
     name: input.name,
     issueNumber: input.issueNumber,
   })
+
   const issue = asRecord(asRecord(asRecord(result)?.repository)?.issue)
   const currentIssue = parseIssueRelationNode(issue)
   if (!currentIssue) {
@@ -783,15 +518,16 @@ export async function runIssueRelationsGet(
 }
 
 export async function runIssueParentSet(
-  graphqlClient: GraphqlClient,
+  transport: GraphqlTransport,
   input: IssueParentSetInput,
 ): Promise<IssueParentSetData> {
   assertIssueParentSetInput(input)
 
-  const result = await graphqlClient.query<unknown, GraphqlVariables>(ISSUE_PARENT_SET_MUTATION, {
+  const result = await getIssueParentSetSdk(createGraphqlRequestClient(transport)).IssueParentSet({
     issueId: input.issueId,
     parentIssueId: input.parentIssueId,
   })
+
   const mutation = asRecord(asRecord(result)?.addSubIssue)
   const parentIssue = asRecord(mutation?.issue)
   const subIssue = asRecord(mutation?.subIssue)
@@ -806,29 +542,26 @@ export async function runIssueParentSet(
 }
 
 export async function runIssueParentRemove(
-  graphqlClient: GraphqlClient,
+  transport: GraphqlTransport,
   input: IssueParentRemoveInput,
 ): Promise<IssueParentRemoveData> {
   assertIssueParentRemoveInput(input)
 
-  const lookupResult = await graphqlClient.query<unknown, GraphqlVariables>(
-    ISSUE_PARENT_LOOKUP_QUERY,
-    {
-      issueId: input.issueId,
-    },
-  )
+  const client = createGraphqlRequestClient(transport)
+  const lookupResult = await getIssueParentLookupSdk(client).IssueParentLookup({
+    issueId: input.issueId,
+  })
+
   const parentIssueId = asRecord(asRecord(asRecord(lookupResult)?.node)?.parent)?.id
   if (typeof parentIssueId !== "string" || parentIssueId.length === 0) {
     throw new Error("Issue parent removal failed")
   }
 
-  const result = await graphqlClient.query<unknown, GraphqlVariables>(
-    ISSUE_PARENT_REMOVE_MUTATION,
-    {
-      issueId: input.issueId,
-      parentIssueId,
-    },
-  )
+  const result = await getIssueParentRemoveSdk(client).IssueParentRemove({
+    issueId: input.issueId,
+    parentIssueId,
+  })
+
   const mutation = asRecord(asRecord(result)?.removeSubIssue)
   const parentIssue = asRecord(mutation?.issue)
   const subIssue = asRecord(mutation?.subIssue)
@@ -843,18 +576,18 @@ export async function runIssueParentRemove(
 }
 
 export async function runIssueBlockedByAdd(
-  graphqlClient: GraphqlClient,
+  transport: GraphqlTransport,
   input: IssueBlockedByInput,
 ): Promise<IssueBlockedByData> {
   assertIssueBlockedByInput(input)
 
-  const result = await graphqlClient.query<unknown, GraphqlVariables>(
-    ISSUE_BLOCKED_BY_ADD_MUTATION,
-    {
-      issueId: input.issueId,
-      blockedByIssueId: input.blockedByIssueId,
-    },
-  )
+  const result = await getIssueBlockedByAddSdk(
+    createGraphqlRequestClient(transport),
+  ).IssueBlockedByAdd({
+    issueId: input.issueId,
+    blockedByIssueId: input.blockedByIssueId,
+  })
+
   const mutation = asRecord(asRecord(result)?.addBlockedBy)
   const issue = asRecord(mutation?.issue)
   const blockingIssue = asRecord(mutation?.blockingIssue)
@@ -869,18 +602,18 @@ export async function runIssueBlockedByAdd(
 }
 
 export async function runIssueBlockedByRemove(
-  graphqlClient: GraphqlClient,
+  transport: GraphqlTransport,
   input: IssueBlockedByInput,
 ): Promise<IssueBlockedByData> {
   assertIssueBlockedByInput(input)
 
-  const result = await graphqlClient.query<unknown, GraphqlVariables>(
-    ISSUE_BLOCKED_BY_REMOVE_MUTATION,
-    {
-      issueId: input.issueId,
-      blockedByIssueId: input.blockedByIssueId,
-    },
-  )
+  const result = await getIssueBlockedByRemoveSdk(
+    createGraphqlRequestClient(transport),
+  ).IssueBlockedByRemove({
+    issueId: input.issueId,
+    blockedByIssueId: input.blockedByIssueId,
+  })
+
   const mutation = asRecord(asRecord(result)?.removeBlockedBy)
   const issue = asRecord(mutation?.issue)
   const blockingIssue = asRecord(mutation?.blockingIssue)

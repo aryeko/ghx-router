@@ -118,47 +118,46 @@ export function createGithubClient(transport: GraphqlTransport): GithubClient {
     fetchIssueList: async (input) => (await loadIssueQueries()).runIssueList(transport, input),
     fetchIssueCommentsList: async (input) =>
       (await loadIssueQueries()).runIssueCommentsList(transport, input),
-    createIssue: async (input) => (await loadIssueMutations()).runIssueCreate(graphqlClient, input),
-    updateIssue: async (input) => (await loadIssueMutations()).runIssueUpdate(graphqlClient, input),
-    closeIssue: async (input) => (await loadIssueMutations()).runIssueClose(graphqlClient, input),
-    reopenIssue: async (input) => (await loadIssueMutations()).runIssueReopen(graphqlClient, input),
-    deleteIssue: async (input) => (await loadIssueMutations()).runIssueDelete(graphqlClient, input),
+    createIssue: async (input) => (await loadIssueMutations()).runIssueCreate(transport, input),
+    updateIssue: async (input) => (await loadIssueMutations()).runIssueUpdate(transport, input),
+    closeIssue: async (input) => (await loadIssueMutations()).runIssueClose(transport, input),
+    reopenIssue: async (input) => (await loadIssueMutations()).runIssueReopen(transport, input),
+    deleteIssue: async (input) => (await loadIssueMutations()).runIssueDelete(transport, input),
     updateIssueLabels: async (input) =>
-      (await loadIssueMutations()).runIssueLabelsUpdate(graphqlClient, input),
+      (await loadIssueMutations()).runIssueLabelsUpdate(transport, input),
     addIssueLabels: async (input) =>
-      (await loadIssueMutations()).runIssueLabelsAdd(graphqlClient, input),
+      (await loadIssueMutations()).runIssueLabelsAdd(transport, input),
     updateIssueAssignees: async (input) =>
-      (await loadIssueMutations()).runIssueAssigneesUpdate(graphqlClient, input),
+      (await loadIssueMutations()).runIssueAssigneesUpdate(transport, input),
     setIssueMilestone: async (input) =>
-      (await loadIssueMutations()).runIssueMilestoneSet(graphqlClient, input),
+      (await loadIssueMutations()).runIssueMilestoneSet(transport, input),
     createIssueComment: async (input) =>
-      (await loadIssueMutations()).runIssueCommentCreate(graphqlClient, input),
+      (await loadIssueMutations()).runIssueCommentCreate(transport, input),
     fetchIssueLinkedPrs: async (input) =>
-      (await loadIssueMutations()).runIssueLinkedPrsList(graphqlClient, input),
+      (await loadIssueMutations()).runIssueLinkedPrsList(transport, input),
     fetchIssueRelations: async (input) =>
-      (await loadIssueMutations()).runIssueRelationsGet(graphqlClient, input),
+      (await loadIssueMutations()).runIssueRelationsGet(transport, input),
     setIssueParent: async (input) =>
-      (await loadIssueMutations()).runIssueParentSet(graphqlClient, input),
+      (await loadIssueMutations()).runIssueParentSet(transport, input),
     removeIssueParent: async (input) =>
-      (await loadIssueMutations()).runIssueParentRemove(graphqlClient, input),
+      (await loadIssueMutations()).runIssueParentRemove(transport, input),
     addIssueBlockedBy: async (input) =>
-      (await loadIssueMutations()).runIssueBlockedByAdd(graphqlClient, input),
+      (await loadIssueMutations()).runIssueBlockedByAdd(transport, input),
     removeIssueBlockedBy: async (input) =>
-      (await loadIssueMutations()).runIssueBlockedByRemove(graphqlClient, input),
+      (await loadIssueMutations()).runIssueBlockedByRemove(transport, input),
     fetchPrView: async (input) => (await loadPrQueries()).runPrView(transport, input),
     fetchPrList: async (input) => (await loadPrQueries()).runPrList(transport, input),
     fetchPrReviewsList: async (input) => (await loadPrQueries()).runPrReviewsList(transport, input),
     fetchPrDiffListFiles: async (input) =>
       (await loadPrQueries()).runPrDiffListFiles(transport, input),
-    fetchPrMergeStatus: async (input) =>
-      (await loadPrQueries()).runPrMergeStatus(graphqlClient, input),
+    fetchPrMergeStatus: async (input) => (await loadPrQueries()).runPrMergeStatus(transport, input),
     fetchPrCommentsList: async (input) =>
-      (await loadPrMutations()).runPrCommentsList(graphqlClient, input),
+      (await loadPrMutations()).runPrCommentsList(transport, input),
     replyToReviewThread: async (input) =>
-      (await loadPrMutations()).runReplyToReviewThread(graphqlClient, input),
+      (await loadPrMutations()).runReplyToReviewThread(transport, input),
     resolveReviewThread: async (input) =>
-      (await loadPrMutations()).runResolveReviewThread(graphqlClient, input),
+      (await loadPrMutations()).runResolveReviewThread(transport, input),
     unresolveReviewThread: async (input) =>
-      (await loadPrMutations()).runUnresolveReviewThread(graphqlClient, input),
+      (await loadPrMutations()).runUnresolveReviewThread(transport, input),
   }
 }
