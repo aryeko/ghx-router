@@ -8,5 +8,14 @@
   "repository": "https://github.com/aryeko/ghx",
   "homepage": "https://github.com/aryeko/ghx",
   "license": "MIT",
-  "keywords": ["github", "ai-agents", "cli", "automation"]
+  "keywords": [
+    "github",
+    "github-api",
+    "ai-agents",
+    "agentic",
+    "cli",
+    "graphql",
+    "automation",
+    "typescript"
+  ]
 }
