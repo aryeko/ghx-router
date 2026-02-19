@@ -65,8 +65,8 @@ Hooks are installed automatically by `pnpm install`.
 
 ## Additional Checks
 
-- GraphQL codegen drift (offline): `pnpm run ghx:gql:check`
-- GraphQL schema refresh (on-demand, requires `GITHUB_TOKEN` or `GH_TOKEN`): `pnpm --filter @ghx-dev/core run gql:schema:update`
+- GraphQL codegen drift (offline): `pnpm run ghx:gql:verify`
+- GraphQL schema refresh (on-demand, requires `GITHUB_TOKEN` or `GH_TOKEN`): `pnpm --filter @ghx-dev/core run gql:schema:refresh`
 - Benchmark scenario validation: `pnpm --filter @ghx-dev/benchmark run check:scenarios`
 
 ## Branch Naming

@@ -52,7 +52,7 @@ pnpm run ci                     # Full CI suite (format:check, lint, typecheck, 
 
 ```bash
 pnpm run ci --outputStyle=static
-pnpm run ghx:gql:check          # If GraphQL operations changed
+pnpm run ghx:gql:verify          # If GraphQL operations changed
 pnpm run changeset              # If adding a user-facing change
 ```
 

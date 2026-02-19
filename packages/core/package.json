@@ -66,10 +66,9 @@
     "plugin:sync": "node scripts/sync-plugin-manifests.mjs",
     "plugin:sync:check": "node scripts/sync-plugin-manifests.mjs --check",
     "prepack": "pnpm run build",
-    "gql:codegen": "tsx scripts/run-gql-codegen.ts",
-    "gql:schema:update": "graphql-codegen --config codegen.schema.ts",
-    "gql:codegen:watch": "graphql-codegen --config codegen.ts --watch",
-    "gql:check": "pnpm run gql:codegen && biome check --write --no-errors-on-unmatched src/gql/generated src/gql/operations && git diff --exit-code -- src/gql/generated src/gql/operations/*.generated.ts src/gql/operations/fragments/*.generated.ts"
+    "gql:generate": "tsx scripts/run-gql-codegen.ts",
+    "gql:schema:refresh": "graphql-codegen --config codegen.schema.ts",
+    "gql:verify": "pnpm run gql:generate && biome check --write --no-errors-on-unmatched src/gql/generated src/gql/operations && git diff --exit-code -- src/gql/generated src/gql/operations/*.generated.ts src/gql/operations/fragments/*.generated.ts"
   },
   "nx": {
     "targets": {

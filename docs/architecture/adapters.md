@@ -125,7 +125,7 @@ The GraphQL adapter executes capabilities through GitHub's GraphQL API.
 Operations are generated from `.graphql` files using `graphql-codegen`:
 
 ```bash
-pnpm run ghx:gql:check  # Verify operations are up-to-date
+pnpm run ghx:gql:verify  # Verify operations are up-to-date
 ```
 
 Generated code is in `packages/core/src/gql/operations/*.generated.ts` and `packages/core/src/gql/generated/`.
@@ -231,7 +231,7 @@ To add adapter support for a new capability:
 ### GraphQL Route
 
 1. Write GraphQL operation in `packages/core/src/gql/operations/<capability>.graphql`
-2. Run `pnpm run ghx:gql:check` to regenerate SDKs
+2. Run `pnpm run ghx:gql:verify` to regenerate SDKs
 3. Add GraphQL metadata to operation card:
    ```yaml
    graphql:

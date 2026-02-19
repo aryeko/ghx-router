@@ -20,7 +20,7 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @ghx-dev/core run gql:check
+      - run: pnpm --filter @ghx-dev/core run gql:verify
 
   build-and-test:
     runs-on: ubuntu-latest

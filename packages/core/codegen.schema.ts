@@ -4,7 +4,7 @@ const token = process.env.GITHUB_TOKEN?.trim() || process.env.GH_TOKEN?.trim()
 
 if (!token) {
   throw new Error(
-    "gql:schema:update requires GITHUB_TOKEN (or GH_TOKEN) to query https://api.github.com/graphql",
+    "gql:schema:refresh requires GITHUB_TOKEN (or GH_TOKEN) to query https://api.github.com/graphql",
   )
 }
 

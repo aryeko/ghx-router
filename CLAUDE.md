@@ -52,7 +52,7 @@ pnpm --filter @ghx-dev/core exec vitest run test/unit/run-command.test.ts -t "pa
 
 ### GraphQL and Benchmark
 ```bash
-pnpm run ghx:gql:check           # verify GraphQL operations (run if .graphql files change)
+pnpm run ghx:gql:verify           # verify GraphQL operations (run if .graphql files change)
 pnpm run benchmark
 pnpm run benchmark:verify:pr
 pnpm run benchmark:verify:release
@@ -133,7 +133,7 @@ Lefthook runs automatically on commit (installed via `pnpm install`):
 ## Pre-PR Checklist
 
 1. `pnpm run ci --outputStyle=static` passes.
-2. If GraphQL operations changed: `pnpm run ghx:gql:check`.
+2. If GraphQL operations changed: `pnpm run ghx:gql:verify`.
 3. Satisfy all applicable checkboxes in `.github/pull_request_template.md`.
 4. Coverage for touched files: ≥90% (aim for 95%).
 5. If `@ghx-dev/core` public API changed: add a changeset — create `.changeset/<kebab-name>.md` with frontmatter `---\n"@ghx-dev/core": patch\n---\n\nDescription.`

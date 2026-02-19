@@ -19,7 +19,7 @@ describe("codegen schema update config", () => {
     delete process.env.GH_TOKEN
 
     await expect(importFreshConfig()).rejects.toThrow(
-      "gql:schema:update requires GITHUB_TOKEN (or GH_TOKEN)",
+      "gql:schema:refresh requires GITHUB_TOKEN (or GH_TOKEN)",
     )
   })
 
