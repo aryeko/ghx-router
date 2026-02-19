@@ -1,12 +1,8 @@
-import { resolve } from "node:path"
+import tsconfigPaths from "vite-tsconfig-paths"
 import { defineConfig } from "vitest/config"
 
 export default defineConfig({
-  resolve: {
-    alias: {
-      "@core": resolve(import.meta.dirname, "src"),
-    },
-  },
+  plugins: [tsconfigPaths()],
   test: {
     reporters: ["default", "junit"],
     outputFile: { junit: "test-report.junit.xml" },
