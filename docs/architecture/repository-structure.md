@@ -20,7 +20,7 @@ ghx/
 │   ├── contributing/           # Development setup, testing, CI, publishing
 │   ├── getting-started/        # Installation, first task, agent setup
 │   ├── guides/                 # CLI usage, library API, error handling
-│   └── archive/                # Archived design docs
+│   └── plans/                  # Design docs and implementation plans
 ├── packages/
 │   ├── core/                   # @ghx-dev/core (public npm package)
 │   │   ├── .claude-plugin/     # Claude Code plugin manifest
@@ -88,9 +88,10 @@ ghx/
 | `core/registry/index.ts` | Card loader & lookup | `validateOperationCard()`, `listOperationCards()`, `getOperationCard()` |
 | `core/registry/types.ts` | Card and routing types | `OperationCard`, `SuitabilityRule` |
 | `core/registry/schema-validator.ts` | JSON schema validation | `validateInput()`, `validateOutput()` |
+| `core/registry/schema-utils.ts` | Schema helper utilities | JSON schema helpers |
 | `core/registry/operation-card-schema.ts` | Card schema definition | `operationCardSchema` |
 | `core/registry/ajv-instance.ts` | Shared AJV instance | `ajv` |
-| `core/registry/cards/*.yaml` | Capability definitions | 66 operation cards |
+| `core/registry/cards/*.yaml` | Capability definitions | 69 operation cards (66 atomic + 3 composite) |
 
 ### Routing Engine (`core/routing`)
 
@@ -110,6 +111,7 @@ ghx/
 | Module | Purpose | Key Exports |
 |--------|---------|-------------|
 | `core/execute/execute.ts` | Route planning & retry loop | `execute()` |
+| `core/execute/composite.ts` | Composite capability expansion | `expandCompositeSteps()` |
 | `core/execution/preflight.ts` | Route readiness checks | `preflightCheck()` |
 | `core/execution/normalizer.ts` | Output normalization | `normalizeResult()`, `normalizeError()` |
 | `core/execution/adapters/cli-capability-adapter.ts` | CLI capability adapter | `runCliCapability()` |
@@ -135,8 +137,11 @@ ghx/
 |--------|---------|-------------|
 | `gql/transport.ts` | GraphQL transport and low-level client | `createGraphqlClient()`, `createTokenTransport()` |
 | `gql/github-client.ts` | Lazy-loaded GitHub GraphQL facade | `createGithubClient()`, `createGithubClientFromToken()` |
+| `gql/capability-registry.ts` | GQL handler registry by capability ID | `GraphqlHandler` map |
 | `gql/types.ts` | GQL input/output contracts | GraphQL domain input/data types |
 | `gql/assertions.ts` | GraphQL input validation helpers | `assert*` validation utilities |
+| `gql/batch.ts` | Composite batch mutation builder | `buildBatchMutation()` |
+| `gql/builders.ts` | Per-capability mutation builders | `OPERATION_BUILDERS` |
 | `gql/domains/*.ts` | Domain operation modules | `run*` operation handlers |
 | `gql/operations/*.generated.ts` | Generated operation SDKs | Operation-specific `getSdk()` |
 | `gql/generated/common-types.generated.ts` | Generated scalar types | Type aliases |

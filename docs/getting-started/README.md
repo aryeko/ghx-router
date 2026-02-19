@@ -8,7 +8,7 @@ through installation, your first capability execution, and agent setup.
 graph LR
   A["1. Install<br/>@ghx-dev/core"] --> B["2. Verify<br/>gh auth"]
   B --> C["3. Run First<br/>Capability"]
-  C --> D["4. Explore<br/>66 Operations"]
+  C --> D["4. Explore<br/>69 Operations"]
   D --> E["5. Setup for<br/>Agents"]
 
   style A fill:#4A90D9,color:#fff
@@ -70,7 +70,7 @@ gh auth login
 
 ## Step 3: List Available Capabilities
 
-See all 66 capabilities ghx provides:
+See all 69 capabilities ghx provides:
 
 ```bash
 npx ghx capabilities list

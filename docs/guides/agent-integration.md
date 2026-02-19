@@ -29,7 +29,7 @@ ghx provides three tools for agents:
 
 ### 1. `listCapabilities()`
 
-Discover all 66 capabilities available.
+Discover all 69 capabilities available.
 
 **Usage:**
 

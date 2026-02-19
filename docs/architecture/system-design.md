@@ -73,16 +73,23 @@ Every capability returns:
 
 ## Current Scope
 
-- Repository + issue reads: `repo.view`, `issue.view`, `issue.list`, `issue.comments.list`
-- Pull request reads: `pr.view`, `pr.list`, `pr.thread.list`, `pr.review.list`, `pr.diff.files`, `pr.diff.view`
-- Pull request checks + mergeability: `pr.checks.list`, `pr.checks.failed`, `pr.merge.status`
-- Pull request mutations: `pr.create`, `pr.update`, `pr.thread.reply`, `pr.thread.resolve`, `pr.thread.unresolve`, `pr.merge`, `pr.review.submit`, `pr.review.request`
-- CI diagnostics/logs: `check_run.annotations.list`, `workflow.runs.list`, `workflow.job.logs.raw`, `workflow.job.logs.get`
-- Route preferences are capability-specific and defined in cards (`preferred` + `fallbacks`), with REST still outside active routing for current capabilities
+69 capabilities (66 atomic + 3 composite) across 7 domains:
+
+- **Issues** (21): view, list, create, update, close, reopen, delete, comment, label, assign, milestone, link, parent, block, relation, and 2 composite batch capabilities
+- **Pull Requests** (22): view, list, create, update, thread operations, review operations, diff, checks, merge, branch update, and 1 composite batch capability
+- **Workflows** (11): view, list, dispatch, run lifecycle, logs, cancel, rerun, artifacts
+- **Releases** (5): get, list, create draft, publish draft, update
+- **Repositories** (3): view, labels list, issue types list
+- **Projects v2** (6): get, fields list, items list, add issue, update field
+- **Check Runs** (1): annotations list
+
+Composite capabilities batch multiple GraphQL mutations into a single network round-trip. Route preferences are capability-specific and defined in cards (`preferred` + `fallbacks`), with REST still outside active routing for current capabilities.
 
 ## Source References
 
 - `packages/core/src/core/execute/execute.ts`
 - `packages/core/src/core/registry/cards/*.yaml`
 - `packages/core/src/core/contracts/envelope.ts`
-- `packages/core/src/agent-interface/tools/`
+- `packages/core/src/core/execute/execute-tool.ts`
+- `packages/core/src/core/registry/list-capabilities.ts`
+- `packages/core/src/core/registry/explain-capability.ts`

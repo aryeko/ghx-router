@@ -32,7 +32,7 @@ npx @ghx-dev/core <command>
 ghx capabilities list
 ```
 
-Returns a JSON array of all 66 capabilities with descriptions:
+Returns a JSON array of all 69 capabilities with descriptions:
 
 ```json
 [

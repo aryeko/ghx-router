@@ -59,29 +59,29 @@ Each operation card includes:
 | `routing.fallbacks` | Secondary routes in order of preference | Yes |
 | `cli` | CLI command metadata and output mapping | No |
 | `graphql` | GraphQL operation and field mapping | No |
+| `composite` | Composite capability steps and output strategy | No |
 
 ## Current Capability Surface
 
-`ghx` currently defines **66 capabilities** across these domains:
+`ghx` currently defines **69 capabilities** across these domains (66 atomic + 3 composite):
 
 | Domain | Count | Purpose |
 |--------|-------|---------|
-| **Issues** | 18 | Create, read, update, close, link, label, milestone, assign issues |
-| **Pull Requests** | 21 | Read PR metadata, lists, reviews, comments, checks, mergeability, mutations |
+| **Issues** | 21 | Create, read, update, close, link, label, milestone, assign issues; composite batch operations |
+| **Pull Requests** | 22 | Read PR metadata, lists, reviews, threads, checks, mergeability, mutations; composite batch operations |
 | **Releases** | 5 | Query and draft releases, publish, update |
-| **Workflows** | 12 | Query workflow runs, jobs, logs, cancel, rerun; list workflows |
-| **Repositories** | 1 | Repo metadata and label/type listing |
+| **Workflows** | 11 | Query workflow runs, jobs, logs, cancel, rerun; list workflows; dispatch |
+| **Repositories** | 3 | Repo metadata, label listing, issue type listing |
 | **Projects (v2)** | 6 | Query and mutate projects, fields, items |
 | **Check Runs** | 1 | List check run annotations |
-| **Workflow Dispatch** | 1 | Trigger workflow runs |
 
-### Issue Capabilities (18)
+### Issue Capabilities (21)
 
-`issue.view`, `issue.list`, `issue.create`, `issue.update`, `issue.close`, `issue.reopen`, `issue.delete`, `issue.comments.list`, `issue.comments.create`, `issue.labels.update`, `issue.assignees.update`, `issue.milestone.set`, `issue.linked_prs.list`, `issue.parent.set`, `issue.parent.remove`, `issue.blocked_by.add`, `issue.blocked_by.remove`, `issue.relations.get`
+`issue.view`, `issue.list`, `issue.create`, `issue.update`, `issue.close`, `issue.reopen`, `issue.delete`, `issue.comments.list`, `issue.comments.create`, `issue.labels.update`, `issue.labels.add`, `issue.assignees.update`, `issue.milestone.set`, `issue.linked_prs.list`, `issue.parent.set`, `issue.parent.remove`, `issue.blocked_by.add`, `issue.blocked_by.remove`, `issue.relations.get`, `issue.triage.composite`, `issue.update.composite`
 
-### Pull Request Capabilities (21)
+### Pull Request Capabilities (22)
 
-`pr.view`, `pr.list`, `pr.comments.list`, `pr.reviews.list`, `pr.diff.list_files`, `pr.status.checks`, `pr.checks.get_failed`, `pr.checks.rerun_failed`, `pr.checks.rerun_all`, `pr.mergeability.view`, `pr.comment.reply`, `pr.comment.resolve`, `pr.comment.unresolve`, `pr.ready_for_review.set`, `pr.review.submit_approve`, `pr.review.submit_comment`, `pr.review.submit_request_changes`, `pr.reviewers.request`, `pr.branch.update`, `pr.merge.execute`, `pr.assignees.update`
+`pr.view`, `pr.list`, `pr.create`, `pr.update`, `pr.thread.list`, `pr.thread.reply`, `pr.thread.resolve`, `pr.thread.unresolve`, `pr.review.list`, `pr.review.submit`, `pr.review.request`, `pr.diff.files`, `pr.diff.view`, `pr.checks.list`, `pr.checks.failed`, `pr.checks.rerun_failed`, `pr.checks.rerun_all`, `pr.merge.status`, `pr.merge`, `pr.branch.update`, `pr.assignees.update`, `pr.threads.composite`
 
 ### Release Capabilities (5)
 
@@ -89,9 +89,9 @@ Each operation card includes:
 
 ### Workflow Capabilities (11)
 
-`workflow.get`, `workflow.list`, `workflow_dispatch.run`, `workflow_run.view`, `workflow_runs.list`, `workflow_run.cancel`, `workflow_run.rerun_all`, `workflow_run.rerun_failed`, `workflow_run.artifacts.list`, `workflow_job.logs.get`, `workflow_job.logs.analyze`
+`workflow.get`, `workflow.list`, `workflow.dispatch.run`, `workflow.run.view`, `workflow.runs.list`, `workflow.run.cancel`, `workflow.run.rerun_all`, `workflow.run.rerun_failed`, `workflow.run.artifacts.list`, `workflow.job.logs.get`, `workflow.job.logs.raw`
 
-### Repository Capabilities (1)
+### Repository Capabilities (3)
 
 `repo.view`, `repo.issue_types.list`, `repo.labels.list`
 
@@ -102,6 +102,29 @@ Each operation card includes:
 ### Check Run Capabilities (1)
 
 `check_run.annotations.list`
+
+## Composite Capabilities
+
+Composite capabilities batch multiple GraphQL mutations into a single network round-trip using `gql/batch.ts`. They are declared with a `composite` field instead of `cli`/`graphql` fields:
+
+```yaml
+composite:
+  steps:
+    - capability_id: issue.labels.update
+      params_map:
+        issueId: issueId
+        labels: labelIds
+    - capability_id: issue.comments.create
+      params_map:
+        issueId: issueId
+        body: body
+  output_strategy: merge
+```
+
+Composite capabilities:
+- Use `routing.preferred: graphql` exclusively (no CLI fallback)
+- Are expanded by `core/execute/composite.ts` → `gql/builders.ts` → `gql/batch.ts`
+- Merge output from all steps into a single `ResultEnvelope`
 
 ## Card Loading & Validation
 

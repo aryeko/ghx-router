@@ -415,7 +415,7 @@ You're ready to:
 1. Build more complex workflows
 2. Integrate ghx into automation scripts
 3. Set up ghx for coding agents
-4. Explore the full 66-capability API
+4. Explore the full 69-capability API
 
 ## Next Resources
 

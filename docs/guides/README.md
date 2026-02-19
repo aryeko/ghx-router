@@ -9,7 +9,7 @@ Practical how-to documentation for using ghx in your project or AI agent.
 Start here if you're running ghx commands from the terminal.
 
 - `npx ghx run` — Execute a capability
-- `npx ghx capabilities list` — List all 66 capabilities
+- `npx ghx capabilities list` — List all 69 capabilities
 - `npx ghx capabilities explain` — Understand a capability's contract
 
 **[Library API](library-api.md)** — Programmatic access in Node.js

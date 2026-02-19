@@ -1,6 +1,6 @@
 # Capabilities Reference
 
-Welcome to ghx's comprehensive capabilities reference. These 66 capabilities form the
+Welcome to ghx's comprehensive capabilities reference. These 69 capabilities form the
 core of ghx's ability to automate GitHub workflows for AI agents.
 
 Capabilities are organized by domain — from managing issues and pull requests to

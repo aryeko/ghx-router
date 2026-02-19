@@ -16,7 +16,7 @@ flowchart TB
     end
 
     subgraph Registry["Operation Registry 📋"]
-        Cards["66 Capability Cards"]
+        Cards["69 Capability Cards"]
         Schema["JSON Schema Validation"]
     end
 
@@ -90,7 +90,7 @@ flowchart TB
 ## Entry Points
 
 - **Library Consumer** — `packages/core/src/index.ts`
-- **Agent Tools** — `packages/core/src/agent.ts`
+- **Agent Tools** — `packages/core/src/index.ts` (exports `createExecuteTool`, `listCapabilities`, `explainCapability`)
 - **CLI User** — `packages/core/src/cli/index.ts` (executable: `ghx`)
 - **Benchmark** — `packages/benchmark/src/cli/benchmark.ts`
 

@@ -1,7 +1,7 @@
 # Agent Setup Guide: Installing ghx for Coding Agents
 
 Make ghx discoverable to AI coding agents (Claude Code, Cursor, OpenCode, etc.) by installing a
-skill file. Then agents automatically know how to use 66 GitHub capabilities without manual
+skill file. Then agents automatically know how to use 69 GitHub capabilities without manual
 prompting.
 
 ## Why Agent Setup?
@@ -215,7 +215,7 @@ The installed `SKILL.md` includes:
 
 Execute typed GitHub capabilities with deterministic routing and stable result envelopes.
 
-66 capabilities across 7 domains: Issues, Pull Requests, Workflows, Releases, etc.
+69 capabilities across 7 domains: Issues, Pull Requests, Workflows, Releases, etc.
 
 - No wasted tokens on discovery
 - Schema-validated input/output
@@ -228,7 +228,7 @@ Instructions for verifying setup:
 
 ```bash
 gh auth status           # Verify gh CLI is authenticated
-ghx capabilities list    # Discover all 66 capabilities
+ghx capabilities list    # Discover all 69 capabilities
 ```
 
 ### Workflow Section
@@ -527,7 +527,7 @@ run_agent:
 ## Related Documentation
 
 - **[Architecture](../architecture/README.md)** — System design and routing engine
-- **[Agent Interface](../architecture/agent-interface.md)** — Runtime tools agents can use
+- **[Library API](../guides/library-api.md)** — Runtime tools agents can use (`createExecuteTool`, `listCapabilities`, `explainCapability`)
 
 ---
 
