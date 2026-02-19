@@ -2,8 +2,8 @@
   "type": "workflow",
   "id": "ci-diagnose-run-wf-001",
   "name": "Diagnose a failed CI workflow run",
-  "prompt": "Workflow run {{runId}} in {{owner}}/{{name}} has failed. Get the run details to confirm its status and conclusion, and identify which job failed.",
-  "expected_capabilities": ["workflow.run.view"],
+  "prompt": "Workflow run {{runId}} in {{owner}}/{{name}} has failed. Get the run details to confirm its status and conclusion, identify which job failed, and fetch that job's logs to surface the top error lines.",
+  "expected_capabilities": ["workflow.run.view", "workflow.job.logs.get"],
   "timeout_ms": 180000,
   "allowed_retries": 1,
   "fixture": {
