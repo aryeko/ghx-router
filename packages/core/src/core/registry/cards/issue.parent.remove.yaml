@@ -20,3 +20,13 @@ routing:
 graphql:
   operationName: IssueParentRemove
   documentPath: src/gql/operations/issue-parent-remove.graphql
+  resolution:
+    lookup:
+      operationName: IssueParentLookup
+      documentPath: src/gql/operations/issue-parent-lookup.graphql
+      vars:
+        issueId: issueId
+    inject:
+      - target: parentIssueId
+        source: scalar
+        path: node.parent.id

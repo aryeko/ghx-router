@@ -25,3 +25,16 @@ routing:
 graphql:
   operationName: IssueLabelsUpdate
   documentPath: src/gql/operations/issue-labels-update.graphql
+  resolution:
+    lookup:
+      operationName: IssueLabelsLookup
+      documentPath: src/gql/operations/issue-labels-lookup.graphql
+      vars:
+        issueId: issueId
+    inject:
+      - target: labelIds
+        source: map_array
+        from_input: labels
+        nodes_path: node.repository.labels.nodes
+        match_field: name
+        extract_field: id

@@ -25,3 +25,16 @@ routing:
 graphql:
   operationName: IssueAssigneesUpdate
   documentPath: src/gql/operations/issue-assignees-update.graphql
+  resolution:
+    lookup:
+      operationName: IssueAssigneesLookup
+      documentPath: src/gql/operations/issue-assignees-lookup.graphql
+      vars:
+        issueId: issueId
+    inject:
+      - target: assigneeIds
+        source: map_array
+        from_input: assignees
+        nodes_path: node.repository.assignableUsers.nodes
+        match_field: login
+        extract_field: id

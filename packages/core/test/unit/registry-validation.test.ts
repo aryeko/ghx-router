@@ -97,3 +97,24 @@ describe("validateOperationCard", () => {
     expect(result.ok).toBe(false)
   })
 })
+
+describe("card resolution blocks", () => {
+  it("issue.labels.update has resolution config", async () => {
+    const { getOperationCard } = await import("@core/core/registry/index.js")
+    const card = getOperationCard("issue.labels.update")
+    expect(card).toBeDefined()
+    if (!card) return
+    expect(card.graphql?.resolution).toBeDefined()
+    expect(card.graphql?.resolution?.lookup.operationName).toBe("IssueLabelsLookup")
+    expect(card.graphql?.resolution?.inject[0]?.source).toBe("map_array")
+  })
+
+  it("issue.milestone.set has scalar resolution", async () => {
+    const { getOperationCard } = await import("@core/core/registry/index.js")
+    const card = getOperationCard("issue.milestone.set")
+    expect(card).toBeDefined()
+    if (!card) return
+    expect(card.graphql?.resolution).toBeDefined()
+    expect(card.graphql?.resolution?.inject[0]?.source).toBe("scalar")
+  })
+})

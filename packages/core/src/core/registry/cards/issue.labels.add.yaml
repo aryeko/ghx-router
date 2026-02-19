@@ -23,3 +23,19 @@ output_schema:
 routing:
   preferred: graphql
   fallbacks: []
+graphql:
+  operationName: IssueLabelsAdd
+  documentPath: src/gql/operations/issue-labels-add.graphql
+  resolution:
+    lookup:
+      operationName: IssueLabelsLookup
+      documentPath: src/gql/operations/issue-labels-lookup.graphql
+      vars:
+        issueId: issueId
+    inject:
+      - target: labelIds
+        source: map_array
+        from_input: labels
+        nodes_path: node.repository.labels.nodes
+        match_field: name
+        extract_field: id

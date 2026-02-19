@@ -21,3 +21,14 @@ routing:
 graphql:
   operationName: IssueMilestoneSet
   documentPath: src/gql/operations/issue-milestone-set.graphql
+  resolution:
+    lookup:
+      operationName: IssueMilestoneLookup
+      documentPath: src/gql/operations/issue-milestone-lookup.graphql
+      vars:
+        issueId: issueId
+        milestoneNumber: milestoneNumber
+    inject:
+      - target: milestoneId
+        source: scalar
+        path: node.repository.milestone.id

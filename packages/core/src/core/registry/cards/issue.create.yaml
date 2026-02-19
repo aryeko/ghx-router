@@ -26,3 +26,14 @@ routing:
 graphql:
   operationName: IssueCreate
   documentPath: src/gql/operations/issue-create.graphql
+  resolution:
+    lookup:
+      operationName: IssueCreateRepositoryId
+      documentPath: src/gql/operations/issue-create-repository-id.graphql
+      vars:
+        owner: owner
+        name: name
+    inject:
+      - target: repositoryId
+        source: scalar
+        path: repository.id
