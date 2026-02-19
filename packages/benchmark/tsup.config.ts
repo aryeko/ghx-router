@@ -10,6 +10,7 @@ export default defineConfig({
   sourcemap: true,
   esbuildOptions(options) {
     options.alias = {
+      ...options.alias,
       "@bench": resolve(import.meta.dirname, "src"),
     }
   },

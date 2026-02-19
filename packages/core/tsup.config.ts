@@ -11,6 +11,7 @@ export default defineConfig({
   onSuccess: "node scripts/copy-registry-cards.mjs",
   esbuildOptions(options) {
     options.alias = {
+      ...options.alias,
       "@core": resolve(import.meta.dirname, "src"),
     }
   },
