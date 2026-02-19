@@ -1,8 +1,7 @@
+import { createExecuteTool } from "@core/core/execute/execute-tool.js"
+import { explainCapability } from "@core/core/registry/explain-capability.js"
+import { listCapabilities } from "@core/core/registry/list-capabilities.js"
 import { describe, expect, it, vi } from "vitest"
-
-import { createExecuteTool } from "../../src/core/execute/execute-tool.js"
-import { explainCapability } from "../../src/core/registry/explain-capability.js"
-import { listCapabilities } from "../../src/core/registry/list-capabilities.js"
 
 describe("agent interface tools", () => {
   it("execute tool delegates to executeTask", async () => {

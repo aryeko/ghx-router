@@ -1,8 +1,7 @@
+import type { TaskRequest } from "@core/core/contracts/task.js"
+import { executeTask } from "@core/core/routing/engine.js"
+import { createGithubClient } from "@core/gql/client.js"
 import { describe, expect, it } from "vitest"
-
-import type { TaskRequest } from "../../src/core/contracts/task.js"
-import { executeTask } from "../../src/core/routing/engine.js"
-import { createGithubClient } from "../../src/gql/client.js"
 
 describe("executeTask project_v2.user.get", () => {
   it("returns validation error envelope for missing number", async () => {

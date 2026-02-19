@@ -1,6 +1,5 @@
+import { logMetric, sanitizeTelemetryContext } from "@core/core/telemetry/logger.js"
 import { describe, expect, it, vi } from "vitest"
-
-import { logMetric, sanitizeTelemetryContext } from "../../src/core/telemetry/logger.js"
 
 describe("telemetry logger", () => {
   it("redacts sensitive fields in context", () => {

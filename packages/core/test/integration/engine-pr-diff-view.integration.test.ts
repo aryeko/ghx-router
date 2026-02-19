@@ -1,8 +1,7 @@
+import type { TaskRequest } from "@core/core/contracts/task.js"
+import { executeTask } from "@core/core/routing/engine.js"
+import { createGithubClient } from "@core/gql/client.js"
 import { describe, expect, it } from "vitest"
-
-import type { TaskRequest } from "../../src/core/contracts/task.js"
-import { executeTask } from "../../src/core/routing/engine.js"
-import { createGithubClient } from "../../src/gql/client.js"
 
 describe("executeTask pr.diff.view", () => {
   it("returns cli envelope for pr.diff.view", async () => {

@@ -21,7 +21,7 @@ vi.mock("../../src/cli/commands/capabilities-explain.js", () => ({
   capabilitiesExplainCommand: (...args: unknown[]) => capabilitiesExplainCommandMock(...args),
 }))
 
-import { main } from "../../src/cli/index.js"
+import { main } from "@core/cli/index.js"
 
 describe("cli index main", () => {
   beforeEach(() => {

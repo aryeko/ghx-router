@@ -1,5 +1,3 @@
-import { describe, expect, it } from "vitest"
-
 import {
   createExecuteTool,
   createGithubClient,
@@ -9,7 +7,8 @@ import {
   executeTask,
   explainCapability,
   listCapabilities,
-} from "../../src/index.js"
+} from "@core/index.js"
+import { describe, expect, it } from "vitest"
 
 describe("public exports", () => {
   it("exports root api surface", () => {

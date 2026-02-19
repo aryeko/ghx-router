@@ -1,6 +1,5 @@
+import { validateOperationCard } from "@core/core/registry/index.js"
 import { describe, expect, it } from "vitest"
-
-import { validateOperationCard } from "../../src/core/registry/index.js"
 
 describe("validateOperationCard", () => {
   it("rejects malformed operation cards", () => {

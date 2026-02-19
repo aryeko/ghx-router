@@ -1,6 +1,5 @@
+import type { OperationCard } from "@core/core/registry/types.js"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-
-import type { OperationCard } from "../../src/core/registry/types.js"
 
 const executeMock = vi.fn()
 const getOperationCardMock = vi.fn()

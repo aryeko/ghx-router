@@ -1,5 +1,5 @@
+import { createGithubClientFromToken, createGraphqlClient } from "@core/gql/client.js"
 import { describe, expect, it, vi } from "vitest"
-import { createGithubClientFromToken, createGraphqlClient } from "../../src/gql/client.js"
 
 describe("createGraphqlClient", () => {
   it("executes query via provided transport", async () => {

@@ -1,7 +1,6 @@
+import { createGithubClient } from "@core/gql/client.js"
 import { parse } from "graphql"
 import { describe, expect, it, vi } from "vitest"
-
-import { createGithubClient } from "../../src/gql/client.js"
 
 describe("createGithubClient", () => {
   it("maps repo and issue/pr payloads from GraphQL responses", async () => {

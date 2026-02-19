@@ -1,6 +1,5 @@
+import { isRetryableErrorCode } from "@core/core/errors/retryability.js"
 import { describe, expect, it } from "vitest"
-
-import { isRetryableErrorCode } from "../../src/core/errors/retryability.js"
 
 describe("isRetryableErrorCode", () => {
   it("returns true for network, rate-limit and server errors", () => {

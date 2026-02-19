@@ -1,11 +1,11 @@
+import { runCommand } from "@core/cli/commands/run.js"
+import { formatJson } from "@core/cli/formatters/json.js"
+import { main } from "@core/cli/index.js"
+import { runRestAdapter } from "@core/core/execution/adapters/rest-adapter.js"
+import { routeReasonCodes } from "@core/core/routing/reason-codes.js"
+import { projectName } from "@core/shared/constants.js"
+import { isObject } from "@core/shared/utils.js"
 import { describe, expect, it } from "vitest"
-import { runCommand } from "../../src/cli/commands/run.js"
-import { formatJson } from "../../src/cli/formatters/json.js"
-import { main } from "../../src/cli/index.js"
-import { runRestAdapter } from "../../src/core/execution/adapters/rest-adapter.js"
-import { routeReasonCodes } from "../../src/core/routing/reason-codes.js"
-import { projectName } from "../../src/shared/constants.js"
-import { isObject } from "../../src/shared/utils.js"
 
 describe("scaffolds and constants", () => {
   it("executes scaffold command entrypoints without throwing", () => {

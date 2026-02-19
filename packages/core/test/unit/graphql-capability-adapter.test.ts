@@ -1,6 +1,5 @@
+import { runGraphqlCapability } from "@core/core/execution/adapters/graphql-capability-adapter.js"
 import { describe, expect, it, vi } from "vitest"
-
-import { runGraphqlCapability } from "../../src/core/execution/adapters/graphql-capability-adapter.js"
 
 describe("runGraphqlCapability", () => {
   it("returns normalized data for supported capability", async () => {

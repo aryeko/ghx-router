@@ -1,7 +1,6 @@
+import { runCliCapability } from "@core/core/execution/adapters/cli-capability-adapter.js"
+import type { OperationCard } from "@core/core/registry/types.js"
 import { describe, expect, it, vi } from "vitest"
-
-import { runCliCapability } from "../../src/core/execution/adapters/cli-capability-adapter.js"
-import type { OperationCard } from "../../src/core/registry/types.js"
 
 describe("runCliCapability", () => {
   it("builds gh args and parses json output", async () => {

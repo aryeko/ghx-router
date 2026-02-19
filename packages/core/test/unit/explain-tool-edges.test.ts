@@ -8,7 +8,7 @@ vi.mock("../../src/core/registry/index.js", () => ({
   getOperationCard: getOperationCardMock,
 }))
 
-import { explainCapability } from "../../src/core/registry/explain-capability.js"
+import { explainCapability } from "@core/core/registry/explain-capability.js"
 
 describe("explain tool edge cases", () => {
   it("returns empty input/output lists when schemas are malformed", () => {

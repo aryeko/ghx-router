@@ -1,7 +1,6 @@
+import { capabilitiesExplainCommand } from "@core/cli/commands/capabilities-explain.js"
+import { capabilitiesListCommand } from "@core/cli/commands/capabilities-list.js"
 import { afterEach, describe, expect, it, vi } from "vitest"
-
-import { capabilitiesExplainCommand } from "../../src/cli/commands/capabilities-explain.js"
-import { capabilitiesListCommand } from "../../src/cli/commands/capabilities-list.js"
 
 describe("capabilities CLI commands", () => {
   afterEach(() => {

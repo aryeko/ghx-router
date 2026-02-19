@@ -1,9 +1,8 @@
+import type { TaskRequest } from "@core/core/contracts/task.js"
+import { capabilityRegistry } from "@core/core/routing/capability-registry.js"
+import { executeTask } from "@core/core/routing/engine.js"
+import { createGithubClient } from "@core/gql/client.js"
 import { describe, expect, it } from "vitest"
-
-import type { TaskRequest } from "../../src/core/contracts/task.js"
-import { capabilityRegistry } from "../../src/core/routing/capability-registry.js"
-import { executeTask } from "../../src/core/routing/engine.js"
-import { createGithubClient } from "../../src/gql/client.js"
 
 describe("executeTask repo.view", () => {
   it("returns cli envelope when cli preflight passes", async () => {

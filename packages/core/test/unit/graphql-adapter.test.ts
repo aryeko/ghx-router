@@ -1,7 +1,6 @@
+import { runGraphqlAdapter } from "@core/core/execution/adapters/graphql-adapter.js"
+import { createGraphqlClient } from "@core/gql/client.js"
 import { describe, expect, it } from "vitest"
-
-import { runGraphqlAdapter } from "../../src/core/execution/adapters/graphql-adapter.js"
-import { createGraphqlClient } from "../../src/gql/client.js"
 
 describe("runGraphqlAdapter", () => {
   it("returns success envelope for successful query", async () => {

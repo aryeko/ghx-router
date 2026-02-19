@@ -1,7 +1,6 @@
 import { EventEmitter } from "node:events"
+import { createSafeCliCommandRunner } from "@core/core/execution/cli/safe-runner.js"
 import { describe, expect, it, vi } from "vitest"
-
-import { createSafeCliCommandRunner } from "../../src/core/execution/cli/safe-runner.js"
 
 describe("createSafeCliCommandRunner", () => {
   it("returns stdout, stderr, and exitCode for successful command", async () => {

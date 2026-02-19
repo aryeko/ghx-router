@@ -1,6 +1,5 @@
+import { normalizeError, normalizeResult } from "@core/core/execution/normalizer.js"
 import { describe, expect, it } from "vitest"
-
-import { normalizeError, normalizeResult } from "../../src/core/execution/normalizer.js"
 
 describe("normalizer", () => {
   it("normalizes success payloads", () => {

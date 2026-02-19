@@ -12,7 +12,7 @@ vi.mock("../../src/core/routing/engine.js", () => ({
   executeTask: (...args: unknown[]) => executeTaskMock(...args),
 }))
 
-import { readStdin, runCommand } from "../../src/cli/commands/run.js"
+import { readStdin, runCommand } from "@core/cli/commands/run.js"
 
 function mockStdin(content: string): void {
   const readable = new Readable({
