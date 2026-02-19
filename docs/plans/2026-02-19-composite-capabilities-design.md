@@ -44,20 +44,54 @@ composite?: CompositeConfig
 
 Composites are **GraphQL-only** — no CLI fallback. If GraphQL preflight fails, the composite returns an error instructing the agent to use atomic capabilities instead. The agent can always fall back to calling atomic caps individually (which have their own CLI routes).
 
-### 2. GraphQL Alias Batching Engine
+### 2. Operation Builder Pattern
+
+Existing client methods (e.g., `runReplyToReviewThread`) bundle validation + variable assembly + execution + response mapping into one function. Composites need to reuse the build and map phases while batching execution.
+
+Refactor participating methods into three composable phases:
+
+```typescript
+type OperationBuilder<TInput, TOutput> = {
+  /** Validates input and assembles { mutation, variables } without executing */
+  build: (input: TInput) => { mutation: string; variables: GraphqlVariables }
+  /** Maps raw GQL response back to typed output */
+  mapResponse: (raw: unknown) => TOutput
+}
+```
+
+**Atomic calls** continue working unchanged — they call `build()`, execute, then `mapResponse()` inline.
+
+**Composite calls** collect `build()` results from each step, batch them into a single request, then call each step's `mapResponse()` on the corresponding aliased response.
+
+Builders are registered by capability ID so the composite engine can look them up:
+
+```typescript
+const OPERATION_BUILDERS: Record<string, OperationBuilder<unknown, unknown>> = {
+  "pr.thread.reply": replyToReviewThreadBuilder,
+  "pr.thread.resolve": resolveReviewThreadBuilder,
+  "pr.thread.unresolve": unresolveReviewThreadBuilder,
+  "issue.labels.update": issueLabelsUpdateBuilder,
+  "issue.comments.create": issueCommentCreateBuilder,
+  // ...
+}
+```
+
+**Note:** Multi-step operations (e.g., `issue.labels.update` which does a lookup query before the mutation) need their lookup resolved before `build()` returns. The `build()` function may be async for these cases.
+
+### 3. GraphQL Alias Batching Engine
 
 New module: `packages/core/src/gql/batch.ts`
 
-Takes multiple GraphQL operations and combines them into a single aliased request:
+Takes multiple built operations and combines them into a single aliased request:
 
 ```typescript
 interface BatchOperation {
   alias: string           // e.g. "reply0", "resolve0"
-  document: DocumentNode  // existing operation document
+  mutation: string        // from builder.build()
   variables: GraphqlVariables
 }
 
-function buildBatchDocument(operations: BatchOperation[]): {
+function buildBatchMutation(operations: BatchOperation[]): {
   document: string
   variables: GraphqlVariables  // merged with prefixed variable names
 }
@@ -89,25 +123,30 @@ mutation BatchComposite(
 
 **Implementation details:**
 
-- Parses existing `.graphql` DocumentNodes to extract selection sets
+- Parses mutation strings to extract variable declarations and selection sets
 - Prefixes each selection with an alias
 - Prefixes all variable names to avoid collisions
 - Rewrites variable references in selection sets
 - Sends as a single HTTP request via `GraphqlTransport.execute()`
 - Partial failure: GitHub GraphQL returns errors per-alias; results are mapped back to step + iteration index
 
-### 3. Composite Execution Path
+### 4. Composite Execution Path
 
-In `execute.ts` — detect composite cards and dispatch differently:
+In `engine.ts` — detect composite cards and dispatch differently:
 
 ```
 executeTask(task, input)
   → loadCard(task)
   → if card.composite:
       → expandCompositeSteps(card, input)
-      → buildBatchDocument(expandedSteps)
+      → for each expanded step:
+          → lookup OperationBuilder by capability_id
+          → call builder.build(stepInput) → { mutation, variables }
+          → store builder.mapResponse for later
+      → buildBatchMutation(allOperations)
       → single GraphQL request
-      → unpack aliased results
+      → for each aliased result:
+          → call stored mapResponse(aliasedResult)
       → aggregate results per output_strategy
   → else:
       → existing single-operation flow

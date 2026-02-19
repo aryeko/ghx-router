@@ -464,222 +464,188 @@ git commit -m "feat: add GraphQL alias batching engine"
 
 ---
 
-### Task 4: Add Composite Step Expansion Logic
+### Task 4: Extract Operation Builders from Client Methods
 
 **Files:**
-- Create: `packages/core/src/core/execute/composite.ts`
-- Create: `packages/core/test/unit/composite-expand.test.ts`
+- Create: `packages/core/src/gql/builders.ts`
+- Create: `packages/core/test/unit/gql-builders.test.ts`
+- Modify: `packages/core/src/gql/client.ts` (refactor `run*` methods to use builders internally)
 
-This module expands `composite.steps` + `foreach` + `params_map` + mixed `action` into a flat list of `BatchOperationInput` items.
+Refactor existing client mutation methods into a build/map split so composites can reuse the same logic. Each builder extracts the validation + variable assembly (`build`) and response parsing (`mapResponse`) from the corresponding `run*` method.
 
 **Step 1: Write the failing test**
 
-Create `packages/core/test/unit/composite-expand.test.ts`:
+Create `packages/core/test/unit/gql-builders.test.ts`:
 
 ```typescript
 import { describe, expect, it } from "vitest"
-import { expandCompositeSteps } from "../../src/core/execute/composite.js"
+import {
+  OPERATION_BUILDERS,
+  type OperationBuilder,
+} from "../../src/gql/builders.js"
 
-// Mutation string constants (same ones used in client.ts)
-const MUTATIONS = {
-  "pr.thread.reply": `mutation PrCommentReply($threadId: ID!, $body: String!) {
-    addPullRequestReviewThreadReply(input: { pullRequestReviewThreadId: $threadId, body: $body }) {
-      comment { id }
+describe("OperationBuilder registry", () => {
+  it("has a builder for pr.thread.reply", () => {
+    const builder = OPERATION_BUILDERS["pr.thread.reply"]
+    expect(builder).toBeDefined()
+  })
+
+  it("has a builder for pr.thread.resolve", () => {
+    const builder = OPERATION_BUILDERS["pr.thread.resolve"]
+    expect(builder).toBeDefined()
+  })
+
+  it("has a builder for pr.thread.unresolve", () => {
+    const builder = OPERATION_BUILDERS["pr.thread.unresolve"]
+    expect(builder).toBeDefined()
+  })
+})
+
+describe("pr.thread.reply builder", () => {
+  const builder = OPERATION_BUILDERS["pr.thread.reply"]!
+
+  it("build() returns mutation string and variables", () => {
+    const result = builder.build({ threadId: "t1", body: "Fixed" })
+    expect(result.mutation).toContain("addPullRequestReviewThreadReply")
+    expect(result.variables).toEqual({ threadId: "t1", body: "Fixed" })
+  })
+
+  it("build() throws when body is missing", () => {
+    expect(() => builder.build({ threadId: "t1" })).toThrow()
+  })
+
+  it("mapResponse() extracts comment id", () => {
+    const raw = {
+      addPullRequestReviewThreadReply: { comment: { id: "c1" } },
     }
-  }`,
-  "pr.thread.resolve": `mutation PrCommentResolve($threadId: ID!) {
-    resolveReviewThread(input: { threadId: $threadId }) {
-      thread { id isResolved }
+    const result = builder.mapResponse(raw)
+    expect(result).toEqual({ id: "c1" })
+  })
+})
+
+describe("pr.thread.resolve builder", () => {
+  const builder = OPERATION_BUILDERS["pr.thread.resolve"]!
+
+  it("build() returns mutation string and variables", () => {
+    const result = builder.build({ threadId: "t1" })
+    expect(result.mutation).toContain("resolveReviewThread")
+    expect(result.variables).toEqual({ threadId: "t1" })
+  })
+
+  it("mapResponse() extracts thread state", () => {
+    const raw = {
+      resolveReviewThread: { thread: { id: "t1", isResolved: true } },
     }
-  }`,
-  "pr.thread.unresolve": `mutation PrCommentUnresolve($threadId: ID!) {
-    unresolveReviewThread(input: { threadId: $threadId }) {
-      thread { id isResolved }
-    }
-  }`,
-}
-
-describe("expandCompositeSteps", () => {
-  it("expands reply_and_resolve action into two operations per thread", () => {
-    const result = expandCompositeSteps(
-      {
-        threads: [
-          { threadId: "t1", action: "reply_and_resolve", body: "Fixed" },
-          { threadId: "t2", action: "reply_and_resolve", body: "Done" },
-        ],
-      },
-      MUTATIONS,
-    )
-
-    expect(result).toHaveLength(4)
-    expect(result[0]!.alias).toBe("reply0")
-    expect(result[0]!.variables).toEqual({ threadId: "t1", body: "Fixed" })
-    expect(result[1]!.alias).toBe("resolve0")
-    expect(result[1]!.variables).toEqual({ threadId: "t1" })
-    expect(result[2]!.alias).toBe("reply1")
-    expect(result[3]!.alias).toBe("resolve1")
-  })
-
-  it("expands reply-only action into one operation", () => {
-    const result = expandCompositeSteps(
-      { threads: [{ threadId: "t1", action: "reply", body: "Noted" }] },
-      MUTATIONS,
-    )
-    expect(result).toHaveLength(1)
-    expect(result[0]!.alias).toBe("reply0")
-    expect(result[0]!.mutation).toContain("addPullRequestReviewThreadReply")
-  })
-
-  it("expands resolve-only action into one operation", () => {
-    const result = expandCompositeSteps(
-      { threads: [{ threadId: "t1", action: "resolve" }] },
-      MUTATIONS,
-    )
-    expect(result).toHaveLength(1)
-    expect(result[0]!.alias).toBe("resolve0")
-  })
-
-  it("expands unresolve action into one operation", () => {
-    const result = expandCompositeSteps(
-      { threads: [{ threadId: "t1", action: "unresolve" }] },
-      MUTATIONS,
-    )
-    expect(result).toHaveLength(1)
-    expect(result[0]!.alias).toBe("unresolve0")
-  })
-
-  it("handles mixed actions across threads", () => {
-    const result = expandCompositeSteps(
-      {
-        threads: [
-          { threadId: "t1", action: "reply_and_resolve", body: "Fix" },
-          { threadId: "t2", action: "reply", body: "WIP" },
-          { threadId: "t3", action: "resolve" },
-        ],
-      },
-      MUTATIONS,
-    )
-    // t1: reply0 + resolve0, t2: reply1, t3: resolve1
-    expect(result).toHaveLength(4)
-  })
-
-  it("throws when reply action is missing body", () => {
-    expect(() =>
-      expandCompositeSteps(
-        { threads: [{ threadId: "t1", action: "reply" }] },
-        MUTATIONS,
-      ),
-    ).toThrow("body is required")
-  })
-
-  it("throws when threads array is empty", () => {
-    expect(() =>
-      expandCompositeSteps({ threads: [] }, MUTATIONS),
-    ).toThrow()
+    const result = builder.mapResponse(raw)
+    expect(result).toEqual({ id: "t1", isResolved: true })
   })
 })
 ```
 
 **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter @ghx-dev/core exec vitest run test/unit/composite-expand.test.ts`
+Run: `pnpm --filter @ghx-dev/core exec vitest run test/unit/gql-builders.test.ts`
 Expected: FAIL — module doesn't exist
 
 **Step 3: Write minimal implementation**
 
-Create `packages/core/src/core/execute/composite.ts`:
+Create `packages/core/src/gql/builders.ts`:
 
 ```typescript
-import type { BatchOperationInput } from "../../gql/batch.js"
+import type { GraphqlVariables } from "./client.js"
 
-type ThreadAction = "reply" | "resolve" | "reply_and_resolve" | "unresolve"
-
-type ThreadInput = {
-  threadId: string
-  action: ThreadAction
-  body?: string
+export type BuiltOperation = {
+  mutation: string
+  variables: GraphqlVariables
 }
 
-type CompositeInput = {
-  threads: ThreadInput[]
+export type OperationBuilder = {
+  build: (input: Record<string, unknown>) => BuiltOperation
+  mapResponse: (raw: unknown) => unknown
 }
 
-type MutationMap = Record<string, string>
+// Import mutation string constants from client.ts
+// (these are already defined there — export them so builders can reference)
+import {
+  PR_COMMENT_REPLY_MUTATION,
+  PR_COMMENT_RESOLVE_MUTATION,
+  PR_COMMENT_UNRESOLVE_MUTATION,
+} from "./client.js"
 
-export function expandCompositeSteps(
-  input: CompositeInput,
-  mutations: MutationMap,
-): BatchOperationInput[] {
-  if (!input.threads || input.threads.length === 0) {
-    throw new Error("threads array must contain at least one item")
-  }
-
-  const operations: BatchOperationInput[] = []
-  let replyIndex = 0
-  let resolveIndex = 0
-  let unresolveIndex = 0
-
-  for (const thread of input.threads) {
-    const actions = expandAction(thread.action)
-
-    for (const action of actions) {
-      if (action === "reply") {
-        if (!thread.body || thread.body.trim().length === 0) {
-          throw new Error(`body is required for reply action on thread ${thread.threadId}`)
-        }
-        operations.push({
-          alias: `reply${replyIndex}`,
-          mutation: mutations["pr.thread.reply"]!,
-          variables: { threadId: thread.threadId, body: thread.body },
-        })
-        replyIndex++
-      } else if (action === "resolve") {
-        operations.push({
-          alias: `resolve${resolveIndex}`,
-          mutation: mutations["pr.thread.resolve"]!,
-          variables: { threadId: thread.threadId },
-        })
-        resolveIndex++
-      } else if (action === "unresolve") {
-        operations.push({
-          alias: `unresolve${unresolveIndex}`,
-          mutation: mutations["pr.thread.unresolve"]!,
-          variables: { threadId: thread.threadId },
-        })
-        unresolveIndex++
-      }
+const replyBuilder: OperationBuilder = {
+  build(input) {
+    if (!input.threadId || typeof input.threadId !== "string") {
+      throw new Error("threadId is required")
     }
-  }
-
-  return operations
+    if (!input.body || typeof input.body !== "string") {
+      throw new Error("body is required for reply")
+    }
+    return {
+      mutation: PR_COMMENT_REPLY_MUTATION,
+      variables: { threadId: input.threadId, body: input.body },
+    }
+  },
+  mapResponse(raw) {
+    // Reuses same parsing logic as runReplyToReviewThread
+    const root = raw as Record<string, unknown>
+    const mutation = root?.addPullRequestReviewThreadReply as Record<string, unknown>
+    const comment = mutation?.comment as Record<string, unknown>
+    return { id: comment?.id }
+  },
 }
 
-function expandAction(action: ThreadAction): string[] {
-  switch (action) {
-    case "reply_and_resolve":
-      return ["reply", "resolve"]
-    case "reply":
-      return ["reply"]
-    case "resolve":
-      return ["resolve"]
-    case "unresolve":
-      return ["unresolve"]
-    default:
-      throw new Error(`Unknown thread action: ${action}`)
-  }
+const resolveBuilder: OperationBuilder = {
+  build(input) {
+    if (!input.threadId || typeof input.threadId !== "string") {
+      throw new Error("threadId is required")
+    }
+    return {
+      mutation: PR_COMMENT_RESOLVE_MUTATION,
+      variables: { threadId: input.threadId },
+    }
+  },
+  mapResponse(raw) {
+    const root = raw as Record<string, unknown>
+    const mutation = root?.resolveReviewThread as Record<string, unknown>
+    const thread = mutation?.thread as Record<string, unknown>
+    return { id: thread?.id, isResolved: thread?.isResolved }
+  },
+}
+
+// ... unresolve, issue.labels.update, issue.comments.create, etc.
+
+export const OPERATION_BUILDERS: Record<string, OperationBuilder> = {
+  "pr.thread.reply": replyBuilder,
+  "pr.thread.resolve": resolveBuilder,
+  "pr.thread.unresolve": unresolveBuilder,
+  // Add issue builders as needed in Task 6
 }
 ```
 
+Then refactor `client.ts` `run*` methods to delegate to builders internally:
+
+```typescript
+// In runReplyToReviewThread:
+async function runReplyToReviewThread(graphqlClient, input) {
+  const { mutation, variables } = replyBuilder.build(input)
+  const result = await graphqlClient.query(mutation, variables)
+  return replyBuilder.mapResponse(result)
+}
+```
+
+This ensures atomic calls and composite calls use **identical** build + map logic.
+
 **Step 4: Run test to verify it passes**
 
-Run: `pnpm --filter @ghx-dev/core exec vitest run test/unit/composite-expand.test.ts`
+Run: `pnpm --filter @ghx-dev/core exec vitest run test/unit/gql-builders.test.ts`
+Then: `pnpm --filter @ghx-dev/core exec vitest run` (full suite — verify no regressions from refactoring `run*` methods)
 Expected: PASS
 
 **Step 5: Commit**
 
 ```bash
-git add packages/core/src/core/execute/composite.ts packages/core/test/unit/composite-expand.test.ts
-git commit -m "feat: add composite step expansion for thread batch operations"
+git add packages/core/src/gql/builders.ts packages/core/src/gql/client.ts packages/core/test/unit/gql-builders.test.ts
+git commit -m "feat: extract operation builders from client methods for composite reuse"
 ```
 
 ---
@@ -1000,11 +966,11 @@ git commit -m "feat: add issue.triage.composite and issue.update.composite cards
 ### Task 7: Wire Composite Execution into Engine
 
 **Files:**
+- Create: `packages/core/src/core/execute/composite.ts`
 - Modify: `packages/core/src/core/routing/engine.ts`
-- Modify: `packages/core/src/gql/client.ts` (expose mutation strings as constants)
 - Create: `packages/core/test/unit/composite-engine.test.ts`
 
-This is the integration point — `executeTask()` detects composite cards and dispatches to the batch engine instead of the normal single-operation flow.
+This is the integration point — `executeTask()` detects composite cards, uses builders from Task 4 to build per-step operations, batches them, executes once, then maps responses back through each builder's `mapResponse`.
 
 **Step 1: Write the failing test**
 
@@ -1014,11 +980,11 @@ Create `packages/core/test/unit/composite-engine.test.ts`:
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 describe("composite execution in engine", () => {
-  it("dispatches pr.threads.composite to batch engine and sends single GQL request", async () => {
+  it("dispatches pr.threads.composite via builders and sends single GQL request", async () => {
     // Mock the GraphQL transport to capture the query
     const transportExecute = vi.fn().mockResolvedValue({
-      reply0: { comment: { id: "c1" } },
-      resolve0: { thread: { id: "t1", isResolved: true } },
+      reply0: { addPullRequestReviewThreadReply: { comment: { id: "c1" } } },
+      resolve0: { resolveReviewThread: { thread: { id: "t1", isResolved: true } } },
     })
 
     // ... set up executeTask with a mock GithubClient backed by transportExecute
@@ -1026,7 +992,7 @@ describe("composite execution in engine", () => {
     // Assert: transportExecute called exactly once
     // Assert: the query string contains "reply0:" and "resolve0:" aliases
     // Assert: result.ok === true
-    // Assert: result.data.results is an array
+    // Assert: result.data.results is an array with mapped responses from builders
   })
 
   it("returns error envelope when batch mutation fails", async () => {
@@ -1044,9 +1010,43 @@ describe("composite execution in engine", () => {
 Note: The exact test implementation will depend on how the composite path is wired. The implementer should mock the `GraphqlTransport.execute` method and verify:
 1. It's called exactly once for composite cards (not N times)
 2. The query string contains alias prefixes
-3. The result is properly unpacked
+3. Results are mapped through each builder's `mapResponse()`
 
-**Step 2: Implement the composite path**
+**Step 2: Implement composite step expansion**
+
+Create `packages/core/src/core/execute/composite.ts`:
+
+This module expands a composite card's `steps` + `foreach` + `params_map` into a flat list of built operations using the `OPERATION_BUILDERS` registry from `gql/builders.ts`.
+
+For `pr.threads.composite` with mixed actions, the expansion logic:
+1. Iterates over the `threads` array from input
+2. For each thread, determines which builder(s) to call based on `action`
+3. Calls `builder.build(stepInput)` for each — reusing existing validation + variable assembly
+4. Collects `{ alias, mutation, variables, mapResponse }` tuples
+5. Returns the list for the batch engine
+
+```typescript
+import type { BatchOperationInput } from "../../gql/batch.js"
+import { OPERATION_BUILDERS, type OperationBuilder } from "../../gql/builders.js"
+
+export type ExpandedOperation = BatchOperationInput & {
+  mapResponse: (raw: unknown) => unknown
+}
+
+export function expandCompositeSteps(
+  card: OperationCard,
+  input: Record<string, unknown>,
+): ExpandedOperation[] {
+  // For each step in card.composite.steps:
+  //   - Look up builder by step.capability_id
+  //   - If step.foreach: iterate over input[step.foreach] array
+  //   - For each iteration: call builder.build(mappedParams)
+  //   - Assign alias (e.g. "reply0", "resolve0")
+  //   - Store builder.mapResponse alongside
+}
+```
+
+**Step 3: Wire into engine**
 
 In `packages/core/src/core/routing/engine.ts`, modify `executeTask()`:
 
@@ -1058,29 +1058,14 @@ if (card.composite) {
 // ... existing execute() call
 ```
 
-Create the `executeComposite()` function in `engine.ts` (or import from `composite.ts`):
-- Calls `expandCompositeSteps()` to get `BatchOperationInput[]`
-- Calls `buildBatchMutation()` to get the combined document + variables
-- Calls `deps.githubClient.query()` with the batch document
-- Unpacks the aliased results into the output format
-- Returns a `ResultEnvelope`
-
-**Step 3: Expose mutation strings**
-
-The composite expander needs access to the raw mutation strings. These are currently `const` strings in `client.ts`. Export them or move to a shared constants module. The simplest approach: export a `COMPOSITE_MUTATIONS` map from `client.ts`:
-
-```typescript
-export const COMPOSITE_MUTATIONS = {
-  "pr.thread.reply": PR_COMMENT_REPLY_MUTATION,
-  "pr.thread.resolve": PR_COMMENT_RESOLVE_MUTATION,
-  "pr.thread.unresolve": PR_COMMENT_UNRESOLVE_MUTATION,
-  "issue.labels.update": ISSUE_LABELS_UPDATE_MUTATION,
-  "issue.comments.create": ISSUE_COMMENT_CREATE_MUTATION,
-  "issue.update": ISSUE_UPDATE_MUTATION,
-  "issue.assignees.update": ISSUE_ASSIGNEES_UPDATE_MUTATION,
-  "issue.milestone.set": ISSUE_MILESTONE_SET_MUTATION,
-} as const
-```
+The `executeComposite()` function:
+1. Calls `expandCompositeSteps(card, input)` — uses builders to build each operation
+2. Extracts `{ alias, mutation, variables }` from expanded operations
+3. Calls `buildBatchMutation()` to combine into single document
+4. Executes single GQL request via `deps.githubClient.query()`
+5. For each aliased result, calls the corresponding `mapResponse()` from the builder
+6. Aggregates results per `card.composite.output_strategy`
+7. Returns `ResultEnvelope`
 
 **Step 4: Run tests**
 
@@ -1091,8 +1076,8 @@ Expected: PASS
 **Step 5: Commit**
 
 ```bash
-git add packages/core/src/core/routing/engine.ts packages/core/src/gql/client.ts packages/core/src/core/execute/composite.ts packages/core/test/unit/composite-engine.test.ts
-git commit -m "feat: wire composite execution path into engine"
+git add packages/core/src/core/execute/composite.ts packages/core/src/core/routing/engine.ts packages/core/test/unit/composite-engine.test.ts
+git commit -m "feat: wire composite execution path with builder pattern into engine"
 ```
 
 ---
@@ -1303,14 +1288,15 @@ Expected: PASS
 
 **New files:**
 - `packages/core/src/gql/batch.ts` — GraphQL alias batching engine
-- `packages/core/src/core/execute/composite.ts` — Composite step expansion
+- `packages/core/src/gql/builders.ts` — Operation builders (build + mapResponse) extracted from client methods
+- `packages/core/src/core/execute/composite.ts` — Composite step expansion using builders
 - `packages/core/src/gql/operations/pr-review-submit.graphql` — New GQL mutation
 - `packages/core/src/core/registry/cards/pr.threads.composite.yaml`
 - `packages/core/src/core/registry/cards/issue.triage.composite.yaml`
 - `packages/core/src/core/registry/cards/issue.update.composite.yaml`
 - `packages/core/test/unit/composite-types.test.ts`
 - `packages/core/test/unit/gql-batch.test.ts`
-- `packages/core/test/unit/composite-expand.test.ts`
+- `packages/core/test/unit/gql-builders.test.ts`
 - `packages/core/test/unit/composite-engine.test.ts`
 - `packages/core/test/unit/pr-review-submit-graphql.test.ts`
 
@@ -1319,7 +1305,7 @@ Expected: PASS
 - `packages/core/src/core/registry/operation-card-schema.ts` — Add composite to schema
 - `packages/core/src/core/registry/index.ts` — Update preferredOrder
 - `packages/core/src/core/routing/engine.ts` — Add composite execution path
-- `packages/core/src/gql/client.ts` — Export mutation strings, add submitPrReview
+- `packages/core/src/gql/client.ts` — Refactor run* methods to use builders, export mutation constants, add submitPrReview
 - `packages/core/src/core/execution/adapters/graphql-capability-adapter.ts` — Add pr.review.submit handler
 - `packages/core/src/core/registry/cards/pr.review.submit.yaml` — Add GQL route + comments
 - `packages/core/skills/using-ghx/SKILL.md` — Composite preference + count
