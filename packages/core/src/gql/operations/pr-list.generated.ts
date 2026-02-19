@@ -1,5 +1,5 @@
 import type { GraphQLClient, RequestOptions } from "graphql-request"
-import type * as Types from "../generated/common-types.generated.js"
+import type * as Types from "./base-types.js"
 import { PageInfoFieldsFragmentDoc } from "./fragments/page-info-fields.generated.js"
 import { PrCoreFieldsFragmentDoc } from "./fragments/pr-core-fields.generated.js"
 

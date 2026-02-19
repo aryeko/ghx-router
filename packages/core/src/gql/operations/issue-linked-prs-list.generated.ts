@@ -1,5 +1,5 @@
 import type { GraphQLClient, RequestOptions } from "graphql-request"
-import type * as Types from "../generated/common-types.generated.js"
+import type * as Types from "./base-types.js"
 import { PrCoreFieldsFragmentDoc } from "./fragments/pr-core-fields.generated.js"
 
 type GraphQLClientRequestHeaders = RequestOptions["requestHeaders"]
