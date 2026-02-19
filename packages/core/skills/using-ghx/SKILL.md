@@ -6,6 +6,29 @@ description: Execute GitHub operations via ghx — deterministic routing, normal
 
 **CRITICAL:** Use `ghx run` for ALL GitHub operations. Do not use `gh api` or any other raw `gh` commands unless no matching ghx capability exists.
 
+## Discovery
+
+If you don't know the capability ID or required inputs, list by domain first:
+
+```bash
+ghx capabilities list --domain pr
+```
+
+Domains: `repo`, `issue`, `pr`, `release`, `workflow`, `project_v2`, `check_run`.
+Required inputs shown in brackets (e.g. `[owner, name, prNumber]`).
+
+Only if you need the full input/output schema for a specific capability:
+
+```bash
+ghx capabilities explain <capability_id>
+```
+
+### Composite Capabilities
+
+Composites (suffixed with `.composite`) batch multiple related operations into a single call — cheaper, faster, and atomic.
+
+**CRITICAL:** After listing capabilities above, check the results for any `.composite` entry that covers your workflow. If one exists, use it. Never chain atomic calls when a composite applies.
+
 ## Execute
 
 ```bash
@@ -15,26 +38,6 @@ EOF
 ```
 
 Result: `{ ok, data, error, meta }`. Check `ok` first. If `ok=false` and `error.retryable=true`, retry once.
-
-## Discovery (only when needed)
-
-If you don't know the capability ID or required inputs, list by domain:
-
-```bash
-ghx capabilities list --domain pr
-```
-
-Domains: `repo`, `issue`, `pr`, `release`, `workflow`, `project_v2`, `check_run`.
-Required inputs shown in brackets (e.g. `[owner, name, prNumber]`).
-
-Use `ghx capabilities explain <capability_id>` to see full input/output schema.
-
-## Composite Capabilities
-
-When a workflow involves multiple operations on the same resource,
-prefer composite capabilities (suffixed with `.composite`) over
-sequential atomic calls. Check `ghx capabilities list` for available
-composites — their descriptions explain what they combine.
 
 ## Examples
 
