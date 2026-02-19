@@ -6,7 +6,7 @@ import { resolveGithubToken } from "./get-github-token.js"
 
 function fixGeneratedImportExtensions(packageRoot: string): void {
   const opsDir = join(packageRoot, "src", "gql", "operations")
-  fixImportsInDir(opsDir)
+  fixGeneratedArtifactsInDir(opsDir)
 
   const fragmentsDir = join(opsDir, "fragments")
   try {
@@ -15,16 +15,21 @@ function fixGeneratedImportExtensions(packageRoot: string): void {
     // fragments directory may not exist yet
     return
   }
-  fixImportsInDir(fragmentsDir)
+  fixGeneratedArtifactsInDir(fragmentsDir)
 }
 
-function fixImportsInDir(dir: string): void {
+function fixGeneratedArtifactsInDir(dir: string): void {
   const files = readdirSync(dir).filter((f) => f.endsWith(".generated.ts"))
 
   for (const file of files) {
     const filePath = join(dir, file)
     const content = readFileSync(filePath, "utf8")
-    const fixed = content.replace(/from '(\.\.?\/[^']+?)(?<!\.js)'/g, "from '$1.js'")
+    const fixedImports = content.replace(/from '(\.\.?\/[^']+?)(?<!\.js)'/g, "from '$1.js'")
+    // GitHub's GraphQL schema introspection varies by token capabilities for a few thread types.
+    // Normalize these members to keep generated artifacts stable across local and CI tokens.
+    const fixed = fixedImports
+      .replace(/^\s+\| { __typename\?: ["']NotificationThread["'] }\r?$/gm, "")
+      .replace(/^\s+\| { __typename\?: ["']RepositoryDependabotAlertsThread["'] }\r?$/gm, "")
     if (fixed !== content) {
       writeFileSync(filePath, fixed, "utf8")
     }

@@ -116,7 +116,6 @@ export type IssueMilestoneLookupQuery = {
     | { __typename?: "Milestone" }
     | { __typename?: "MilestonedEvent" }
     | { __typename?: "MovedColumnsInProjectEvent" }
-    | { __typename?: "NotificationThread" }
     | { __typename?: "OIDCProvider" }
     | { __typename?: "OauthApplicationCreateAuditEntry" }
     | { __typename?: "OrgAddBillingManagerAuditEntry" }
@@ -223,7 +222,6 @@ export type IssueMilestoneLookupQuery = {
     | { __typename?: "RepoRemoveTopicAuditEntry" }
     | { __typename?: "Repository" }
     | { __typename?: "RepositoryCustomProperty" }
-    | { __typename?: "RepositoryDependabotAlertsThread" }
     | { __typename?: "RepositoryInvitation" }
     | { __typename?: "RepositoryMigration" }
     | { __typename?: "RepositoryRule" }
