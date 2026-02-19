@@ -14,7 +14,7 @@
       "cache": true
     },
     "typecheck": {
-      "dependsOn": ["^typecheck"],
+      "dependsOn": ["^build", "^typecheck"],
       "cache": true
     },
     "build": {
@@ -23,11 +23,11 @@
       "cache": true
     },
     "test": {
-      "dependsOn": ["^test", "typecheck"],
+      "dependsOn": ["typecheck"],
       "cache": true
     },
     "test:coverage": {
-      "dependsOn": ["^test:coverage", "typecheck"],
+      "dependsOn": ["typecheck"],
       "cache": false
     },
     "ci": {
