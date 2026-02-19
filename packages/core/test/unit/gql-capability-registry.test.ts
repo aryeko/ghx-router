@@ -1,5 +1,5 @@
+import { getGraphqlHandler, listGraphqlCapabilities } from "@core/gql/capability-registry.js"
 import { describe, expect, it, vi } from "vitest"
-import { getGraphqlHandler, listGraphqlCapabilities } from "../../src/gql/capability-registry.js"
 
 describe("gql capability registry", () => {
   it("lists capabilities and validates submit handler availability", async () => {

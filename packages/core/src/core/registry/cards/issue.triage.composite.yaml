@@ -14,9 +14,10 @@ input_schema:
   additionalProperties: false
 output_schema:
   type: object
-  required: [id, labels, body, url]
+  required: [issueId, commentId, labels, body, url]
   properties:
-    id: { type: string, minLength: 1 }
+    issueId: { type: string, minLength: 1 }
+    commentId: { type: string, minLength: 1 }
     labels:
       type: array
       items: { type: string, minLength: 1 }
@@ -31,7 +32,7 @@ composite:
     - capability_id: issue.labels.update
       params_map:
         issueId: issueId
-        labelIds: labelIds
+        labels: labelIds
     - capability_id: issue.comments.create
       params_map:
         issueId: issueId

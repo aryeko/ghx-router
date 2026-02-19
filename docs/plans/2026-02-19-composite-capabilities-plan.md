@@ -10,9 +10,11 @@
 
 **Worktree:** `.worktrees/composite-capabilities` (branch: `feat/composite-capabilities`)
 
-**Run all commands from:** `/Users/aryekogan/repos/ghx/.worktrees/composite-capabilities`
+**Run all commands from:** `<LOCAL_WORKTREE_PATH>`
 
 ---
+
+## Task List
 
 ### Task 1: Extend OperationCard Types
 

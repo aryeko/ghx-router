@@ -3,18 +3,16 @@ version: "1.0.0"
 description: "Update issue fields, labels, assignees, and milestone in a single GraphQL batch call."
 input_schema:
   type: object
-  required: [issueId, title, body, labelIds, assigneeIds, milestoneId]
+  required: [issueId]
   properties:
     issueId: { type: string, minLength: 1 }
     title: { type: string }
     body: { type: string }
     labelIds:
       type: array
-      minItems: 1
       items: { type: string, minLength: 1 }
     assigneeIds:
       type: array
-      minItems: 1
       items: { type: string, minLength: 1 }
     milestoneId: { type: [string, "null"] }
   additionalProperties: false
@@ -41,20 +39,24 @@ routing:
 composite:
   steps:
     - capability_id: issue.update
+      requires_any_of: [title, body]
       params_map:
         issueId: issueId
         title: title
         body: body
     - capability_id: issue.labels.update
+      requires_any_of: [labelIds]
       params_map:
         issueId: issueId
-        labelIds: labelIds
+        labels: labelIds
     - capability_id: issue.assignees.update
+      requires_any_of: [assigneeIds]
       params_map:
         issueId: issueId
-        assigneeIds: assigneeIds
+        assignees: assigneeIds
     - capability_id: issue.milestone.set
+      requires_any_of: [milestoneId]
       params_map:
         issueId: issueId
-        milestoneId: milestoneId
+        milestoneNumber: milestoneId
   output_strategy: merge

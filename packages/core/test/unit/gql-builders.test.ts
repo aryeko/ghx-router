@@ -1,11 +1,11 @@
-import { describe, expect, it } from "vitest"
 import {
   OPERATION_BUILDERS,
   type OperationBuilder,
   replyBuilder,
   resolveBuilder,
   unresolveBuilder,
-} from "../../src/gql/builders.js"
+} from "@core/gql/builders.js"
+import { describe, expect, it } from "vitest"
 
 function expectBuilder(capabilityId: string): OperationBuilder {
   const builder = OPERATION_BUILDERS[capabilityId]
@@ -124,7 +124,7 @@ describe("issue builders", () => {
   it("issue.labels.update validates label ids and maps names", () => {
     const builder = expectBuilder("issue.labels.update")
     expect(() => builder.build({ issueId: "i1", labelIds: [1] })).toThrow(
-      "labelIds must be an array of strings",
+      "labelIds (or labels) must be an array of strings",
     )
 
     const built = builder.build({ issueId: "i1", labelIds: ["l1", "l2"] })
@@ -135,13 +135,13 @@ describe("issue builders", () => {
     const mapped = builder.mapResponse({
       issue: { id: "i1", labels: { nodes: [{ name: "bug" }, { name: 42 }] } },
     })
-    expect(mapped).toEqual({ id: "i1", labels: ["bug"] })
+    expect(mapped).toEqual({ issueId: "i1", labels: ["bug"] })
   })
 
   it("issue.assignees.update validates ids and maps logins", () => {
     const builder = expectBuilder("issue.assignees.update")
     expect(() => builder.build({ issueId: "i1", assigneeIds: [true] })).toThrow(
-      "assigneeIds must be an array of strings",
+      "assigneeIds (or assignees) must be an array of strings",
     )
 
     const built = builder.build({ issueId: "i1", assigneeIds: ["u1"] })
@@ -152,13 +152,13 @@ describe("issue builders", () => {
     const mapped = builder.mapResponse({
       issue: { id: "i1", assignees: { nodes: [{ login: "octocat" }, { login: 10 }] } },
     })
-    expect(mapped).toEqual({ id: "i1", assignees: ["octocat"] })
+    expect(mapped).toEqual({ issueId: "i1", assignees: ["octocat"] })
   })
 
   it("issue.milestone.set validates milestone id and maps nullable milestone", () => {
     const builder = expectBuilder("issue.milestone.set")
     expect(() => builder.build({ issueId: "i1", milestoneId: 1 })).toThrow(
-      "milestoneId must be a string or null",
+      "milestoneId (or milestoneNumber) must be a string or null",
     )
 
     const built = builder.build({ issueId: "i1", milestoneId: null })
@@ -169,7 +169,7 @@ describe("issue builders", () => {
     const mapped = builder.mapResponse({
       issue: { id: "i1", milestone: { number: 12 } },
     })
-    expect(mapped).toEqual({ id: "i1", milestoneNumber: 12 })
+    expect(mapped).toEqual({ issueId: "i1", milestoneNumber: 12 })
   })
 
   it("issue.comments.create validates input and maps response", () => {
@@ -188,7 +188,7 @@ describe("issue builders", () => {
       commentEdge: { node: { id: "c1", body: "hello", url: "https://example.com/c1" } },
     })
     expect(mapped).toEqual({
-      id: "c1",
+      commentId: "c1",
       body: "hello",
       url: "https://example.com/c1",
     })

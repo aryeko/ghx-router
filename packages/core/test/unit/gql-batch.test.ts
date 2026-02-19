@@ -1,5 +1,5 @@
+import { buildBatchMutation } from "@core/gql/batch.js"
 import { describe, expect, it } from "vitest"
-import { buildBatchMutation } from "../../src/gql/batch.js"
 
 describe("buildBatchMutation", () => {
   const REPLY_MUTATION = `
@@ -121,5 +121,30 @@ describe("buildBatchMutation", () => {
         },
       ]),
     ).toThrow("Invalid mutation: unbalanced braces")
+  })
+
+  it("does not replace prefixed variable names incorrectly", () => {
+    const mutation = `
+      mutation PrefixCollision($id: ID!, $idType: String!) {
+        updateIssue(input: { id: $id, body: $idType }) {
+          issue { id }
+        }
+      }
+    `
+
+    const result = buildBatchMutation([
+      {
+        alias: "op0",
+        mutation,
+        variables: { id: "i1", idType: "body-text" },
+      },
+    ])
+
+    expect(result.document).toContain("$op0_id")
+    expect(result.document).toContain("$op0_idType")
+    expect(result.variables).toEqual({
+      op0_id: "i1",
+      op0_idType: "body-text",
+    })
   })
 })

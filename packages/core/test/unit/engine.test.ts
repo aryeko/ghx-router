@@ -335,6 +335,32 @@ describe("executeTask engine wiring", () => {
     expect(result.meta.route_used).toBe("graphql")
   })
 
+  it("returns explicit validation error when an operation alias is missing from batch response", async () => {
+    getOperationCardMock.mockReturnValue(compositeCard)
+
+    executeMock.mockImplementation(
+      async (options: { routes: { graphql: () => Promise<unknown> } }) => options.routes.graphql(),
+    )
+
+    const { executeTask } = await import("@core/core/routing/engine.js")
+    const result = await executeTask(
+      {
+        task: "pr.threads.composite",
+        input: { threads: [{ threadId: "T", action: "reply", body: "x" }] },
+      },
+      {
+        githubClient: createGithubClient({
+          query: vi.fn().mockResolvedValue({}),
+        }),
+        githubToken: "token",
+        skipGhPreflight: true,
+      },
+    )
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.message).toContain('Missing result for alias "pr_thread_reply_0"')
+  })
+
   it("returns validation error when composite receives unknown action", async () => {
     getOperationCardMock.mockReturnValue(compositeCard)
     executeMock.mockImplementation(

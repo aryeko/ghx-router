@@ -111,6 +111,11 @@ export const operationCardSchema = {
                 minItems: 1,
                 items: { type: "string", minLength: 1 },
               },
+              requires_any_of: {
+                type: "array",
+                minItems: 1,
+                items: { type: "string", minLength: 1 },
+              },
               params_map: { type: "object" },
             },
             additionalProperties: false,

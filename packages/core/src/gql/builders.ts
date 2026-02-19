@@ -121,9 +121,17 @@ const issueUpdateBuilder: OperationBuilder = {
       throw new Error("issue.update requires at least one field")
     }
 
+    const variables: GraphqlVariables = { issueId }
+    if (title !== undefined) {
+      variables.title = title
+    }
+    if (body !== undefined) {
+      variables.body = body
+    }
+
     return {
       mutation: ISSUE_UPDATE_MUTATION,
-      variables: { issueId, title, body },
+      variables,
     }
   },
   mapResponse(raw) {
@@ -145,13 +153,14 @@ const issueUpdateBuilder: OperationBuilder = {
 const issueLabelsUpdateBuilder: OperationBuilder = {
   build(input) {
     const issueId = assertNonEmptyString(input.issueId, "issueId")
-    if (!Array.isArray(input.labelIds) || input.labelIds.some((id) => typeof id !== "string")) {
-      throw new Error("labelIds must be an array of strings")
+    const labels = input.labelIds ?? input.labels
+    if (!Array.isArray(labels) || labels.some((id) => typeof id !== "string")) {
+      throw new Error("labelIds (or labels) must be an array of strings")
     }
 
     return {
       mutation: ISSUE_LABELS_UPDATE_BY_ID_MUTATION,
-      variables: { issueId, labelIds: input.labelIds },
+      variables: { issueId, labelIds: labels },
     }
   },
   mapResponse(raw) {
@@ -167,26 +176,21 @@ const issueLabelsUpdateBuilder: OperationBuilder = {
       throw new Error("Issue labels update failed")
     }
 
-    return {
-      id: issue.id,
-      labels,
-    }
+    return { issueId: issue.id, labels }
   },
 }
 
 const issueAssigneesUpdateBuilder: OperationBuilder = {
   build(input) {
     const issueId = assertNonEmptyString(input.issueId, "issueId")
-    if (
-      !Array.isArray(input.assigneeIds) ||
-      input.assigneeIds.some((id) => typeof id !== "string")
-    ) {
-      throw new Error("assigneeIds must be an array of strings")
+    const assignees = input.assigneeIds ?? input.assignees
+    if (!Array.isArray(assignees) || assignees.some((id) => typeof id !== "string")) {
+      throw new Error("assigneeIds (or assignees) must be an array of strings")
     }
 
     return {
       mutation: ISSUE_ASSIGNEES_UPDATE_BY_ID_MUTATION,
-      variables: { issueId, assigneeIds: input.assigneeIds },
+      variables: { issueId, assigneeIds: assignees },
     }
   },
   mapResponse(raw) {
@@ -202,23 +206,20 @@ const issueAssigneesUpdateBuilder: OperationBuilder = {
       throw new Error("Issue assignees update failed")
     }
 
-    return {
-      id: issue.id,
-      assignees,
-    }
+    return { issueId: issue.id, assignees }
   },
 }
 
 const issueMilestoneSetBuilder: OperationBuilder = {
   build(input) {
     const issueId = assertNonEmptyString(input.issueId, "issueId")
+    const milestoneInput =
+      input.milestoneId !== undefined ? input.milestoneId : input.milestoneNumber
     const milestoneId =
-      input.milestoneId === null || typeof input.milestoneId === "string"
-        ? input.milestoneId
-        : undefined
+      milestoneInput === null || typeof milestoneInput === "string" ? milestoneInput : undefined
 
     if (milestoneId === undefined) {
-      throw new Error("milestoneId must be a string or null")
+      throw new Error("milestoneId (or milestoneNumber) must be a string or null")
     }
 
     return {
@@ -235,7 +236,7 @@ const issueMilestoneSetBuilder: OperationBuilder = {
     }
 
     return {
-      id: issue.id,
+      issueId: issue.id,
       milestoneNumber: typeof milestone.number === "number" ? milestone.number : null,
     }
   },
@@ -260,7 +261,7 @@ const issueCommentCreateBuilder: OperationBuilder = {
     }
 
     return {
-      id: comment.id,
+      commentId: comment.id,
       body: comment.body,
       url: typeof comment.url === "string" ? comment.url : "",
     }

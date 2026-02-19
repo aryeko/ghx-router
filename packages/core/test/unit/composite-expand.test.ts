@@ -1,6 +1,6 @@
+import { expandCompositeSteps } from "@core/core/execute/composite.js"
+import type { CompositeConfig } from "@core/core/registry/types.js"
 import { describe, expect, it } from "vitest"
-import { expandCompositeSteps } from "../../src/core/execute/composite.js"
-import type { CompositeConfig } from "../../src/core/registry/types.js"
 
 describe("expandCompositeSteps", () => {
   it("throws when foreach key is not an array", () => {
@@ -41,7 +41,7 @@ describe("expandCompositeSteps", () => {
     })
 
     expect(operations).toHaveLength(2)
-    expect(operations.map((op) => op.alias)).toEqual(["pr_thread_reply_0", "pr_thread_resolve_0"])
+    expect(operations.map((op) => op.alias)).toEqual(["pr_thread_reply_0", "pr_thread_resolve_1"])
   })
 
   it("throws when a step has no registered operation builder", () => {
@@ -91,5 +91,45 @@ describe("expandCompositeSteps", () => {
         threads: [{ threadId: "T_1", action: "unknown_action", body: "reply body" }],
       }),
     ).toThrow('Invalid action "unknown_action" for composite item at index 0')
+  })
+
+  it("throws when foreach contains non-object items", () => {
+    const composite: CompositeConfig = {
+      steps: [
+        {
+          capability_id: "pr.thread.resolve",
+          foreach: "threads",
+          params_map: { threadId: "threadId" },
+        },
+      ],
+      output_strategy: "array",
+    }
+
+    expect(() =>
+      expandCompositeSteps(composite, {
+        threads: ["bad-item"],
+      }),
+    ).toThrow("Composite foreach item at index 0 must be an object")
+  })
+
+  it("skips step when requires_any_of fields are all missing", () => {
+    const composite: CompositeConfig = {
+      steps: [
+        {
+          capability_id: "pr.thread.reply",
+          requires_any_of: ["body"],
+          params_map: { threadId: "threadId", body: "body" },
+        },
+        {
+          capability_id: "pr.thread.resolve",
+          params_map: { threadId: "threadId" },
+        },
+      ],
+      output_strategy: "array",
+    }
+
+    const operations = expandCompositeSteps(composite, { threadId: "T_1" })
+    expect(operations).toHaveLength(1)
+    expect(operations[0]?.alias).toBe("pr_thread_resolve_0")
   })
 })

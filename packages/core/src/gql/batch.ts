@@ -30,8 +30,14 @@ export function buildBatchMutation(operations: BatchOperationInput[]): BatchMuta
 
     // Prefix variable references in body and add alias
     let body = parsed.body
-    for (const varDecl of parsed.variableDeclarations) {
-      body = body.replaceAll(`$${varDecl.name}`, `$${op.alias}_${varDecl.name}`)
+    const sortedDeclarations = [...parsed.variableDeclarations].sort(
+      (a, b) => b.name.length - a.name.length,
+    )
+    for (const varDecl of sortedDeclarations) {
+      body = body.replaceAll(
+        new RegExp(`\\$${escapeRegex(varDecl.name)}\\b`, "g"),
+        `$${op.alias}_${varDecl.name}`,
+      )
     }
 
     // Add alias prefix to the top-level field
@@ -51,6 +57,10 @@ export function buildBatchMutation(operations: BatchOperationInput[]): BatchMuta
 
 type VariableDeclaration = { name: string; type: string }
 type ParsedMutation = { variableDeclarations: VariableDeclaration[]; body: string }
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
 
 function parseMutation(mutation: string): ParsedMutation {
   // Extract variable declarations from header: mutation Name($var1: Type!, $var2: Type!)

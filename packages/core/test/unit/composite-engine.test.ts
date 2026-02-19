@@ -1,7 +1,7 @@
+import type { TaskRequest } from "@core/core/contracts/task.js"
+import { executeTask } from "@core/core/routing/engine.js"
 import type { GithubClient } from "@core/gql/github-client.js"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import type { TaskRequest } from "../../src/core/contracts/task.js"
-import { executeTask } from "../../src/core/routing/engine.js"
 
 describe("composite execution in engine", () => {
   let mockGithubClient: Partial<GithubClient>
@@ -9,6 +9,16 @@ describe("composite execution in engine", () => {
   beforeEach(() => {
     mockGithubClient = {
       query: vi.fn(),
+      fetchRepoView: vi.fn(async () => ({
+        id: "repo-1",
+        name: "test",
+        nameWithOwner: "test/test",
+        isPrivate: false,
+        stargazerCount: 0,
+        forkCount: 0,
+        url: "https://example.com/test/test",
+        defaultBranch: "main",
+      })),
     }
   })
 
@@ -78,8 +88,7 @@ describe("composite execution in engine", () => {
       skipGhPreflight: true,
     })
 
-    // Non-composite card should execute without composite errors
-    expect(result).toHaveProperty("meta")
+    expect(result.ok).toBe(true)
     expect(result.meta.capability_id).toBe("repo.view")
   })
 })

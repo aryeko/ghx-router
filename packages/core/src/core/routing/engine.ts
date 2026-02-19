@@ -142,6 +142,9 @@ async function executeComposite(
     const resultsByAlias = batchResult as Record<string, unknown>
     for (const op of expandedOperations) {
       const aliasedResult = resultsByAlias[op.alias]
+      if (aliasedResult === undefined) {
+        throw new Error(`Missing result for alias "${op.alias}" in batch response`)
+      }
       const mapped = op.mapResponse(aliasedResult)
       results.push(mapped)
     }

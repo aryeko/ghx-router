@@ -12,6 +12,7 @@ export interface CompositeStep {
   capability_id: string
   foreach?: string
   actions?: string[]
+  requires_any_of?: string[]
   params_map: Record<string, string>
 }
 

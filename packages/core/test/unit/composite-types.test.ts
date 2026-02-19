@@ -1,5 +1,5 @@
+import type { OperationCard } from "@core/core/registry/types.js"
 import { describe, expect, it } from "vitest"
-import type { OperationCard } from "../../src/core/registry/types.js"
 
 describe("CompositeConfig types", () => {
   it("allows OperationCard with composite field", () => {

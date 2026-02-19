@@ -136,7 +136,7 @@ mutation BatchComposite(
 
 In `engine.ts` — detect composite cards and dispatch differently:
 
-```
+```text
 executeTask(task, input)
   → loadCard(task)
   → if card.composite:
@@ -314,7 +314,7 @@ composite:
 
 Composite capabilities appear first within each domain in `ghx capabilities list`:
 
-```
+```yaml
 pr:
   pr.threads.composite
   pr.review.submit
