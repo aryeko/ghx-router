@@ -1,9 +1,36 @@
-import type { GraphqlVariables } from "./client.js"
-import {
-  PR_COMMENT_REPLY_MUTATION,
-  PR_COMMENT_RESOLVE_MUTATION,
-  PR_COMMENT_UNRESOLVE_MUTATION,
-} from "./client.js"
+import type { GraphqlVariables } from "./transport.js"
+
+export const PR_COMMENT_REPLY_MUTATION = `
+  mutation PrCommentReply($threadId: ID!, $body: String!) {
+    addPullRequestReviewThreadReply(input: { pullRequestReviewThreadId: $threadId, body: $body }) {
+      comment {
+        id
+      }
+    }
+  }
+`
+
+export const PR_COMMENT_RESOLVE_MUTATION = `
+  mutation PrCommentResolve($threadId: ID!) {
+    resolveReviewThread(input: { threadId: $threadId }) {
+      thread {
+        id
+        isResolved
+      }
+    }
+  }
+`
+
+export const PR_COMMENT_UNRESOLVE_MUTATION = `
+  mutation PrCommentUnresolve($threadId: ID!) {
+    unresolveReviewThread(input: { threadId: $threadId }) {
+      thread {
+        id
+        isResolved
+      }
+    }
+  }
+`
 
 const ISSUE_UPDATE_MUTATION = `
   mutation IssueUpdate($issueId: ID!, $title: String, $body: String) {

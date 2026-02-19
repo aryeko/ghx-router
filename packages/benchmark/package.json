@@ -108,6 +108,7 @@
     "tsup": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",
+    "vite-tsconfig-paths": "^6.1.1",
     "vitest": "catalog:"
   }
 }

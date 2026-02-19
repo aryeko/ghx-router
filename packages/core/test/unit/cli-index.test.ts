@@ -5,23 +5,23 @@ const setupCommandMock = vi.fn()
 const capabilitiesListCommandMock = vi.fn()
 const capabilitiesExplainCommandMock = vi.fn()
 
-vi.mock("../../src/cli/commands/run.js", () => ({
+vi.mock("@core/cli/commands/run.js", () => ({
   runCommand: (...args: unknown[]) => runCommandMock(...args),
 }))
 
-vi.mock("../../src/cli/commands/setup.js", () => ({
+vi.mock("@core/cli/commands/setup.js", () => ({
   setupCommand: (...args: unknown[]) => setupCommandMock(...args),
 }))
 
-vi.mock("../../src/cli/commands/capabilities-list.js", () => ({
+vi.mock("@core/cli/commands/capabilities-list.js", () => ({
   capabilitiesListCommand: (...args: unknown[]) => capabilitiesListCommandMock(...args),
 }))
 
-vi.mock("../../src/cli/commands/capabilities-explain.js", () => ({
+vi.mock("@core/cli/commands/capabilities-explain.js", () => ({
   capabilitiesExplainCommand: (...args: unknown[]) => capabilitiesExplainCommandMock(...args),
 }))
 
-import { main } from "../../src/cli/index.js"
+import { main } from "@core/cli/index.js"
 
 describe("cli index main", () => {
   beforeEach(() => {

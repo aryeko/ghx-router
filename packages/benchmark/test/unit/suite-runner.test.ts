@@ -1,10 +1,9 @@
-import { describe, expect, it, vi } from "vitest"
-import type { RunnerConfig } from "../../src/runner/config.js"
+import type { RunnerConfig } from "@bench/runner/config.js"
 import {
   hasAssistantMetadata,
   hasAssistantSignalParts,
   hasTextPart,
-} from "../../src/runner/session-polling.js"
+} from "@bench/runner/session-polling.js"
 import {
   asNumber,
   coercePromptResponse,
@@ -19,8 +18,9 @@ import {
   unwrapData,
   waitForAssistantFromMessages,
   withTimeout,
-} from "../../src/runner/suite-runner.js"
-import { isObject } from "../../src/utils/guards.js"
+} from "@bench/runner/suite-runner.js"
+import { isObject } from "@bench/utils/guards.js"
+import { describe, expect, it, vi } from "vitest"
 
 describe("suite-runner helpers", () => {
   it("handles object and wrapped data helpers", () => {

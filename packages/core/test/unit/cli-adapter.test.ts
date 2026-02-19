@@ -1,6 +1,5 @@
+import { runCliAdapter } from "@core/core/execution/adapters/cli-adapter.js"
 import { describe, expect, it, vi } from "vitest"
-
-import { runCliAdapter } from "../../src/core/execution/adapters/cli-adapter.js"
 
 describe("runCliAdapter", () => {
   it("returns normalized success when command exits zero", async () => {

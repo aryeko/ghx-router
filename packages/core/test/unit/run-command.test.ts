@@ -4,15 +4,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 const createGithubClientMock = vi.fn()
 const executeTaskMock = vi.fn()
 
-vi.mock("../../src/gql/client.js", () => ({
+vi.mock("@core/gql/github-client.js", () => ({
   createGithubClient: (...args: unknown[]) => createGithubClientMock(...args),
 }))
 
-vi.mock("../../src/core/routing/engine.js", () => ({
+vi.mock("@core/core/routing/engine.js", () => ({
   executeTask: (...args: unknown[]) => executeTaskMock(...args),
 }))
 
-import { readStdin, runCommand } from "../../src/cli/commands/run.js"
+import { readStdin, runCommand } from "@core/cli/commands/run.js"
 
 function mockStdin(content: string): void {
   const readable = new Readable({
@@ -31,7 +31,10 @@ describe("runCommand", () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    createGithubClientMock.mockImplementation((client) => client)
+    createGithubClientMock.mockImplementation((transport) => ({
+      query: (query: string, variables?: unknown) =>
+        transport.execute(query, variables as Record<string, unknown>),
+    }))
     executeTaskMock.mockResolvedValue({ ok: true })
     process.env.GITHUB_TOKEN = "token-123"
     process.env.GH_TOKEN = undefined
@@ -99,7 +102,7 @@ describe("runCommand", () => {
     vi.stubGlobal("fetch", fetchMock)
 
     executeTaskMock.mockImplementation(async (_request, context) => {
-      await context.githubClient.execute("query { repository { id } }", { owner: "a", name: "b" })
+      await context.githubClient.query("query { repository { id } }", { owner: "a", name: "b" })
       return { ok: true, route: "graphql" }
     })
 
@@ -184,7 +187,7 @@ describe("runCommand", () => {
     vi.stubGlobal("fetch", fetchMock)
 
     executeTaskMock.mockImplementation(async (_request, context) => {
-      await context.githubClient.execute("query { viewer { login } }")
+      await context.githubClient.query("query { viewer { login } }")
       return { ok: true }
     })
 
@@ -200,7 +203,7 @@ describe("runCommand", () => {
     vi.stubGlobal("fetch", fetchMock)
 
     executeTaskMock.mockImplementation(async (_request, context) => {
-      await context.githubClient.execute("query { viewer { login } }")
+      await context.githubClient.query("query { viewer { login } }")
       return { ok: true }
     })
 
@@ -216,7 +219,7 @@ describe("runCommand", () => {
     vi.stubGlobal("fetch", fetchMock)
 
     executeTaskMock.mockImplementation(async (_request, context) => {
-      await context.githubClient.execute("query { viewer { login } }")
+      await context.githubClient.query("query { viewer { login } }")
       return { ok: true }
     })
 

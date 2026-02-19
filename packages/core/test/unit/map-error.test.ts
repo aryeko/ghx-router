@@ -1,6 +1,5 @@
+import { mapErrorToCode } from "@core/core/errors/map-error.js"
 import { describe, expect, it } from "vitest"
-
-import { mapErrorToCode } from "../../src/core/errors/map-error.js"
 
 describe("mapErrorToCode", () => {
   it("maps auth errors", () => {

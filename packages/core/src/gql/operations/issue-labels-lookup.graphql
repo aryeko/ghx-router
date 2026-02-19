@@ -1,0 +1,14 @@
+query IssueLabelsLookup($issueId: ID!) {
+  node(id: $issueId) {
+    ... on Issue {
+      repository {
+        labels(first: 100) {
+          nodes {
+            id
+            name
+          }
+        }
+      }
+    }
+  }
+}

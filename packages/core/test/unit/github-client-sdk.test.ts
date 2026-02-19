@@ -45,13 +45,13 @@ describe("createGithubClient sdk integration", () => {
     const getIssueViewSdk = vi.fn(() => ({ IssueView: issueView }))
     const getPrViewSdk = vi.fn(() => ({ PrView: prView }))
 
-    vi.doMock("../../src/gql/operations/repo-view.generated.js", () => ({ getSdk: getRepoViewSdk }))
-    vi.doMock("../../src/gql/operations/issue-view.generated.js", () => ({
+    vi.doMock("@core/gql/operations/repo-view.generated.js", () => ({ getSdk: getRepoViewSdk }))
+    vi.doMock("@core/gql/operations/issue-view.generated.js", () => ({
       getSdk: getIssueViewSdk,
     }))
-    vi.doMock("../../src/gql/operations/pr-view.generated.js", () => ({ getSdk: getPrViewSdk }))
+    vi.doMock("@core/gql/operations/pr-view.generated.js", () => ({ getSdk: getPrViewSdk }))
 
-    const { createGithubClient } = await import("../../src/gql/client.js")
+    const { createGithubClient } = await import("@core/gql/github-client.js")
 
     const client = createGithubClient({
       async execute<TData>(): Promise<TData> {

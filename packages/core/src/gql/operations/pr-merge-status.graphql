@@ -1,0 +1,11 @@
+query PrMergeStatus($owner: String!, $name: String!, $prNumber: Int!) {
+  repository(owner: $owner, name: $name) {
+    pullRequest(number: $prNumber) {
+      mergeable
+      mergeStateStatus
+      reviewDecision
+      isDraft
+      state
+    }
+  }
+}

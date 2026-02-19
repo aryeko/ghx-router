@@ -23,11 +23,11 @@ describe("cli index entrypoint", () => {
         realpathSync: vi.fn(() => "/same/path"),
       }
     })
-    vi.doMock("../../src/cli/commands/run.js", () => ({
+    vi.doMock("@core/cli/commands/run.js", () => ({
       runCommand: vi.fn(async () => 0),
     }))
 
-    await import("../../src/cli/index.js")
+    await import("@core/cli/index.js")
     await new Promise((resolve) => setTimeout(resolve, 0))
 
     expect(process.exitCode).toBe(0)
@@ -42,11 +42,11 @@ describe("cli index entrypoint", () => {
     const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true)
     const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true)
 
-    vi.doMock("../../src/cli/commands/run.js", () => ({
+    vi.doMock("@core/cli/commands/run.js", () => ({
       runCommand: vi.fn(async () => 0),
     }))
 
-    await import("../../src/cli/index.js")
+    await import("@core/cli/index.js")
     await new Promise((resolve) => setTimeout(resolve, 0))
 
     expect(stdout).not.toHaveBeenCalled()
@@ -67,11 +67,11 @@ describe("cli index entrypoint", () => {
         }),
       }
     })
-    vi.doMock("../../src/cli/commands/run.js", () => ({
+    vi.doMock("@core/cli/commands/run.js", () => ({
       runCommand: vi.fn(async () => 0),
     }))
 
-    await import("../../src/cli/index.js")
+    await import("@core/cli/index.js")
     await new Promise((resolve) => setTimeout(resolve, 0))
 
     expect(stdout).not.toHaveBeenCalled()
@@ -93,13 +93,13 @@ describe("cli index entrypoint", () => {
         realpathSync: vi.fn(() => "/same/path"),
       }
     })
-    vi.doMock("../../src/cli/commands/run.js", () => ({
+    vi.doMock("@core/cli/commands/run.js", () => ({
       runCommand: vi.fn(async () => {
         throw new Error("boom")
       }),
     }))
 
-    await import("../../src/cli/index.js")
+    await import("@core/cli/index.js")
     await new Promise((resolve) => setTimeout(resolve, 0))
 
     expect(stderr).toHaveBeenCalledWith("boom\n")

@@ -11,7 +11,7 @@ vi.mock("node:crypto", () => ({
   createSign: createSignMock,
 }))
 
-import { applyFixtureAppAuthIfConfigured, mintFixtureAppToken } from "../../src/fixture/app-auth.js"
+import { applyFixtureAppAuthIfConfigured, mintFixtureAppToken } from "@bench/fixture/app-auth.js"
 
 describe("fixture app auth", () => {
   beforeEach(() => {

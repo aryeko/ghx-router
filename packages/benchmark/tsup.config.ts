@@ -1,3 +1,4 @@
+import { resolve } from "node:path"
 import { defineConfig } from "tsup"
 
 export default defineConfig({
@@ -7,4 +8,10 @@ export default defineConfig({
   clean: true,
   dts: false,
   sourcemap: true,
+  esbuildOptions(options) {
+    options.alias = {
+      ...options.alias,
+      "@bench": resolve(import.meta.dirname, "src"),
+    }
+  },
 })

@@ -30,21 +30,21 @@ vi.mock("node:fs/promises", async () => {
   }
 })
 
-vi.mock("../../src/fixture/manifest.js", () => ({
+vi.mock("@bench/fixture/manifest.js", () => ({
   loadFixtureManifest: loadFixtureManifestMock,
 }))
 
-vi.mock("../../src/fixture/cleanup.js", () => ({
+vi.mock("@bench/fixture/cleanup.js", () => ({
   cleanupSeededFixtures: cleanupSeededFixturesMock,
   cleanupAllFixtures: cleanupAllFixturesMock,
 }))
 
-vi.mock("../../src/fixture/app-auth.js", () => ({
+vi.mock("@bench/fixture/app-auth.js", () => ({
   applyFixtureAppAuthIfConfigured: applyFixtureAppAuthIfConfiguredMock,
   mintFixtureAppToken: mintFixtureAppTokenMock,
 }))
 
-vi.mock("../../src/fixture/seed.js", () => ({
+vi.mock("@bench/fixture/seed.js", () => ({
   seedFixtureManifest: seedFixtureManifestMock,
 }))
 

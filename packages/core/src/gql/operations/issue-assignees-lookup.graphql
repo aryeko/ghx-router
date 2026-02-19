@@ -1,0 +1,14 @@
+query IssueAssigneesLookup($issueId: ID!) {
+  node(id: $issueId) {
+    ... on Issue {
+      repository {
+        assignableUsers(first: 100) {
+          nodes {
+            id
+            login
+          }
+        }
+      }
+    }
+  }
+}

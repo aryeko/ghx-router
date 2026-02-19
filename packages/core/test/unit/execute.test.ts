@@ -1,7 +1,7 @@
+import type { ResultEnvelope, RouteSource } from "@core/core/contracts/envelope.js"
+import { execute } from "@core/core/execute/execute.js"
+import type { OperationCard } from "@core/core/registry/types.js"
 import { describe, expect, it, vi } from "vitest"
-import type { ResultEnvelope, RouteSource } from "../../src/core/contracts/envelope.js"
-import { execute } from "../../src/core/execute/execute.js"
-import type { OperationCard } from "../../src/core/registry/types.js"
 
 const baseCard: OperationCard = {
   capability_id: "repo.view",

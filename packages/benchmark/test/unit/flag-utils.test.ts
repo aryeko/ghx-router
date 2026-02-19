@@ -1,10 +1,10 @@
-import { describe, expect, it } from "vitest"
 import {
   parseFlagValue,
   parseMultiFlagValues,
   parseRequiredFlag,
   parseStrictFlagValue,
-} from "../../src/cli/flag-utils.js"
+} from "@bench/cli/flag-utils.js"
+import { describe, expect, it } from "vitest"
 
 describe("parseFlagValue", () => {
   it("returns value for split form: --flag value", () => {

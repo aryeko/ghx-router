@@ -1,7 +1,11 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "types": ["node", "vitest/globals"]
+    "baseUrl": ".",
+    "types": ["node", "vitest/globals"],
+    "paths": {
+      "@bench/*": ["./src/*"]
+    }
   },
   "include": ["src/**/*.ts", "test/**/*.ts"]
 }

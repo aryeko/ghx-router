@@ -28,12 +28,12 @@ vi.mock("@opencode-ai/sdk", () => ({
   createOpencode: createOpencodeMock,
 }))
 
-vi.mock("../../src/scenario/loader.js", () => ({
+vi.mock("@bench/scenario/loader.js", () => ({
   loadScenarios: loadScenariosMock,
   loadScenarioSets: loadScenarioSetsMock,
 }))
 
-vi.mock("../../src/fixture/seed.js", () => ({
+vi.mock("@bench/fixture/seed.js", () => ({
   seedFixtureManifest: seedFixtureManifestMock,
 }))
 

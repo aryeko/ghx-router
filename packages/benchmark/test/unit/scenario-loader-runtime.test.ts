@@ -1,10 +1,8 @@
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-
+import { loadScenarioSets, loadScenarios } from "@bench/scenario/loader.js"
 import { describe, expect, it } from "vitest"
-
-import { loadScenarioSets, loadScenarios } from "../../src/scenario/loader.js"
 
 describe("loadScenarios", () => {
   it("loads and sorts valid scenario files", async () => {

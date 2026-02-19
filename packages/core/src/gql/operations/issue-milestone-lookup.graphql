@@ -1,0 +1,11 @@
+query IssueMilestoneLookup($issueId: ID!, $milestoneNumber: Int!) {
+  node(id: $issueId) {
+    ... on Issue {
+      repository {
+        milestone(number: $milestoneNumber) {
+          id
+        }
+      }
+    }
+  }
+}

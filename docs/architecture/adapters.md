@@ -134,7 +134,8 @@ Generated code is in `packages/core/src/gql/operations/*.generated.ts` and `pack
 
 - **Main adapter**: `packages/core/src/core/execution/adapters/graphql-capability-adapter.ts`
 - **Generic wrapper**: `packages/core/src/core/execution/adapters/graphql-adapter.ts`
-- **Client**: `packages/core/src/gql/client.ts`
+- **Client facade**: `packages/core/src/gql/github-client.ts`
+- **Transport layer**: `packages/core/src/gql/transport.ts`
 - **Generated operations**: `packages/core/src/gql/operations/*.generated.ts`
 
 ## REST Adapter

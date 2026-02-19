@@ -1,47 +1,26 @@
-import { buildBatchMutation } from "../../gql/batch.js"
-import type { GithubClient } from "../../gql/client.js"
-import type { ResultEnvelope, RouteSource } from "../contracts/envelope.js"
-import type { TaskRequest } from "../contracts/task.js"
-import { errorCodes } from "../errors/codes.js"
-import { mapErrorToCode } from "../errors/map-error.js"
-import { expandCompositeSteps } from "../execute/composite.js"
-import { execute } from "../execute/execute.js"
+import type { ResultEnvelope, RouteSource } from "@core/core/contracts/envelope.js"
+import type { TaskRequest } from "@core/core/contracts/task.js"
+import { errorCodes } from "@core/core/errors/codes.js"
+import { mapErrorToCode } from "@core/core/errors/map-error.js"
+import { expandCompositeSteps } from "@core/core/execute/composite.js"
+import { execute } from "@core/core/execute/execute.js"
 import {
   type CliCapabilityId,
   type CliCommandRunner,
   runCliCapability,
-} from "../execution/adapters/cli-capability-adapter.js"
-import {
-  type GraphqlCapabilityId,
-  runGraphqlCapability,
-} from "../execution/adapters/graphql-capability-adapter.js"
-import { createSafeCliCommandRunner } from "../execution/cli/safe-runner.js"
-import { normalizeError } from "../execution/normalizer.js"
-import { preflightCheck } from "../execution/preflight.js"
-import { getOperationCard } from "../registry/index.js"
-import { routePreferenceOrder } from "./policy.js"
-import type { RouteReasonCode } from "./reason-codes.js"
+} from "@core/core/execution/adapters/cli-capability-adapter.js"
+import { runGraphqlCapability } from "@core/core/execution/adapters/graphql-capability-adapter.js"
+import { createSafeCliCommandRunner } from "@core/core/execution/cli/safe-runner.js"
+import { normalizeError } from "@core/core/execution/normalizer.js"
+import { preflightCheck } from "@core/core/execution/preflight.js"
+import { getOperationCard } from "@core/core/registry/index.js"
+import { routePreferenceOrder } from "@core/core/routing/policy.js"
+import type { RouteReasonCode } from "@core/core/routing/reason-codes.js"
+import { buildBatchMutation } from "@core/gql/batch.js"
+import type { GithubClient } from "@core/gql/github-client.js"
 
 type ExecutionDeps = {
-  githubClient: Pick<
-    GithubClient,
-    | "fetchRepoView"
-    | "fetchIssueCommentsList"
-    | "fetchIssueList"
-    | "fetchIssueView"
-    | "fetchPrList"
-    | "fetchPrView"
-    | "fetchPrCommentsList"
-    | "fetchPrReviewsList"
-    | "fetchPrDiffListFiles"
-    | "fetchPrMergeStatus"
-    | "replyToReviewThread"
-    | "resolveReviewThread"
-    | "unresolveReviewThread"
-    | "submitPrReview"
-  > & {
-    query?: GithubClient["query"]
-  }
+  githubClient: GithubClient
   githubToken?: string | null
   cliRunner?: CliCommandRunner
   ghCliAvailable?: boolean
@@ -64,6 +43,7 @@ const cliEnvironmentCache = new WeakMap<
 >()
 const cliEnvironmentInFlight = new WeakMap<CliCommandRunner, Promise<CliEnvironmentState>>()
 const defaultCliRunner = createSafeCliCommandRunner()
+
 async function detectCliEnvironment(runner: CliCommandRunner): Promise<CliEnvironmentState> {
   try {
     const version = await runner.run("gh", ["--version"], 1_500)
@@ -136,7 +116,6 @@ async function executeComposite(
   }
 
   try {
-    // Expand composite steps into individual operations
     const expandedOperations = expandCompositeSteps(card.composite, input)
 
     if (expandedOperations.length === 0) {
@@ -151,30 +130,14 @@ async function executeComposite(
       )
     }
 
-    // Build batch mutation from expanded operations
     const batchInput = expandedOperations.map((op) => ({
       alias: op.alias,
       mutation: op.mutation,
       variables: op.variables,
     }))
     const { document, variables } = buildBatchMutation(batchInput)
+    const batchResult = await deps.githubClient.query(document, variables)
 
-    // Execute single GraphQL request
-    const queryFn = deps.githubClient.query
-    if (!queryFn) {
-      return normalizeError(
-        {
-          code: errorCodes.AdapterUnsupported,
-          message: "GitHub client query method not available for composite execution",
-          retryable: false,
-        },
-        "graphql",
-        { capabilityId: card.capability_id, reason },
-      )
-    }
-    const batchResult = await queryFn(document, variables)
-
-    // Map results back through each builder's mapResponse
     const results: unknown[] = []
     const resultsByAlias = batchResult as Record<string, unknown>
     for (const op of expandedOperations) {
@@ -183,15 +146,12 @@ async function executeComposite(
       results.push(mapped)
     }
 
-    // Aggregate results per output_strategy
     let aggregatedData: unknown
     if (card.composite.output_strategy === "array") {
       aggregatedData = { results }
     } else if (card.composite.output_strategy === "merge") {
-      // Merge all results into a single object
       aggregatedData = Object.assign({}, ...results)
-    } else if (card.composite.output_strategy === "last") {
-      // Return only the last result
+    } else {
       aggregatedData = results[results.length - 1]
     }
 
@@ -207,6 +167,7 @@ async function executeComposite(
   } catch (error) {
     const code = mapErrorToCode(error)
     const message = error instanceof Error ? error.message : String(error) || "Unknown error"
+
     return normalizeError(
       {
         code,
@@ -301,7 +262,7 @@ export async function executeTask(
 
         return runGraphqlCapability(
           deps.githubClient,
-          request.task as GraphqlCapabilityId,
+          request.task,
           request.input as Record<string, unknown>,
         )
       },

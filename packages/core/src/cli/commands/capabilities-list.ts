@@ -1,4 +1,4 @@
-import { listCapabilities } from "../../core/registry/list-capabilities.js"
+import { listCapabilities } from "@core/core/registry/list-capabilities.js"
 
 function parseArgs(argv: string[]): { asJson: boolean; domain: string | undefined } {
   const domainIndex = argv.indexOf("--domain")

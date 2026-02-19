@@ -1,7 +1,6 @@
 import { EventEmitter } from "node:events"
+import { createSafeCliCommandRunner } from "@core/core/execution/cli/safe-runner.js"
 import { describe, expect, it, vi } from "vitest"
-
-import { createSafeCliCommandRunner } from "../../src/core/execution/cli/safe-runner.js"
 
 describe("createSafeCliCommandRunner", () => {
   it("returns stdout, stderr, and exitCode for successful command", async () => {
@@ -84,7 +83,7 @@ describe("createSafeCliCommandRunner", () => {
 
     try {
       const { createSafeCliCommandRunner: createMockedRunner } = await import(
-        "../../src/core/execution/cli/safe-runner.js"
+        "@core/core/execution/cli/safe-runner.js"
       )
       const runner = createMockedRunner({ maxOutputBytes: 4 })
 
@@ -123,7 +122,7 @@ describe("createSafeCliCommandRunner", () => {
 
     try {
       const { createSafeCliCommandRunner: createMockedRunner } = await import(
-        "../../src/core/execution/cli/safe-runner.js"
+        "@core/core/execution/cli/safe-runner.js"
       )
       const runner = createMockedRunner({ maxOutputBytes: 4 })
 
@@ -157,7 +156,7 @@ describe("createSafeCliCommandRunner", () => {
 
     try {
       const { createSafeCliCommandRunner: createMockedRunner } = await import(
-        "../../src/core/execution/cli/safe-runner.js"
+        "@core/core/execution/cli/safe-runner.js"
       )
       const runner = createMockedRunner({ maxOutputBytes: 1024 })
 
@@ -196,7 +195,7 @@ describe("createSafeCliCommandRunner", () => {
 
     try {
       const { createSafeCliCommandRunner: createMockedRunner } = await import(
-        "../../src/core/execution/cli/safe-runner.js"
+        "@core/core/execution/cli/safe-runner.js"
       )
       const runner = createMockedRunner({ maxOutputBytes: 4 })
 

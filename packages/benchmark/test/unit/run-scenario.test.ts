@@ -1,5 +1,5 @@
+import { parseArgs } from "@bench/cli/run-scenario.js"
 import { describe, expect, it } from "vitest"
-import { parseArgs } from "../../src/cli/run-scenario.js"
 
 describe("run-scenario parseArgs", () => {
   it("parses required --scenario flag", () => {

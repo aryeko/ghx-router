@@ -1,6 +1,6 @@
+import { executeTask } from "@core/core/routing/engine.js"
+import type { GithubClient } from "@core/gql/github-client.js"
 import { describe, expect, it, vi } from "vitest"
-import { executeTask } from "../../src/core/routing/engine.js"
-import type { GithubClient } from "../../src/gql/client.js"
 
 describe("pr.review.submit executeTask contract", () => {
   it("returns GraphQL review payload shape from engine", async () => {

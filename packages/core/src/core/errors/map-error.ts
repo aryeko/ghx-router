@@ -42,6 +42,10 @@ export function mapErrorToCode(error: unknown): ErrorCode {
     return errorCodes.NotFound
   }
 
+  if (message.includes("operation not available")) {
+    return errorCodes.AdapterUnsupported
+  }
+
   if (
     message.includes("auth") ||
     message.includes("forbidden") ||

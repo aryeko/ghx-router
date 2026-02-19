@@ -1,6 +1,5 @@
+import { preflightCheck } from "@core/core/execution/preflight.js"
 import { describe, expect, it } from "vitest"
-
-import { preflightCheck } from "../../src/core/execution/preflight.js"
 
 describe("preflightCheck", () => {
   it("passes graphql route when token exists", () => {

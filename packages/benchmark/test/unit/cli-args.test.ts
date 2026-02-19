@@ -1,6 +1,5 @@
+import { parseCliArgs } from "@bench/cli/args.js"
 import { describe, expect, it } from "vitest"
-
-import { parseCliArgs } from "../../src/cli/args.js"
 
 describe("parseCliArgs", () => {
   it("parses mode, reps, and scenario", () => {

@@ -1,5 +1,5 @@
 import type { GraphQLClient, RequestOptions } from "graphql-request"
-import type * as Types from "../generated/common-types.js"
+import type * as Types from "../generated/common-types.generated.js"
 
 type GraphQLClientRequestHeaders = RequestOptions["requestHeaders"]
 export type IssueBlockedByRemoveMutationVariables = Types.Exact<{

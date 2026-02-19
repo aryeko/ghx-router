@@ -10,7 +10,7 @@ vi.mock("node:child_process", () => ({
   spawnSync: spawnSyncMock,
 }))
 
-import { seedFixtureManifest } from "../../src/fixture/seed.js"
+import { seedFixtureManifest } from "@bench/fixture/seed.js"
 
 function success(stdout: unknown): { status: number; stdout: string; stderr: string } {
   return {

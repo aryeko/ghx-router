@@ -1,6 +1,6 @@
+import { getOperationCard, listOperationCards } from "@core/core/registry/index.js"
+import { capabilityRegistry } from "@core/core/routing/capability-registry.js"
 import { describe, expect, it } from "vitest"
-import { getOperationCard, listOperationCards } from "../../src/core/registry/index.js"
-import { capabilityRegistry } from "../../src/core/routing/capability-registry.js"
 
 describe("capabilityRegistry", () => {
   it("is generated from operation cards with deterministic route order", () => {

@@ -1,9 +1,6 @@
 import { mkdtemp, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-
-import { describe, expect, it } from "vitest"
-
 import {
   expectationsConfigExists,
   inferModelSignatureFromRows,
@@ -11,7 +8,8 @@ import {
   normalizeGateProfile,
   resolveGateThresholdsForModel,
   resolveModelForExpectations,
-} from "../../src/report/expectations.js"
+} from "@bench/report/expectations.js"
+import { describe, expect, it } from "vitest"
 
 describe("expectations config", () => {
   it("loads and resolves thresholds for model", async () => {

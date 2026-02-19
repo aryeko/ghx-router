@@ -1,6 +1,5 @@
+import { extractAttemptMetrics } from "@bench/extract/attempts.js"
 import { describe, expect, it } from "vitest"
-
-import { extractAttemptMetrics } from "../../src/extract/attempts.js"
 
 describe("extractAttemptMetrics", () => {
   it("extracts attempt totals and route used", () => {

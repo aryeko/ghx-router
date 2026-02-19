@@ -1,4 +1,4 @@
-import { explainCapability } from "../../core/registry/explain-capability.js"
+import { explainCapability } from "@core/core/registry/explain-capability.js"
 
 function usage(): string {
   return "Usage: ghx capabilities explain <capability_id> [--json]"

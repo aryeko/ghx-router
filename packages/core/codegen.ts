@@ -22,7 +22,7 @@ const config = {
       preset: "near-operation-file",
       presetConfig: {
         extension: ".generated.ts",
-        baseTypesPath: "../generated/common-types.js",
+        baseTypesPath: "../generated/common-types.generated.js",
       },
       plugins: ["typescript-operations", "typescript-graphql-request"],
       config: {

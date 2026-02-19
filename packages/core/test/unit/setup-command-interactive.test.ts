@@ -38,7 +38,7 @@ describe("setupCommand interactive overwrite", () => {
       },
     }))
 
-    const { setupCommand } = await import("../../src/cli/commands/setup.js")
+    const { setupCommand } = await import("@core/cli/commands/setup.js")
     await setupCommand(["--scope", "user", "--yes"])
 
     const skillPath = join(tempRoot, ".agents", "skills", "ghx", "SKILL.md")
@@ -66,7 +66,7 @@ describe("setupCommand interactive overwrite", () => {
       },
     }))
 
-    const { setupCommand } = await import("../../src/cli/commands/setup.js")
+    const { setupCommand } = await import("@core/cli/commands/setup.js")
     await setupCommand(["--scope", "user", "--yes"])
 
     const skillPath = join(tempRoot, ".agents", "skills", "ghx", "SKILL.md")

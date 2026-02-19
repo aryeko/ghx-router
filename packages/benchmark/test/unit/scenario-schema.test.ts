@@ -1,6 +1,5 @@
+import { validateScenario } from "@bench/scenario/schema.js"
 import { describe, expect, it } from "vitest"
-
-import { validateScenario } from "../../src/scenario/schema.js"
 
 function createValidWorkflowScenario(): Record<string, unknown> {
   return {

@@ -3,10 +3,9 @@ import { homedir } from "node:os"
 import { dirname, join } from "node:path"
 import readline from "node:readline/promises"
 import { fileURLToPath } from "node:url"
-
+import type { ErrorCode } from "@core/core/errors/codes.js"
+import { errorCodes } from "@core/core/errors/codes.js"
 import { Ajv } from "ajv"
-import type { ErrorCode } from "../../core/errors/codes.js"
-import { errorCodes } from "../../core/errors/codes.js"
 
 type SetupScope = "user" | "project"
 

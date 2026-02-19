@@ -1,4 +1,4 @@
-import type { WorkflowScenario } from "../../src/domain/types.js"
+import type { WorkflowScenario } from "@bench/domain/types.js"
 
 export function makeWorkflowScenario(overrides: Partial<WorkflowScenario> = {}): WorkflowScenario {
   const { assertions: assertionOverrides, ...restOverrides } = overrides

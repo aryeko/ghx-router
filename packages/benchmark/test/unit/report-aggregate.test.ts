@@ -1,6 +1,6 @@
+import type { BenchmarkRow } from "@bench/domain/types.js"
+import { buildSummary, toMarkdown } from "@bench/report/aggregate.js"
 import { describe, expect, it } from "vitest"
-import type { BenchmarkRow } from "../../src/domain/types.js"
-import { buildSummary, toMarkdown } from "../../src/report/aggregate.js"
 
 function row(overrides: Partial<BenchmarkRow>): BenchmarkRow {
   return {

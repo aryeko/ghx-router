@@ -21,14 +21,14 @@ export {
 export type { OperationCard } from "./core/registry/types.js"
 export { executeTask } from "./core/routing/engine.js"
 export type { RouteReasonCode } from "./core/routing/reason-codes.js"
-export type {
-  GithubClient,
-  GraphqlClient,
-  GraphqlTransport,
-  TokenClientOptions,
-} from "./gql/client.js"
+export type { GithubClient } from "./gql/github-client.js"
 export {
   createGithubClient,
   createGithubClientFromToken,
-  createGraphqlClient,
-} from "./gql/client.js"
+} from "./gql/github-client.js"
+export type {
+  GraphqlClient,
+  GraphqlTransport,
+  TokenClientOptions,
+} from "./gql/transport.js"
+export { createGraphqlClient } from "./gql/transport.js"

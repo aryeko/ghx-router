@@ -1,18 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-vi.mock("../../src/runner/suite-runner.js", () => ({
+vi.mock("@bench/runner/suite-runner.js", () => ({
   runSuite: vi.fn(async () => undefined),
 }))
 
-vi.mock("../../src/scenario/loader.js", () => ({
+vi.mock("@bench/scenario/loader.js", () => ({
   loadScenarios: vi.fn(),
   loadScenarioSets: vi.fn(),
 }))
 
-import { main as benchmarkMain } from "../../src/cli/benchmark.js"
-import { main as checkScenariosMain } from "../../src/cli/check-scenarios.js"
-import { runSuite } from "../../src/runner/suite-runner.js"
-import { loadScenarioSets, loadScenarios } from "../../src/scenario/loader.js"
+import { main as benchmarkMain } from "@bench/cli/benchmark.js"
+import { main as checkScenariosMain } from "@bench/cli/check-scenarios.js"
+import { runSuite } from "@bench/runner/suite-runner.js"
+import { loadScenarioSets, loadScenarios } from "@bench/scenario/loader.js"
 
 describe("benchmark cli mains", () => {
   beforeEach(() => {

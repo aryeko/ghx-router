@@ -1,4 +1,4 @@
-import type { GraphqlVariables } from "./client.js"
+import type { GraphqlVariables } from "./transport.js"
 
 export type BatchOperationInput = {
   alias: string

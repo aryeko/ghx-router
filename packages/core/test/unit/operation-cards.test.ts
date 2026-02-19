@@ -1,10 +1,12 @@
-import { describe, expect, it } from "vitest"
-
+import { existsSync } from "node:fs"
+import { dirname, join } from "node:path"
+import { fileURLToPath } from "node:url"
 import {
   getOperationCard,
   listOperationCards,
   validateOperationCard,
-} from "../../src/core/registry/index.js"
+} from "@core/core/registry/index.js"
+import { describe, expect, it } from "vitest"
 
 describe("operation cards registry", () => {
   it("lists all v1 thin-slice capabilities", () => {
@@ -196,6 +198,19 @@ describe("operation cards registry", () => {
     }
 
     expect(validateOperationCard(card)).toEqual({ ok: true })
+  })
+
+  it("references existing graphql documents for graphql-capable cards", () => {
+    const packageRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..")
+    const cards = listOperationCards()
+
+    for (const card of cards) {
+      if (!card.graphql?.documentPath) {
+        continue
+      }
+      const documentPath = join(packageRoot, card.graphql.documentPath)
+      expect(existsSync(documentPath)).toBe(true)
+    }
   })
 
   it("fails validation for malformed cards", () => {

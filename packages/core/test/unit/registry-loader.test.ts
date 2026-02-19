@@ -39,7 +39,7 @@ describe("registry yaml loader", () => {
       },
     }))
 
-    const registry = await import("../../src/core/registry/index.js")
+    const registry = await import("@core/core/registry/index.js")
     expect(registry.listOperationCards().map((card) => card.capability_id)).toEqual([
       "aaa.capability",
       "zzz.capability",
@@ -64,8 +64,6 @@ describe("registry yaml loader", () => {
       }),
     }))
 
-    await expect(import("../../src/core/registry/index.js")).rejects.toThrow(
-      "Invalid operation card",
-    )
+    await expect(import("@core/core/registry/index.js")).rejects.toThrow("Invalid operation card")
   })
 })

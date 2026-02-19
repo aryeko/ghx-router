@@ -1,7 +1,7 @@
+import type { GithubClient } from "@core/gql/github-client.js"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { TaskRequest } from "../../src/core/contracts/task.js"
 import { executeTask } from "../../src/core/routing/engine.js"
-import type { GithubClient } from "../../src/gql/client.js"
 
 describe("composite execution in engine", () => {
   let mockGithubClient: Partial<GithubClient>

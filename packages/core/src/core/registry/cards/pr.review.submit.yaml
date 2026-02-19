@@ -38,6 +38,6 @@ routing:
   fallbacks: [cli]
 graphql:
   operationName: PrReviewSubmit
-  documentPath: pr-review-submit.graphql
+  documentPath: src/gql/operations/pr-review-submit.graphql
 cli:
   command: pr review
