@@ -43,3 +43,23 @@ export interface ResultEnvelope<TData = unknown> {
   error?: ResultError
   meta: ResultMeta
 }
+
+export type ChainStatus = "success" | "partial" | "failed"
+
+export interface ChainStepResult {
+  task: string
+  ok: boolean
+  data?: unknown
+  error?: ResultError
+}
+
+export interface ChainResultEnvelope {
+  status: ChainStatus
+  results: ChainStepResult[]
+  meta: {
+    route_used: "graphql"
+    total: number
+    succeeded: number
+    failed: number
+  }
+}
