@@ -2,8 +2,6 @@ import { spawnSync } from "node:child_process"
 import { readdirSync, readFileSync, writeFileSync } from "node:fs"
 import { join, resolve } from "node:path"
 
-import { resolveGithubToken } from "./get-github-token.js"
-
 function fixGeneratedImportExtensions(packageRoot: string): void {
   const opsDir = join(packageRoot, "src", "gql", "operations")
   fixImportsInDir(opsDir)
@@ -32,16 +30,11 @@ function fixImportsInDir(dir: string): void {
 }
 
 async function main(): Promise<void> {
-  const token = await resolveGithubToken()
   const packageRoot = resolve(process.cwd())
 
   const result = spawnSync("pnpm", ["exec", "graphql-codegen", "--config", "codegen.ts"], {
     cwd: packageRoot,
     stdio: "inherit",
-    env: {
-      ...process.env,
-      GITHUB_TOKEN: token,
-    },
   })
 
   if (result.status !== 0) {
