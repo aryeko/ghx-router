@@ -131,14 +131,10 @@ const handleProjectV2UserGet: CliHandler = async (runner, params, _card) => {
 
 const handleProjectV2FieldsList: CliHandler = async (runner, params, _card) => {
   try {
-    const projectNumber = parseStrictPositiveInt(params.projectNumber)
-    if (projectNumber === null) {
-      throw new Error("Missing or invalid projectNumber for project_v2.fields.list")
-    }
-
     const projectOwner = parseNonEmptyString(params.owner)
-    if (projectOwner === null) {
-      throw new Error("Missing or invalid owner for project_v2.fields.list")
+    const projectNumber = parseStrictPositiveInt(params.projectNumber)
+    if (projectOwner === null || projectNumber === null) {
+      throw new Error("Missing or invalid owner/projectNumber for project_v2.fields.list")
     }
 
     const args = [
@@ -216,19 +212,11 @@ const handleProjectV2FieldsList: CliHandler = async (runner, params, _card) => {
 
 const handleProjectV2ItemsList: CliHandler = async (runner, params, _card) => {
   try {
-    const projectNumber = parseStrictPositiveInt(params.projectNumber)
-    if (projectNumber === null) {
-      throw new Error("Missing or invalid projectNumber for project_v2.items.list")
-    }
-
     const projectOwner = parseNonEmptyString(params.owner)
-    if (projectOwner === null) {
-      throw new Error("Missing or invalid owner for project_v2.items.list")
-    }
-
+    const projectNumber = parseStrictPositiveInt(params.projectNumber)
     const first = parseListFirst(params.first)
-    if (first === null) {
-      throw new Error("Missing or invalid first for project_v2.items.list")
+    if (projectOwner === null || projectNumber === null || first === null) {
+      throw new Error("Missing or invalid owner/projectNumber/first for project_v2.items.list")
     }
 
     const args = [
@@ -315,19 +303,13 @@ const handleProjectV2ItemsList: CliHandler = async (runner, params, _card) => {
 
 const handleProjectV2ItemAddIssue: CliHandler = async (runner, params, _card) => {
   try {
-    const projectNumber = parseStrictPositiveInt(params.projectNumber)
-    if (projectNumber === null) {
-      throw new Error("Missing or invalid projectNumber for project_v2.item.add_issue")
-    }
-
     const projectOwner = parseNonEmptyString(params.owner)
-    if (projectOwner === null) {
-      throw new Error("Missing or invalid owner for project_v2.item.add_issue")
-    }
-
+    const projectNumber = parseStrictPositiveInt(params.projectNumber)
     const issueUrl = parseNonEmptyString(params.issueUrl)
-    if (issueUrl === null) {
-      throw new Error("Missing or invalid issueUrl for project_v2.item.add_issue")
+    if (projectOwner === null || projectNumber === null || issueUrl === null) {
+      throw new Error(
+        "Missing or invalid owner/projectNumber/issueUrl for project_v2.item.add_issue",
+      )
     }
 
     const args = [
@@ -394,18 +376,12 @@ const handleProjectV2ItemAddIssue: CliHandler = async (runner, params, _card) =>
 const handleProjectV2ItemFieldUpdate: CliHandler = async (runner, params, _card) => {
   try {
     const projectId = parseNonEmptyString(params.projectId)
-    if (projectId === null) {
-      throw new Error("Missing or invalid projectId for project_v2.item.field.update")
-    }
-
     const itemId = parseNonEmptyString(params.itemId)
-    if (itemId === null) {
-      throw new Error("Missing or invalid itemId for project_v2.item.field.update")
-    }
-
     const fieldId = parseNonEmptyString(params.fieldId)
-    if (fieldId === null) {
-      throw new Error("Missing or invalid fieldId for project_v2.item.field.update")
+    if (projectId === null || itemId === null || fieldId === null) {
+      throw new Error(
+        "Missing or invalid projectId/itemId/fieldId for project_v2.item.field.update",
+      )
     }
 
     const args = [

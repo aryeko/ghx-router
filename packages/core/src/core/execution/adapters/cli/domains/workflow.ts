@@ -80,7 +80,7 @@ export const handleWorkflowRunsList: CliHandler = async (runner, params, card) =
       items: runs.map((run) => {
         if (typeof run !== "object" || run === null || Array.isArray(run)) {
           return {
-            id: null,
+            id: 0,
             workflowName: null,
             status: null,
             conclusion: null,
@@ -91,7 +91,7 @@ export const handleWorkflowRunsList: CliHandler = async (runner, params, card) =
 
         const input = run as Record<string, unknown>
         return {
-          id: typeof input.databaseId === "number" ? input.databaseId : null,
+          id: typeof input.databaseId === "number" ? input.databaseId : 0,
           workflowName: typeof input.workflowName === "string" ? input.workflowName : null,
           status: typeof input.status === "string" ? input.status : null,
           conclusion: typeof input.conclusion === "string" ? input.conclusion : null,
@@ -478,7 +478,7 @@ export const handleWorkflowRunView: CliHandler = async (runner, params, card) =>
     const jobsArray = Array.isArray(root.jobs) ? root.jobs : []
 
     const normalized = {
-      id: typeof root.databaseId === "number" ? root.databaseId : null,
+      id: typeof root.databaseId === "number" ? root.databaseId : 0,
       workflowName: typeof root.workflowName === "string" ? root.workflowName : null,
       status: typeof root.status === "string" ? root.status : null,
       conclusion: typeof root.conclusion === "string" ? root.conclusion : null,
@@ -492,7 +492,7 @@ export const handleWorkflowRunView: CliHandler = async (runner, params, card) =>
       jobs: jobsArray.map((job) => {
         if (typeof job !== "object" || job === null || Array.isArray(job)) {
           return {
-            id: null,
+            id: 0,
             name: null,
             status: null,
             conclusion: null,
@@ -504,7 +504,7 @@ export const handleWorkflowRunView: CliHandler = async (runner, params, card) =>
 
         const input = job as Record<string, unknown>
         return {
-          id: typeof input.databaseId === "number" ? input.databaseId : null,
+          id: typeof input.databaseId === "number" ? input.databaseId : 0,
           name: typeof input.name === "string" ? input.name : null,
           status: typeof input.status === "string" ? input.status : null,
           conclusion: typeof input.conclusion === "string" ? input.conclusion : null,
@@ -707,7 +707,7 @@ export const handleWorkflowRunArtifactsList: CliHandler = async (runner, params,
       items: artifactsArray.map((artifact) => {
         if (typeof artifact !== "object" || artifact === null || Array.isArray(artifact)) {
           return {
-            id: null,
+            id: 0,
             name: null,
             sizeInBytes: null,
             archiveDownloadUrl: null,
@@ -779,13 +779,20 @@ export const handleWorkflowDispatchRun: CliHandler = async (runner, params, card
     args.push("--method", "POST")
     args.push("-f", `ref=${ref}`)
 
-    const inputs = params.inputs
-    if (typeof inputs === "object" && inputs !== null && !Array.isArray(inputs)) {
+    if (params.inputs !== undefined) {
+      const inputs = params.inputs
+      if (typeof inputs !== "object" || inputs === null || Array.isArray(inputs)) {
+        throw new Error("Missing or invalid inputs for workflow.dispatch.run")
+      }
       const inputsObj = inputs as Record<string, unknown>
       for (const [key, value] of Object.entries(inputsObj)) {
-        if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-          args.push("-f", `inputs[${key}]=${String(value)}`)
+        if (key.trim() === "") {
+          throw new Error("Missing or invalid inputs for workflow.dispatch.run")
         }
+        if (typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean") {
+          throw new Error("Missing or invalid inputs for workflow.dispatch.run")
+        }
+        args.push("-f", `inputs[${key}]=${String(value)}`)
       }
     }
 

@@ -271,7 +271,7 @@ const handlePrUpdate: CliHandler = async (runner, params, _card) => {
       {
         number: prNumber,
         url: fallbackUrl,
-        title: typeof params.title === "string" ? params.title : "",
+        title: "",
         state: "OPEN",
         draft: typeof params.draft === "boolean" ? params.draft : false,
       },
@@ -620,8 +620,9 @@ const handlePrChecksRerunFailed: CliHandler = async (runner, params, card) => {
     const runId = parseStrictPositiveInt(params.runId)
     if (runId === null) throw new Error("Missing or invalid runId for pr.checks.rerun_failed")
 
-    const args = [...commandTokens(card, "run rerun"), String(runId), "--failed"]
+    const args = [...commandTokens(card, "run rerun"), String(runId)]
     if (repo) args.push("--repo", repo)
+    args.push("--failed")
 
     const result = await runner.run("gh", args, DEFAULT_TIMEOUT_MS)
     if (result.exitCode !== 0) {
@@ -972,12 +973,7 @@ const handlePrDiffFiles: CliHandler = async (runner, params, card) => {
     }
 
     const data = parseCliData(result.stdout)
-    const input =
-      typeof data === "object" && data !== null && !Array.isArray(data)
-        ? (data as Record<string, unknown>)
-        : {}
-    const files = Array.isArray(input.files) ? input.files : []
-    return normalizeResult({ files }, "cli", {
+    return normalizeResult(data, "cli", {
       capabilityId: "pr.diff.files",
       reason: "CARD_FALLBACK",
     })

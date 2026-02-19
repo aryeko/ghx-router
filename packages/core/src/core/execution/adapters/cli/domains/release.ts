@@ -371,7 +371,7 @@ export const handleReleasePublishDraft: CliHandler = async (runner, params, card
 
     const releaseId = parseStrictPositiveInt(params.releaseId)
     if (releaseId === null) {
-      throw new Error("Missing or invalid releaseId for release.publish_draft")
+      throw new Error("Missing owner/name/releaseId for release.publish_draft")
     }
 
     const readArgs = [...commandTokens(card, "api"), `repos/${owner}/${name}/releases/${releaseId}`]
