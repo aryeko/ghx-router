@@ -54,30 +54,11 @@ describe("validateOperationCard", () => {
     expect(result.ok).toBe(true)
   })
 
-  it("accepts card with valid composite config", () => {
-    const card = {
-      ...validBaseCard,
-      capability_id: "pr.threads.composite",
-      composite: {
-        steps: [
-          {
-            capability_id: "pr.thread.reply",
-            foreach: "threads",
-            params_map: { threadId: "threadId" },
-          },
-        ],
-        output_strategy: "array",
-      },
-    }
-    const result = validateOperationCard(card)
-    expect(result.ok).toBe(true)
-  })
-
   it("rejects card with invalid output_strategy", () => {
     const card = {
       ...validBaseCard,
       composite: {
-        steps: [{ capability_id: "pr.thread.reply", params_map: {} }],
+        steps: [{ capability_id: "pr.threads.reply", params_map: {} }],
         output_strategy: "invalid",
       },
     }

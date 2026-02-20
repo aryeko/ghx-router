@@ -3,7 +3,7 @@
   "id": "issue-triage-comment-wf-001",
   "name": "Triage issue with label and comment",
   "prompt": "Issue #{{issueNumber}} in {{owner}}/{{name}} needs triage. Read the issue, then add the label 'enhancement' to it, and leave a comment saying 'Triaged — tracking as enhancement.'",
-  "expected_capabilities": ["issue.view", "issue.labels.update", "issue.comments.create"],
+  "expected_capabilities": ["issue.view", "issue.labels.set", "issue.comments.create"],
   "timeout_ms": 180000,
   "allowed_retries": 1,
   "fixture": {

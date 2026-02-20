@@ -3,7 +3,7 @@ import { executeTask } from "@core/core/routing/engine.js"
 import { createGithubClient } from "@core/gql/github-client.js"
 import { describe, expect, it } from "vitest"
 
-describe("executeTask project_v2.item.add_issue", () => {
+describe("executeTask project_v2.items.issue.add", () => {
   it("returns validation error envelope for missing contentId", async () => {
     const githubClient = createGithubClient({
       async execute<TData>(): Promise<TData> {
@@ -12,7 +12,7 @@ describe("executeTask project_v2.item.add_issue", () => {
     })
 
     const request: TaskRequest = {
-      task: "project_v2.item.add_issue",
+      task: "project_v2.items.issue.add",
       input: { projectId: "project-id-1" },
     }
 

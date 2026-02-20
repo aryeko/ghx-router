@@ -117,7 +117,7 @@ const handlers = new Map<string, GraphqlHandler>([
     },
   ],
   [
-    "issue.labels.update",
+    "issue.labels.set",
     (c, p) => {
       if (!c.updateIssueLabels) {
         throw new Error("updateIssueLabels operation not available")
@@ -126,7 +126,7 @@ const handlers = new Map<string, GraphqlHandler>([
     },
   ],
   [
-    "issue.assignees.update",
+    "issue.assignees.set",
     (c, p) => {
       if (!c.updateIssueAssignees) {
         throw new Error("updateIssueAssignees operation not available")
@@ -153,7 +153,7 @@ const handlers = new Map<string, GraphqlHandler>([
     },
   ],
   [
-    "issue.linked_prs.list",
+    "issue.relations.prs.list",
     (c, p) => {
       if (!c.fetchIssueLinkedPrs) {
         throw new Error("fetchIssueLinkedPrs operation not available")
@@ -162,7 +162,7 @@ const handlers = new Map<string, GraphqlHandler>([
     },
   ],
   [
-    "issue.relations.get",
+    "issue.relations.view",
     (c, p) => {
       if (!c.fetchIssueRelations) {
         throw new Error("fetchIssueRelations operation not available")
@@ -171,7 +171,7 @@ const handlers = new Map<string, GraphqlHandler>([
     },
   ],
   [
-    "issue.parent.set",
+    "issue.relations.parent.set",
     (c, p) => {
       if (!c.setIssueParent) {
         throw new Error("setIssueParent operation not available")
@@ -180,7 +180,7 @@ const handlers = new Map<string, GraphqlHandler>([
     },
   ],
   [
-    "issue.parent.remove",
+    "issue.relations.parent.remove",
     (c, p) => {
       if (!c.removeIssueParent) {
         throw new Error("removeIssueParent operation not available")
@@ -189,7 +189,7 @@ const handlers = new Map<string, GraphqlHandler>([
     },
   ],
   [
-    "issue.blocked_by.add",
+    "issue.relations.blocked_by.add",
     (c, p) => {
       if (!c.addIssueBlockedBy) {
         throw new Error("addIssueBlockedBy operation not available")
@@ -198,7 +198,7 @@ const handlers = new Map<string, GraphqlHandler>([
     },
   ],
   [
-    "issue.blocked_by.remove",
+    "issue.relations.blocked_by.remove",
     (c, p) => {
       if (!c.removeIssueBlockedBy) {
         throw new Error("removeIssueBlockedBy operation not available")
@@ -210,36 +210,36 @@ const handlers = new Map<string, GraphqlHandler>([
   // PR queries
   ["pr.view", (c, p) => c.fetchPrView(p as PrViewInput)],
   ["pr.list", (c, p) => c.fetchPrList(withDefaultFirst(p) as PrListInput)],
-  ["pr.review.list", (c, p) => c.fetchPrReviewsList(withDefaultFirst(p) as PrReviewsListInput)],
+  ["pr.reviews.list", (c, p) => c.fetchPrReviewsList(withDefaultFirst(p) as PrReviewsListInput)],
   ["pr.diff.files", (c, p) => c.fetchPrDiffListFiles(withDefaultFirst(p) as PrDiffListFilesInput)],
   ["pr.merge.status", (c, p) => c.fetchPrMergeStatus(p as PrMergeStatusInput)],
-  ["pr.thread.list", (c, p) => c.fetchPrCommentsList(withDefaultFirst(p) as PrCommentsListInput)],
+  ["pr.threads.list", (c, p) => c.fetchPrCommentsList(withDefaultFirst(p) as PrCommentsListInput)],
 
   // PR mutations
   [
-    "pr.thread.reply",
+    "pr.threads.reply",
     (c, p) => {
-      const threadId = requireNonEmptyString(p, "threadId", "pr.thread.reply")
-      const body = requireNonEmptyString(p, "body", "pr.thread.reply")
+      const threadId = requireNonEmptyString(p, "threadId", "pr.threads.reply")
+      const body = requireNonEmptyString(p, "body", "pr.threads.reply")
       return c.replyToReviewThread({ threadId, body })
     },
   ],
   [
-    "pr.thread.resolve",
+    "pr.threads.resolve",
     (c, p) => {
-      const threadId = requireNonEmptyString(p, "threadId", "pr.thread.resolve")
+      const threadId = requireNonEmptyString(p, "threadId", "pr.threads.resolve")
       return c.resolveReviewThread({ threadId })
     },
   ],
   [
-    "pr.thread.unresolve",
+    "pr.threads.unresolve",
     (c, p) => {
-      const threadId = requireNonEmptyString(p, "threadId", "pr.thread.unresolve")
+      const threadId = requireNonEmptyString(p, "threadId", "pr.threads.unresolve")
       return c.unresolveReviewThread({ threadId })
     },
   ],
   [
-    "pr.review.submit",
+    "pr.reviews.submit",
     (c, p) => {
       if (!c.submitPrReview) {
         throw new Error("submitPrReview operation not available")

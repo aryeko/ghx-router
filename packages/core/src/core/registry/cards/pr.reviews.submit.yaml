@@ -1,0 +1,41 @@
+capability_id: pr.reviews.submit
+version: "1.0.0"
+description: Submit a pull request review (approve, request changes, or comment). GitHub requires a non-empty body for COMMENT and REQUEST_CHANGES events.
+input_schema:
+  type: object
+  required: [owner, name, prNumber, event]
+  properties:
+    owner: { type: string, minLength: 1 }
+    name: { type: string, minLength: 1 }
+    prNumber: { type: integer, minimum: 1 }
+    event:
+      type: string
+      enum: [APPROVE, COMMENT, REQUEST_CHANGES]
+    body: { type: string, minLength: 1 }
+    comments:
+      type: array
+      items:
+        type: object
+        required: [path, body, line]
+        properties:
+          path: { type: string, minLength: 1 }
+          body: { type: string, minLength: 1 }
+          line: { type: integer, minimum: 1 }
+          side: { type: string, enum: [LEFT, RIGHT] }
+        additionalProperties: false
+  additionalProperties: false
+output_schema:
+  type: object
+  required: [id, state, url, body]
+  properties:
+    id: { type: [string, "null"] }
+    state: { type: [string, "null"] }
+    url: { type: [string, "null"] }
+    body: { type: [string, "null"] }
+  additionalProperties: false
+routing:
+  preferred: graphql
+  fallbacks: []
+graphql:
+  operationName: PrReviewSubmit
+  documentPath: src/gql/operations/pr-review-submit.graphql

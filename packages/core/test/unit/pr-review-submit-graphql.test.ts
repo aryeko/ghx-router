@@ -2,7 +2,7 @@ import { runGraphqlCapability } from "@core/core/execution/adapters/graphql-capa
 import type { GithubClient } from "@core/gql/github-client.js"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-describe("pr.review.submit via GraphQL", () => {
+describe("pr.reviews.submit via GraphQL", () => {
   let client: Pick<
     GithubClient,
     | "fetchRepoView"
@@ -48,7 +48,7 @@ describe("pr.review.submit via GraphQL", () => {
   it("submits review with inline comments using addPullRequestReview mutation", async () => {
     const result = await runGraphqlCapability(
       client as unknown as GithubClient,
-      "pr.review.submit",
+      "pr.reviews.submit",
       {
         owner: "owner",
         name: "repo",
@@ -67,7 +67,7 @@ describe("pr.review.submit via GraphQL", () => {
   it("submits review without comments (body-only)", async () => {
     const result = await runGraphqlCapability(
       client as unknown as GithubClient,
-      "pr.review.submit",
+      "pr.reviews.submit",
       {
         owner: "owner",
         name: "repo",

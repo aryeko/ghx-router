@@ -3,8 +3,8 @@ import { executeTask } from "@core/core/routing/engine.js"
 import { createGithubClient } from "@core/gql/github-client.js"
 import { describe, expect, it } from "vitest"
 
-describe("executeTask workflow.job.logs.get", () => {
-  it("returns cli envelope for workflow.job.logs.get", async () => {
+describe("executeTask workflow.job.logs.view", () => {
+  it("returns cli envelope for workflow.job.logs.view", async () => {
     const githubClient = createGithubClient({
       async execute<TData>(): Promise<TData> {
         return {} as TData
@@ -12,7 +12,7 @@ describe("executeTask workflow.job.logs.get", () => {
     })
 
     const request: TaskRequest = {
-      task: "workflow.job.logs.get",
+      task: "workflow.job.logs.view",
       input: {
         owner: "go-modkit",
         name: "modkit",
@@ -52,7 +52,7 @@ describe("executeTask workflow.job.logs.get", () => {
     })
 
     const request: TaskRequest = {
-      task: "workflow.job.logs.get",
+      task: "workflow.job.logs.view",
       input: {
         owner: "go-modkit",
         name: "modkit",

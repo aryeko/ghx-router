@@ -128,7 +128,7 @@ describe("release domain handlers", () => {
         isPrerelease: false,
         url: "https://github.com/owner/repo/releases/tag/v1.0.0",
       })
-      expect(result.meta.capability_id).toBe("release.get")
+      expect(result.meta.capability_id).toBe("release.view")
     })
 
     it("returns error on non-zero exit code", async () => {
@@ -180,7 +180,7 @@ describe("release domain handlers", () => {
         tagName: "v2.0.0",
         isDraft: true,
       })
-      expect(result.meta.capability_id).toBe("release.create_draft")
+      expect(result.meta.capability_id).toBe("release.create")
     })
 
     it("returns error on non-zero exit code", async () => {
@@ -305,7 +305,7 @@ describe("release domain handlers", () => {
         isDraft: false,
         wasDraft: true,
       })
-      expect(result.meta.capability_id).toBe("release.publish_draft")
+      expect(result.meta.capability_id).toBe("release.publish")
     })
 
     it("returns error when first read call fails", async () => {
@@ -319,7 +319,7 @@ describe("release domain handlers", () => {
 
       expect(result.ok).toBe(false)
       expect(result.error?.code).toBeDefined()
-      expect(result.meta.capability_id).toBe("release.publish_draft")
+      expect(result.meta.capability_id).toBe("release.publish")
     })
 
     it("returns Validation error when release is not a draft", async () => {
@@ -394,10 +394,10 @@ describe("release domain handlers", () => {
   describe("handlers export", () => {
     it("exports all release handlers", () => {
       expect(handlers["release.list"]).toBe(handleReleaseList)
-      expect(handlers["release.get"]).toBe(handleReleaseGet)
-      expect(handlers["release.create_draft"]).toBe(handleReleaseCreateDraft)
+      expect(handlers["release.view"]).toBe(handleReleaseGet)
+      expect(handlers["release.create"]).toBe(handleReleaseCreateDraft)
       expect(handlers["release.update"]).toBe(handleReleaseUpdate)
-      expect(handlers["release.publish_draft"]).toBe(handleReleasePublishDraft)
+      expect(handlers["release.publish"]).toBe(handleReleasePublishDraft)
     })
   })
 })
@@ -424,7 +424,7 @@ describe("release domain handlers – additional coverage", () => {
       expect(result.error?.message).toContain("owner/name")
     })
 
-    it("release.create_draft returns error for missing owner", async () => {
+    it("release.create returns error for missing owner", async () => {
       const result = await handleReleaseCreateDraft(
         mockRunner(0, "{}"),
         { owner: "", name: "repo", tagName: "v1.0.0" },
@@ -444,7 +444,7 @@ describe("release domain handlers – additional coverage", () => {
       expect(result.error?.message).toContain("owner/name")
     })
 
-    it("release.publish_draft returns error for missing owner", async () => {
+    it("release.publish returns error for missing owner", async () => {
       const result = await handleReleasePublishDraft(
         mockRunner(0, "{}"),
         { owner: "", name: "repo", releaseId: 1 },
@@ -476,7 +476,7 @@ describe("release domain handlers – additional coverage", () => {
       expect(result.error?.message).toContain("Failed to parse CLI JSON output")
     })
 
-    it("release.create_draft returns error on malformed JSON", async () => {
+    it("release.create returns error on malformed JSON", async () => {
       const result = await handleReleaseCreateDraft(
         mockRunner(0, "not-json"),
         { owner: "acme", name: "repo", tagName: "v1.0.0" },
@@ -496,7 +496,7 @@ describe("release domain handlers – additional coverage", () => {
       expect(result.error?.message).toContain("Failed to parse CLI JSON output")
     })
 
-    it("release.publish_draft returns error on malformed JSON in read step", async () => {
+    it("release.publish returns error on malformed JSON in read step", async () => {
       const result = await handleReleasePublishDraft(
         mockRunner(0, "not-json"),
         { owner: "acme", name: "repo", releaseId: 1 },
@@ -526,7 +526,7 @@ describe("release domain handlers – additional coverage", () => {
       expect(result.ok).toBe(false)
     })
 
-    it("release.publish_draft returns error for missing releaseId", async () => {
+    it("release.publish returns error for missing releaseId", async () => {
       const result = await handleReleasePublishDraft(
         mockRunner(0, "{}"),
         { owner: "acme", name: "repo", releaseId: 0 },
@@ -636,7 +636,7 @@ describe("release domain handlers – additional coverage", () => {
     })
   })
 
-  describe("release.publish_draft – optional params and non-draft guard", () => {
+  describe("release.publish – optional params and non-draft guard", () => {
     it("includes notes, prerelease in publish call when provided", async () => {
       const runSpy = vi
         .fn()

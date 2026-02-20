@@ -3,7 +3,7 @@ import { executeTask } from "@core/core/routing/engine.js"
 import { createGithubClient } from "@core/gql/github-client.js"
 import { describe, expect, it } from "vitest"
 
-describe("executeTask issue.parent.remove", () => {
+describe("executeTask issue.relations.parent.remove", () => {
   it("returns validation error envelope for missing issueId", async () => {
     const githubClient = createGithubClient({
       async execute<TData>(): Promise<TData> {
@@ -12,7 +12,7 @@ describe("executeTask issue.parent.remove", () => {
     })
 
     const request: TaskRequest = {
-      task: "issue.parent.remove",
+      task: "issue.relations.parent.remove",
       input: {},
     }
 

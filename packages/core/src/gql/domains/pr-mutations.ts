@@ -24,6 +24,7 @@ import type {
   PrReviewSubmitInput,
   PrReviewThreadCommentData,
   PrReviewThreadData,
+  ReplyToReviewThreadData,
   ReplyToReviewThreadInput,
   ReviewThreadMutationData,
   ReviewThreadMutationInput,
@@ -209,7 +210,7 @@ function parseReviewThreadMutationResult(
 export async function runReplyToReviewThread(
   transport: GraphqlTransport,
   input: ReplyToReviewThreadInput,
-): Promise<ReviewThreadMutationData> {
+): Promise<ReplyToReviewThreadData> {
   assertReplyToReviewThreadInput(input)
 
   const client = createGraphqlRequestClient(transport)
@@ -234,6 +235,8 @@ export async function runReplyToReviewThread(
   return {
     id: input.threadId,
     isResolved: Boolean(threadNode.isResolved),
+    commentId: comment.id,
+    commentUrl: typeof comment.url === "string" ? comment.url : "",
   }
 }
 

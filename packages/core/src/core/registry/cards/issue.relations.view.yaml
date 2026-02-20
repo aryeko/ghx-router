@@ -1,0 +1,54 @@
+capability_id: issue.relations.view
+version: "1.0.0"
+description: Get issue parent/children/blocking relations.
+input_schema:
+  type: object
+  required: [owner, name, issueNumber]
+  properties:
+    owner: { type: string, minLength: 1 }
+    name: { type: string, minLength: 1 }
+    issueNumber: { type: integer, minimum: 1 }
+  additionalProperties: false
+output_schema:
+  type: object
+  required: [issue, parent, children, blockedBy]
+  properties:
+    issue:
+      type: object
+      required: [id, number]
+      properties:
+        id: { type: string, minLength: 1 }
+        number: { type: integer, minimum: 1 }
+      additionalProperties: false
+    parent:
+      type: [object, "null"]
+      required: [id, number]
+      properties:
+        id: { type: string, minLength: 1 }
+        number: { type: integer, minimum: 1 }
+      additionalProperties: false
+    children:
+      type: array
+      items:
+        type: object
+        required: [id, number]
+        properties:
+          id: { type: string, minLength: 1 }
+          number: { type: integer, minimum: 1 }
+        additionalProperties: false
+    blockedBy:
+      type: array
+      items:
+        type: object
+        required: [id, number]
+        properties:
+          id: { type: string, minLength: 1 }
+          number: { type: integer, minimum: 1 }
+        additionalProperties: false
+  additionalProperties: false
+routing:
+  preferred: graphql
+  fallbacks: []
+graphql:
+  operationName: IssueRelationsGet
+  documentPath: src/gql/operations/issue-relations-get.graphql

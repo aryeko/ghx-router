@@ -1,8 +1,6 @@
 import type { ResultEnvelope, RouteSource } from "@core/core/contracts/envelope.js"
 import type { TaskRequest } from "@core/core/contracts/task.js"
 import { errorCodes } from "@core/core/errors/codes.js"
-import { mapErrorToCode } from "@core/core/errors/map-error.js"
-import { expandCompositeSteps } from "@core/core/execute/composite.js"
 import { execute } from "@core/core/execute/execute.js"
 import {
   type CliCapabilityId,
@@ -16,7 +14,6 @@ import { preflightCheck } from "@core/core/execution/preflight.js"
 import { getOperationCard } from "@core/core/registry/index.js"
 import { routePreferenceOrder } from "@core/core/routing/policy.js"
 import type { RouteReasonCode } from "@core/core/routing/reason-codes.js"
-import { buildBatchMutation } from "@core/gql/batch.js"
 import type { GithubClient } from "@core/gql/github-client.js"
 
 type ExecutionDeps = {
@@ -97,92 +94,6 @@ async function detectCliEnvironmentCached(runner: CliCommandRunner): Promise<Cli
   return probePromise
 }
 
-async function executeComposite(
-  card: NonNullable<ReturnType<typeof getOperationCard>>,
-  input: Record<string, unknown>,
-  deps: ExecutionDeps,
-  reason: RouteReasonCode,
-): Promise<ResultEnvelope> {
-  if (!card.composite) {
-    return normalizeError(
-      {
-        code: errorCodes.Validation,
-        message: "Card does not have composite config",
-        retryable: false,
-      },
-      "graphql",
-      { capabilityId: card.capability_id, reason },
-    )
-  }
-
-  try {
-    const expandedOperations = expandCompositeSteps(card.composite, input)
-
-    if (expandedOperations.length === 0) {
-      return normalizeError(
-        {
-          code: errorCodes.Validation,
-          message: "No operations to execute",
-          retryable: false,
-        },
-        "graphql",
-        { capabilityId: card.capability_id, reason },
-      )
-    }
-
-    const batchInput = expandedOperations.map((op) => ({
-      alias: op.alias,
-      mutation: op.mutation,
-      variables: op.variables,
-    }))
-    const { document, variables } = buildBatchMutation(batchInput)
-    const batchResult = await deps.githubClient.query(document, variables)
-
-    const results: unknown[] = []
-    const resultsByAlias = batchResult as Record<string, unknown>
-    for (const op of expandedOperations) {
-      const aliasedResult = resultsByAlias[op.alias]
-      if (aliasedResult === undefined) {
-        throw new Error(`Missing result for alias "${op.alias}" in batch response`)
-      }
-      const mapped = op.mapResponse(aliasedResult)
-      results.push(mapped)
-    }
-
-    let aggregatedData: unknown
-    if (card.composite.output_strategy === "array") {
-      aggregatedData = { results }
-    } else if (card.composite.output_strategy === "merge") {
-      aggregatedData = Object.assign({}, ...results)
-    } else {
-      aggregatedData = results[results.length - 1]
-    }
-
-    return {
-      ok: true,
-      data: aggregatedData,
-      meta: {
-        capability_id: card.capability_id,
-        route_used: "graphql",
-        reason,
-      },
-    }
-  } catch (error) {
-    const code = mapErrorToCode(error)
-    const message = error instanceof Error ? error.message : String(error) || "Unknown error"
-
-    return normalizeError(
-      {
-        code,
-        message,
-        retryable: code !== errorCodes.Validation,
-      },
-      "graphql",
-      { capabilityId: card.capability_id, reason },
-    )
-  }
-}
-
 export async function executeTask(
   request: TaskRequest,
   deps: ExecutionDeps,
@@ -259,10 +170,6 @@ export async function executeTask(
     },
     routes: {
       graphql: async () => {
-        if (card.composite) {
-          return executeComposite(card, request.input as Record<string, unknown>, deps, reason)
-        }
-
         return runGraphqlCapability(
           deps.githubClient,
           request.task,

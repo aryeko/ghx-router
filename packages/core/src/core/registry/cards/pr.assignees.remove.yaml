@@ -1,0 +1,29 @@
+capability_id: pr.assignees.remove
+version: "1.0.0"
+description: Remove specific assignees from a pull request.
+input_schema:
+  type: object
+  required: [owner, name, prNumber, assignees]
+  properties:
+    owner: { type: string, minLength: 1 }
+    name: { type: string, minLength: 1 }
+    prNumber: { type: integer, minimum: 1 }
+    assignees:
+      type: array
+      items: { type: string, minLength: 1 }
+      minItems: 1
+  additionalProperties: false
+output_schema:
+  type: object
+  required: [prNumber, removed]
+  properties:
+    prNumber: { type: integer, minimum: 1 }
+    removed:
+      type: array
+      items: { type: string }
+  additionalProperties: false
+routing:
+  preferred: cli
+  fallbacks: []
+cli:
+  command: pr edit

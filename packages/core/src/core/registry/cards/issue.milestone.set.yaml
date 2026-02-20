@@ -6,14 +6,15 @@ input_schema:
   required: [issueId, milestoneNumber]
   properties:
     issueId: { type: string, minLength: 1 }
-    milestoneNumber: { type: [integer, "null"], minimum: 1 }
+    milestoneNumber: { type: integer, minimum: 1 }
   additionalProperties: false
 output_schema:
   type: object
-  required: [id, milestoneNumber]
+  required: [id, milestoneNumber, updated]
   properties:
     id: { type: string, minLength: 1 }
     milestoneNumber: { type: [integer, "null"] }
+    updated: { type: boolean }
   additionalProperties: false
 routing:
   preferred: graphql

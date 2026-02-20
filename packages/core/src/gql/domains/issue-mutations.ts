@@ -354,21 +354,18 @@ export async function runIssueMilestoneSet(
   assertIssueMilestoneSetInput(input)
 
   const client = createGraphqlRequestClient(transport)
-  let milestoneId: string | null = null
-  if (input.milestoneNumber !== null) {
-    const lookupResult = await getIssueMilestoneLookupSdk(client).IssueMilestoneLookup({
-      issueId: input.issueId,
-      milestoneNumber: input.milestoneNumber,
-    })
+  const lookupResult = await getIssueMilestoneLookupSdk(client).IssueMilestoneLookup({
+    issueId: input.issueId,
+    milestoneNumber: input.milestoneNumber,
+  })
 
-    const resolvedId = asRecord(
-      asRecord(asRecord(asRecord(lookupResult)?.node)?.repository)?.milestone,
-    )?.id
-    if (typeof resolvedId !== "string" || resolvedId.length === 0) {
-      throw new Error(`Milestone not found: ${input.milestoneNumber}`)
-    }
-    milestoneId = resolvedId
+  const resolvedId = asRecord(
+    asRecord(asRecord(asRecord(lookupResult)?.node)?.repository)?.milestone,
+  )?.id
+  if (typeof resolvedId !== "string" || resolvedId.length === 0) {
+    throw new Error(`Milestone not found: ${input.milestoneNumber}`)
   }
+  const milestoneId = resolvedId
 
   const result = await getIssueMilestoneSetSdk(client).IssueMilestoneSet({
     issueId: input.issueId,
@@ -538,6 +535,7 @@ export async function runIssueParentSet(
   return {
     issueId: subIssue.id,
     parentIssueId: parentIssue.id,
+    updated: true,
   }
 }
 
@@ -598,6 +596,7 @@ export async function runIssueBlockedByAdd(
   return {
     issueId: issue.id,
     blockedByIssueId: blockingIssue.id,
+    added: true,
   }
 }
 

@@ -202,7 +202,7 @@ export const handleWorkflowJobLogsGet: CliHandler = async (runner, params, card)
 
     const jobId = parseStrictPositiveInt(params.jobId)
     if (jobId === null) {
-      throw new Error("Missing or invalid jobId for workflow.job.logs.get")
+      throw new Error("Missing or invalid jobId for workflow.job.logs.view")
     }
 
     const args = commandTokens(card, "run view")
@@ -221,10 +221,10 @@ export const handleWorkflowJobLogsGet: CliHandler = async (runner, params, card)
           code,
           message: sanitizeCliErrorMessage(result.stderr, result.exitCode),
           retryable: isRetryableErrorCode(code),
-          details: { capabilityId: "workflow.job.logs.get", exitCode: result.exitCode },
+          details: { capabilityId: "workflow.job.logs.view", exitCode: result.exitCode },
         },
         "cli",
-        { capabilityId: "workflow.job.logs.get", reason: "CARD_FALLBACK" },
+        { capabilityId: "workflow.job.logs.view", reason: "CARD_FALLBACK" },
       )
     }
 
@@ -264,7 +264,7 @@ export const handleWorkflowJobLogsGet: CliHandler = async (runner, params, card)
     }
 
     return normalizeResult(normalized, "cli", {
-      capabilityId: "workflow.job.logs.get",
+      capabilityId: "workflow.job.logs.view",
       reason: "CARD_FALLBACK",
     })
   } catch (error: unknown) {
@@ -276,7 +276,7 @@ export const handleWorkflowJobLogsGet: CliHandler = async (runner, params, card)
         retryable: isRetryableErrorCode(code),
       },
       "cli",
-      { capabilityId: "workflow.job.logs.get", reason: "CARD_FALLBACK" },
+      { capabilityId: "workflow.job.logs.view", reason: "CARD_FALLBACK" },
     )
   }
 }
@@ -361,7 +361,7 @@ export const handleWorkflowGet: CliHandler = async (runner, params, card) => {
       (typeof params.workflowId === "number" ? String(params.workflowId) : null)
 
     if (!workflowId) {
-      throw new Error("Missing or invalid workflowId for workflow.get")
+      throw new Error("Missing or invalid workflowId for workflow.view")
     }
 
     const owner = String(params.owner ?? "")
@@ -386,10 +386,10 @@ export const handleWorkflowGet: CliHandler = async (runner, params, card) => {
           code,
           message: sanitizeCliErrorMessage(result.stderr, result.exitCode),
           retryable: isRetryableErrorCode(code),
-          details: { capabilityId: "workflow.get", exitCode: result.exitCode },
+          details: { capabilityId: "workflow.view", exitCode: result.exitCode },
         },
         "cli",
-        { capabilityId: "workflow.get", reason: "CARD_FALLBACK" },
+        { capabilityId: "workflow.view", reason: "CARD_FALLBACK" },
       )
     }
 
@@ -406,7 +406,7 @@ export const handleWorkflowGet: CliHandler = async (runner, params, card) => {
     }
 
     return normalizeResult(normalized, "cli", {
-      capabilityId: "workflow.get",
+      capabilityId: "workflow.view",
       reason: "CARD_FALLBACK",
     })
   } catch (error: unknown) {
@@ -418,7 +418,7 @@ export const handleWorkflowGet: CliHandler = async (runner, params, card) => {
           retryable: false,
         },
         "cli",
-        { capabilityId: "workflow.get", reason: "CARD_FALLBACK" },
+        { capabilityId: "workflow.view", reason: "CARD_FALLBACK" },
       )
     }
 
@@ -430,7 +430,7 @@ export const handleWorkflowGet: CliHandler = async (runner, params, card) => {
         retryable: isRetryableErrorCode(code),
       },
       "cli",
-      { capabilityId: "workflow.get", reason: "CARD_FALLBACK" },
+      { capabilityId: "workflow.view", reason: "CARD_FALLBACK" },
     )
   }
 }
@@ -557,7 +557,7 @@ export const handleWorkflowRunRerunAll: CliHandler = async (runner, params, card
   try {
     const runId = parseStrictPositiveInt(params.runId)
     if (runId === null) {
-      throw new Error("Missing or invalid runId for workflow.run.rerun_all")
+      throw new Error("Missing or invalid runId for workflow.run.rerun.all")
     }
 
     const owner = String(params.owner ?? "")
@@ -580,20 +580,20 @@ export const handleWorkflowRunRerunAll: CliHandler = async (runner, params, card
           code,
           message: sanitizeCliErrorMessage(result.stderr, result.exitCode),
           retryable: isRetryableErrorCode(code),
-          details: { capabilityId: "workflow.run.rerun_all", exitCode: result.exitCode },
+          details: { capabilityId: "workflow.run.rerun.all", exitCode: result.exitCode },
         },
         "cli",
-        { capabilityId: "workflow.run.rerun_all", reason: "CARD_FALLBACK" },
+        { capabilityId: "workflow.run.rerun.all", reason: "CARD_FALLBACK" },
       )
     }
 
     const normalized = {
       runId,
-      status: "requested",
+      queued: true,
     }
 
     return normalizeResult(normalized, "cli", {
-      capabilityId: "workflow.run.rerun_all",
+      capabilityId: "workflow.run.rerun.all",
       reason: "CARD_FALLBACK",
     })
   } catch (error: unknown) {
@@ -605,7 +605,7 @@ export const handleWorkflowRunRerunAll: CliHandler = async (runner, params, card
         retryable: isRetryableErrorCode(code),
       },
       "cli",
-      { capabilityId: "workflow.run.rerun_all", reason: "CARD_FALLBACK" },
+      { capabilityId: "workflow.run.rerun.all", reason: "CARD_FALLBACK" },
     )
   }
 }
@@ -768,18 +768,18 @@ export const handleWorkflowDispatchRun: CliHandler = async (runner, params, card
   try {
     const workflowId = parseNonEmptyString(params.workflowId)
     if (!workflowId) {
-      throw new Error("Missing or invalid workflowId for workflow.dispatch.run")
+      throw new Error("Missing or invalid workflowId for workflow.dispatch")
     }
 
     const ref = parseNonEmptyString(params.ref)
     if (!ref) {
-      throw new Error("Missing or invalid ref for workflow.dispatch.run")
+      throw new Error("Missing or invalid ref for workflow.dispatch")
     }
 
     const owner = String(params.owner ?? "")
     const name = String(params.name ?? "")
 
-    requireRepo(owner, name, "workflow.dispatch.run")
+    requireRepo(owner, name, "workflow.dispatch")
 
     const encodedWorkflowId = encodeURIComponent(workflowId)
     const args = commandTokens(card, "api")
@@ -790,15 +790,15 @@ export const handleWorkflowDispatchRun: CliHandler = async (runner, params, card
     if (params.inputs !== undefined) {
       const inputs = params.inputs
       if (typeof inputs !== "object" || inputs === null || Array.isArray(inputs)) {
-        throw new Error("Missing or invalid inputs for workflow.dispatch.run")
+        throw new Error("Missing or invalid inputs for workflow.dispatch")
       }
       const inputsObj = inputs as Record<string, unknown>
       for (const [key, value] of Object.entries(inputsObj)) {
         if (key.trim() === "") {
-          throw new Error("Missing or invalid inputs for workflow.dispatch.run")
+          throw new Error("Missing or invalid inputs for workflow.dispatch")
         }
         if (typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean") {
-          throw new Error("Missing or invalid inputs for workflow.dispatch.run")
+          throw new Error("Missing or invalid inputs for workflow.dispatch")
         }
         args.push("-f", `inputs[${key}]=${String(value)}`)
       }
@@ -813,10 +813,10 @@ export const handleWorkflowDispatchRun: CliHandler = async (runner, params, card
           code,
           message: sanitizeCliErrorMessage(result.stderr, result.exitCode),
           retryable: isRetryableErrorCode(code),
-          details: { capabilityId: "workflow.dispatch.run", exitCode: result.exitCode },
+          details: { capabilityId: "workflow.dispatch", exitCode: result.exitCode },
         },
         "cli",
-        { capabilityId: "workflow.dispatch.run", reason: "CARD_FALLBACK" },
+        { capabilityId: "workflow.dispatch", reason: "CARD_FALLBACK" },
       )
     }
 
@@ -827,7 +827,7 @@ export const handleWorkflowDispatchRun: CliHandler = async (runner, params, card
     }
 
     return normalizeResult(normalized, "cli", {
-      capabilityId: "workflow.dispatch.run",
+      capabilityId: "workflow.dispatch",
       reason: "CARD_FALLBACK",
     })
   } catch (error: unknown) {
@@ -839,7 +839,7 @@ export const handleWorkflowDispatchRun: CliHandler = async (runner, params, card
         retryable: isRetryableErrorCode(code),
       },
       "cli",
-      { capabilityId: "workflow.dispatch.run", reason: "CARD_FALLBACK" },
+      { capabilityId: "workflow.dispatch", reason: "CARD_FALLBACK" },
     )
   }
 }
@@ -849,11 +849,11 @@ export const handleWorkflowRunRerunFailed: CliHandler = async (runner, params, c
     const owner = String(params.owner ?? "")
     const name = String(params.name ?? "")
 
-    requireRepo(owner, name, "workflow.run.rerun_failed")
+    requireRepo(owner, name, "workflow.run.rerun.failed")
 
     const runId = parseStrictPositiveInt(params.runId)
     if (runId === null) {
-      throw new Error("Missing or invalid runId for workflow.run.rerun_failed")
+      throw new Error("Missing or invalid runId for workflow.run.rerun.failed")
     }
 
     const args = commandTokens(card, "api")
@@ -869,20 +869,20 @@ export const handleWorkflowRunRerunFailed: CliHandler = async (runner, params, c
           code,
           message: sanitizeCliErrorMessage(result.stderr, result.exitCode),
           retryable: isRetryableErrorCode(code),
-          details: { capabilityId: "workflow.run.rerun_failed", exitCode: result.exitCode },
+          details: { capabilityId: "workflow.run.rerun.failed", exitCode: result.exitCode },
         },
         "cli",
-        { capabilityId: "workflow.run.rerun_failed", reason: "CARD_FALLBACK" },
+        { capabilityId: "workflow.run.rerun.failed", reason: "CARD_FALLBACK" },
       )
     }
 
     const normalized = {
       runId,
-      rerunFailed: true,
+      queued: true,
     }
 
     return normalizeResult(normalized, "cli", {
-      capabilityId: "workflow.run.rerun_failed",
+      capabilityId: "workflow.run.rerun.failed",
       reason: "CARD_FALLBACK",
     })
   } catch (error: unknown) {
@@ -894,7 +894,7 @@ export const handleWorkflowRunRerunFailed: CliHandler = async (runner, params, c
         retryable: isRetryableErrorCode(code),
       },
       "cli",
-      { capabilityId: "workflow.run.rerun_failed", reason: "CARD_FALLBACK" },
+      { capabilityId: "workflow.run.rerun.failed", reason: "CARD_FALLBACK" },
     )
   }
 }
@@ -902,13 +902,13 @@ export const handleWorkflowRunRerunFailed: CliHandler = async (runner, params, c
 export const handlers: Record<string, CliHandler> = {
   "workflow.runs.list": handleWorkflowRunsList,
   "workflow.job.logs.raw": handleWorkflowJobLogsRaw,
-  "workflow.job.logs.get": handleWorkflowJobLogsGet,
+  "workflow.job.logs.view": handleWorkflowJobLogsGet,
   "workflow.list": handleWorkflowList,
-  "workflow.get": handleWorkflowGet,
+  "workflow.view": handleWorkflowGet,
   "workflow.run.view": handleWorkflowRunView,
-  "workflow.run.rerun_all": handleWorkflowRunRerunAll,
+  "workflow.run.rerun.all": handleWorkflowRunRerunAll,
   "workflow.run.cancel": handleWorkflowRunCancel,
   "workflow.run.artifacts.list": handleWorkflowRunArtifactsList,
-  "workflow.dispatch.run": handleWorkflowDispatchRun,
-  "workflow.run.rerun_failed": handleWorkflowRunRerunFailed,
+  "workflow.dispatch": handleWorkflowDispatchRun,
+  "workflow.run.rerun.failed": handleWorkflowRunRerunFailed,
 }

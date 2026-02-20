@@ -112,11 +112,11 @@ export const handleReleaseGet: CliHandler = async (runner, params, card) => {
     const owner = String(params.owner ?? "")
     const name = String(params.name ?? "")
 
-    requireRepo(owner, name, "release.get")
+    requireRepo(owner, name, "release.view")
 
     const tagName = parseNonEmptyString(params.tagName)
     if (tagName === null) {
-      throw new Error("Missing or invalid tagName for release.get")
+      throw new Error("Missing or invalid tagName for release.view")
     }
 
     const args = [
@@ -133,10 +133,10 @@ export const handleReleaseGet: CliHandler = async (runner, params, card) => {
           code,
           message: sanitizeCliErrorMessage(result.stderr, result.exitCode),
           retryable: isRetryableErrorCode(code),
-          details: { capabilityId: "release.get", exitCode: result.exitCode },
+          details: { capabilityId: "release.view", exitCode: result.exitCode },
         },
         "cli",
-        { capabilityId: "release.get", reason: "CARD_FALLBACK" },
+        { capabilityId: "release.view", reason: "CARD_FALLBACK" },
       )
     }
 
@@ -144,7 +144,7 @@ export const handleReleaseGet: CliHandler = async (runner, params, card) => {
     const normalized = normalizeRelease(data)
 
     return normalizeResult(normalized, "cli", {
-      capabilityId: "release.get",
+      capabilityId: "release.view",
       reason: "CARD_FALLBACK",
     })
   } catch (error: unknown) {
@@ -152,7 +152,7 @@ export const handleReleaseGet: CliHandler = async (runner, params, card) => {
       return normalizeError(
         { code: errorCodes.Server, message: "Failed to parse CLI JSON output", retryable: false },
         "cli",
-        { capabilityId: "release.get", reason: "CARD_FALLBACK" },
+        { capabilityId: "release.view", reason: "CARD_FALLBACK" },
       )
     }
 
@@ -164,7 +164,7 @@ export const handleReleaseGet: CliHandler = async (runner, params, card) => {
         retryable: isRetryableErrorCode(code),
       },
       "cli",
-      { capabilityId: "release.get", reason: "CARD_FALLBACK" },
+      { capabilityId: "release.view", reason: "CARD_FALLBACK" },
     )
   }
 }
@@ -174,11 +174,11 @@ export const handleReleaseCreateDraft: CliHandler = async (runner, params, card)
     const owner = String(params.owner ?? "")
     const name = String(params.name ?? "")
 
-    requireRepo(owner, name, "release.create_draft")
+    requireRepo(owner, name, "release.create")
 
     const tagName = parseNonEmptyString(params.tagName)
     if (tagName === null) {
-      throw new Error("Missing or invalid tagName for release.create_draft")
+      throw new Error("Missing or invalid tagName for release.create")
     }
 
     const args = [
@@ -221,10 +221,10 @@ export const handleReleaseCreateDraft: CliHandler = async (runner, params, card)
           code,
           message: sanitizeCliErrorMessage(result.stderr, result.exitCode),
           retryable: isRetryableErrorCode(code),
-          details: { capabilityId: "release.create_draft", exitCode: result.exitCode },
+          details: { capabilityId: "release.create", exitCode: result.exitCode },
         },
         "cli",
-        { capabilityId: "release.create_draft", reason: "CARD_FALLBACK" },
+        { capabilityId: "release.create", reason: "CARD_FALLBACK" },
       )
     }
 
@@ -232,7 +232,7 @@ export const handleReleaseCreateDraft: CliHandler = async (runner, params, card)
     const normalized = normalizeRelease(data)
 
     return normalizeResult(normalized, "cli", {
-      capabilityId: "release.create_draft",
+      capabilityId: "release.create",
       reason: "CARD_FALLBACK",
     })
   } catch (error: unknown) {
@@ -240,7 +240,7 @@ export const handleReleaseCreateDraft: CliHandler = async (runner, params, card)
       return normalizeError(
         { code: errorCodes.Server, message: "Failed to parse CLI JSON output", retryable: false },
         "cli",
-        { capabilityId: "release.create_draft", reason: "CARD_FALLBACK" },
+        { capabilityId: "release.create", reason: "CARD_FALLBACK" },
       )
     }
 
@@ -252,7 +252,7 @@ export const handleReleaseCreateDraft: CliHandler = async (runner, params, card)
         retryable: isRetryableErrorCode(code),
       },
       "cli",
-      { capabilityId: "release.create_draft", reason: "CARD_FALLBACK" },
+      { capabilityId: "release.create", reason: "CARD_FALLBACK" },
     )
   }
 }
@@ -270,9 +270,7 @@ export const handleReleaseUpdate: CliHandler = async (runner, params, card) => {
     }
 
     if (params.draft !== undefined && params.draft !== true) {
-      throw new Error(
-        "release.update only supports draft=true; use release.publish_draft to publish",
-      )
+      throw new Error("release.update only supports draft=true; use release.publish to publish")
     }
 
     const args = [
@@ -367,11 +365,11 @@ export const handleReleasePublishDraft: CliHandler = async (runner, params, card
     const owner = String(params.owner ?? "")
     const name = String(params.name ?? "")
 
-    requireRepo(owner, name, "release.publish_draft")
+    requireRepo(owner, name, "release.publish")
 
     const releaseId = parseStrictPositiveInt(params.releaseId)
     if (releaseId === null) {
-      throw new Error("Missing or invalid releaseId for release.publish_draft")
+      throw new Error("Missing or invalid releaseId for release.publish")
     }
 
     const readArgs = [...commandTokens(card, "api"), `repos/${owner}/${name}/releases/${releaseId}`]
@@ -385,10 +383,10 @@ export const handleReleasePublishDraft: CliHandler = async (runner, params, card
           code,
           message: sanitizeCliErrorMessage(readResult.stderr, readResult.exitCode),
           retryable: isRetryableErrorCode(code),
-          details: { capabilityId: "release.publish_draft", exitCode: readResult.exitCode },
+          details: { capabilityId: "release.publish", exitCode: readResult.exitCode },
         },
         "cli",
-        { capabilityId: "release.publish_draft", reason: "CARD_FALLBACK" },
+        { capabilityId: "release.publish", reason: "CARD_FALLBACK" },
       )
     }
 
@@ -403,11 +401,11 @@ export const handleReleasePublishDraft: CliHandler = async (runner, params, card
       return normalizeError(
         {
           code: errorCodes.Validation,
-          message: "release.publish_draft requires an existing draft release",
+          message: "release.publish requires an existing draft release",
           retryable: false,
         },
         "cli",
-        { capabilityId: "release.publish_draft", reason: "CARD_FALLBACK" },
+        { capabilityId: "release.publish", reason: "CARD_FALLBACK" },
       )
     }
 
@@ -444,10 +442,10 @@ export const handleReleasePublishDraft: CliHandler = async (runner, params, card
           code,
           message: sanitizeCliErrorMessage(publishResult.stderr, publishResult.exitCode),
           retryable: isRetryableErrorCode(code),
-          details: { capabilityId: "release.publish_draft", exitCode: publishResult.exitCode },
+          details: { capabilityId: "release.publish", exitCode: publishResult.exitCode },
         },
         "cli",
-        { capabilityId: "release.publish_draft", reason: "CARD_FALLBACK" },
+        { capabilityId: "release.publish", reason: "CARD_FALLBACK" },
       )
     }
 
@@ -456,7 +454,7 @@ export const handleReleasePublishDraft: CliHandler = async (runner, params, card
     const withWasDraft = { ...normalized, wasDraft: true }
 
     return normalizeResult(withWasDraft, "cli", {
-      capabilityId: "release.publish_draft",
+      capabilityId: "release.publish",
       reason: "CARD_FALLBACK",
     })
   } catch (error: unknown) {
@@ -464,7 +462,7 @@ export const handleReleasePublishDraft: CliHandler = async (runner, params, card
       return normalizeError(
         { code: errorCodes.Server, message: "Failed to parse CLI JSON output", retryable: false },
         "cli",
-        { capabilityId: "release.publish_draft", reason: "CARD_FALLBACK" },
+        { capabilityId: "release.publish", reason: "CARD_FALLBACK" },
       )
     }
 
@@ -476,15 +474,15 @@ export const handleReleasePublishDraft: CliHandler = async (runner, params, card
         retryable: isRetryableErrorCode(code),
       },
       "cli",
-      { capabilityId: "release.publish_draft", reason: "CARD_FALLBACK" },
+      { capabilityId: "release.publish", reason: "CARD_FALLBACK" },
     )
   }
 }
 
 export const handlers: Record<string, CliHandler> = {
   "release.list": handleReleaseList,
-  "release.get": handleReleaseGet,
-  "release.create_draft": handleReleaseCreateDraft,
+  "release.view": handleReleaseGet,
+  "release.create": handleReleaseCreateDraft,
   "release.update": handleReleaseUpdate,
-  "release.publish_draft": handleReleasePublishDraft,
+  "release.publish": handleReleasePublishDraft,
 }

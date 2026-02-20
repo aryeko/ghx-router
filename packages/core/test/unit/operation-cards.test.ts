@@ -16,8 +16,6 @@ describe("operation cards registry", () => {
       "repo.view",
       "repo.labels.list",
       "repo.issue_types.list",
-      "issue.triage.composite",
-      "issue.update.composite",
       "issue.view",
       "issue.list",
       "issue.comments.list",
@@ -26,71 +24,74 @@ describe("operation cards registry", () => {
       "issue.close",
       "issue.reopen",
       "issue.delete",
-      "issue.labels.update",
+      "issue.labels.set",
       "issue.labels.add",
-      "issue.assignees.update",
+      "issue.labels.remove",
+      "issue.assignees.set",
+      "issue.assignees.add",
+      "issue.assignees.remove",
       "issue.milestone.set",
+      "issue.milestone.clear",
       "issue.comments.create",
-      "issue.linked_prs.list",
-      "issue.relations.get",
-      "issue.parent.set",
-      "issue.parent.remove",
-      "issue.blocked_by.add",
-      "issue.blocked_by.remove",
-      "pr.threads.composite",
+      "issue.relations.prs.list",
+      "issue.relations.view",
+      "issue.relations.parent.set",
+      "issue.relations.parent.remove",
+      "issue.relations.blocked_by.add",
+      "issue.relations.blocked_by.remove",
       "pr.view",
       "pr.list",
       "pr.create",
       "pr.update",
-      "pr.thread.list",
-      "pr.thread.reply",
-      "pr.thread.resolve",
-      "pr.thread.unresolve",
-      "pr.review.list",
-      "pr.review.request",
-      "pr.review.submit",
+      "pr.threads.list",
+      "pr.threads.reply",
+      "pr.threads.resolve",
+      "pr.threads.unresolve",
+      "pr.reviews.list",
+      "pr.reviews.request",
+      "pr.reviews.submit",
       "pr.diff.files",
       "pr.diff.view",
       "pr.checks.list",
-      "pr.checks.failed",
-      "pr.checks.rerun_failed",
-      "pr.checks.rerun_all",
+      "pr.checks.rerun.failed",
+      "pr.checks.rerun.all",
       "pr.merge.status",
       "pr.merge",
-      "pr.assignees.update",
+      "pr.assignees.add",
+      "pr.assignees.remove",
       "pr.branch.update",
-      "check_run.annotations.list",
       "workflow.list",
-      "workflow.get",
-      "project_v2.org.get",
-      "project_v2.user.get",
+      "workflow.view",
+      "project_v2.org.view",
+      "project_v2.user.view",
       "project_v2.fields.list",
       "project_v2.items.list",
-      "project_v2.item.add_issue",
-      "project_v2.item.field.update",
+      "project_v2.items.issue.add",
+      "project_v2.items.issue.remove",
+      "project_v2.items.field.update",
       "release.list",
-      "release.get",
-      "release.create_draft",
+      "release.view",
+      "release.create",
       "release.update",
-      "release.publish_draft",
-      "workflow.dispatch.run",
-      "workflow.job.logs.get",
+      "release.publish",
+      "workflow.dispatch",
+      "workflow.job.logs.view",
       "workflow.job.logs.raw",
       "workflow.run.artifacts.list",
       "workflow.run.cancel",
 
-      "workflow.run.rerun_all",
-      "workflow.run.rerun_failed",
+      "workflow.run.rerun.all",
+      "workflow.run.rerun.failed",
       "workflow.run.view",
       "workflow.runs.list",
     ])
   })
 
   it("marks release and delivery batch cards as CLI-preferred", () => {
-    const releaseCreateDraft = getOperationCard("release.create_draft")
-    const releasePublishDraft = getOperationCard("release.publish_draft")
-    const workflowDispatchRun = getOperationCard("workflow.dispatch.run")
-    const workflowRunRerunFailed = getOperationCard("workflow.run.rerun_failed")
+    const releaseCreateDraft = getOperationCard("release.create")
+    const releasePublishDraft = getOperationCard("release.publish")
+    const workflowDispatchRun = getOperationCard("workflow.dispatch")
+    const workflowRunRerunFailed = getOperationCard("workflow.run.rerun.failed")
 
     expect(releaseCreateDraft?.routing.preferred).toBe("cli")
     expect(releasePublishDraft?.routing.preferred).toBe("cli")
@@ -99,12 +100,12 @@ describe("operation cards registry", () => {
   })
 
   it("marks Projects v2 and repo issue types as CLI-preferred with no fallbacks", () => {
-    const projectOrg = getOperationCard("project_v2.org.get")
-    const projectUser = getOperationCard("project_v2.user.get")
+    const projectOrg = getOperationCard("project_v2.org.view")
+    const projectUser = getOperationCard("project_v2.user.view")
     const projectFields = getOperationCard("project_v2.fields.list")
     const projectItems = getOperationCard("project_v2.items.list")
-    const projectItemAddIssue = getOperationCard("project_v2.item.add_issue")
-    const projectItemFieldUpdate = getOperationCard("project_v2.item.field.update")
+    const projectItemAddIssue = getOperationCard("project_v2.items.issue.add")
+    const projectItemFieldUpdate = getOperationCard("project_v2.items.field.update")
     const issueTypes = getOperationCard("repo.issue_types.list")
 
     expect(projectOrg?.routing.preferred).toBe("cli")
@@ -140,15 +141,15 @@ describe("operation cards registry", () => {
   it("requires explicit pagination input for list capabilities", () => {
     const issueListCard = getOperationCard("issue.list")
     const prListCard = getOperationCard("pr.list")
-    const prThreadCard = getOperationCard("pr.thread.list")
+    const prThreadCard = getOperationCard("pr.threads.list")
 
     expect(issueListCard?.input_schema.required).toEqual(["owner", "name"])
     expect(prListCard?.input_schema.required).toEqual(["owner", "name"])
     expect(prThreadCard?.input_schema.required).toEqual(["owner", "name", "prNumber"])
   })
 
-  it("supports unresolved and outdated filters for pr.thread.list", () => {
-    const card = getOperationCard("pr.thread.list")
+  it("supports unresolved and outdated filters for pr.threads.list", () => {
+    const card = getOperationCard("pr.threads.list")
     const properties = card?.input_schema.properties as Record<string, unknown>
 
     expect(properties.unresolvedOnly).toEqual({ type: "boolean" })
@@ -226,10 +227,11 @@ describe("operation cards registry", () => {
       "pr.merge",
       "pr.create",
       "pr.update",
-      "pr.checks.rerun_failed",
-      "pr.checks.rerun_all",
-      "pr.review.request",
-      "pr.assignees.update",
+      "pr.checks.rerun.failed",
+      "pr.checks.rerun.all",
+      "pr.reviews.request",
+      "pr.assignees.add",
+      "pr.assignees.remove",
       "pr.branch.update",
     ]
 
@@ -243,8 +245,8 @@ describe("operation cards registry", () => {
     }
   })
 
-  it("pr.review.submit prefers GraphQL for inline comments support", () => {
-    const card = getOperationCard("pr.review.submit")
+  it("pr.reviews.submit prefers GraphQL for inline comments support", () => {
+    const card = getOperationCard("pr.reviews.submit")
     expect(card).toBeDefined()
     expect(card?.routing.preferred).toBe("graphql")
     expect(card?.routing.fallbacks).toEqual([])

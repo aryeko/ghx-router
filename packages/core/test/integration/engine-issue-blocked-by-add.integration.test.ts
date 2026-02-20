@@ -3,7 +3,7 @@ import { executeTask } from "@core/core/routing/engine.js"
 import { createGithubClient } from "@core/gql/github-client.js"
 import { describe, expect, it } from "vitest"
 
-describe("executeTask issue.blocked_by.add", () => {
+describe("executeTask issue.relations.blocked_by.add", () => {
   it("returns validation error envelope for missing blockedByIssueId", async () => {
     const githubClient = createGithubClient({
       async execute<TData>(): Promise<TData> {
@@ -12,7 +12,7 @@ describe("executeTask issue.blocked_by.add", () => {
     })
 
     const request: TaskRequest = {
-      task: "issue.blocked_by.add",
+      task: "issue.relations.blocked_by.add",
       input: { issueId: "issue-id-123" },
     }
 

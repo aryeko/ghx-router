@@ -3,7 +3,7 @@ import { executeTask } from "@core/core/routing/engine.js"
 import { createGithubClient } from "@core/gql/github-client.js"
 import { describe, expect, it } from "vitest"
 
-describe("executeTask pr.thread.unresolve", () => {
+describe("executeTask pr.threads.unresolve", () => {
   it("returns validation error envelope for missing threadId", async () => {
     const githubClient = createGithubClient({
       async execute<TData>(): Promise<TData> {
@@ -12,7 +12,7 @@ describe("executeTask pr.thread.unresolve", () => {
     })
 
     const request: TaskRequest = {
-      task: "pr.thread.unresolve",
+      task: "pr.threads.unresolve",
       input: {},
     }
 

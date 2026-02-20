@@ -1,6 +1,6 @@
 # Capabilities Reference
 
-Welcome to ghx's comprehensive capabilities reference. These 69 capabilities form the
+Welcome to ghx's comprehensive capabilities reference. These capabilities form the
 core of ghx's ability to automate GitHub workflows for AI agents.
 
 Capabilities are organized by domain — from managing issues and pull requests to
@@ -62,21 +62,20 @@ graph TB
 | `pr.merge` | Execute a pull request merge. | cli (preferred) |
 | `pr.merge.status` | View pull request mergeability and readiness signals. | graphql (preferred), cli (fallback) |
 | `pr.branch.update` | Update pull request branch with latest base changes. | cli (preferred) |
-| `pr.assignees.update` | Update pull request assignees. | cli (preferred) |
-| `pr.thread.list` | List pull request review threads. | graphql (preferred) |
-| `pr.thread.reply` | Reply to a pull request review thread. | graphql (preferred) |
-| `pr.thread.resolve` | Resolve a pull request review thread. | graphql (preferred) |
-| `pr.thread.unresolve` | Unresolve a pull request review thread. | graphql (preferred) |
-| `pr.review.list` | List pull request reviews. | graphql (preferred) |
-| `pr.review.submit` | Submit a pull request review (approve, request changes, or comment). | graphql (preferred) |
-| `pr.review.request` | Request pull request reviewers. | cli (preferred) |
+| `pr.assignees.add` | Add assignees to a pull request. | cli (preferred) |
+| `pr.assignees.remove` | Remove assignees from a pull request. | cli (preferred) |
+| `pr.threads.list` | List pull request review threads. | graphql (preferred) |
+| `pr.threads.reply` | Reply to a pull request review thread. | graphql (preferred) |
+| `pr.threads.resolve` | Resolve a pull request review thread. | graphql (preferred) |
+| `pr.threads.unresolve` | Unresolve a pull request review thread. | graphql (preferred) |
+| `pr.reviews.list` | List pull request reviews. | graphql (preferred) |
+| `pr.reviews.submit` | Submit a pull request review (approve, request changes, or comment). | graphql (preferred) |
+| `pr.reviews.request` | Request pull request reviewers. | cli (preferred) |
 | `pr.checks.list` | List PR check statuses with summary counts. | cli (preferred) |
-| `pr.checks.failed` | List failed pull request checks. | cli (preferred) |
-| `pr.checks.rerun_all` | Rerun all PR workflow checks for a selected run. | cli (preferred) |
-| `pr.checks.rerun_failed` | Rerun failed PR workflow checks for a selected run. | cli (preferred) |
+| `pr.checks.rerun.all` | Rerun all PR workflow checks for a selected run. | cli (preferred) |
+| `pr.checks.rerun.failed` | Rerun failed PR workflow checks for a selected run. | cli (preferred) |
 | `pr.diff.files` | List changed files in a pull request diff. | graphql (preferred) |
 | `pr.diff.view` | View the unified diff for a pull request. | cli (preferred) |
-| `pr.threads.composite` | Batch thread reply/resolve operations in a single GraphQL call. | graphql (preferred) |
 | **Releases (5)** |
 | `release.create_draft` | Create a draft release. | cli (preferred) |
 | `release.get` | Get release details by tag name. | cli (preferred) |
@@ -106,8 +105,6 @@ graph TB
 | `project_v2.items.list` | List items in a Projects v2 project. | cli (preferred) |
 | `project_v2.item.add_issue` | Add an issue to a Projects v2 project. | cli (preferred) |
 | `project_v2.item.field.update` | Update a field on a Projects v2 project item. | cli (preferred) |
-| **Check Runs (1)** |
-| `check_run.annotations.list` | List annotations for one check run. | cli (preferred) |
 
 ## Domain Documentation
 

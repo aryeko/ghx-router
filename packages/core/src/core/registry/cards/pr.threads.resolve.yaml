@@ -1,0 +1,22 @@
+capability_id: pr.threads.resolve
+version: "1.0.0"
+description: Resolve a pull request review thread.
+input_schema:
+  type: object
+  required: [threadId]
+  properties:
+    threadId: { type: string, minLength: 1 }
+  additionalProperties: false
+output_schema:
+  type: object
+  required: [id, isResolved]
+  properties:
+    id: { type: string, minLength: 1 }
+    isResolved: { type: boolean }
+  additionalProperties: false
+routing:
+  preferred: graphql
+  fallbacks: []
+graphql:
+  operationName: PrCommentResolve
+  documentPath: src/gql/operations/pr-comment-resolve.graphql

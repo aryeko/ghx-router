@@ -36,7 +36,7 @@ describe("OperationBuilder exports", () => {
   })
 })
 
-describe("pr.thread.reply builder", () => {
+describe("pr.threads.reply builder", () => {
   it("build() returns mutation string and variables", () => {
     const result = replyBuilder.build({ threadId: "t1", body: "Fixed" })
     expect(result.mutation).toContain("addPullRequestReviewThreadReply")
@@ -50,11 +50,22 @@ describe("pr.thread.reply builder", () => {
   it("mapResponse() extracts comment id", () => {
     const raw = { comment: { id: "c1" } }
     const result = replyBuilder.mapResponse(raw)
-    expect(result).toEqual({ id: "c1" })
+    expect(result).toEqual({ id: "c1", isResolved: false, commentId: "c1", commentUrl: "" })
+  })
+
+  it("mapResponse() includes commentUrl when comment.url is a string", () => {
+    const raw = { comment: { id: "c2", url: "https://github.com/owner/repo/pull/1#comment-42" } }
+    const result = replyBuilder.mapResponse(raw)
+    expect(result).toEqual({
+      id: "c2",
+      isResolved: false,
+      commentId: "c2",
+      commentUrl: "https://github.com/owner/repo/pull/1#comment-42",
+    })
   })
 })
 
-describe("pr.thread.resolve builder", () => {
+describe("pr.threads.resolve builder", () => {
   it("build() returns mutation string and variables", () => {
     const result = resolveBuilder.build({ threadId: "t1" })
     expect(result.mutation).toContain("resolveReviewThread")
@@ -68,7 +79,7 @@ describe("pr.thread.resolve builder", () => {
   })
 })
 
-describe("pr.thread.unresolve builder", () => {
+describe("pr.threads.unresolve builder", () => {
   it("build() returns mutation string and variables", () => {
     const result = unresolveBuilder.build({ threadId: "t1" })
     expect(result.mutation).toContain("unresolveReviewThread")
@@ -121,8 +132,8 @@ describe("issue builders", () => {
     })
   })
 
-  it("issue.labels.update validates label ids and maps names", () => {
-    const builder = expectBuilder("issue.labels.update")
+  it("issue.labels.set validates label ids and maps names", () => {
+    const builder = expectBuilder("issue.labels.set")
     expect(() => builder.build({ issueId: "i1", labelIds: [1] })).toThrow(
       "labelIds (or labels) must be an array of strings",
     )
@@ -138,8 +149,8 @@ describe("issue builders", () => {
     expect(mapped).toEqual({ issueId: "i1", labels: ["bug"] })
   })
 
-  it("issue.assignees.update validates ids and maps logins", () => {
-    const builder = expectBuilder("issue.assignees.update")
+  it("issue.assignees.set validates ids and maps logins", () => {
+    const builder = expectBuilder("issue.assignees.set")
     expect(() => builder.build({ issueId: "i1", assigneeIds: [true] })).toThrow(
       "assigneeIds (or assignees) must be an array of strings",
     )

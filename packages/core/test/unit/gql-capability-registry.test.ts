@@ -4,10 +4,10 @@ import { describe, expect, it, vi } from "vitest"
 describe("gql capability registry", () => {
   it("lists capabilities and validates submit handler availability", async () => {
     const capabilities = listGraphqlCapabilities()
-    expect(capabilities).toContain("pr.review.submit")
+    expect(capabilities).toContain("pr.reviews.submit")
     expect(capabilities).toContain("issue.labels.add")
 
-    const submitHandler = getGraphqlHandler("pr.review.submit")
+    const submitHandler = getGraphqlHandler("pr.reviews.submit")
     expect(submitHandler).toBeDefined()
     if (!submitHandler) {
       throw new Error("missing submit handler")

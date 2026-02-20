@@ -135,11 +135,8 @@ export function assertIssueAssigneesUpdateInput(input: IssueAssigneesUpdateInput
 
 export function assertIssueMilestoneSetInput(input: IssueMilestoneSetInput): void {
   assertIssueMutationInput({ issueId: input.issueId })
-  if (
-    input.milestoneNumber !== null &&
-    (!Number.isInteger(input.milestoneNumber) || input.milestoneNumber <= 0)
-  ) {
-    throw new Error("Milestone number must be a positive integer or null")
+  if (!Number.isInteger(input.milestoneNumber) || input.milestoneNumber <= 0) {
+    throw new Error("Milestone number must be a positive integer")
   }
 }
 

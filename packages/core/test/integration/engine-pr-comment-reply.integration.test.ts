@@ -3,7 +3,7 @@ import { executeTask } from "@core/core/routing/engine.js"
 import { createGithubClient } from "@core/gql/github-client.js"
 import { describe, expect, it } from "vitest"
 
-describe("executeTask pr.thread.reply", () => {
+describe("executeTask pr.threads.reply", () => {
   it("returns validation error envelope for missing body", async () => {
     const githubClient = createGithubClient({
       async execute<TData>(): Promise<TData> {
@@ -12,7 +12,7 @@ describe("executeTask pr.thread.reply", () => {
     })
 
     const request: TaskRequest = {
-      task: "pr.thread.reply",
+      task: "pr.threads.reply",
       input: { commentId: "comment-id-123" },
     }
 

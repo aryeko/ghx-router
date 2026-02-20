@@ -335,8 +335,243 @@ export const handleIssueCommentsList: CliHandler = async (runner, params, card) 
   }
 }
 
+export const handleIssueLabelsRemove: CliHandler = async (runner, params, card) => {
+  try {
+    const owner = String(params.owner ?? "")
+    const name = String(params.name ?? "")
+    const repo = owner && name ? `${owner}/${name}` : ""
+
+    const issueNumber = parseStrictPositiveInt(params.issueNumber)
+    if (issueNumber === null) {
+      throw new Error("Missing or invalid issueNumber for issue.labels.remove")
+    }
+
+    const labels = Array.isArray(params.labels)
+      ? params.labels.filter(
+          (value): value is string => typeof value === "string" && value.trim().length > 0,
+        )
+      : []
+    if (labels.length === 0) {
+      throw new Error("Missing or invalid labels for issue.labels.remove")
+    }
+
+    const args = [...commandTokens(card, "issue edit"), String(issueNumber)]
+    if (repo) {
+      args.push("--repo", repo)
+    }
+    args.push("--remove-label", labels.join(","))
+
+    const result = await runner.run("gh", args, DEFAULT_TIMEOUT_MS)
+
+    if (result.exitCode !== 0) {
+      const code = mapErrorToCode(result.stderr)
+      return normalizeError(
+        {
+          code,
+          message: sanitizeCliErrorMessage(result.stderr, result.exitCode),
+          retryable: isRetryableErrorCode(code),
+          details: { capabilityId: "issue.labels.remove", exitCode: result.exitCode },
+        },
+        "cli",
+        { capabilityId: "issue.labels.remove", reason: "CARD_FALLBACK" },
+      )
+    }
+
+    return normalizeResult({ issueNumber, removed: labels }, "cli", {
+      capabilityId: "issue.labels.remove",
+      reason: "CARD_FALLBACK",
+    })
+  } catch (error: unknown) {
+    const code = mapErrorToCode(error)
+    return normalizeError(
+      {
+        code,
+        message: error instanceof Error ? error.message : String(error),
+        retryable: isRetryableErrorCode(code),
+      },
+      "cli",
+      { capabilityId: "issue.labels.remove", reason: "CARD_FALLBACK" },
+    )
+  }
+}
+
+export const handleIssueAssigneesAdd: CliHandler = async (runner, params, card) => {
+  try {
+    const owner = String(params.owner ?? "")
+    const name = String(params.name ?? "")
+    const repo = owner && name ? `${owner}/${name}` : ""
+
+    const issueNumber = parseStrictPositiveInt(params.issueNumber)
+    if (issueNumber === null) {
+      throw new Error("Missing or invalid issueNumber for issue.assignees.add")
+    }
+
+    const assignees = Array.isArray(params.assignees)
+      ? params.assignees.filter(
+          (value): value is string => typeof value === "string" && value.trim().length > 0,
+        )
+      : []
+    if (assignees.length === 0) {
+      throw new Error("Missing or invalid assignees for issue.assignees.add")
+    }
+
+    const args = [...commandTokens(card, "issue edit"), String(issueNumber)]
+    if (repo) {
+      args.push("--repo", repo)
+    }
+    args.push("--add-assignee", assignees.join(","))
+
+    const result = await runner.run("gh", args, DEFAULT_TIMEOUT_MS)
+
+    if (result.exitCode !== 0) {
+      const code = mapErrorToCode(result.stderr)
+      return normalizeError(
+        {
+          code,
+          message: sanitizeCliErrorMessage(result.stderr, result.exitCode),
+          retryable: isRetryableErrorCode(code),
+          details: { capabilityId: "issue.assignees.add", exitCode: result.exitCode },
+        },
+        "cli",
+        { capabilityId: "issue.assignees.add", reason: "CARD_FALLBACK" },
+      )
+    }
+
+    return normalizeResult({ issueNumber, added: assignees }, "cli", {
+      capabilityId: "issue.assignees.add",
+      reason: "CARD_FALLBACK",
+    })
+  } catch (error: unknown) {
+    const code = mapErrorToCode(error)
+    return normalizeError(
+      {
+        code,
+        message: error instanceof Error ? error.message : String(error),
+        retryable: isRetryableErrorCode(code),
+      },
+      "cli",
+      { capabilityId: "issue.assignees.add", reason: "CARD_FALLBACK" },
+    )
+  }
+}
+
+export const handleIssueAssigneesRemove: CliHandler = async (runner, params, card) => {
+  try {
+    const owner = String(params.owner ?? "")
+    const name = String(params.name ?? "")
+    const repo = owner && name ? `${owner}/${name}` : ""
+
+    const issueNumber = parseStrictPositiveInt(params.issueNumber)
+    if (issueNumber === null) {
+      throw new Error("Missing or invalid issueNumber for issue.assignees.remove")
+    }
+
+    const assignees = Array.isArray(params.assignees)
+      ? params.assignees.filter(
+          (value): value is string => typeof value === "string" && value.trim().length > 0,
+        )
+      : []
+    if (assignees.length === 0) {
+      throw new Error("Missing or invalid assignees for issue.assignees.remove")
+    }
+
+    const args = [...commandTokens(card, "issue edit"), String(issueNumber)]
+    if (repo) {
+      args.push("--repo", repo)
+    }
+    args.push("--remove-assignee", assignees.join(","))
+
+    const result = await runner.run("gh", args, DEFAULT_TIMEOUT_MS)
+
+    if (result.exitCode !== 0) {
+      const code = mapErrorToCode(result.stderr)
+      return normalizeError(
+        {
+          code,
+          message: sanitizeCliErrorMessage(result.stderr, result.exitCode),
+          retryable: isRetryableErrorCode(code),
+          details: { capabilityId: "issue.assignees.remove", exitCode: result.exitCode },
+        },
+        "cli",
+        { capabilityId: "issue.assignees.remove", reason: "CARD_FALLBACK" },
+      )
+    }
+
+    return normalizeResult({ issueNumber, removed: assignees }, "cli", {
+      capabilityId: "issue.assignees.remove",
+      reason: "CARD_FALLBACK",
+    })
+  } catch (error: unknown) {
+    const code = mapErrorToCode(error)
+    return normalizeError(
+      {
+        code,
+        message: error instanceof Error ? error.message : String(error),
+        retryable: isRetryableErrorCode(code),
+      },
+      "cli",
+      { capabilityId: "issue.assignees.remove", reason: "CARD_FALLBACK" },
+    )
+  }
+}
+
+export const handleIssueMilestoneClear: CliHandler = async (runner, params, card) => {
+  try {
+    const owner = String(params.owner ?? "")
+    const name = String(params.name ?? "")
+    const repo = owner && name ? `${owner}/${name}` : ""
+
+    const issueNumber = parseStrictPositiveInt(params.issueNumber)
+    if (issueNumber === null) {
+      throw new Error("Missing or invalid issueNumber for issue.milestone.clear")
+    }
+
+    const args = [...commandTokens(card, "issue edit"), String(issueNumber)]
+    if (repo) {
+      args.push("--repo", repo)
+    }
+    args.push("--milestone", "")
+
+    const result = await runner.run("gh", args, DEFAULT_TIMEOUT_MS)
+
+    if (result.exitCode !== 0) {
+      const code = mapErrorToCode(result.stderr)
+      return normalizeError(
+        {
+          code,
+          message: sanitizeCliErrorMessage(result.stderr, result.exitCode),
+          retryable: isRetryableErrorCode(code),
+          details: { capabilityId: "issue.milestone.clear", exitCode: result.exitCode },
+        },
+        "cli",
+        { capabilityId: "issue.milestone.clear", reason: "CARD_FALLBACK" },
+      )
+    }
+
+    return normalizeResult({ issueNumber, cleared: true }, "cli", {
+      capabilityId: "issue.milestone.clear",
+      reason: "CARD_FALLBACK",
+    })
+  } catch (error: unknown) {
+    const code = mapErrorToCode(error)
+    return normalizeError(
+      {
+        code,
+        message: error instanceof Error ? error.message : String(error),
+        retryable: isRetryableErrorCode(code),
+      },
+      "cli",
+      { capabilityId: "issue.milestone.clear", reason: "CARD_FALLBACK" },
+    )
+  }
+}
+
 export const handlers: Record<string, CliHandler> = {
   "issue.view": handleIssueView,
   "issue.list": handleIssueList,
   "issue.comments.list": handleIssueCommentsList,
+  "issue.labels.remove": handleIssueLabelsRemove,
+  "issue.assignees.add": handleIssueAssigneesAdd,
+  "issue.assignees.remove": handleIssueAssigneesRemove,
+  "issue.milestone.clear": handleIssueMilestoneClear,
 }
