@@ -75,12 +75,14 @@ export interface InputPassthroughInject {
 
 export type InjectSpec = ScalarInject | MapArrayInject | InputPassthroughInject
 
+export interface LookupSpec {
+  operationName: string
+  documentPath: string
+  vars: Record<string, string>
+}
+
 export interface ResolutionConfig {
-  lookup: {
-    operationName: string
-    documentPath: string
-    vars: Record<string, string>
-  }
+  lookup: LookupSpec
   inject: InjectSpec[]
 }
 

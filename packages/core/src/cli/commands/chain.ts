@@ -1,5 +1,5 @@
-import { executeTasks } from "../../core/routing/engine.js"
-import { createGithubClient } from "../../gql/github-client.js"
+import { executeTasks } from "@core/core/routing/engine.js"
+import { createGithubClient } from "@core/gql/github-client.js"
 import { readStdin } from "./run.js"
 
 const GITHUB_GRAPHQL_ENDPOINT = "https://api.github.com/graphql"
