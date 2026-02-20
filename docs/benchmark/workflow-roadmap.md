@@ -33,8 +33,8 @@ Workflow scenarios differ from atomic scenarios by:
 
 **Expected Capabilities:**
 - `issue.view`
-- `issue.labels.update`
-- `issue.assignees.update`
+- `issue.labels.set`
+- `issue.assignees.set`
 - `project-v2.items.list`
 - `project-v2.item.add-issue`
 

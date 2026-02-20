@@ -32,10 +32,10 @@ classDiagram
     class GraphQLMetadata {
         operation?: string
         field_mapping?: Record
-        resolution?: ResolutionBlock
+        resolution?: ResolutionConfig
     }
 
-    class ResolutionBlock {
+    class ResolutionConfig {
         lookup: LookupSpec
         inject: InjectSpec[]
     }
@@ -47,7 +47,7 @@ classDiagram
     OperationCard --> RoutingPolicy
     OperationCard --> CLIMetadata
     OperationCard --> GraphQLMetadata
-    GraphQLMetadata --> ResolutionBlock
+    GraphQLMetadata --> ResolutionConfig
     RoutingPolicy --> Route
 ```
 
@@ -83,7 +83,7 @@ Each operation card includes:
 
 ### Issue Capabilities (19)
 
-`issue.view`, `issue.list`, `issue.create`, `issue.update`, `issue.close`, `issue.reopen`, `issue.delete`, `issue.comments.list`, `issue.comments.create`, `issue.labels.update`, `issue.labels.add`, `issue.assignees.update`, `issue.milestone.set`, `issue.linked_prs.list`, `issue.parent.set`, `issue.parent.remove`, `issue.blocked_by.add`, `issue.blocked_by.remove`, `issue.relations.get`
+`issue.view`, `issue.list`, `issue.create`, `issue.update`, `issue.close`, `issue.reopen`, `issue.delete`, `issue.comments.list`, `issue.comments.create`, `issue.labels.set`, `issue.labels.add`, `issue.assignees.set`, `issue.milestone.set`, `issue.linked_prs.list`, `issue.parent.set`, `issue.parent.remove`, `issue.blocked_by.add`, `issue.blocked_by.remove`, `issue.relations.get`
 
 ### Pull Request Capabilities (21)
 
@@ -176,7 +176,7 @@ inject:
 | `map_array` | Yes | Maps an array of names to IDs using the lookup result |
 | `input` | No | Passes a value directly from step input (no lookup needed) |
 
-**Example — `issue.assignees.update.yaml`** (uses `map_array`):
+**Example — `issue.assignees.set.yaml`** (uses `map_array`):
 
 ```yaml
 graphql:

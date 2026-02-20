@@ -209,7 +209,7 @@ result=$(npx ghx run issue.create --input '{
 issue_number=$(echo "$result" | jq '.data.number')
 
 # Step 2: Update labels on the issue
-npx ghx run issue.labels.update --input "{
+npx ghx run issue.labels.set --input "{
   \"owner\": \"aryeko\",
   \"repo\": \"ghx\",
   \"number\": $issue_number,

@@ -86,7 +86,7 @@ This shows all labels in the repository. Find one like `docs`, `enhancement`, or
 Now add a label to our issue using the number from Part 1:
 
 ```bash
-npx ghx run issue.labels.update --input '{
+npx ghx run issue.labels.set --input '{
   "owner": "YOUR_USERNAME",
   "repo": "YOUR_REPO",
   "number": 42,
@@ -105,7 +105,7 @@ Output:
   },
   "error": null,
   "meta": {
-    "capability_id": "issue.labels.update",
+    "capability_id": "issue.labels.set",
     "route_used": "cli",
     "reason": "CARD_PREFERRED"
   }
@@ -217,7 +217,7 @@ async function main() {
   console.log(`Created issue #${issue.number}`)
 
   // Part 2: Add label
-  await runCapability("issue.labels.update", {
+  await runCapability("issue.labels.set", {
     owner: "YOUR_USERNAME",
     repo: "YOUR_REPO",
     number: issue.number,
@@ -355,8 +355,8 @@ import { executeTasks, createGithubClientFromToken } from "@ghx-dev/core"
 
 const chain = await executeTasks(
   [
-    { task: "issue.labels.update", input: { issueId: "I_kwDOOx...", labels: ["docs"] } },
-    { task: "issue.assignees.update", input: { issueId: "I_kwDOOx...", assignees: ["YOUR_USERNAME"] } },
+    { task: "issue.labels.set", input: { issueId: "I_kwDOOx...", labels: ["docs"] } },
+    { task: "issue.assignees.set", input: { issueId: "I_kwDOOx...", assignees: ["YOUR_USERNAME"] } },
   ],
   { githubClient, githubToken: token },
 )
@@ -368,8 +368,8 @@ From the CLI:
 
 ```bash
 ghx chain --steps '[
-  {"task":"issue.labels.update","input":{"issueId":"I_kwDOOx...","labels":["docs"]}},
-  {"task":"issue.assignees.update","input":{"issueId":"I_kwDOOx...","assignees":["YOUR_USERNAME"]}}
+  {"task":"issue.labels.set","input":{"issueId":"I_kwDOOx...","labels":["docs"]}},
+  {"task":"issue.assignees.set","input":{"issueId":"I_kwDOOx...","assignees":["YOUR_USERNAME"]}}
 ]'
 ```
 

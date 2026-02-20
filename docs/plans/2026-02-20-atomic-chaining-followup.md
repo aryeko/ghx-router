@@ -107,7 +107,6 @@ candidates for adding a GraphQL route (and thus making them chainable):
 | `issue.assignees.add` | complement to `issue.assignees.set` in same chain |
 | `issue.assignees.remove` | complement to `issue.assignees.set` in same chain |
 | `issue.milestone.clear` | complement to `issue.milestone.set` in same chain |
-| `issue.comments.create` (already batchable) | ✓ done |
 
 For each: add a GraphQL mutation `.graphql` file, run codegen, add to card YAML
 (`graphql:` block), register in `MUTATION_DOCUMENTS`. Milestone clear and label

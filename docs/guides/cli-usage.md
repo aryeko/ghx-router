@@ -185,8 +185,8 @@ round-trips regardless of chain length.
 
 ```bash
 ghx chain --steps '[
-  {"task":"issue.labels.update","input":{"issueId":"I_kwDOOx...","labels":["bug"]}},
-  {"task":"issue.assignees.update","input":{"issueId":"I_kwDOOx...","assignees":["octocat"]}}
+  {"task":"issue.labels.set","input":{"issueId":"I_kwDOOx...","labels":["bug"]}},
+  {"task":"issue.assignees.set","input":{"issueId":"I_kwDOOx...","assignees":["octocat"]}}
 ]'
 ```
 
@@ -194,8 +194,8 @@ ghx chain --steps '[
 
 ```bash
 echo '[
-  {"task":"issue.labels.update","input":{"issueId":"I_kwDOOx...","labels":["bug"]}},
-  {"task":"issue.assignees.update","input":{"issueId":"I_kwDOOx...","assignees":["octocat"]}}
+  {"task":"issue.labels.set","input":{"issueId":"I_kwDOOx...","labels":["bug"]}},
+  {"task":"issue.assignees.set","input":{"issueId":"I_kwDOOx...","assignees":["octocat"]}}
 ]' | ghx chain --steps -
 ```
 
@@ -205,8 +205,8 @@ Output:
 {
   "status": "success",
   "results": [
-    {"task": "issue.labels.update", "ok": true, "data": {"id": "I_kwDOOx...", "labels": ["bug"]}},
-    {"task": "issue.assignees.update", "ok": true, "data": {"id": "I_kwDOOx...", "assignees": ["octocat"]}}
+    {"task": "issue.labels.set", "ok": true, "data": {"id": "I_kwDOOx...", "labels": ["bug"]}},
+    {"task": "issue.assignees.set", "ok": true, "data": {"id": "I_kwDOOx...", "assignees": ["octocat"]}}
   ],
   "meta": {"route_used": "graphql", "total": 2, "succeeded": 2, "failed": 0}
 }

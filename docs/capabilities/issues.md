@@ -319,7 +319,7 @@ npx ghx run issue.comments.list --input '{
 
 ### Labels
 
-#### `issue.labels.update`
+#### `issue.labels.set`
 
 **Description:** Replace issue labels.
 
@@ -342,7 +342,7 @@ npx ghx run issue.comments.list --input '{
 **Example:**
 
 ```bash
-npx ghx run issue.labels.update --input '{
+npx ghx run issue.labels.set --input '{
   "issueId": "I_kwDODhlyV4567890",
   "labels": ["bug", "high-priority", "in-progress"]
 }'
@@ -383,7 +383,7 @@ npx ghx run issue.labels.add --input '{
 
 ### Assignees
 
-#### `issue.assignees.update`
+#### `issue.assignees.set`
 
 **Description:** Replace issue assignees.
 
@@ -406,7 +406,7 @@ npx ghx run issue.labels.add --input '{
 **Example:**
 
 ```bash
-npx ghx run issue.assignees.update --input '{
+npx ghx run issue.assignees.set --input '{
   "issueId": "I_kwDODhlyV4567890",
   "assignees": ["octocat", "hubot"]
 }'

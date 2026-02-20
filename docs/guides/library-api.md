@@ -200,8 +200,8 @@ import { executeTasks } from "@ghx-dev/core"
 
 const chain = await executeTasks(
   [
-    { task: "issue.labels.update", input: { issueId: "I_kwDOOx...", labels: ["bug"] } },
-    { task: "issue.assignees.update", input: { issueId: "I_kwDOOx...", assignees: ["octocat"] } },
+    { task: "issue.labels.set", input: { issueId: "I_kwDOOx...", labels: ["bug"] } },
+    { task: "issue.assignees.set", input: { issueId: "I_kwDOOx...", assignees: ["octocat"] } },
   ],
   { githubClient, githubToken: token },
 )

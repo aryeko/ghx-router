@@ -29,8 +29,8 @@ const githubClient = createGithubClientFromToken(token)
 
 const chain = await executeTasks(
   [
-    { task: "issue.labels.update",   input: { issueId: "I_kwDOOx...", labels: ["bug"] } },
-    { task: "issue.assignees.update", input: { issueId: "I_kwDOOx...", assignees: ["octocat"] } },
+    { task: "issue.labels.set",   input: { issueId: "I_kwDOOx...", labels: ["bug"] } },
+    { task: "issue.assignees.set", input: { issueId: "I_kwDOOx...", assignees: ["octocat"] } },
   ],
   { githubClient, githubToken: token },
 )
@@ -86,8 +86,8 @@ interface ChainResultEnvelope {
 
 ```bash
 ghx chain --steps '[
-  {"task":"issue.labels.update","input":{"issueId":"I_kwDOOx...","labels":["bug"]}},
-  {"task":"issue.assignees.update","input":{"issueId":"I_kwDOOx...","assignees":["octocat"]}}
+  {"task":"issue.labels.set","input":{"issueId":"I_kwDOOx...","labels":["bug"]}},
+  {"task":"issue.assignees.set","input":{"issueId":"I_kwDOOx...","assignees":["octocat"]}}
 ]'
 ```
 
@@ -95,8 +95,8 @@ ghx chain --steps '[
 
 ```bash
 echo '[
-  {"task":"issue.labels.update","input":{"issueId":"I_kwDOOx...","labels":["bug"]}},
-  {"task":"issue.assignees.update","input":{"issueId":"I_kwDOOx...","assignees":["octocat"]}}
+  {"task":"issue.labels.set","input":{"issueId":"I_kwDOOx...","labels":["bug"]}},
+  {"task":"issue.assignees.set","input":{"issueId":"I_kwDOOx...","assignees":["octocat"]}}
 ]' | ghx chain --steps -
 ```
 
@@ -123,7 +123,7 @@ no HTTP calls are made:
   "status": "failed",
   "results": [
     {
-      "task": "issue.labels.update",
+      "task": "issue.labels.set",
       "ok": false,
       "error": {
         "code": "VALIDATION",
@@ -181,8 +181,8 @@ Any capability with a `graphql` route can be chained. Capabilities that also dec
 
 | Capability | Phase 1 (resolution) | Phase 2 (mutation) |
 |------------|---------------------|-------------------|
-| `issue.labels.update` | Yes — resolves label names to IDs | Yes |
-| `issue.assignees.update` | Yes — resolves login names to user IDs | Yes |
+| `issue.labels.set` | Yes — resolves label names to IDs | Yes |
+| `issue.assignees.set` | Yes — resolves login names to user IDs | Yes |
 | `issue.milestone.set` | No | Yes |
 | `issue.close` | No | Yes |
 | `pr.thread.resolve` | No | Yes |
@@ -226,14 +226,14 @@ const githubClient = createGithubClientFromToken(token)
 const chain = await executeTasks(
   [
     {
-      task: "issue.labels.update",
+      task: "issue.labels.set",
       input: {
         issueId: "I_kwDOOx...",   // GitHub node ID of the issue
         labels: ["bug", "priority:high"],
       },
     },
     {
-      task: "issue.assignees.update",
+      task: "issue.assignees.set",
       input: {
         issueId: "I_kwDOOx...",
         assignees: ["octocat", "monalisa"],

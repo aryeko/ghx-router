@@ -449,12 +449,12 @@ switch (chain.status) {
   "status": "success",
   "results": [
     {
-      "task": "issue.labels.update",
+      "task": "issue.labels.set",
       "ok": true,
       "data": {"id": "I_kwDOOx...", "labels": ["bug"]}
     },
     {
-      "task": "issue.assignees.update",
+      "task": "issue.assignees.set",
       "ok": true,
       "data": {"id": "I_kwDOOx...", "assignees": ["octocat"]}
     }
