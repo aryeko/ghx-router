@@ -1,7 +1,12 @@
 import { IssueAssigneesLookupDocument } from "./operations/issue-assignees-lookup.generated.js"
 import { IssueAssigneesUpdateDocument } from "./operations/issue-assignees-update.generated.js"
+import { IssueBlockedByAddDocument } from "./operations/issue-blocked-by-add.generated.js"
+import { IssueBlockedByRemoveDocument } from "./operations/issue-blocked-by-remove.generated.js"
+import { IssueCloseDocument } from "./operations/issue-close.generated.js"
+import { IssueCommentCreateDocument } from "./operations/issue-comment-create.generated.js"
 import { IssueCreateDocument } from "./operations/issue-create.generated.js"
 import { IssueCreateRepositoryIdDocument } from "./operations/issue-create-repository-id.generated.js"
+import { IssueDeleteDocument } from "./operations/issue-delete.generated.js"
 import { IssueLabelsAddDocument } from "./operations/issue-labels-add.generated.js"
 import { IssueLabelsLookupDocument } from "./operations/issue-labels-lookup.generated.js"
 import { IssueLabelsUpdateDocument } from "./operations/issue-labels-update.generated.js"
@@ -9,6 +14,12 @@ import { IssueMilestoneLookupDocument } from "./operations/issue-milestone-looku
 import { IssueMilestoneSetDocument } from "./operations/issue-milestone-set.generated.js"
 import { IssueParentLookupDocument } from "./operations/issue-parent-lookup.generated.js"
 import { IssueParentRemoveDocument } from "./operations/issue-parent-remove.generated.js"
+import { IssueParentSetDocument } from "./operations/issue-parent-set.generated.js"
+import { IssueReopenDocument } from "./operations/issue-reopen.generated.js"
+import { IssueUpdateDocument } from "./operations/issue-update.generated.js"
+import { PrCommentReplyDocument } from "./operations/pr-comment-reply.generated.js"
+import { PrCommentResolveDocument } from "./operations/pr-comment-resolve.generated.js"
+import { PrCommentUnresolveDocument } from "./operations/pr-comment-unresolve.generated.js"
 
 // Resolution lookup queries (Phase 1)
 const LOOKUP_DOCUMENTS: Record<string, string> = {
@@ -21,12 +32,23 @@ const LOOKUP_DOCUMENTS: Record<string, string> = {
 
 // Mutation documents for chaining (Phase 2)
 const MUTATION_DOCUMENTS: Record<string, string> = {
-  IssueLabelsUpdate: IssueLabelsUpdateDocument,
-  IssueLabelsAdd: IssueLabelsAddDocument,
   IssueAssigneesUpdate: IssueAssigneesUpdateDocument,
+  IssueBlockedByAdd: IssueBlockedByAddDocument,
+  IssueBlockedByRemove: IssueBlockedByRemoveDocument,
+  IssueClose: IssueCloseDocument,
+  IssueCommentCreate: IssueCommentCreateDocument,
+  IssueCreate: IssueCreateDocument,
+  IssueDelete: IssueDeleteDocument,
+  IssueLabelsAdd: IssueLabelsAddDocument,
+  IssueLabelsUpdate: IssueLabelsUpdateDocument,
   IssueMilestoneSet: IssueMilestoneSetDocument,
   IssueParentRemove: IssueParentRemoveDocument,
-  IssueCreate: IssueCreateDocument,
+  IssueParentSet: IssueParentSetDocument,
+  IssueReopen: IssueReopenDocument,
+  IssueUpdate: IssueUpdateDocument,
+  PrCommentReply: PrCommentReplyDocument,
+  PrCommentResolve: PrCommentResolveDocument,
+  PrCommentUnresolve: PrCommentUnresolveDocument,
 }
 
 export function getLookupDocument(operationName: string): string {
