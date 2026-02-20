@@ -134,14 +134,30 @@ function parseOperation(document: string): ParsedOperation {
 
   const body = document.slice(bodyStart, bodyEnd).trim()
 
-  // Extract fragment definitions that appear after the operation's closing brace
+  // Extract fragment definitions that appear after the operation's closing brace.
+  // Use brace-depth counting to correctly handle nested selections like `labels { nodes { id } }`.
   const fragments = new Map<string, string>()
   const remainder = document.slice(bodyEnd + 1)
-  const fragMatches = remainder.matchAll(/fragment\s+(\w+)\s+on\s+\w+\s*\{[^}]*\}/g)
-  for (const match of fragMatches) {
-    const fragName = match[1]
-    if (fragName && !fragments.has(fragName)) {
-      fragments.set(fragName, match[0].trim())
+  const fragHeaderRe = /fragment\s+(\w+)\s+on\s+\w+\s*\{/g
+  let fragMatch: RegExpExecArray | null
+  while ((fragMatch = fragHeaderRe.exec(remainder)) !== null) {
+    const fragName = fragMatch[1]
+    if (!fragName || fragments.has(fragName)) continue
+    const openIdx = fragMatch.index + fragMatch[0].length - 1
+    let d = 0
+    let fragEnd = -1
+    for (let i = openIdx; i < remainder.length; i++) {
+      if (remainder[i] === "{") d++
+      else if (remainder[i] === "}") {
+        d--
+        if (d === 0) {
+          fragEnd = i
+          break
+        }
+      }
+    }
+    if (fragEnd !== -1) {
+      fragments.set(fragName, remainder.slice(fragMatch.index, fragEnd + 1).trim())
     }
   }
 
