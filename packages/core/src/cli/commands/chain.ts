@@ -84,12 +84,14 @@ async function executeGraphqlRequest<TData>(
       "user-agent": "ghx",
     },
     body: JSON.stringify({ query, variables: variables ?? {} }),
+    signal: AbortSignal.timeout(30_000),
   })
 
-  const payload = (await response.json()) as {
-    data?: TData
-    errors?: Array<{ message?: string }>
-    message?: string
+  let payload: { data?: TData; errors?: Array<{ message?: string }>; message?: string }
+  try {
+    payload = (await response.json()) as typeof payload
+  } catch {
+    throw new Error(`GitHub GraphQL returned non-JSON response (status ${response.status})`)
   }
 
   if (!response.ok) {
@@ -118,23 +120,29 @@ export async function chainCommand(argv: string[] = []): Promise<number> {
     return 1
   }
 
-  const { stepsSource, skipGhPreflight } = parseChainFlags(argv)
-  const steps =
-    stepsSource === "stdin" ? parseJsonSteps(await readStdin()) : parseJsonSteps(stepsSource.raw)
-  const githubToken = resolveGithubToken()
+  try {
+    const { stepsSource, skipGhPreflight } = parseChainFlags(argv)
+    const steps =
+      stepsSource === "stdin" ? parseJsonSteps(await readStdin()) : parseJsonSteps(stepsSource.raw)
+    const githubToken = resolveGithubToken()
 
-  const githubClient = createGithubClient({
-    async execute<TData>(query: string, variables?: Record<string, unknown>): Promise<TData> {
-      return executeGraphqlRequest<TData>(githubToken, query, variables)
-    },
-  })
+    const githubClient = createGithubClient({
+      async execute<TData>(query: string, variables?: Record<string, unknown>): Promise<TData> {
+        return executeGraphqlRequest<TData>(githubToken, query, variables)
+      },
+    })
 
-  const result = await executeTasks(steps, {
-    githubClient,
-    githubToken,
-    skipGhPreflight,
-  })
+    const result = await executeTasks(steps, {
+      githubClient,
+      githubToken,
+      skipGhPreflight,
+    })
 
-  process.stdout.write(`${JSON.stringify(result, null, 2)}\n`)
-  return result.status === "success" || result.status === "partial" ? 0 : 1
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`)
+    return result.status === "success" || result.status === "partial" ? 0 : 1
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    process.stderr.write(`${message}\n`)
+    return 1
+  }
 }

@@ -110,14 +110,121 @@ describe("chainCommand parsing", () => {
     expect(exitCode).toBe(1)
   })
 
-  it("chainCommand returns 1 when GITHUB_TOKEN missing", async () => {
+  it("chainCommand returns 1 and writes to stderr when GITHUB_TOKEN missing", async () => {
     const { chainCommand } = await import("@core/cli/commands/chain.js")
 
     vi.stubEnv("GITHUB_TOKEN", undefined)
     vi.stubEnv("GH_TOKEN", undefined)
 
-    await expect(
-      chainCommand(["--steps", '[{"task":"issue.close","input":{"issueId":"I_1"}}]']),
-    ).rejects.toThrow("Missing GITHUB_TOKEN or GH_TOKEN")
+    const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true)
+    const exitCode = await chainCommand([
+      "--steps",
+      '[{"task":"issue.close","input":{"issueId":"I_1"}}]',
+    ])
+    expect(exitCode).toBe(1)
+    expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("GITHUB_TOKEN"))
+    stderrSpy.mockRestore()
+  })
+
+  it("chainCommand returns 1 and writes to stderr when --steps JSON is invalid", async () => {
+    const { chainCommand } = await import("@core/cli/commands/chain.js")
+
+    vi.stubEnv("GITHUB_TOKEN", "tok")
+
+    const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true)
+    const exitCode = await chainCommand(["--steps", "not-valid-json"])
+    expect(exitCode).toBe(1)
+    expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("Invalid JSON"))
+    stderrSpy.mockRestore()
+  })
+})
+
+describe("chainCommand — executeGraphqlRequest fetch behaviour", () => {
+  it("passes AbortSignal to fetch", async () => {
+    vi.resetModules()
+
+    vi.doMock("@core/core/routing/engine.js", () => ({
+      executeTasks: vi
+        .fn()
+        .mockImplementation(
+          async (
+            _steps: unknown,
+            opts: { githubClient: { execute: (q: string) => Promise<unknown> } },
+          ) => {
+            await opts.githubClient.execute("query {}")
+            return {
+              status: "success",
+              results: [],
+              meta: { route_used: "graphql", total: 0, succeeded: 0, failed: 0 },
+            }
+          },
+        ),
+    }))
+    vi.doMock("@core/gql/github-client.js", () => ({
+      createGithubClient: (transport: unknown) => transport,
+    }))
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: vi.fn().mockResolvedValue({ data: {} }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+    vi.stubEnv("GITHUB_TOKEN", "tok")
+
+    const { chainCommand } = await import("@core/cli/commands/chain.js")
+    await chainCommand(["--steps", '[{"task":"issue.close","input":{"issueId":"I1"}}]'])
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    )
+    vi.unstubAllGlobals()
+  })
+
+  it("returns exit code 1 with message when response.json() throws (non-JSON body)", async () => {
+    vi.resetModules()
+
+    vi.doMock("@core/core/routing/engine.js", () => ({
+      executeTasks: vi
+        .fn()
+        .mockImplementation(
+          async (
+            _steps: unknown,
+            opts: { githubClient: { execute: (q: string) => Promise<unknown> } },
+          ) => {
+            await opts.githubClient.execute("query {}")
+            return {
+              status: "success",
+              results: [],
+              meta: { route_used: "graphql", total: 0, succeeded: 0, failed: 0 },
+            }
+          },
+        ),
+    }))
+    vi.doMock("@core/gql/github-client.js", () => ({
+      createGithubClient: (transport: unknown) => transport,
+    }))
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 503,
+        json: vi.fn().mockRejectedValue(new SyntaxError("Unexpected token < in JSON")),
+      }),
+    )
+    vi.stubEnv("GITHUB_TOKEN", "tok")
+
+    const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true)
+    const { chainCommand } = await import("@core/cli/commands/chain.js")
+    const code = await chainCommand([
+      "--steps",
+      '[{"task":"issue.close","input":{"issueId":"I1"}}]',
+    ])
+    expect(code).toBe(1)
+    expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("non-JSON"))
+    stderrSpy.mockRestore()
+    vi.unstubAllGlobals()
   })
 })
