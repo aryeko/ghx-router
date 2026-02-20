@@ -67,7 +67,12 @@ export const replyBuilder: OperationBuilder = {
       throw new Error("Review thread mutation failed")
     }
 
-    return { id: comment.id }
+    return {
+      id: comment.id,
+      isResolved: false,
+      commentId: comment.id,
+      commentUrl: typeof comment.url === "string" ? comment.url : "",
+    }
   },
 }
 
@@ -269,12 +274,12 @@ const issueCommentCreateBuilder: OperationBuilder = {
 }
 
 export const OPERATION_BUILDERS: Record<string, OperationBuilder> = {
-  "pr.thread.reply": replyBuilder,
-  "pr.thread.resolve": resolveBuilder,
-  "pr.thread.unresolve": unresolveBuilder,
+  "pr.threads.reply": replyBuilder,
+  "pr.threads.resolve": resolveBuilder,
+  "pr.threads.unresolve": unresolveBuilder,
   "issue.update": issueUpdateBuilder,
-  "issue.labels.update": issueLabelsUpdateBuilder,
-  "issue.assignees.update": issueAssigneesUpdateBuilder,
+  "issue.labels.set": issueLabelsUpdateBuilder,
+  "issue.assignees.set": issueAssigneesUpdateBuilder,
   "issue.milestone.set": issueMilestoneSetBuilder,
   "issue.comments.create": issueCommentCreateBuilder,
 }

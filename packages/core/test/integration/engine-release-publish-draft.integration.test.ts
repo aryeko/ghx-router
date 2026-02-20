@@ -3,7 +3,7 @@ import { executeTask } from "@core/core/routing/engine.js"
 import { createGithubClient } from "@core/gql/github-client.js"
 import { describe, expect, it } from "vitest"
 
-describe("executeTask release.publish_draft", () => {
+describe("executeTask release.publish", () => {
   it("returns validation error envelope for missing releaseId", async () => {
     const githubClient = createGithubClient({
       async execute<TData>(): Promise<TData> {
@@ -12,7 +12,7 @@ describe("executeTask release.publish_draft", () => {
     })
 
     const request: TaskRequest = {
-      task: "release.publish_draft",
+      task: "release.publish",
       input: {
         owner: "go-modkit",
         name: "modkit",

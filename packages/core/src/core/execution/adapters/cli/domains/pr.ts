@@ -324,9 +324,24 @@ const handlePrChecksList: CliHandler = async (runner, params, card) => {
     const failed = checks.filter((entry) => isCheckFailureBucket(entry.bucket))
     const pending = checks.filter((entry) => isCheckPendingBucket(entry.bucket))
     const passed = checks.filter((entry) => isCheckPassBucket(entry.bucket))
+
+    const state = typeof params.state === "string" ? params.state : undefined
+    const filteredItems =
+      state === "failed"
+        ? failed
+        : state === "pending"
+          ? pending
+          : state === "passed"
+            ? passed
+            : checks
+    const itemsWithAnnotations = filteredItems.map(({ bucket: _bucket, ...rest }) => ({
+      ...rest,
+      annotations: [],
+    }))
+
     return normalizeResult(
       {
-        items: checks,
+        items: itemsWithAnnotations,
         summary: {
           total: checks.length,
           failed: failed.length,
@@ -353,71 +368,6 @@ const handlePrChecksList: CliHandler = async (runner, params, card) => {
       },
       "cli",
       { capabilityId: "pr.checks.list", reason: "CARD_FALLBACK" },
-    )
-  }
-}
-
-const handlePrChecksFailed: CliHandler = async (runner, params, card) => {
-  try {
-    const owner = String(params.owner ?? "")
-    const name = String(params.name ?? "")
-    const repo = owner && name ? `${owner}/${name}` : ""
-    const prNumber = parseStrictPositiveInt(params.prNumber)
-    if (prNumber === null) throw new Error("Missing or invalid prNumber for pr.checks.failed")
-
-    const args = [...commandTokens(card, "pr checks"), String(prNumber)]
-    if (repo) args.push("--repo", repo)
-    args.push("--json", jsonFieldsFromCard(card, "name,state,bucket,workflow,link"))
-
-    const result = await runner.run("gh", args, DEFAULT_TIMEOUT_MS)
-    if (result.exitCode !== 0) {
-      const code = mapErrorToCode(result.stderr)
-      return normalizeError(
-        {
-          code,
-          message: sanitizeCliErrorMessage(result.stderr, result.exitCode),
-          retryable: isRetryableErrorCode(code),
-          details: { capabilityId: "pr.checks.failed", exitCode: result.exitCode },
-        },
-        "cli",
-        { capabilityId: "pr.checks.failed", reason: "CARD_FALLBACK" },
-      )
-    }
-
-    const data = parseCliData(result.stdout)
-    const checks = Array.isArray(data) ? data.map((entry) => normalizeCheckItem(entry)) : []
-    const failed = checks.filter((entry) => isCheckFailureBucket(entry.bucket))
-    const pending = checks.filter((entry) => isCheckPendingBucket(entry.bucket))
-    const passed = checks.filter((entry) => isCheckPassBucket(entry.bucket))
-    return normalizeResult(
-      {
-        items: failed,
-        summary: {
-          total: checks.length,
-          failed: failed.length,
-          pending: pending.length,
-          passed: passed.length,
-        },
-      },
-      "cli",
-      { capabilityId: "pr.checks.failed", reason: "CARD_FALLBACK" },
-    )
-  } catch (error: unknown) {
-    if (error instanceof SyntaxError)
-      return normalizeError(
-        { code: errorCodes.Server, message: "Failed to parse CLI JSON output", retryable: false },
-        "cli",
-        { capabilityId: "pr.checks.failed", reason: "CARD_FALLBACK" },
-      )
-    const code = mapErrorToCode(error)
-    return normalizeError(
-      {
-        code,
-        message: error instanceof Error ? error.message : String(error),
-        retryable: isRetryableErrorCode(code),
-      },
-      "cli",
-      { capabilityId: "pr.checks.failed", reason: "CARD_FALLBACK" },
     )
   }
 }
@@ -495,10 +445,10 @@ const handlePrReviewSubmit: CliHandler = async (runner, params, card) => {
     const name = String(params.name ?? "")
     const repo = owner && name ? `${owner}/${name}` : ""
     const prNumber = parseStrictPositiveInt(params.prNumber)
-    if (prNumber === null) throw new Error("Missing or invalid prNumber for pr.review.submit")
+    if (prNumber === null) throw new Error("Missing or invalid prNumber for pr.reviews.submit")
     const event = params.event
     if (event !== "APPROVE" && event !== "COMMENT" && event !== "REQUEST_CHANGES")
-      throw new Error("Missing or invalid event for pr.review.submit")
+      throw new Error("Missing or invalid event for pr.reviews.submit")
 
     const args = [...commandTokens(card, "pr review"), String(prNumber)]
     if (repo) args.push("--repo", repo)
@@ -522,10 +472,10 @@ const handlePrReviewSubmit: CliHandler = async (runner, params, card) => {
           code,
           message: sanitizeCliErrorMessage(result.stderr, result.exitCode),
           retryable: isRetryableErrorCode(code),
-          details: { capabilityId: "pr.review.submit", exitCode: result.exitCode },
+          details: { capabilityId: "pr.reviews.submit", exitCode: result.exitCode },
         },
         "cli",
-        { capabilityId: "pr.review.submit", reason: "CARD_FALLBACK" },
+        { capabilityId: "pr.reviews.submit", reason: "CARD_FALLBACK" },
       )
     }
 
@@ -537,7 +487,7 @@ const handlePrReviewSubmit: CliHandler = async (runner, params, card) => {
         body: typeof params.body === "string" ? params.body : null,
       },
       "cli",
-      { capabilityId: "pr.review.submit", reason: "CARD_FALLBACK" },
+      { capabilityId: "pr.reviews.submit", reason: "CARD_FALLBACK" },
     )
   } catch (error: unknown) {
     const code = mapErrorToCode(error)
@@ -548,7 +498,7 @@ const handlePrReviewSubmit: CliHandler = async (runner, params, card) => {
         retryable: isRetryableErrorCode(code),
       },
       "cli",
-      { capabilityId: "pr.review.submit", reason: "CARD_FALLBACK" },
+      { capabilityId: "pr.reviews.submit", reason: "CARD_FALLBACK" },
     )
   }
 }
@@ -616,9 +566,9 @@ const handlePrChecksRerunFailed: CliHandler = async (runner, params, card) => {
     const name = String(params.name ?? "")
     const repo = owner && name ? `${owner}/${name}` : ""
     const prNumber = parseStrictPositiveInt(params.prNumber)
-    if (prNumber === null) throw new Error("Missing or invalid prNumber for pr.checks.rerun_failed")
+    if (prNumber === null) throw new Error("Missing or invalid prNumber for pr.checks.rerun.failed")
     const runId = parseStrictPositiveInt(params.runId)
-    if (runId === null) throw new Error("Missing or invalid runId for pr.checks.rerun_failed")
+    if (runId === null) throw new Error("Missing or invalid runId for pr.checks.rerun.failed")
 
     const args = [...commandTokens(card, "run rerun"), String(runId)]
     if (repo) args.push("--repo", repo)
@@ -631,16 +581,10 @@ const handlePrChecksRerunFailed: CliHandler = async (runner, params, card) => {
         if (repo) rerunAllArgs.push("--repo", repo)
         const rerunAllResult = await runner.run("gh", rerunAllArgs, DEFAULT_TIMEOUT_MS)
         if (rerunAllResult.exitCode === 0) {
-          return normalizeResult(
-            {
-              prNumber: Number(params.prNumber),
-              runId: Number(params.runId),
-              mode: "all",
-              queued: true,
-            },
-            "cli",
-            { capabilityId: "pr.checks.rerun_failed", reason: "CARD_FALLBACK" },
-          )
+          return normalizeResult({ runId, queued: true }, "cli", {
+            capabilityId: "pr.checks.rerun.failed",
+            reason: "CARD_FALLBACK",
+          })
         }
         const failureStderr = rerunAllResult.stderr || rerunAllResult.stdout || result.stderr
         const code = mapErrorToCode(failureStderr)
@@ -649,10 +593,10 @@ const handlePrChecksRerunFailed: CliHandler = async (runner, params, card) => {
             code,
             message: sanitizeCliErrorMessage(failureStderr, rerunAllResult.exitCode),
             retryable: isRetryableErrorCode(code),
-            details: { capabilityId: "pr.checks.rerun_failed", exitCode: rerunAllResult.exitCode },
+            details: { capabilityId: "pr.checks.rerun.failed", exitCode: rerunAllResult.exitCode },
           },
           "cli",
-          { capabilityId: "pr.checks.rerun_failed", reason: "CARD_FALLBACK" },
+          { capabilityId: "pr.checks.rerun.failed", reason: "CARD_FALLBACK" },
         )
       }
       const code = mapErrorToCode(result.stderr)
@@ -661,23 +605,17 @@ const handlePrChecksRerunFailed: CliHandler = async (runner, params, card) => {
           code,
           message: sanitizeCliErrorMessage(result.stderr, result.exitCode),
           retryable: isRetryableErrorCode(code),
-          details: { capabilityId: "pr.checks.rerun_failed", exitCode: result.exitCode },
+          details: { capabilityId: "pr.checks.rerun.failed", exitCode: result.exitCode },
         },
         "cli",
-        { capabilityId: "pr.checks.rerun_failed", reason: "CARD_FALLBACK" },
+        { capabilityId: "pr.checks.rerun.failed", reason: "CARD_FALLBACK" },
       )
     }
 
-    return normalizeResult(
-      {
-        prNumber: Number(params.prNumber),
-        runId: Number(params.runId),
-        mode: "failed",
-        queued: true,
-      },
-      "cli",
-      { capabilityId: "pr.checks.rerun_failed", reason: "CARD_FALLBACK" },
-    )
+    return normalizeResult({ runId, queued: true }, "cli", {
+      capabilityId: "pr.checks.rerun.failed",
+      reason: "CARD_FALLBACK",
+    })
   } catch (error: unknown) {
     const code = mapErrorToCode(error)
     return normalizeError(
@@ -687,7 +625,7 @@ const handlePrChecksRerunFailed: CliHandler = async (runner, params, card) => {
         retryable: isRetryableErrorCode(code),
       },
       "cli",
-      { capabilityId: "pr.checks.rerun_failed", reason: "CARD_FALLBACK" },
+      { capabilityId: "pr.checks.rerun.failed", reason: "CARD_FALLBACK" },
     )
   }
 }
@@ -698,9 +636,9 @@ const handlePrChecksRerunAll: CliHandler = async (runner, params, card) => {
     const name = String(params.name ?? "")
     const repo = owner && name ? `${owner}/${name}` : ""
     const prNumber = parseStrictPositiveInt(params.prNumber)
-    if (prNumber === null) throw new Error("Missing or invalid prNumber for pr.checks.rerun_all")
+    if (prNumber === null) throw new Error("Missing or invalid prNumber for pr.checks.rerun.all")
     const runId = parseStrictPositiveInt(params.runId)
-    if (runId === null) throw new Error("Missing or invalid runId for pr.checks.rerun_all")
+    if (runId === null) throw new Error("Missing or invalid runId for pr.checks.rerun.all")
 
     const args = [...commandTokens(card, "run rerun"), String(runId)]
     if (repo) args.push("--repo", repo)
@@ -713,18 +651,17 @@ const handlePrChecksRerunAll: CliHandler = async (runner, params, card) => {
           code,
           message: sanitizeCliErrorMessage(result.stderr, result.exitCode),
           retryable: isRetryableErrorCode(code),
-          details: { capabilityId: "pr.checks.rerun_all", exitCode: result.exitCode },
+          details: { capabilityId: "pr.checks.rerun.all", exitCode: result.exitCode },
         },
         "cli",
-        { capabilityId: "pr.checks.rerun_all", reason: "CARD_FALLBACK" },
+        { capabilityId: "pr.checks.rerun.all", reason: "CARD_FALLBACK" },
       )
     }
 
-    return normalizeResult(
-      { prNumber: Number(params.prNumber), runId: Number(params.runId), mode: "all", queued: true },
-      "cli",
-      { capabilityId: "pr.checks.rerun_all", reason: "CARD_FALLBACK" },
-    )
+    return normalizeResult({ runId, queued: true }, "cli", {
+      capabilityId: "pr.checks.rerun.all",
+      reason: "CARD_FALLBACK",
+    })
   } catch (error: unknown) {
     const code = mapErrorToCode(error)
     return normalizeError(
@@ -734,7 +671,7 @@ const handlePrChecksRerunAll: CliHandler = async (runner, params, card) => {
         retryable: isRetryableErrorCode(code),
       },
       "cli",
-      { capabilityId: "pr.checks.rerun_all", reason: "CARD_FALLBACK" },
+      { capabilityId: "pr.checks.rerun.all", reason: "CARD_FALLBACK" },
     )
   }
 }
@@ -745,14 +682,14 @@ const handlePrReviewRequest: CliHandler = async (runner, params, card) => {
     const name = String(params.name ?? "")
     const repo = owner && name ? `${owner}/${name}` : ""
     const prNumber = parseStrictPositiveInt(params.prNumber)
-    if (prNumber === null) throw new Error("Missing or invalid prNumber for pr.review.request")
+    if (prNumber === null) throw new Error("Missing or invalid prNumber for pr.reviews.request")
     const reviewers = Array.isArray(params.reviewers)
       ? params.reviewers.filter(
           (value): value is string => typeof value === "string" && value.trim().length > 0,
         )
       : []
     if (reviewers.length === 0)
-      throw new Error("Missing or invalid reviewers for pr.review.request")
+      throw new Error("Missing or invalid reviewers for pr.reviews.request")
 
     const args = [...commandTokens(card, "pr edit"), String(prNumber)]
     if (repo) args.push("--repo", repo)
@@ -766,15 +703,15 @@ const handlePrReviewRequest: CliHandler = async (runner, params, card) => {
           code,
           message: sanitizeCliErrorMessage(result.stderr, result.exitCode),
           retryable: isRetryableErrorCode(code),
-          details: { capabilityId: "pr.review.request", exitCode: result.exitCode },
+          details: { capabilityId: "pr.reviews.request", exitCode: result.exitCode },
         },
         "cli",
-        { capabilityId: "pr.review.request", reason: "CARD_FALLBACK" },
+        { capabilityId: "pr.reviews.request", reason: "CARD_FALLBACK" },
       )
     }
 
     return normalizeResult({ prNumber: Number(params.prNumber), reviewers, updated: true }, "cli", {
-      capabilityId: "pr.review.request",
+      capabilityId: "pr.reviews.request",
       reason: "CARD_FALLBACK",
     })
   } catch (error: unknown) {
@@ -786,71 +723,7 @@ const handlePrReviewRequest: CliHandler = async (runner, params, card) => {
         retryable: isRetryableErrorCode(code),
       },
       "cli",
-      { capabilityId: "pr.review.request", reason: "CARD_FALLBACK" },
-    )
-  }
-}
-
-const handlePrAssigneesUpdate: CliHandler = async (runner, params, card) => {
-  try {
-    const owner = String(params.owner ?? "")
-    const name = String(params.name ?? "")
-    const repo = owner && name ? `${owner}/${name}` : ""
-    const prNumber = parseStrictPositiveInt(params.prNumber)
-    if (prNumber === null) throw new Error("Missing or invalid prNumber for pr.assignees.update")
-    const addAssignees = Array.isArray(params.add)
-      ? params.add.filter(
-          (value): value is string => typeof value === "string" && value.trim().length > 0,
-        )
-      : []
-    const removeAssignees = Array.isArray(params.remove)
-      ? params.remove.filter(
-          (value): value is string => typeof value === "string" && value.trim().length > 0,
-        )
-      : []
-    if (addAssignees.length === 0 && removeAssignees.length === 0)
-      throw new Error("Missing or invalid add/remove assignees for pr.assignees.update")
-
-    const args = [...commandTokens(card, "pr edit"), String(prNumber)]
-    if (repo) args.push("--repo", repo)
-    if (addAssignees.length > 0) args.push("--add-assignee", addAssignees.join(","))
-    if (removeAssignees.length > 0) args.push("--remove-assignee", removeAssignees.join(","))
-
-    const result = await runner.run("gh", args, DEFAULT_TIMEOUT_MS)
-    if (result.exitCode !== 0) {
-      const code = mapErrorToCode(result.stderr)
-      return normalizeError(
-        {
-          code,
-          message: sanitizeCliErrorMessage(result.stderr, result.exitCode),
-          retryable: isRetryableErrorCode(code),
-          details: { capabilityId: "pr.assignees.update", exitCode: result.exitCode },
-        },
-        "cli",
-        { capabilityId: "pr.assignees.update", reason: "CARD_FALLBACK" },
-      )
-    }
-
-    return normalizeResult(
-      {
-        prNumber: Number(params.prNumber),
-        add: addAssignees,
-        remove: removeAssignees,
-        updated: true,
-      },
-      "cli",
-      { capabilityId: "pr.assignees.update", reason: "CARD_FALLBACK" },
-    )
-  } catch (error: unknown) {
-    const code = mapErrorToCode(error)
-    return normalizeError(
-      {
-        code,
-        message: error instanceof Error ? error.message : String(error),
-        retryable: isRetryableErrorCode(code),
-      },
-      "cli",
-      { capabilityId: "pr.assignees.update", reason: "CARD_FALLBACK" },
+      { capabilityId: "pr.reviews.request", reason: "CARD_FALLBACK" },
     )
   }
 }
@@ -997,19 +870,23 @@ const handlePrDiffFiles: CliHandler = async (runner, params, card) => {
   }
 }
 
-const handleCheckRunAnnotationsList: CliHandler = async (runner, params, card) => {
+const handlePrAssigneesAdd: CliHandler = async (runner, params, card) => {
   try {
     const owner = String(params.owner ?? "")
     const name = String(params.name ?? "")
-    if (!owner || !name) throw new Error("Missing owner/name for check_run.annotations.list")
-    const checkRunId = parseStrictPositiveInt(params.checkRunId)
-    if (checkRunId === null)
-      throw new Error("Missing or invalid checkRunId for check_run.annotations.list")
+    const repo = owner && name ? `${owner}/${name}` : ""
+    const prNumber = parseStrictPositiveInt(params.prNumber)
+    if (prNumber === null) throw new Error("Missing or invalid prNumber for pr.assignees.add")
+    const assignees = Array.isArray(params.assignees)
+      ? params.assignees.filter(
+          (value): value is string => typeof value === "string" && value.trim().length > 0,
+        )
+      : []
+    if (assignees.length === 0) throw new Error("Missing or invalid assignees for pr.assignees.add")
 
-    const args = [
-      ...commandTokens(card, "api"),
-      `repos/${owner}/${name}/check-runs/${checkRunId}/annotations`,
-    ]
+    const args = [...commandTokens(card, "pr edit"), String(prNumber)]
+    if (repo) args.push("--repo", repo)
+    args.push("--add-assignee", assignees.join(","))
 
     const result = await runner.run("gh", args, DEFAULT_TIMEOUT_MS)
     if (result.exitCode !== 0) {
@@ -1019,51 +896,18 @@ const handleCheckRunAnnotationsList: CliHandler = async (runner, params, card) =
           code,
           message: sanitizeCliErrorMessage(result.stderr, result.exitCode),
           retryable: isRetryableErrorCode(code),
-          details: { capabilityId: "check_run.annotations.list", exitCode: result.exitCode },
+          details: { capabilityId: "pr.assignees.add", exitCode: result.exitCode },
         },
         "cli",
-        { capabilityId: "check_run.annotations.list", reason: "CARD_FALLBACK" },
+        { capabilityId: "pr.assignees.add", reason: "CARD_FALLBACK" },
       )
     }
 
-    const data = parseCliData(result.stdout)
-    const annotations = Array.isArray(data) ? data : []
-    return normalizeResult(
-      {
-        items: annotations.map((annotation) => {
-          if (typeof annotation !== "object" || annotation === null || Array.isArray(annotation)) {
-            return {
-              path: null,
-              startLine: null,
-              endLine: null,
-              level: null,
-              message: null,
-              title: null,
-              details: null,
-            }
-          }
-          const record = annotation as Record<string, unknown>
-          return {
-            path: typeof record.path === "string" ? record.path : null,
-            startLine: typeof record.start_line === "number" ? record.start_line : null,
-            endLine: typeof record.end_line === "number" ? record.end_line : null,
-            level: typeof record.annotation_level === "string" ? record.annotation_level : null,
-            message: typeof record.message === "string" ? record.message : null,
-            title: typeof record.title === "string" ? record.title : null,
-            details: typeof record.raw_details === "string" ? record.raw_details : null,
-          }
-        }),
-      },
-      "cli",
-      { capabilityId: "check_run.annotations.list", reason: "CARD_FALLBACK" },
-    )
+    return normalizeResult({ prNumber: Number(params.prNumber), added: assignees }, "cli", {
+      capabilityId: "pr.assignees.add",
+      reason: "CARD_FALLBACK",
+    })
   } catch (error: unknown) {
-    if (error instanceof SyntaxError)
-      return normalizeError(
-        { code: errorCodes.Server, message: "Failed to parse CLI JSON output", retryable: false },
-        "cli",
-        { capabilityId: "check_run.annotations.list", reason: "CARD_FALLBACK" },
-      )
     const code = mapErrorToCode(error)
     return normalizeError(
       {
@@ -1072,7 +916,59 @@ const handleCheckRunAnnotationsList: CliHandler = async (runner, params, card) =
         retryable: isRetryableErrorCode(code),
       },
       "cli",
-      { capabilityId: "check_run.annotations.list", reason: "CARD_FALLBACK" },
+      { capabilityId: "pr.assignees.add", reason: "CARD_FALLBACK" },
+    )
+  }
+}
+
+const handlePrAssigneesRemove: CliHandler = async (runner, params, card) => {
+  try {
+    const owner = String(params.owner ?? "")
+    const name = String(params.name ?? "")
+    const repo = owner && name ? `${owner}/${name}` : ""
+    const prNumber = parseStrictPositiveInt(params.prNumber)
+    if (prNumber === null) throw new Error("Missing or invalid prNumber for pr.assignees.remove")
+    const assignees = Array.isArray(params.assignees)
+      ? params.assignees.filter(
+          (value): value is string => typeof value === "string" && value.trim().length > 0,
+        )
+      : []
+    if (assignees.length === 0)
+      throw new Error("Missing or invalid assignees for pr.assignees.remove")
+
+    const args = [...commandTokens(card, "pr edit"), String(prNumber)]
+    if (repo) args.push("--repo", repo)
+    args.push("--remove-assignee", assignees.join(","))
+
+    const result = await runner.run("gh", args, DEFAULT_TIMEOUT_MS)
+    if (result.exitCode !== 0) {
+      const code = mapErrorToCode(result.stderr)
+      return normalizeError(
+        {
+          code,
+          message: sanitizeCliErrorMessage(result.stderr, result.exitCode),
+          retryable: isRetryableErrorCode(code),
+          details: { capabilityId: "pr.assignees.remove", exitCode: result.exitCode },
+        },
+        "cli",
+        { capabilityId: "pr.assignees.remove", reason: "CARD_FALLBACK" },
+      )
+    }
+
+    return normalizeResult({ prNumber: Number(params.prNumber), removed: assignees }, "cli", {
+      capabilityId: "pr.assignees.remove",
+      reason: "CARD_FALLBACK",
+    })
+  } catch (error: unknown) {
+    const code = mapErrorToCode(error)
+    return normalizeError(
+      {
+        code,
+        message: error instanceof Error ? error.message : String(error),
+        retryable: isRetryableErrorCode(code),
+      },
+      "cli",
+      { capabilityId: "pr.assignees.remove", reason: "CARD_FALLBACK" },
     )
   }
 }
@@ -1083,16 +979,15 @@ export const handlers: Record<string, CliHandler> = {
   "pr.create": handlePrCreate,
   "pr.update": handlePrUpdate,
   "pr.checks.list": handlePrChecksList,
-  "pr.checks.failed": handlePrChecksFailed,
   "pr.merge.status": handlePrMergeStatus,
-  "pr.review.submit": handlePrReviewSubmit,
+  "pr.reviews.submit": handlePrReviewSubmit,
   "pr.merge": handlePrMerge,
-  "pr.checks.rerun_failed": handlePrChecksRerunFailed,
-  "pr.checks.rerun_all": handlePrChecksRerunAll,
-  "pr.review.request": handlePrReviewRequest,
-  "pr.assignees.update": handlePrAssigneesUpdate,
+  "pr.checks.rerun.failed": handlePrChecksRerunFailed,
+  "pr.checks.rerun.all": handlePrChecksRerunAll,
+  "pr.reviews.request": handlePrReviewRequest,
+  "pr.assignees.add": handlePrAssigneesAdd,
+  "pr.assignees.remove": handlePrAssigneesRemove,
   "pr.branch.update": handlePrBranchUpdate,
   "pr.diff.view": handlePrDiffView,
   "pr.diff.files": handlePrDiffFiles,
-  "check_run.annotations.list": handleCheckRunAnnotationsList,
 }

@@ -332,7 +332,7 @@ Final line`
         state: "active",
         url: "https://github.com/owner/repo/blob/main/.github/workflows/ci.yml",
       })
-      expect(result.meta.capability_id).toBe("workflow.get")
+      expect(result.meta.capability_id).toBe("workflow.view")
     })
 
     it("accepts workflowId as number", async () => {
@@ -488,9 +488,9 @@ Final line`
       expect(result.ok).toBe(true)
       expect(result.data).toMatchObject({
         runId: 123456,
-        status: "requested",
+        queued: true,
       })
-      expect(result.meta.capability_id).toBe("workflow.run.rerun_all")
+      expect(result.meta.capability_id).toBe("workflow.run.rerun.all")
     })
 
     it("returns error on non-zero exit code", async () => {
@@ -625,7 +625,7 @@ Final line`
         ref: "main",
         dispatched: true,
       })
-      expect(result.meta.capability_id).toBe("workflow.dispatch.run")
+      expect(result.meta.capability_id).toBe("workflow.dispatch")
     })
 
     it("includes inputs in api call", async () => {
@@ -719,9 +719,9 @@ Final line`
       expect(result.ok).toBe(true)
       expect(result.data).toMatchObject({
         runId: 123456,
-        rerunFailed: true,
+        queued: true,
       })
-      expect(result.meta.capability_id).toBe("workflow.run.rerun_failed")
+      expect(result.meta.capability_id).toBe("workflow.run.rerun.failed")
     })
 
     it("uses api call with repos path", async () => {

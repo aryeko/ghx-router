@@ -3,8 +3,8 @@ import { executeTask } from "@core/core/routing/engine.js"
 import type { GithubClient } from "@core/gql/github-client.js"
 import { describe, expect, it } from "vitest"
 
-describe("executeTask pr.review.submit", () => {
-  it("returns graphql envelope for pr.review.submit", async () => {
+describe("executeTask pr.reviews.submit", () => {
+  it("returns graphql envelope for pr.reviews.submit", async () => {
     const githubClient = {
       submitPrReview: async () => ({
         id: "review-id-123",
@@ -15,7 +15,7 @@ describe("executeTask pr.review.submit", () => {
     } as unknown as GithubClient
 
     const request: TaskRequest = {
-      task: "pr.review.submit",
+      task: "pr.reviews.submit",
       input: {
         owner: "go-modkit",
         name: "modkit",
@@ -38,7 +38,7 @@ describe("executeTask pr.review.submit", () => {
     const githubClient = {} as GithubClient
 
     const request: TaskRequest = {
-      task: "pr.review.submit",
+      task: "pr.reviews.submit",
       input: {
         owner: "go-modkit",
         name: "modkit",

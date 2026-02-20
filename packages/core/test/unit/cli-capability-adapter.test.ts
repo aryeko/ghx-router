@@ -667,7 +667,7 @@ describe("runCliCapability", () => {
       })),
     }
 
-    const result = await runCliCapability(runner, "project_v2.item.field.update", {
+    const result = await runCliCapability(runner, "project_v2.items.field.update", {
       projectId: "PVT_kwDO123",
       itemId: "ITEM_123",
       fieldId: "FIELD_123",
@@ -678,7 +678,7 @@ describe("runCliCapability", () => {
     expect(result.error?.message).toBe("gh command failed; stderr redacted for safety")
     expect(result.error?.details).toEqual(
       expect.objectContaining({
-        capabilityId: "project_v2.item.field.update",
+        capabilityId: "project_v2.items.field.update",
         exitCode: 1,
       }),
     )
@@ -729,45 +729,6 @@ describe("runCliCapability", () => {
           expect.objectContaining({ name: "lint" }),
         ],
         summary: expect.objectContaining({ total: 2, failed: 1, passed: 1 }),
-      }),
-    )
-  })
-
-  it("filters failed checks for pr.checks.failed", async () => {
-    const runner = {
-      run: vi.fn(async () => ({
-        stdout: JSON.stringify([
-          {
-            name: "unit-tests",
-            state: "SUCCESS",
-            bucket: "pass",
-            workflow: "ci",
-            link: "https://example.com/check/1",
-          },
-          {
-            name: "lint",
-            state: "FAILURE",
-            bucket: "fail",
-            workflow: "ci",
-            link: "https://example.com/check/2",
-          },
-        ]),
-        stderr: "",
-        exitCode: 0,
-      })),
-    }
-
-    const result = await runCliCapability(runner, "pr.checks.failed", {
-      owner: "acme",
-      name: "modkit",
-      prNumber: 10,
-    })
-
-    expect(result.ok).toBe(true)
-    expect(result.data).toEqual(
-      expect.objectContaining({
-        items: [expect.objectContaining({ name: "lint", state: "FAILURE" })],
-        summary: expect.objectContaining({ total: 2, failed: 1 }),
       }),
     )
   })
@@ -908,36 +869,35 @@ describe("runCliCapability", () => {
       })),
     }
 
-    const rerunFailed = await runCliCapability(runner, "pr.checks.rerun_failed", {
+    const rerunFailed = await runCliCapability(runner, "pr.checks.rerun.failed", {
       owner: "acme",
       name: "modkit",
       prNumber: 10,
       runId: 88,
     })
-    const rerunAll = await runCliCapability(runner, "pr.checks.rerun_all", {
+    const rerunAll = await runCliCapability(runner, "pr.checks.rerun.all", {
       owner: "acme",
       name: "modkit",
       prNumber: 10,
       runId: 88,
     })
-    const reviewers = await runCliCapability(runner, "pr.review.request", {
+    const reviewers = await runCliCapability(runner, "pr.reviews.request", {
       owner: "acme",
       name: "modkit",
       prNumber: 10,
       reviewers: ["octocat", "hubot"],
     })
-    const assignees = await runCliCapability(runner, "pr.assignees.update", {
+    const assigneesAdd = await runCliCapability(runner, "pr.assignees.add", {
       owner: "acme",
       name: "modkit",
       prNumber: 10,
-      add: ["octocat"],
-      remove: ["hubot"],
+      assignees: ["octocat"],
     })
 
     expect(rerunFailed.ok).toBe(true)
     expect(rerunAll.ok).toBe(true)
     expect(reviewers.ok).toBe(true)
-    expect(assignees.ok).toBe(true)
+    expect(assigneesAdd.ok).toBe(true)
 
     expect(runner.run).toHaveBeenNthCalledWith(
       1,
@@ -960,17 +920,7 @@ describe("runCliCapability", () => {
     expect(runner.run).toHaveBeenNthCalledWith(
       4,
       "gh",
-      [
-        "pr",
-        "edit",
-        "10",
-        "--repo",
-        "acme/modkit",
-        "--add-assignee",
-        "octocat",
-        "--remove-assignee",
-        "hubot",
-      ],
+      ["pr", "edit", "10", "--repo", "acme/modkit", "--add-assignee", "octocat"],
       10_000,
     )
   })
@@ -991,7 +941,7 @@ describe("runCliCapability", () => {
         }),
     }
 
-    const rerunFailed = await runCliCapability(runner, "pr.checks.rerun_failed", {
+    const rerunFailed = await runCliCapability(runner, "pr.checks.rerun.failed", {
       owner: "acme",
       name: "modkit",
       prNumber: 10,
@@ -1000,9 +950,7 @@ describe("runCliCapability", () => {
 
     expect(rerunFailed.ok).toBe(true)
     expect(rerunFailed.data).toEqual({
-      prNumber: 10,
       runId: 88,
-      mode: "all",
       queued: true,
     })
     expect(runner.run).toHaveBeenNthCalledWith(
@@ -1028,7 +976,7 @@ describe("runCliCapability", () => {
       })),
     }
 
-    const rerunResult = await runCliCapability(runner, "workflow.run.rerun_failed", {
+    const rerunResult = await runCliCapability(runner, "workflow.run.rerun.failed", {
       owner: "acme",
       name: "modkit",
       runId: 88,
@@ -1037,7 +985,7 @@ describe("runCliCapability", () => {
     expect(rerunResult.ok).toBe(true)
     expect(rerunResult.data).toEqual({
       runId: 88,
-      rerunFailed: true,
+      queued: true,
     })
   })
 
@@ -1056,24 +1004,23 @@ describe("runCliCapability", () => {
       prNumber: 10,
       method: "fast-forward",
     })
-    const invalidRerun = await runCliCapability(runner, "pr.checks.rerun_failed", {
+    const invalidRerun = await runCliCapability(runner, "pr.checks.rerun.failed", {
       owner: "acme",
       name: "modkit",
       prNumber: 10,
       runId: 0,
     })
-    const invalidReviewers = await runCliCapability(runner, "pr.review.request", {
+    const invalidReviewers = await runCliCapability(runner, "pr.reviews.request", {
       owner: "acme",
       name: "modkit",
       prNumber: 10,
       reviewers: [],
     })
-    const invalidAssignees = await runCliCapability(runner, "pr.assignees.update", {
+    const invalidAssignees = await runCliCapability(runner, "pr.assignees.add", {
       owner: "acme",
       name: "modkit",
       prNumber: 10,
-      add: [],
-      remove: [],
+      assignees: [],
     })
 
     expect(invalidMergeMethod.ok).toBe(false)
@@ -1084,59 +1031,6 @@ describe("runCliCapability", () => {
     expect(invalidRerun.error?.code).toBe("VALIDATION")
     expect(invalidReviewers.error?.code).toBe("VALIDATION")
     expect(invalidAssignees.error?.code).toBe("VALIDATION")
-    expect(runner.run).not.toHaveBeenCalled()
-  })
-
-  it("normalizes check run annotations list", async () => {
-    const runner = {
-      run: vi.fn(async () => ({
-        stdout: JSON.stringify([
-          {
-            path: "src/index.ts",
-            start_line: 10,
-            end_line: 10,
-            annotation_level: "failure",
-            message: "Unexpected any",
-            title: "Type check",
-            raw_details: "no-explicit-any",
-          },
-        ]),
-        stderr: "",
-        exitCode: 0,
-      })),
-    }
-
-    const result = await runCliCapability(runner, "check_run.annotations.list", {
-      owner: "acme",
-      name: "modkit",
-      checkRunId: 100,
-    })
-
-    expect(result.ok).toBe(true)
-    expect(result.data).toEqual(
-      expect.objectContaining({
-        items: [expect.objectContaining({ path: "src/index.ts", level: "failure" })],
-      }),
-    )
-  })
-
-  it("returns validation error when check run annotations owner/name is missing", async () => {
-    const runner = {
-      run: vi.fn(async () => ({
-        stdout: "[]",
-        stderr: "",
-        exitCode: 0,
-      })),
-    }
-
-    const result = await runCliCapability(runner, "check_run.annotations.list", {
-      owner: "",
-      name: "",
-      checkRunId: 100,
-    })
-
-    expect(result.ok).toBe(false)
-    expect(result.error?.message).toContain("Missing owner/name for check_run.annotations.list")
     expect(runner.run).not.toHaveBeenCalled()
   })
 
@@ -1204,7 +1098,7 @@ describe("runCliCapability", () => {
       })),
     }
 
-    const result = await runCliCapability(runner, "workflow.job.logs.get", {
+    const result = await runCliCapability(runner, "workflow.job.logs.view", {
       owner: "acme",
       name: "modkit",
       jobId: 300,
@@ -1259,11 +1153,6 @@ describe("runCliCapability", () => {
       name: "modkit",
       jobId: 0,
     })
-    const checkRunInvalidIdResult = await runCliCapability(runner, "check_run.annotations.list", {
-      owner: "acme",
-      name: "modkit",
-      checkRunId: 0,
-    })
 
     expect(checksResult.ok).toBe(false)
     expect(mergeabilityResult.ok).toBe(false)
@@ -1271,7 +1160,6 @@ describe("runCliCapability", () => {
     expect(workflowListResult.ok).toBe(false)
 
     expect(workflowLogsResult.ok).toBe(false)
-    expect(checkRunInvalidIdResult.ok).toBe(false)
     expect(runner.run).not.toHaveBeenCalled()
   })
 
@@ -1365,11 +1253,6 @@ describe("runCliCapability", () => {
       name: "modkit",
       first: 1,
     })
-    const annotationsResult = await runCliCapability(runner, "check_run.annotations.list", {
-      owner: "acme",
-      name: "modkit",
-      checkRunId: 1,
-    })
 
     expect(checksResult.ok).toBe(true)
     expect(checksResult.data).toEqual(
@@ -1378,16 +1261,16 @@ describe("runCliCapability", () => {
           expect.objectContaining({
             name: null,
             state: null,
-            bucket: null,
             workflow: null,
             link: null,
+            annotations: [],
           }),
           expect.objectContaining({
             name: null,
             state: null,
-            bucket: null,
             workflow: null,
             link: null,
+            annotations: [],
           }),
         ],
       }),
@@ -1395,11 +1278,6 @@ describe("runCliCapability", () => {
     expect(runsResult.data).toEqual(
       expect.objectContaining({
         items: [expect.objectContaining({ id: 0, workflowName: null, status: null })],
-      }),
-    )
-    expect(annotationsResult.data).toEqual(
-      expect.objectContaining({
-        items: [expect.objectContaining({ path: null, level: null, message: null })],
       }),
     )
   })
@@ -1581,7 +1459,7 @@ describe("runCliCapability", () => {
       name: "modkit",
       first: 10,
     })
-    const workflowGet = await runCliCapability(runner, "workflow.get", {
+    const workflowGet = await runCliCapability(runner, "workflow.view", {
       owner: "acme",
       name: "modkit",
       workflowId: "ci.yml",
@@ -1591,7 +1469,7 @@ describe("runCliCapability", () => {
       name: "modkit",
       runId: 123,
     })
-    const rerunAll = await runCliCapability(runner, "workflow.run.rerun_all", {
+    const rerunAll = await runCliCapability(runner, "workflow.run.rerun.all", {
       owner: "acme",
       name: "modkit",
       runId: 123,
@@ -1610,7 +1488,7 @@ describe("runCliCapability", () => {
     expect(workflowList.ok).toBe(true)
     expect(workflowGet.ok).toBe(true)
     expect(workflowRunGet.ok).toBe(true)
-    expect(rerunAll.data).toEqual({ runId: 123, status: "requested" })
+    expect(rerunAll.data).toEqual({ runId: 123, queued: true })
     expect(cancel.data).toEqual({ runId: 123, status: "cancel_requested" })
     expect(artifacts.data).toEqual(
       expect.objectContaining({
@@ -1656,7 +1534,7 @@ describe("runCliCapability", () => {
       })),
     }
 
-    const result = await runCliCapability(runner, "workflow.get", {
+    const result = await runCliCapability(runner, "workflow.view", {
       owner: "acme",
       name: "modkit",
       workflowId: 123,
@@ -1686,7 +1564,7 @@ describe("runCliCapability", () => {
       })),
     }
 
-    const result = await runCliCapability(runner, "workflow.dispatch.run", {
+    const result = await runCliCapability(runner, "workflow.dispatch", {
       owner: "acme",
       name: "modkit",
       workflowId: "release.yml",
@@ -1762,11 +1640,11 @@ describe("runCliCapability", () => {
         .mockResolvedValueOnce({ stdout: "", stderr: "", exitCode: 0 }),
     }
 
-    const org = await runCliCapability(runner, "project_v2.org.get", {
+    const org = await runCliCapability(runner, "project_v2.org.view", {
       org: "acme",
       projectNumber: 1,
     })
-    const user = await runCliCapability(runner, "project_v2.user.get", {
+    const user = await runCliCapability(runner, "project_v2.user.view", {
       user: "octocat",
       projectNumber: 2,
     })
@@ -1779,12 +1657,12 @@ describe("runCliCapability", () => {
       projectNumber: 1,
       first: 10,
     })
-    const addIssue = await runCliCapability(runner, "project_v2.item.add_issue", {
+    const addIssue = await runCliCapability(runner, "project_v2.items.issue.add", {
       owner: "acme",
       projectNumber: 1,
       issueUrl: "https://github.com/acme/modkit/issues/10",
     })
-    const fieldUpdate = await runCliCapability(runner, "project_v2.item.field.update", {
+    const fieldUpdate = await runCliCapability(runner, "project_v2.items.field.update", {
       projectId: "PVT_org_1",
       itemId: "PVTI_1",
       fieldId: "PVTF_1",
@@ -1992,7 +1870,7 @@ describe("runCliCapability", () => {
       name: "modkit",
       first: 10,
     })
-    const getResult = await runCliCapability(runner, "release.get", {
+    const getResult = await runCliCapability(runner, "release.view", {
       owner: "acme",
       name: "modkit",
       tagName: "v1.0.1",
@@ -2112,7 +1990,7 @@ describe("runCliCapability", () => {
         }),
     }
 
-    const createResult = await runCliCapability(runner, "release.create_draft", {
+    const createResult = await runCliCapability(runner, "release.create", {
       owner: "acme",
       name: "modkit",
       tagName: "v2.0.0-rc.1",
@@ -2130,7 +2008,7 @@ describe("runCliCapability", () => {
       draft: true,
     })
 
-    const publishResult = await runCliCapability(runner, "release.publish_draft", {
+    const publishResult = await runCliCapability(runner, "release.publish", {
       owner: "acme",
       name: "modkit",
       releaseId: 201,
@@ -2178,7 +2056,7 @@ describe("runCliCapability", () => {
         }),
     }
 
-    const dispatchResult = await runCliCapability(runner, "workflow.dispatch.run", {
+    const dispatchResult = await runCliCapability(runner, "workflow.dispatch", {
       owner: "acme",
       name: "modkit",
       workflowId: "release.yml",
@@ -2189,13 +2067,13 @@ describe("runCliCapability", () => {
       },
     })
 
-    const rerunResult = await runCliCapability(runner, "workflow.run.rerun_failed", {
+    const rerunResult = await runCliCapability(runner, "workflow.run.rerun.failed", {
       owner: "acme",
       name: "modkit",
       runId: 500,
     })
 
-    const invalidDispatchResult = await runCliCapability(runner, "workflow.dispatch.run", {
+    const invalidDispatchResult = await runCliCapability(runner, "workflow.dispatch", {
       owner: "acme",
       name: "modkit",
       workflowId: "release.yml",
@@ -2212,14 +2090,14 @@ describe("runCliCapability", () => {
     expect(rerunResult.ok).toBe(true)
     expect(rerunResult.data).toEqual({
       runId: 500,
-      rerunFailed: true,
+      queued: true,
     })
 
     expect(invalidDispatchResult.ok).toBe(false)
     expect(invalidDispatchResult.error?.code).toBe("VALIDATION")
   })
 
-  it("maps release.publish_draft command failure after draft pre-check", async () => {
+  it("maps release.publish command failure after draft pre-check", async () => {
     const runner = {
       run: vi
         .fn()
@@ -2245,7 +2123,7 @@ describe("runCliCapability", () => {
         }),
     }
 
-    const result = await runCliCapability(runner, "release.publish_draft", {
+    const result = await runCliCapability(runner, "release.publish", {
       owner: "acme",
       name: "modkit",
       releaseId: 301,
@@ -2256,13 +2134,13 @@ describe("runCliCapability", () => {
     expect(result.error?.code).toBe("AUTH")
     expect(result.error?.details).toEqual(
       expect.objectContaining({
-        capabilityId: "release.publish_draft",
+        capabilityId: "release.publish",
         exitCode: 1,
       }),
     )
   })
 
-  it("rejects release.publish_draft when current release is not draft", async () => {
+  it("rejects release.publish when current release is not draft", async () => {
     const runner = {
       run: vi.fn(async () => ({
         stdout: JSON.stringify({
@@ -2281,7 +2159,7 @@ describe("runCliCapability", () => {
       })),
     }
 
-    const result = await runCliCapability(runner, "release.publish_draft", {
+    const result = await runCliCapability(runner, "release.publish", {
       owner: "acme",
       name: "modkit",
       releaseId: 401,
@@ -2294,7 +2172,7 @@ describe("runCliCapability", () => {
     expect(runner.run).toHaveBeenCalledTimes(1)
   })
 
-  it("maps release.publish_draft pre-check read failure", async () => {
+  it("maps release.publish pre-check read failure", async () => {
     const runner = {
       run: vi.fn(async () => ({
         stdout: "",
@@ -2303,7 +2181,7 @@ describe("runCliCapability", () => {
       })),
     }
 
-    const result = await runCliCapability(runner, "release.publish_draft", {
+    const result = await runCliCapability(runner, "release.publish", {
       owner: "acme",
       name: "modkit",
       releaseId: 500,
@@ -2314,14 +2192,14 @@ describe("runCliCapability", () => {
     expect(result.error?.code).toBe("AUTH")
     expect(result.error?.details).toEqual(
       expect.objectContaining({
-        capabilityId: "release.publish_draft",
+        capabilityId: "release.publish",
         exitCode: 1,
       }),
     )
     expect(runner.run).toHaveBeenCalledTimes(1)
   })
 
-  it("rejects release.publish_draft when pre-check payload is not an object", async () => {
+  it("rejects release.publish when pre-check payload is not an object", async () => {
     const runner = {
       run: vi.fn(async () => ({
         stdout: JSON.stringify([]),
@@ -2330,7 +2208,7 @@ describe("runCliCapability", () => {
       })),
     }
 
-    const result = await runCliCapability(runner, "release.publish_draft", {
+    const result = await runCliCapability(runner, "release.publish", {
       owner: "acme",
       name: "modkit",
       releaseId: 501,
@@ -2381,7 +2259,7 @@ describe("runCliCapability", () => {
     expect(result.data).toEqual({ prNumber: 42, updated: true })
   })
 
-  it("returns validation error when release.publish_draft params are incomplete", async () => {
+  it("returns validation error when release.publish params are incomplete", async () => {
     const runner = {
       run: vi.fn(async () => ({
         stdout: "{}",
@@ -2390,7 +2268,7 @@ describe("runCliCapability", () => {
       })),
     }
 
-    const result = await runCliCapability(runner, "release.publish_draft", {
+    const result = await runCliCapability(runner, "release.publish", {
       owner: "acme",
       name: "modkit",
     })
@@ -2446,12 +2324,12 @@ describe("runCliCapability", () => {
       projectNumber: 1,
       first: 10,
     })
-    const addIssueResult = await runCliCapability(runner, "project_v2.item.add_issue", {
+    const addIssueResult = await runCliCapability(runner, "project_v2.items.issue.add", {
       owner: "acme",
       projectNumber: 1,
       issueUrl: "https://github.com/acme/modkit/issues/1",
     })
-    const releaseGetResult = await runCliCapability(runner, "release.get", {
+    const releaseGetResult = await runCliCapability(runner, "release.view", {
       owner: "acme",
       name: "modkit",
       tagName: "v1.0.0",
@@ -2574,28 +2452,28 @@ describe("runCliCapability", () => {
         message: "deleteBranch",
       },
       {
-        capabilityId: "pr.checks.rerun_failed",
+        capabilityId: "pr.checks.rerun.failed",
         params: { prNumber: 0, runId: 1 },
         message: "prNumber",
       },
       {
-        capabilityId: "pr.review.request",
+        capabilityId: "pr.reviews.request",
         params: { prNumber: 0, reviewers: ["octocat"] },
         message: "prNumber",
       },
       {
-        capabilityId: "pr.review.request",
+        capabilityId: "pr.reviews.request",
         params: { prNumber: 1, reviewers: [] },
         message: "reviewers",
       },
       {
-        capabilityId: "pr.assignees.update",
-        params: { prNumber: 0, add: ["octocat"] },
+        capabilityId: "pr.assignees.add",
+        params: { prNumber: 0, assignees: ["octocat"] },
         message: "prNumber",
       },
       {
-        capabilityId: "pr.assignees.update",
-        params: { prNumber: 1, add: [], remove: [] },
+        capabilityId: "pr.assignees.add",
+        params: { prNumber: 1, assignees: [] },
         message: "assignees",
       },
       { capabilityId: "pr.branch.update", params: { prNumber: 0 }, message: "prNumber" },
@@ -2606,7 +2484,7 @@ describe("runCliCapability", () => {
         message: "first",
       },
       {
-        capabilityId: "workflow.get",
+        capabilityId: "workflow.view",
         params: { owner: "acme", name: "modkit", workflowId: null },
         message: "workflowId",
       },
@@ -2616,7 +2494,7 @@ describe("runCliCapability", () => {
         message: "runId",
       },
       {
-        capabilityId: "workflow.run.rerun_all",
+        capabilityId: "workflow.run.rerun.all",
         params: { owner: "acme", name: "modkit", runId: 0 },
         message: "runId",
       },
@@ -2641,12 +2519,12 @@ describe("runCliCapability", () => {
         message: "first",
       },
       {
-        capabilityId: "release.get",
+        capabilityId: "release.view",
         params: { owner: "acme", name: "modkit", tagName: "" },
         message: "tagName",
       },
       {
-        capabilityId: "release.create_draft",
+        capabilityId: "release.create",
         params: { owner: "acme", name: "modkit", tagName: "" },
         message: "tagName",
       },
@@ -2656,27 +2534,27 @@ describe("runCliCapability", () => {
         message: "releaseId",
       },
       {
-        capabilityId: "release.publish_draft",
+        capabilityId: "release.publish",
         params: { owner: "acme", name: "modkit", releaseId: 0 },
         message: "releaseId",
       },
       {
-        capabilityId: "workflow.dispatch.run",
+        capabilityId: "workflow.dispatch",
         params: { owner: "acme", name: "modkit", ref: "main" },
         message: "workflowId",
       },
       {
-        capabilityId: "workflow.dispatch.run",
+        capabilityId: "workflow.dispatch",
         params: { owner: "acme", name: "modkit", workflowId: "ci" },
         message: "ref",
       },
       {
-        capabilityId: "workflow.dispatch.run",
+        capabilityId: "workflow.dispatch",
         params: { owner: "acme", name: "modkit", workflowId: "ci", ref: "main", inputs: null },
         message: "inputs",
       },
       {
-        capabilityId: "workflow.dispatch.run",
+        capabilityId: "workflow.dispatch",
         params: {
           owner: "acme",
           name: "modkit",
@@ -2687,7 +2565,7 @@ describe("runCliCapability", () => {
         message: "inputs",
       },
       {
-        capabilityId: "workflow.dispatch.run",
+        capabilityId: "workflow.dispatch",
         params: {
           owner: "acme",
           name: "modkit",
@@ -2698,17 +2576,17 @@ describe("runCliCapability", () => {
         message: "inputs",
       },
       {
-        capabilityId: "workflow.run.rerun_failed",
+        capabilityId: "workflow.run.rerun.failed",
         params: { owner: "acme", name: "modkit", runId: 0 },
         message: "runId",
       },
       {
-        capabilityId: "project_v2.item.add_issue",
+        capabilityId: "project_v2.items.issue.add",
         params: { owner: "acme", projectNumber: 1, issueUrl: "" },
         message: "owner/projectNumber/issueUrl",
       },
       {
-        capabilityId: "project_v2.item.field.update",
+        capabilityId: "project_v2.items.field.update",
         params: { projectId: "", itemId: "", fieldId: "" },
         message: "projectId/itemId/fieldId",
       },
@@ -2744,7 +2622,7 @@ describe("runCliCapability", () => {
         }),
     }
 
-    const fieldUpdateResult = await runCliCapability(runner, "project_v2.item.field.update", {
+    const fieldUpdateResult = await runCliCapability(runner, "project_v2.items.field.update", {
       projectId: "project-1",
       itemId: "item-42",
       fieldId: "field-9",
@@ -2818,19 +2696,18 @@ describe("runCliCapability", () => {
         .mockResolvedValueOnce({ stdout: "updated assignees", stderr: "", exitCode: 0 }),
     }
 
-    const reviewersResult = await runCliCapability(runner, "pr.review.request", {
+    const reviewersResult = await runCliCapability(runner, "pr.reviews.request", {
       owner: "acme",
       name: "modkit",
       prNumber: 42,
       reviewers: ["octocat"],
     })
 
-    const assigneesResult = await runCliCapability(runner, "pr.assignees.update", {
+    const assigneesResult = await runCliCapability(runner, "pr.assignees.add", {
       owner: "acme",
       name: "modkit",
       prNumber: 42,
-      add: ["octocat"],
-      remove: ["hubot"],
+      assignees: ["octocat"],
     })
 
     expect(reviewersResult.ok).toBe(true)
@@ -2841,12 +2718,12 @@ describe("runCliCapability", () => {
     })
 
     expect(assigneesResult.ok).toBe(true)
-    expect(assigneesResult.data).toEqual({
-      prNumber: 42,
-      add: ["octocat"],
-      remove: ["hubot"],
-      updated: true,
-    })
+    expect(assigneesResult.data).toEqual(
+      expect.objectContaining({
+        prNumber: 42,
+        added: ["octocat"],
+      }),
+    )
   })
 
   it("surfaces rerun-all failure details when fallback rerun also fails", async () => {
@@ -2866,7 +2743,7 @@ describe("runCliCapability", () => {
         }),
     }
 
-    const result = await runCliCapability(runner, "pr.checks.rerun_failed", {
+    const result = await runCliCapability(runner, "pr.checks.rerun.failed", {
       owner: "acme",
       name: "modkit",
       prNumber: 10,
@@ -2919,7 +2796,7 @@ describe("runCliCapability", () => {
       name: "modkit",
       first: 5,
     })
-    const workflowGetResult = await runCliCapability(runner, "workflow.get", {
+    const workflowGetResult = await runCliCapability(runner, "workflow.view", {
       owner: "acme",
       name: "modkit",
       workflowId: "ci.yml",
@@ -2934,7 +2811,7 @@ describe("runCliCapability", () => {
       name: "modkit",
       runId: 123,
     })
-    const projectOrgResult = await runCliCapability(runner, "project_v2.org.get", {
+    const projectOrgResult = await runCliCapability(runner, "project_v2.org.view", {
       org: "acme",
       projectNumber: 1,
     })
@@ -3626,7 +3503,7 @@ describe("runCliCapability", () => {
     expect(call[1]).toContain("Updated description")
   })
 
-  it("handles release.publish_draft when draft read check fails", async () => {
+  it("handles release.publish when draft read check fails", async () => {
     const runner = {
       run: vi.fn().mockResolvedValueOnce({
         stdout: "",
@@ -3635,7 +3512,7 @@ describe("runCliCapability", () => {
       }),
     }
 
-    const result = await runCliCapability(runner, "release.publish_draft", {
+    const result = await runCliCapability(runner, "release.publish", {
       owner: "acme",
       name: "modkit",
       releaseId: 999,
@@ -3646,7 +3523,7 @@ describe("runCliCapability", () => {
     expect(runner.run).toHaveBeenCalledTimes(1)
   })
 
-  it("handles release.publish_draft when publish command fails after draft check passes", async () => {
+  it("handles release.publish when publish command fails after draft check passes", async () => {
     const runner = {
       run: vi
         .fn()
@@ -3662,7 +3539,7 @@ describe("runCliCapability", () => {
         }),
     }
 
-    const result = await runCliCapability(runner, "release.publish_draft", {
+    const result = await runCliCapability(runner, "release.publish", {
       owner: "acme",
       name: "modkit",
       releaseId: 123,
@@ -3673,7 +3550,7 @@ describe("runCliCapability", () => {
     expect(runner.run).toHaveBeenCalledTimes(2)
   })
 
-  it("handles release.publish_draft with non-object draft response", async () => {
+  it("handles release.publish with non-object draft response", async () => {
     const runner = {
       run: vi.fn().mockResolvedValueOnce({
         stdout: "invalid response",
@@ -3682,7 +3559,7 @@ describe("runCliCapability", () => {
       }),
     }
 
-    const result = await runCliCapability(runner, "release.publish_draft", {
+    const result = await runCliCapability(runner, "release.publish", {
       owner: "acme",
       name: "modkit",
       releaseId: 123,
@@ -3864,7 +3741,7 @@ describe("runCliCapability", () => {
     expect(result.error?.message).toContain("head")
   })
 
-  it("handles workflow.dispatch.run with empty inputs object", async () => {
+  it("handles workflow.dispatch with empty inputs object", async () => {
     const runner = {
       run: vi.fn(async () => ({
         stdout: "",
@@ -3873,7 +3750,7 @@ describe("runCliCapability", () => {
       })),
     }
 
-    const result = await runCliCapability(runner, "workflow.dispatch.run", {
+    const result = await runCliCapability(runner, "workflow.dispatch", {
       owner: "acme",
       name: "modkit",
       workflowId: "ci.yml",
@@ -3886,7 +3763,7 @@ describe("runCliCapability", () => {
     expect(call[1].join("/")).toContain("workflows/ci.yml/dispatches")
   })
 
-  it("handles workflow.dispatch.run with multiple input types", async () => {
+  it("handles workflow.dispatch with multiple input types", async () => {
     const runner = {
       run: vi.fn(async () => ({
         stdout: "",
@@ -3895,7 +3772,7 @@ describe("runCliCapability", () => {
       })),
     }
 
-    const result = await runCliCapability(runner, "workflow.dispatch.run", {
+    const result = await runCliCapability(runner, "workflow.dispatch", {
       owner: "acme",
       name: "modkit",
       workflowId: "ci.yml",
@@ -3914,7 +3791,7 @@ describe("runCliCapability", () => {
     expect(call[1].join(" ")).toContain("inputs[name]=test")
   })
 
-  it("handles workflow.dispatch.run with invalid input value", async () => {
+  it("handles workflow.dispatch with invalid input value", async () => {
     const runner = {
       run: vi.fn(async () => ({
         stdout: "",
@@ -3923,7 +3800,7 @@ describe("runCliCapability", () => {
       })),
     }
 
-    const result = await runCliCapability(runner, "workflow.dispatch.run", {
+    const result = await runCliCapability(runner, "workflow.dispatch", {
       owner: "acme",
       name: "modkit",
       workflowId: "ci.yml",
@@ -3938,7 +3815,7 @@ describe("runCliCapability", () => {
     expect(result.error?.message).toContain("inputs")
   })
 
-  it("handles workflow.dispatch.run with empty input key", async () => {
+  it("handles workflow.dispatch with empty input key", async () => {
     const runner = {
       run: vi.fn(async () => ({
         stdout: "",
@@ -3947,7 +3824,7 @@ describe("runCliCapability", () => {
       })),
     }
 
-    const result = await runCliCapability(runner, "workflow.dispatch.run", {
+    const result = await runCliCapability(runner, "workflow.dispatch", {
       owner: "acme",
       name: "modkit",
       workflowId: "ci.yml",
@@ -3961,7 +3838,7 @@ describe("runCliCapability", () => {
     expect(result.error?.code).toBe("VALIDATION")
   })
 
-  it("handles workflow.dispatch.run with invalid inputs type", async () => {
+  it("handles workflow.dispatch with invalid inputs type", async () => {
     const runner = {
       run: vi.fn(async () => ({
         stdout: "",
@@ -3970,7 +3847,7 @@ describe("runCliCapability", () => {
       })),
     }
 
-    const result = await runCliCapability(runner, "workflow.dispatch.run", {
+    const result = await runCliCapability(runner, "workflow.dispatch", {
       owner: "acme",
       name: "modkit",
       workflowId: "ci.yml",
@@ -3982,7 +3859,7 @@ describe("runCliCapability", () => {
     expect(result.error?.code).toBe("VALIDATION")
   })
 
-  it("handles project_v2.item.field.update with valueNumber (finite check)", async () => {
+  it("handles project_v2.items.field.update with valueNumber (finite check)", async () => {
     const runner = {
       run: vi.fn(async () => ({
         stdout: "",
@@ -3991,7 +3868,7 @@ describe("runCliCapability", () => {
       })),
     }
 
-    const result = await runCliCapability(runner, "project_v2.item.field.update", {
+    const result = await runCliCapability(runner, "project_v2.items.field.update", {
       projectId: "PVT_kwDO123",
       itemId: "ITEM_123",
       fieldId: "FIELD_123",
@@ -4004,7 +3881,7 @@ describe("runCliCapability", () => {
     expect(call[1]).toContain("42")
   })
 
-  it("handles project_v2.item.field.update with clear flag", async () => {
+  it("handles project_v2.items.field.update with clear flag", async () => {
     const runner = {
       run: vi.fn(async () => ({
         stdout: "",
@@ -4013,7 +3890,7 @@ describe("runCliCapability", () => {
       })),
     }
 
-    const result = await runCliCapability(runner, "project_v2.item.field.update", {
+    const result = await runCliCapability(runner, "project_v2.items.field.update", {
       projectId: "PVT_kwDO123",
       itemId: "ITEM_123",
       fieldId: "FIELD_123",
@@ -4025,7 +3902,7 @@ describe("runCliCapability", () => {
     expect(call[1]).toContain("--clear")
   })
 
-  it("handles project_v2.item.field.update without any value", async () => {
+  it("handles project_v2.items.field.update without any value", async () => {
     const runner = {
       run: vi.fn(async () => ({
         stdout: "",
@@ -4034,7 +3911,7 @@ describe("runCliCapability", () => {
       })),
     }
 
-    const result = await runCliCapability(runner, "project_v2.item.field.update", {
+    const result = await runCliCapability(runner, "project_v2.items.field.update", {
       projectId: "PVT_kwDO123",
       itemId: "ITEM_123",
       fieldId: "FIELD_123",
@@ -4045,7 +3922,7 @@ describe("runCliCapability", () => {
     expect(result.error?.message).toContain("Missing field value update")
   })
 
-  it("handles project_v2.item.field.update with Infinity value", async () => {
+  it("handles project_v2.items.field.update with Infinity value", async () => {
     const runner = {
       run: vi.fn(async () => ({
         stdout: "",
@@ -4054,7 +3931,7 @@ describe("runCliCapability", () => {
       })),
     }
 
-    const result = await runCliCapability(runner, "project_v2.item.field.update", {
+    const result = await runCliCapability(runner, "project_v2.items.field.update", {
       projectId: "PVT_kwDO123",
       itemId: "ITEM_123",
       fieldId: "FIELD_123",
@@ -4065,7 +3942,7 @@ describe("runCliCapability", () => {
     expect(result.error?.code).toBe("UNKNOWN")
   })
 
-  it("handles pr.review.request with whitespace-only reviewers filtered out", async () => {
+  it("handles pr.reviews.request with whitespace-only reviewers filtered out", async () => {
     const runner = {
       run: vi.fn(async () => ({
         stdout: "",
@@ -4074,7 +3951,7 @@ describe("runCliCapability", () => {
       })),
     }
 
-    const result = await runCliCapability(runner, "pr.review.request", {
+    const result = await runCliCapability(runner, "pr.reviews.request", {
       owner: "acme",
       name: "modkit",
       prNumber: 10,
@@ -4092,7 +3969,7 @@ describe("runCliCapability", () => {
     expect(call[1]).toContain("alice,bob")
   })
 
-  it("handles pr.assignees.update with add and remove lists", async () => {
+  it("handles pr.assignees.add", async () => {
     const runner = {
       run: vi.fn(async () => ({
         stdout: "",
@@ -4101,29 +3978,26 @@ describe("runCliCapability", () => {
       })),
     }
 
-    const result = await runCliCapability(runner, "pr.assignees.update", {
+    const result = await runCliCapability(runner, "pr.assignees.add", {
       owner: "acme",
       name: "modkit",
       prNumber: 10,
-      add: ["alice"],
-      remove: ["bob"],
+      assignees: ["alice"],
     })
 
     expect(result.ok).toBe(true)
-    expect(result.data).toEqual({
-      prNumber: 10,
-      add: ["alice"],
-      remove: ["bob"],
-      updated: true,
-    })
+    expect(result.data).toEqual(
+      expect.objectContaining({
+        prNumber: 10,
+        added: ["alice"],
+      }),
+    )
     const call = runner.run.mock.calls[0] as unknown as [string, string[], number]
     expect(call[1]).toContain("--add-assignee")
     expect(call[1]).toContain("alice")
-    expect(call[1]).toContain("--remove-assignee")
-    expect(call[1]).toContain("bob")
   })
 
-  it("handles workflow.job.logs.get with zero error/warning lines", async () => {
+  it("handles workflow.job.logs.view with zero error/warning lines", async () => {
     const runner = {
       run: vi.fn(async () => ({
         stdout: "Build started\nCompilation successful\nTests passed",
@@ -4132,7 +4006,7 @@ describe("runCliCapability", () => {
       })),
     }
 
-    const result = await runCliCapability(runner, "workflow.job.logs.get", {
+    const result = await runCliCapability(runner, "workflow.job.logs.view", {
       owner: "acme",
       name: "modkit",
       jobId: 123,
@@ -4150,7 +4024,7 @@ describe("runCliCapability", () => {
     })
   })
 
-  it("handles workflow.job.logs.get with multiple error and warning lines", async () => {
+  it("handles workflow.job.logs.view with multiple error and warning lines", async () => {
     const runner = {
       run: vi.fn(async () => ({
         stdout: `Error: File not found
@@ -4164,7 +4038,7 @@ ERROR: Critical issue`,
       })),
     }
 
-    const result = await runCliCapability(runner, "workflow.job.logs.get", {
+    const result = await runCliCapability(runner, "workflow.job.logs.view", {
       owner: "acme",
       name: "modkit",
       jobId: 123,
@@ -4259,7 +4133,7 @@ ERROR: Critical issue`,
       })),
     }
 
-    const result = await runCliCapability(runner, "workflow.get", {
+    const result = await runCliCapability(runner, "workflow.view", {
       owner: "acme",
       name: "modkit",
       workflowId: 456,
@@ -4325,37 +4199,6 @@ ERROR: Critical issue`,
     const call = runner.run.mock.calls[0] as unknown as [string, string[], number]
     expect(call[1]).toContain("--limit")
     expect(call[1]).toContain("30")
-  })
-
-  it("handles check_run.annotations.list with partial annotation fields", async () => {
-    const runner = {
-      run: vi.fn(async () => ({
-        stdout: JSON.stringify([
-          {
-            path: "src/main.ts",
-          },
-        ]),
-        stderr: "",
-        exitCode: 0,
-      })),
-    }
-
-    const result = await runCliCapability(runner, "check_run.annotations.list", {
-      owner: "acme",
-      name: "modkit",
-      checkRunId: 123,
-    })
-
-    expect(result.ok).toBe(true)
-    expect((result.data as Record<string, unknown[]>).items?.[0]).toEqual({
-      path: "src/main.ts",
-      startLine: null,
-      endLine: null,
-      level: null,
-      message: null,
-      title: null,
-      details: null,
-    })
   })
 
   it("normalizes workflow.run.view with jobs array containing various states", async () => {

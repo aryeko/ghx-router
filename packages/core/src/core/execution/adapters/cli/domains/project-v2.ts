@@ -17,12 +17,12 @@ const handleProjectV2OrgGet: CliHandler = async (runner, params, _card) => {
   try {
     const owner = parseNonEmptyString(params.org)
     if (owner === null) {
-      throw new Error("Missing or invalid org for project_v2.org.get")
+      throw new Error("Missing or invalid org for project_v2.org.view")
     }
 
     const projectNumber = parseStrictPositiveInt(params.projectNumber)
     if (projectNumber === null) {
-      throw new Error("Missing or invalid projectNumber for project_v2.org.get")
+      throw new Error("Missing or invalid projectNumber for project_v2.org.view")
     }
 
     const args = ["project", "view", String(projectNumber), "--owner", owner, "--format", "json"]
@@ -36,10 +36,10 @@ const handleProjectV2OrgGet: CliHandler = async (runner, params, _card) => {
           code,
           message: sanitizeCliErrorMessage(result.stderr, result.exitCode),
           retryable: isRetryableErrorCode(code),
-          details: { capabilityId: "project_v2.org.get", exitCode: result.exitCode },
+          details: { capabilityId: "project_v2.org.view", exitCode: result.exitCode },
         },
         "cli",
-        { capabilityId: "project_v2.org.get", reason: "CARD_FALLBACK" },
+        { capabilityId: "project_v2.org.view", reason: "CARD_FALLBACK" },
       )
     }
 
@@ -47,7 +47,7 @@ const handleProjectV2OrgGet: CliHandler = async (runner, params, _card) => {
     const normalized = normalizeProjectV2Summary(data)
 
     return normalizeResult(normalized, "cli", {
-      capabilityId: "project_v2.org.get",
+      capabilityId: "project_v2.org.view",
       reason: "CARD_FALLBACK",
     })
   } catch (error: unknown) {
@@ -55,7 +55,7 @@ const handleProjectV2OrgGet: CliHandler = async (runner, params, _card) => {
       return normalizeError(
         { code: errorCodes.Server, message: "Failed to parse CLI JSON output", retryable: false },
         "cli",
-        { capabilityId: "project_v2.org.get", reason: "CARD_FALLBACK" },
+        { capabilityId: "project_v2.org.view", reason: "CARD_FALLBACK" },
       )
     }
     const code = mapErrorToCode(error)
@@ -66,7 +66,7 @@ const handleProjectV2OrgGet: CliHandler = async (runner, params, _card) => {
         retryable: isRetryableErrorCode(code),
       },
       "cli",
-      { capabilityId: "project_v2.org.get", reason: "CARD_FALLBACK" },
+      { capabilityId: "project_v2.org.view", reason: "CARD_FALLBACK" },
     )
   }
 }
@@ -75,12 +75,12 @@ const handleProjectV2UserGet: CliHandler = async (runner, params, _card) => {
   try {
     const user = parseNonEmptyString(params.user)
     if (user === null) {
-      throw new Error("Missing or invalid user for project_v2.user.get")
+      throw new Error("Missing or invalid user for project_v2.user.view")
     }
 
     const projectNumber = parseStrictPositiveInt(params.projectNumber)
     if (projectNumber === null) {
-      throw new Error("Missing or invalid projectNumber for project_v2.user.get")
+      throw new Error("Missing or invalid projectNumber for project_v2.user.view")
     }
 
     const args = ["project", "view", String(projectNumber), "--owner", user, "--format", "json"]
@@ -94,10 +94,10 @@ const handleProjectV2UserGet: CliHandler = async (runner, params, _card) => {
           code,
           message: sanitizeCliErrorMessage(result.stderr, result.exitCode),
           retryable: isRetryableErrorCode(code),
-          details: { capabilityId: "project_v2.user.get", exitCode: result.exitCode },
+          details: { capabilityId: "project_v2.user.view", exitCode: result.exitCode },
         },
         "cli",
-        { capabilityId: "project_v2.user.get", reason: "CARD_FALLBACK" },
+        { capabilityId: "project_v2.user.view", reason: "CARD_FALLBACK" },
       )
     }
 
@@ -105,7 +105,7 @@ const handleProjectV2UserGet: CliHandler = async (runner, params, _card) => {
     const normalized = normalizeProjectV2Summary(data)
 
     return normalizeResult(normalized, "cli", {
-      capabilityId: "project_v2.user.get",
+      capabilityId: "project_v2.user.view",
       reason: "CARD_FALLBACK",
     })
   } catch (error: unknown) {
@@ -113,7 +113,7 @@ const handleProjectV2UserGet: CliHandler = async (runner, params, _card) => {
       return normalizeError(
         { code: errorCodes.Server, message: "Failed to parse CLI JSON output", retryable: false },
         "cli",
-        { capabilityId: "project_v2.user.get", reason: "CARD_FALLBACK" },
+        { capabilityId: "project_v2.user.view", reason: "CARD_FALLBACK" },
       )
     }
     const code = mapErrorToCode(error)
@@ -124,7 +124,7 @@ const handleProjectV2UserGet: CliHandler = async (runner, params, _card) => {
         retryable: isRetryableErrorCode(code),
       },
       "cli",
-      { capabilityId: "project_v2.user.get", reason: "CARD_FALLBACK" },
+      { capabilityId: "project_v2.user.view", reason: "CARD_FALLBACK" },
     )
   }
 }
@@ -308,7 +308,7 @@ const handleProjectV2ItemAddIssue: CliHandler = async (runner, params, _card) =>
     const issueUrl = parseNonEmptyString(params.issueUrl)
     if (projectOwner === null || projectNumber === null || issueUrl === null) {
       throw new Error(
-        "Missing or invalid owner/projectNumber/issueUrl for project_v2.item.add_issue",
+        "Missing or invalid owner/projectNumber/issueUrl for project_v2.items.issue.add",
       )
     }
 
@@ -333,10 +333,10 @@ const handleProjectV2ItemAddIssue: CliHandler = async (runner, params, _card) =>
           code,
           message: sanitizeCliErrorMessage(result.stderr, result.exitCode),
           retryable: isRetryableErrorCode(code),
-          details: { capabilityId: "project_v2.item.add_issue", exitCode: result.exitCode },
+          details: { capabilityId: "project_v2.items.issue.add", exitCode: result.exitCode },
         },
         "cli",
-        { capabilityId: "project_v2.item.add_issue", reason: "CARD_FALLBACK" },
+        { capabilityId: "project_v2.items.issue.add", reason: "CARD_FALLBACK" },
       )
     }
 
@@ -349,7 +349,7 @@ const handleProjectV2ItemAddIssue: CliHandler = async (runner, params, _card) =>
     const normalized = { itemId: typeof root.id === "string" ? root.id : null, added: true }
 
     return normalizeResult(normalized, "cli", {
-      capabilityId: "project_v2.item.add_issue",
+      capabilityId: "project_v2.items.issue.add",
       reason: "CARD_FALLBACK",
     })
   } catch (error: unknown) {
@@ -357,7 +357,7 @@ const handleProjectV2ItemAddIssue: CliHandler = async (runner, params, _card) =>
       return normalizeError(
         { code: errorCodes.Server, message: "Failed to parse CLI JSON output", retryable: false },
         "cli",
-        { capabilityId: "project_v2.item.add_issue", reason: "CARD_FALLBACK" },
+        { capabilityId: "project_v2.items.issue.add", reason: "CARD_FALLBACK" },
       )
     }
     const code = mapErrorToCode(error)
@@ -368,7 +368,7 @@ const handleProjectV2ItemAddIssue: CliHandler = async (runner, params, _card) =>
         retryable: isRetryableErrorCode(code),
       },
       "cli",
-      { capabilityId: "project_v2.item.add_issue", reason: "CARD_FALLBACK" },
+      { capabilityId: "project_v2.items.issue.add", reason: "CARD_FALLBACK" },
     )
   }
 }
@@ -380,7 +380,7 @@ const handleProjectV2ItemFieldUpdate: CliHandler = async (runner, params, _card)
     const fieldId = parseNonEmptyString(params.fieldId)
     if (projectId === null || itemId === null || fieldId === null) {
       throw new Error(
-        "Missing or invalid projectId/itemId/fieldId for project_v2.item.field.update",
+        "Missing or invalid projectId/itemId/fieldId for project_v2.items.field.update",
       )
     }
 
@@ -420,7 +420,7 @@ const handleProjectV2ItemFieldUpdate: CliHandler = async (runner, params, _card)
               if (clear) {
                 args.push("--clear")
               } else {
-                throw new Error("Missing field value update for project_v2.item.field.update")
+                throw new Error("Missing field value update for project_v2.items.field.update")
               }
             }
           }
@@ -437,17 +437,17 @@ const handleProjectV2ItemFieldUpdate: CliHandler = async (runner, params, _card)
           code,
           message: sanitizeCliErrorMessage(result.stderr, result.exitCode),
           retryable: isRetryableErrorCode(code),
-          details: { capabilityId: "project_v2.item.field.update", exitCode: result.exitCode },
+          details: { capabilityId: "project_v2.items.field.update", exitCode: result.exitCode },
         },
         "cli",
-        { capabilityId: "project_v2.item.field.update", reason: "CARD_FALLBACK" },
+        { capabilityId: "project_v2.items.field.update", reason: "CARD_FALLBACK" },
       )
     }
 
     const normalized = { itemId, updated: true }
 
     return normalizeResult(normalized, "cli", {
-      capabilityId: "project_v2.item.field.update",
+      capabilityId: "project_v2.items.field.update",
       reason: "CARD_FALLBACK",
     })
   } catch (error: unknown) {
@@ -459,16 +459,66 @@ const handleProjectV2ItemFieldUpdate: CliHandler = async (runner, params, _card)
         retryable: isRetryableErrorCode(code),
       },
       "cli",
-      { capabilityId: "project_v2.item.field.update", reason: "CARD_FALLBACK" },
+      { capabilityId: "project_v2.items.field.update", reason: "CARD_FALLBACK" },
+    )
+  }
+}
+
+const handleProjectV2ItemsIssueRemove: CliHandler = async (runner, params, _card) => {
+  try {
+    const owner = parseNonEmptyString(params.owner)
+    const projectNumber = parseStrictPositiveInt(params.projectNumber)
+    const itemId = parseNonEmptyString(params.itemId)
+    if (owner === null || projectNumber === null || itemId === null) {
+      throw new Error(
+        "Missing or invalid owner/projectNumber/itemId for project_v2.items.issue.remove",
+      )
+    }
+
+    const args = ["project", "item-delete", String(projectNumber), "--owner", owner, "--id", itemId]
+
+    const result = await runner.run("gh", args, DEFAULT_TIMEOUT_MS)
+
+    if (result.exitCode !== 0) {
+      const code = mapErrorToCode(result.stderr)
+      return normalizeError(
+        {
+          code,
+          message: sanitizeCliErrorMessage(result.stderr, result.exitCode),
+          retryable: isRetryableErrorCode(code),
+          details: { capabilityId: "project_v2.items.issue.remove", exitCode: result.exitCode },
+        },
+        "cli",
+        { capabilityId: "project_v2.items.issue.remove", reason: "CARD_FALLBACK" },
+      )
+    }
+
+    const normalized = { itemId, removed: true }
+
+    return normalizeResult(normalized, "cli", {
+      capabilityId: "project_v2.items.issue.remove",
+      reason: "CARD_FALLBACK",
+    })
+  } catch (error: unknown) {
+    const code = mapErrorToCode(error)
+    return normalizeError(
+      {
+        code,
+        message: error instanceof Error ? error.message : String(error),
+        retryable: isRetryableErrorCode(code),
+      },
+      "cli",
+      { capabilityId: "project_v2.items.issue.remove", reason: "CARD_FALLBACK" },
     )
   }
 }
 
 export const handlers: Record<string, CliHandler> = {
-  "project_v2.org.get": handleProjectV2OrgGet,
-  "project_v2.user.get": handleProjectV2UserGet,
+  "project_v2.org.view": handleProjectV2OrgGet,
+  "project_v2.user.view": handleProjectV2UserGet,
   "project_v2.fields.list": handleProjectV2FieldsList,
   "project_v2.items.list": handleProjectV2ItemsList,
-  "project_v2.item.add_issue": handleProjectV2ItemAddIssue,
-  "project_v2.item.field.update": handleProjectV2ItemFieldUpdate,
+  "project_v2.items.issue.add": handleProjectV2ItemAddIssue,
+  "project_v2.items.field.update": handleProjectV2ItemFieldUpdate,
+  "project_v2.items.issue.remove": handleProjectV2ItemsIssueRemove,
 }

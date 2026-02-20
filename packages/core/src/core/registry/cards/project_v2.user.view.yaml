@@ -1,0 +1,26 @@
+capability_id: project_v2.user.view
+version: "1.0.0"
+description: Get a user Projects v2 project.
+input_schema:
+  type: object
+  required: [user, projectNumber]
+  properties:
+    user: { type: string, minLength: 1 }
+    projectNumber: { type: integer, minimum: 1 }
+  additionalProperties: false
+output_schema:
+  type: object
+  required: [id, title, shortDescription, public, closed, url]
+  properties:
+    id: { type: [string, "null"] }
+    title: { type: [string, "null"] }
+    shortDescription: { type: [string, "null"] }
+    public: { type: [boolean, "null"] }
+    closed: { type: [boolean, "null"] }
+    url: { type: [string, "null"] }
+  additionalProperties: false
+routing:
+  preferred: cli
+  fallbacks: []
+cli:
+  command: project view

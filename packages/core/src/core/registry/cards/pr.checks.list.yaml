@@ -8,6 +8,7 @@ input_schema:
     owner: { type: string, minLength: 1 }
     name: { type: string, minLength: 1 }
     prNumber: { type: integer, minimum: 1 }
+    state: { type: string, enum: [failed, pending, passed] }
   additionalProperties: false
 output_schema:
   type: object
@@ -17,12 +18,24 @@ output_schema:
       type: array
       items:
         type: object
-        required: [name, state, workflow, link]
+        required: [name, state, workflow, link, annotations]
         properties:
           name: { type: [string, "null"] }
           state: { type: [string, "null"] }
           workflow: { type: [string, "null"] }
           link: { type: [string, "null"] }
+          annotations:
+            type: array
+            items:
+              type: object
+              required: [path, startLine, endLine, level, message]
+              properties:
+                path: { type: [string, "null"] }
+                startLine: { type: [integer, "null"] }
+                endLine: { type: [integer, "null"] }
+                level: { type: [string, "null"] }
+                message: { type: [string, "null"] }
+              additionalProperties: false
         additionalProperties: false
     summary:
       type: object

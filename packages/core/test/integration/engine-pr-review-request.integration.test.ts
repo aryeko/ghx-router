@@ -3,7 +3,7 @@ import { executeTask } from "@core/core/routing/engine.js"
 import { createGithubClient } from "@core/gql/github-client.js"
 import { describe, expect, it } from "vitest"
 
-describe("executeTask pr.review.request", () => {
+describe("executeTask pr.reviews.request", () => {
   it("returns validation error envelope for missing logins", async () => {
     const githubClient = createGithubClient({
       async execute<TData>(): Promise<TData> {
@@ -12,7 +12,7 @@ describe("executeTask pr.review.request", () => {
     })
 
     const request: TaskRequest = {
-      task: "pr.review.request",
+      task: "pr.reviews.request",
       input: {
         owner: "go-modkit",
         name: "modkit",

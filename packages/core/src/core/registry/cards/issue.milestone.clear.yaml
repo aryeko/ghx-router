@@ -1,0 +1,23 @@
+capability_id: issue.milestone.clear
+version: "1.0.0"
+description: Remove the milestone from an issue.
+input_schema:
+  type: object
+  required: [owner, name, issueNumber]
+  properties:
+    owner: { type: string, minLength: 1 }
+    name: { type: string, minLength: 1 }
+    issueNumber: { type: integer, minimum: 1 }
+  additionalProperties: false
+output_schema:
+  type: object
+  required: [issueNumber, cleared]
+  properties:
+    issueNumber: { type: integer, minimum: 1 }
+    cleared: { type: boolean }
+  additionalProperties: false
+routing:
+  preferred: cli
+  fallbacks: []
+cli:
+  command: issue edit

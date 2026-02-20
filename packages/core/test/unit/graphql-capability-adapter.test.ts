@@ -180,7 +180,7 @@ describe("runGraphqlCapability", () => {
     )
   })
 
-  it("routes pr.thread.list through the GraphQL client", async () => {
+  it("routes pr.threads.list through the GraphQL client", async () => {
     const client = {
       fetchRepoView: vi.fn(),
       fetchIssueView: vi.fn(),
@@ -229,13 +229,17 @@ describe("runGraphqlCapability", () => {
       submitPrReview: vi.fn(),
     }
 
-    const result = await runGraphqlCapability(client as unknown as GithubClient, "pr.thread.list", {
-      owner: "acme",
-      name: "modkit",
-      prNumber: 1,
-      unresolvedOnly: true,
-      includeOutdated: false,
-    })
+    const result = await runGraphqlCapability(
+      client as unknown as GithubClient,
+      "pr.threads.list",
+      {
+        owner: "acme",
+        name: "modkit",
+        prNumber: 1,
+        unresolvedOnly: true,
+        includeOutdated: false,
+      },
+    )
 
     expect(result.ok).toBe(true)
     expect(result.meta.route_used).toBe("graphql")
@@ -250,7 +254,7 @@ describe("runGraphqlCapability", () => {
     )
   })
 
-  it("routes pr.review.list through the GraphQL client", async () => {
+  it("routes pr.reviews.list through the GraphQL client", async () => {
     const client = {
       fetchRepoView: vi.fn(),
       fetchIssueView: vi.fn(),
@@ -284,12 +288,16 @@ describe("runGraphqlCapability", () => {
       submitPrReview: vi.fn(),
     }
 
-    const result = await runGraphqlCapability(client as unknown as GithubClient, "pr.review.list", {
-      owner: "acme",
-      name: "modkit",
-      prNumber: 1,
-      first: 20,
-    })
+    const result = await runGraphqlCapability(
+      client as unknown as GithubClient,
+      "pr.reviews.list",
+      {
+        owner: "acme",
+        name: "modkit",
+        prNumber: 1,
+        first: 20,
+      },
+    )
 
     expect(result.ok).toBe(true)
     expect(result.meta.route_used).toBe("graphql")
@@ -391,7 +399,7 @@ describe("runGraphqlCapability", () => {
     })
   })
 
-  it("routes pr.thread.reply through the GraphQL client", async () => {
+  it("routes pr.threads.reply through the GraphQL client", async () => {
     const client = {
       fetchRepoView: vi.fn(),
       fetchIssueView: vi.fn(),
@@ -411,7 +419,7 @@ describe("runGraphqlCapability", () => {
 
     const result = await runGraphqlCapability(
       client as unknown as GithubClient,
-      "pr.thread.reply",
+      "pr.threads.reply",
       {
         threadId: "thread-1",
         body: "Thanks, addressed",
@@ -422,7 +430,7 @@ describe("runGraphqlCapability", () => {
     expect(result.data).toEqual({ id: "thread-1", isResolved: false })
   })
 
-  it("routes pr.thread.resolve and pr.thread.unresolve through the GraphQL client", async () => {
+  it("routes pr.threads.resolve and pr.threads.unresolve through the GraphQL client", async () => {
     const client = {
       fetchRepoView: vi.fn(),
       fetchIssueView: vi.fn(),
@@ -442,14 +450,14 @@ describe("runGraphqlCapability", () => {
 
     const resolveResult = await runGraphqlCapability(
       client as unknown as GithubClient,
-      "pr.thread.resolve",
+      "pr.threads.resolve",
       {
         threadId: "thread-1",
       },
     )
     const unresolveResult = await runGraphqlCapability(
       client as unknown as GithubClient,
-      "pr.thread.unresolve",
+      "pr.threads.unresolve",
       {
         threadId: "thread-1",
       },
@@ -481,7 +489,7 @@ describe("runGraphqlCapability", () => {
 
     const replyResult = await runGraphqlCapability(
       client as unknown as GithubClient,
-      "pr.thread.reply",
+      "pr.threads.reply",
       {
         threadId: "",
         body: "ok",
@@ -490,7 +498,7 @@ describe("runGraphqlCapability", () => {
 
     const resolveResult = await runGraphqlCapability(
       client as unknown as GithubClient,
-      "pr.thread.resolve",
+      "pr.threads.resolve",
       {
         threadId: "",
       },
@@ -626,7 +634,7 @@ describe("runGraphqlCapability", () => {
     )
     const labelsResult = await runGraphqlCapability(
       client as unknown as GithubClient,
-      "issue.labels.update",
+      "issue.labels.set",
       {
         issueId: "issue-1",
         labels: ["bug", "batch-b"],
@@ -634,7 +642,7 @@ describe("runGraphqlCapability", () => {
     )
     const assigneesResult = await runGraphqlCapability(
       client as unknown as GithubClient,
-      "issue.assignees.update",
+      "issue.assignees.set",
       {
         issueId: "issue-1",
         assignees: ["octocat"],
@@ -658,7 +666,7 @@ describe("runGraphqlCapability", () => {
     )
     const linkedPrsResult = await runGraphqlCapability(
       client as unknown as GithubClient,
-      "issue.linked_prs.list",
+      "issue.relations.prs.list",
       {
         owner: "acme",
         name: "modkit",
@@ -667,7 +675,7 @@ describe("runGraphqlCapability", () => {
     )
     const relationsResult = await runGraphqlCapability(
       client as unknown as GithubClient,
-      "issue.relations.get",
+      "issue.relations.view",
       {
         owner: "acme",
         name: "modkit",
@@ -676,7 +684,7 @@ describe("runGraphqlCapability", () => {
     )
     const parentSetResult = await runGraphqlCapability(
       client as unknown as GithubClient,
-      "issue.parent.set",
+      "issue.relations.parent.set",
       {
         issueId: "issue-1",
         parentIssueId: "issue-parent",
@@ -684,14 +692,14 @@ describe("runGraphqlCapability", () => {
     )
     const parentRemoveResult = await runGraphqlCapability(
       client as unknown as GithubClient,
-      "issue.parent.remove",
+      "issue.relations.parent.remove",
       {
         issueId: "issue-1",
       },
     )
     const blockedByAddResult = await runGraphqlCapability(
       client as unknown as GithubClient,
-      "issue.blocked_by.add",
+      "issue.relations.blocked_by.add",
       {
         issueId: "issue-1",
         blockedByIssueId: "issue-blocker",
@@ -699,7 +707,7 @@ describe("runGraphqlCapability", () => {
     )
     const blockedByRemoveResult = await runGraphqlCapability(
       client as unknown as GithubClient,
-      "issue.blocked_by.remove",
+      "issue.relations.blocked_by.remove",
       {
         issueId: "issue-1",
         blockedByIssueId: "issue-blocker",
@@ -819,11 +827,11 @@ describe("runGraphqlCapability", () => {
       runGraphqlCapability(client as unknown as GithubClient, "issue.delete", {
         issueId: "issue-1",
       }),
-      runGraphqlCapability(client as unknown as GithubClient, "issue.labels.update", {
+      runGraphqlCapability(client as unknown as GithubClient, "issue.labels.set", {
         issueId: "issue-1",
         labels: ["bug"],
       }),
-      runGraphqlCapability(client as unknown as GithubClient, "issue.assignees.update", {
+      runGraphqlCapability(client as unknown as GithubClient, "issue.assignees.set", {
         issueId: "issue-1",
         assignees: ["octocat"],
       }),
@@ -835,28 +843,28 @@ describe("runGraphqlCapability", () => {
         issueId: "issue-1",
         body: "ack",
       }),
-      runGraphqlCapability(client as unknown as GithubClient, "issue.linked_prs.list", {
+      runGraphqlCapability(client as unknown as GithubClient, "issue.relations.prs.list", {
         owner: "acme",
         name: "modkit",
         issueNumber: 1,
       }),
-      runGraphqlCapability(client as unknown as GithubClient, "issue.relations.get", {
+      runGraphqlCapability(client as unknown as GithubClient, "issue.relations.view", {
         owner: "acme",
         name: "modkit",
         issueNumber: 1,
       }),
-      runGraphqlCapability(client as unknown as GithubClient, "issue.parent.set", {
+      runGraphqlCapability(client as unknown as GithubClient, "issue.relations.parent.set", {
         issueId: "issue-1",
         parentIssueId: "issue-2",
       }),
-      runGraphqlCapability(client as unknown as GithubClient, "issue.parent.remove", {
+      runGraphqlCapability(client as unknown as GithubClient, "issue.relations.parent.remove", {
         issueId: "issue-1",
       }),
-      runGraphqlCapability(client as unknown as GithubClient, "issue.blocked_by.add", {
+      runGraphqlCapability(client as unknown as GithubClient, "issue.relations.blocked_by.add", {
         issueId: "issue-1",
         blockedByIssueId: "issue-2",
       }),
-      runGraphqlCapability(client as unknown as GithubClient, "issue.blocked_by.remove", {
+      runGraphqlCapability(client as unknown as GithubClient, "issue.relations.blocked_by.remove", {
         issueId: "issue-1",
         blockedByIssueId: "issue-2",
       }),
@@ -1038,7 +1046,7 @@ describe("runGraphqlCapability", () => {
 
     const result = await runGraphqlCapability(
       client as unknown as GithubClient,
-      "pr.thread.reply",
+      "pr.threads.reply",
       {
         threadId: undefined,
         body: "comment",
@@ -1069,7 +1077,7 @@ describe("runGraphqlCapability", () => {
 
     const result = await runGraphqlCapability(
       client as unknown as GithubClient,
-      "pr.thread.reply",
+      "pr.threads.reply",
       {
         threadId: "thread-1",
         body: "   ",

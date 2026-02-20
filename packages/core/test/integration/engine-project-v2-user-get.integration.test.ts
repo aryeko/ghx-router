@@ -3,7 +3,7 @@ import { executeTask } from "@core/core/routing/engine.js"
 import { createGithubClient } from "@core/gql/github-client.js"
 import { describe, expect, it } from "vitest"
 
-describe("executeTask project_v2.user.get", () => {
+describe("executeTask project_v2.user.view", () => {
   it("returns validation error envelope for missing number", async () => {
     const githubClient = createGithubClient({
       async execute<TData>(): Promise<TData> {
@@ -12,7 +12,7 @@ describe("executeTask project_v2.user.get", () => {
     })
 
     const request: TaskRequest = {
-      task: "project_v2.user.get",
+      task: "project_v2.user.view",
       input: { user: "my-user" },
     }
 

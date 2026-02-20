@@ -3,8 +3,8 @@ import { executeTask } from "@core/core/routing/engine.js"
 import { createGithubClient } from "@core/gql/github-client.js"
 import { describe, expect, it } from "vitest"
 
-describe("executeTask workflow.run.rerun_all", () => {
-  it("returns cli envelope for workflow.run.rerun_all", async () => {
+describe("executeTask workflow.run.rerun.all", () => {
+  it("returns cli envelope for workflow.run.rerun.all", async () => {
     const githubClient = createGithubClient({
       async execute<TData>(): Promise<TData> {
         return {} as TData
@@ -12,7 +12,7 @@ describe("executeTask workflow.run.rerun_all", () => {
     })
 
     const request: TaskRequest = {
-      task: "workflow.run.rerun_all",
+      task: "workflow.run.rerun.all",
       input: {
         owner: "go-modkit",
         name: "modkit",
@@ -45,7 +45,7 @@ describe("executeTask workflow.run.rerun_all", () => {
     })
 
     const request: TaskRequest = {
-      task: "workflow.run.rerun_all",
+      task: "workflow.run.rerun.all",
       input: {
         owner: "go-modkit",
         name: "modkit",

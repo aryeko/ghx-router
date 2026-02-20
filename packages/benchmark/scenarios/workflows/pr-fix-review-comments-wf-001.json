@@ -2,8 +2,8 @@
   "type": "workflow",
   "id": "pr-fix-review-comments-wf-001",
   "name": "Fix PR review comments",
-  "prompt": "There are unresolved review comments on PR #{{prNumber}} in {{owner}}/{{name}}. Read the comments, understand the feedback, and resolve each thread with an appropriate reply.",
-  "expected_capabilities": ["pr.view", "pr.thread.list", "pr.thread.reply", "pr.thread.resolve"],
+  "prompt": "PR #{{prNumber}} in {{owner}}/{{name}} has unresolved review threads. Fetch the unresolved threads, then for each one reply with an appropriate response addressing the feedback and resolve it.",
+  "expected_capabilities": ["pr.view", "pr.threads.list", "pr.threads.reply", "pr.threads.resolve"],
   "timeout_ms": 180000,
   "allowed_retries": 1,
   "fixture": {
@@ -21,7 +21,7 @@
     "checkpoints": [
       {
         "name": "all_threads_resolved",
-        "verification_task": "pr.thread.list",
+        "verification_task": "pr.threads.list",
         "verification_input": {
           "unresolvedOnly": true
         },

@@ -53,6 +53,7 @@
     "provenance": true
   },
   "scripts": {
+    "ghx": "tsx src/cli/index.ts",
     "build": "tsup",
     "format": "biome check --write .",
     "format:check": "biome check .",

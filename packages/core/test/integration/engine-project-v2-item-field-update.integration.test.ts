@@ -3,7 +3,7 @@ import { executeTask } from "@core/core/routing/engine.js"
 import { createGithubClient } from "@core/gql/github-client.js"
 import { describe, expect, it } from "vitest"
 
-describe("executeTask project_v2.item.field.update", () => {
+describe("executeTask project_v2.items.field.update", () => {
   it("returns adapter unsupported when CLI unavailable", async () => {
     const githubClient = createGithubClient({
       async execute<TData>(): Promise<TData> {
@@ -12,7 +12,7 @@ describe("executeTask project_v2.item.field.update", () => {
     })
 
     const request: TaskRequest = {
-      task: "project_v2.item.field.update",
+      task: "project_v2.items.field.update",
       input: {
         projectId: "project-id-1",
         itemId: "item-id-1",

@@ -152,17 +152,17 @@ console.log(explainCapability("repo.view"))
 const result = await tool.execute("repo.view", { owner: "aryeko", name: "ghx" })
 ```
 
-## 66 Capabilities
+## 69 Capabilities
 
 **Repository** -- `repo.view`, `repo.labels.list`, `repo.issue_types.list`
 
 **Issues** -- `issue.view`, `issue.list`, `issue.comments.list`, `issue.create`, `issue.update`, `issue.close`, `issue.reopen`, `issue.delete`, `issue.labels.update`, `issue.assignees.update`, `issue.milestone.set`, `issue.comments.create`, `issue.linked_prs.list`, `issue.relations.get`, `issue.parent.set`, `issue.parent.remove`, `issue.blocked_by.add`, `issue.blocked_by.remove`
 
-**Pull Requests (read)** -- `pr.view`, `pr.list`, `pr.comments.list`, `pr.reviews.list`, `pr.diff.list_files`, `pr.status.checks`, `pr.checks.get_failed`, `pr.mergeability.view`
+**Pull Requests (read)** -- `pr.view`, `pr.list`, `pr.threads.list`, `pr.reviews.list`, `pr.diff.files`, `pr.checks.list`, `pr.merge.status`
 
-**Pull Requests (execute)** -- `pr.comment.reply`, `pr.comment.resolve`, `pr.comment.unresolve`, `pr.ready_for_review.set`, `pr.review.submit_approve`, `pr.review.submit_request_changes`, `pr.review.submit_comment`, `pr.merge.execute`, `pr.checks.rerun_failed`, `pr.checks.rerun_all`, `pr.reviewers.request`, `pr.assignees.update`, `pr.branch.update`
+**Pull Requests (execute)** -- `pr.threads.reply`, `pr.threads.resolve`, `pr.threads.unresolve`, `pr.update`, `pr.reviews.submit`, `pr.reviews.request`, `pr.merge`, `pr.checks.rerun.failed`, `pr.checks.rerun.all`, `pr.branch.update`, `pr.assignees.add`, `pr.assignees.remove`
 
-**CI Diagnostics** -- `check_run.annotations.list`, `workflow_runs.list`, `workflow_job.logs.get`, `workflow_job.logs.analyze`
+**CI Diagnostics** -- `workflow.runs.list`, `workflow.job.logs.get`
 
 **Releases** -- `release.list`, `release.get`, `release.create_draft`, `release.update`, `release.publish_draft`
 

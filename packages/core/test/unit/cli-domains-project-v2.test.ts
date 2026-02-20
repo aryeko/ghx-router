@@ -18,7 +18,7 @@ const h = (id: string): CliHandler => {
 }
 
 describe("project-v2 domain handlers", () => {
-  describe("project_v2.org.get", () => {
+  describe("project_v2.org.view", () => {
     it("returns success with normalized summary", async () => {
       const runner = mockRunner(
         0,
@@ -32,7 +32,7 @@ describe("project-v2 domain handlers", () => {
         }),
       )
 
-      const result = await h("project_v2.org.get")(
+      const result = await h("project_v2.org.view")(
         runner,
         {
           org: "myorg",
@@ -50,7 +50,7 @@ describe("project-v2 domain handlers", () => {
         closed: false,
         url: "https://github.com/orgs/myorg/projects/1",
       })
-      expect(result.meta.capability_id).toBe("project_v2.org.get")
+      expect(result.meta.capability_id).toBe("project_v2.org.view")
       expect(result.meta.route_used).toBe("cli")
     })
 
@@ -69,7 +69,7 @@ describe("project-v2 domain handlers", () => {
       })
       const runner = { run: runSpy } as unknown as CliCommandRunner
 
-      await h("project_v2.org.get")(
+      await h("project_v2.org.view")(
         runner,
         {
           org: "testorg",
@@ -88,7 +88,7 @@ describe("project-v2 domain handlers", () => {
     it("returns error on non-zero exit code", async () => {
       const runner = mockRunner(1, "", "permission denied")
 
-      const result = await h("project_v2.org.get")(
+      const result = await h("project_v2.org.view")(
         runner,
         {
           org: "myorg",
@@ -99,13 +99,13 @@ describe("project-v2 domain handlers", () => {
 
       expect(result.ok).toBe(false)
       expect(result.error?.code).toBeDefined()
-      expect(result.meta.capability_id).toBe("project_v2.org.get")
+      expect(result.meta.capability_id).toBe("project_v2.org.view")
     })
 
     it("throws error for missing org", async () => {
       const runner = mockRunner(0, "{}")
 
-      const result = await h("project_v2.org.get")(
+      const result = await h("project_v2.org.view")(
         runner,
         {
           org: "",
@@ -121,7 +121,7 @@ describe("project-v2 domain handlers", () => {
     it("throws error for missing projectNumber", async () => {
       const runner = mockRunner(0, "{}")
 
-      const result = await h("project_v2.org.get")(
+      const result = await h("project_v2.org.view")(
         runner,
         {
           org: "myorg",
@@ -135,7 +135,7 @@ describe("project-v2 domain handlers", () => {
     })
   })
 
-  describe("project_v2.user.get", () => {
+  describe("project_v2.user.view", () => {
     it("returns success with normalized summary", async () => {
       const runner = mockRunner(
         0,
@@ -149,7 +149,7 @@ describe("project-v2 domain handlers", () => {
         }),
       )
 
-      const result = await h("project_v2.user.get")(
+      const result = await h("project_v2.user.view")(
         runner,
         {
           user: "myuser",
@@ -164,7 +164,7 @@ describe("project-v2 domain handlers", () => {
         title: "My Project",
         public: false,
       })
-      expect(result.meta.capability_id).toBe("project_v2.user.get")
+      expect(result.meta.capability_id).toBe("project_v2.user.view")
     })
 
     it("verifies call includes correct args", async () => {
@@ -182,7 +182,7 @@ describe("project-v2 domain handlers", () => {
       })
       const runner = { run: runSpy } as unknown as CliCommandRunner
 
-      await h("project_v2.user.get")(
+      await h("project_v2.user.view")(
         runner,
         {
           user: "testuser",
@@ -209,7 +209,7 @@ describe("project-v2 domain handlers", () => {
     it("returns error on non-zero exit code", async () => {
       const runner = mockRunner(1, "", "not found")
 
-      const result = await h("project_v2.user.get")(
+      const result = await h("project_v2.user.view")(
         runner,
         {
           user: "nonexistent",
@@ -408,7 +408,7 @@ describe("project-v2 domain handlers", () => {
     })
   })
 
-  describe("project_v2.item.add_issue", () => {
+  describe("project_v2.items.issue.add", () => {
     it("returns success with added item", async () => {
       const runner = mockRunner(
         0,
@@ -418,7 +418,7 @@ describe("project-v2 domain handlers", () => {
         }),
       )
 
-      const result = await h("project_v2.item.add_issue")(
+      const result = await h("project_v2.items.issue.add")(
         runner,
         {
           projectNumber: 1,
@@ -433,7 +433,7 @@ describe("project-v2 domain handlers", () => {
         itemId: "PVT_I_1",
         added: true,
       })
-      expect(result.meta.capability_id).toBe("project_v2.item.add_issue")
+      expect(result.meta.capability_id).toBe("project_v2.items.issue.add")
     })
 
     it("verifies call includes correct args", async () => {
@@ -444,7 +444,7 @@ describe("project-v2 domain handlers", () => {
       })
       const runner = { run: runSpy } as unknown as CliCommandRunner
 
-      await h("project_v2.item.add_issue")(
+      await h("project_v2.items.issue.add")(
         runner,
         {
           projectNumber: 1,
@@ -474,7 +474,7 @@ describe("project-v2 domain handlers", () => {
     it("returns error on non-zero exit code", async () => {
       const runner = mockRunner(1, "", "issue not found")
 
-      const result = await h("project_v2.item.add_issue")(
+      const result = await h("project_v2.items.issue.add")(
         runner,
         {
           projectNumber: 1,
@@ -489,11 +489,11 @@ describe("project-v2 domain handlers", () => {
     })
   })
 
-  describe("project_v2.item.field.update", () => {
+  describe("project_v2.items.field.update", () => {
     it("returns success with valueText", async () => {
       const runner = mockRunner(0, JSON.stringify({}))
 
-      const result = await h("project_v2.item.field.update")(
+      const result = await h("project_v2.items.field.update")(
         runner,
         {
           projectId: "PVT_1",
@@ -509,7 +509,7 @@ describe("project-v2 domain handlers", () => {
         itemId: "PVT_I_1",
         updated: true,
       })
-      expect(result.meta.capability_id).toBe("project_v2.item.field.update")
+      expect(result.meta.capability_id).toBe("project_v2.items.field.update")
     })
 
     it("includes valueText in args", async () => {
@@ -520,7 +520,7 @@ describe("project-v2 domain handlers", () => {
       })
       const runner = { run: runSpy } as unknown as CliCommandRunner
 
-      await h("project_v2.item.field.update")(
+      await h("project_v2.items.field.update")(
         runner,
         {
           projectId: "PVT_1",
@@ -552,7 +552,7 @@ describe("project-v2 domain handlers", () => {
     it("returns success with valueNumber", async () => {
       const runner = mockRunner(0, JSON.stringify({}))
 
-      const result = await h("project_v2.item.field.update")(
+      const result = await h("project_v2.items.field.update")(
         runner,
         {
           projectId: "PVT_1",
@@ -578,7 +578,7 @@ describe("project-v2 domain handlers", () => {
       })
       const runner = { run: runSpy } as unknown as CliCommandRunner
 
-      await h("project_v2.item.field.update")(
+      await h("project_v2.items.field.update")(
         runner,
         {
           projectId: "PVT_1",
@@ -610,7 +610,7 @@ describe("project-v2 domain handlers", () => {
     it("returns success with clear=true", async () => {
       const runner = mockRunner(0, JSON.stringify({}))
 
-      const result = await h("project_v2.item.field.update")(
+      const result = await h("project_v2.items.field.update")(
         runner,
         {
           projectId: "PVT_1",
@@ -636,7 +636,7 @@ describe("project-v2 domain handlers", () => {
       })
       const runner = { run: runSpy } as unknown as CliCommandRunner
 
-      await h("project_v2.item.field.update")(
+      await h("project_v2.items.field.update")(
         runner,
         {
           projectId: "PVT_1",
@@ -667,7 +667,7 @@ describe("project-v2 domain handlers", () => {
     it("returns error when no field value provided", async () => {
       const runner = mockRunner(0, JSON.stringify({}))
 
-      const result = await h("project_v2.item.field.update")(
+      const result = await h("project_v2.items.field.update")(
         runner,
         {
           projectId: "PVT_1",
@@ -684,7 +684,7 @@ describe("project-v2 domain handlers", () => {
     it("returns error on non-zero exit code", async () => {
       const runner = mockRunner(1, "", "failed to update field")
 
-      const result = await h("project_v2.item.field.update")(
+      const result = await h("project_v2.items.field.update")(
         runner,
         {
           projectId: "PVT_1",
@@ -707,7 +707,7 @@ describe("project-v2 domain handlers", () => {
       })
       const runner = { run: runSpy } as unknown as CliCommandRunner
 
-      await h("project_v2.item.field.update")(
+      await h("project_v2.items.field.update")(
         runner,
         {
           projectId: "PVT_1",
@@ -730,7 +730,7 @@ describe("project-v2 domain handlers", () => {
       const runSpy = vi.fn().mockResolvedValue({ exitCode: 0, stdout: "{}", stderr: "" })
       const runner = { run: runSpy } as unknown as CliCommandRunner
 
-      await h("project_v2.item.field.update")(
+      await h("project_v2.items.field.update")(
         runner,
         { projectId: "PVT_1", itemId: "PVT_I_1", fieldId: "F_4", valueDate: "2024-03-01" },
         undefined,
@@ -747,7 +747,7 @@ describe("project-v2 domain handlers", () => {
       const runSpy = vi.fn().mockResolvedValue({ exitCode: 0, stdout: "{}", stderr: "" })
       const runner = { run: runSpy } as unknown as CliCommandRunner
 
-      await h("project_v2.item.field.update")(
+      await h("project_v2.items.field.update")(
         runner,
         {
           projectId: "PVT_1",
@@ -769,7 +769,7 @@ describe("project-v2 domain handlers", () => {
       const runSpy = vi.fn().mockResolvedValue({ exitCode: 0, stdout: "{}", stderr: "" })
       const runner = { run: runSpy } as unknown as CliCommandRunner
 
-      await h("project_v2.item.field.update")(
+      await h("project_v2.items.field.update")(
         runner,
         {
           projectId: "PVT_1",
@@ -789,8 +789,8 @@ describe("project-v2 domain handlers", () => {
   })
 
   describe("SyntaxError paths", () => {
-    it("project_v2.org.get returns error on malformed JSON", async () => {
-      const result = await h("project_v2.org.get")(
+    it("project_v2.org.view returns error on malformed JSON", async () => {
+      const result = await h("project_v2.org.view")(
         mockRunner(0, "not-json"),
         { org: "myorg", projectNumber: 1 },
         undefined,
@@ -799,8 +799,8 @@ describe("project-v2 domain handlers", () => {
       expect(result.error?.message).toContain("Failed to parse CLI JSON output")
     })
 
-    it("project_v2.user.get returns error on malformed JSON", async () => {
-      const result = await h("project_v2.user.get")(
+    it("project_v2.user.view returns error on malformed JSON", async () => {
+      const result = await h("project_v2.user.view")(
         mockRunner(0, "not-json"),
         { user: "myuser", projectNumber: 1 },
         undefined,
@@ -829,8 +829,8 @@ describe("project-v2 domain handlers", () => {
       expect(result.error?.message).toContain("Failed to parse CLI JSON output")
     })
 
-    it("project_v2.item.add_issue returns error on malformed JSON", async () => {
-      const result = await h("project_v2.item.add_issue")(
+    it("project_v2.items.issue.add returns error on malformed JSON", async () => {
+      const result = await h("project_v2.items.issue.add")(
         mockRunner(0, "not-json"),
         { owner: "myorg", projectNumber: 1, issueUrl: "https://github.com/myorg/repo/issues/1" },
         undefined,
@@ -841,8 +841,8 @@ describe("project-v2 domain handlers", () => {
   })
 
   describe("missing params paths", () => {
-    it("project_v2.user.get returns error for missing projectNumber", async () => {
-      const result = await h("project_v2.user.get")(
+    it("project_v2.user.view returns error for missing projectNumber", async () => {
+      const result = await h("project_v2.user.view")(
         mockRunner(0, "{}"),
         { user: "myuser", projectNumber: 0 },
         undefined,
@@ -869,8 +869,8 @@ describe("project-v2 domain handlers", () => {
       expect(result.ok).toBe(false)
     })
 
-    it("project_v2.item.add_issue returns error for missing issueUrl", async () => {
-      const result = await h("project_v2.item.add_issue")(
+    it("project_v2.items.issue.add returns error for missing issueUrl", async () => {
+      const result = await h("project_v2.items.issue.add")(
         mockRunner(0, "{}"),
         { owner: "myorg", projectNumber: 1, issueUrl: "" },
         undefined,
@@ -878,8 +878,8 @@ describe("project-v2 domain handlers", () => {
       expect(result.ok).toBe(false)
     })
 
-    it("project_v2.item.field.update returns error for missing projectId", async () => {
-      const result = await h("project_v2.item.field.update")(
+    it("project_v2.items.field.update returns error for missing projectId", async () => {
+      const result = await h("project_v2.items.field.update")(
         mockRunner(0, "{}"),
         { projectId: "", itemId: "PVT_I_1", fieldId: "F_1", valueText: "x" },
         undefined,
@@ -887,8 +887,8 @@ describe("project-v2 domain handlers", () => {
       expect(result.ok).toBe(false)
     })
 
-    it("project_v2.user.get returns error for missing user", async () => {
-      const result = await h("project_v2.user.get")(
+    it("project_v2.user.view returns error for missing user", async () => {
+      const result = await h("project_v2.user.view")(
         mockRunner(0, "{}"),
         { user: "", projectNumber: 1 },
         undefined,
@@ -897,12 +897,12 @@ describe("project-v2 domain handlers", () => {
       expect(result.error?.message).toContain("user")
     })
 
-    it("project_v2.item.field.update returns error when runner throws", async () => {
+    it("project_v2.items.field.update returns error when runner throws", async () => {
       const runner = {
         run: vi.fn().mockRejectedValue(new Error("runner failure")),
       } as unknown as import("@core/core/execution/adapters/cli-adapter.js").CliCommandRunner
 
-      const result = await h("project_v2.item.field.update")(
+      const result = await h("project_v2.items.field.update")(
         runner,
         { projectId: "PVT_1", itemId: "PVT_I_1", fieldId: "F_1", valueText: "x" },
         undefined,
@@ -933,6 +933,102 @@ describe("project-v2 domain handlers", () => {
       const items = (result.data as { items: unknown[] }).items
       expect(items).toHaveLength(2)
       expect(items[0]).toMatchObject({ id: null, contentType: null })
+    })
+
+    describe("project_v2.items.issue.remove", () => {
+      it("returns success with itemId and removed: true", async () => {
+        const result = await h("project_v2.items.issue.remove")(
+          mockRunner(0, ""),
+          { owner: "myorg", projectNumber: 123, itemId: "PVTI_abc123" },
+          undefined,
+        )
+        expect(result.ok).toBe(true)
+        expect(result.data).toMatchObject({ itemId: "PVTI_abc123", removed: true })
+        expect(result.meta.capability_id).toBe("project_v2.items.issue.remove")
+        expect(result.meta.route_used).toBe("cli")
+      })
+
+      it("verifies correct gh args are used", async () => {
+        const runSpy = vi.fn().mockResolvedValue({ exitCode: 0, stdout: "", stderr: "" })
+        const runner = {
+          run: runSpy,
+        } as unknown as import("@core/core/execution/adapters/cli-adapter.js").CliCommandRunner
+
+        await h("project_v2.items.issue.remove")(
+          runner,
+          { owner: "myorg", projectNumber: 123, itemId: "PVTI_abc123" },
+          undefined,
+        )
+
+        expect(runSpy).toHaveBeenCalledWith(
+          "gh",
+          expect.arrayContaining([
+            "project",
+            "item-delete",
+            "123",
+            "--owner",
+            "myorg",
+            "--id",
+            "PVTI_abc123",
+          ]),
+          expect.any(Number),
+        )
+      })
+
+      it("returns error for missing owner", async () => {
+        const result = await h("project_v2.items.issue.remove")(
+          mockRunner(0, ""),
+          { owner: "", projectNumber: 123, itemId: "PVTI_abc123" },
+          undefined,
+        )
+        expect(result.ok).toBe(false)
+        expect(result.error?.message).toContain("owner")
+      })
+
+      it("returns error for missing projectNumber", async () => {
+        const result = await h("project_v2.items.issue.remove")(
+          mockRunner(0, ""),
+          { owner: "myorg", projectNumber: 0, itemId: "PVTI_abc123" },
+          undefined,
+        )
+        expect(result.ok).toBe(false)
+        expect(result.error?.message).toContain("projectNumber")
+      })
+
+      it("returns error for missing itemId", async () => {
+        const result = await h("project_v2.items.issue.remove")(
+          mockRunner(0, ""),
+          { owner: "myorg", projectNumber: 123, itemId: "" },
+          undefined,
+        )
+        expect(result.ok).toBe(false)
+        expect(result.error?.message).toContain("itemId")
+      })
+
+      it("returns error on non-zero exit code", async () => {
+        const result = await h("project_v2.items.issue.remove")(
+          mockRunner(1, "", "item not found"),
+          { owner: "myorg", projectNumber: 123, itemId: "PVTI_abc123" },
+          undefined,
+        )
+        expect(result.ok).toBe(false)
+        expect(result.error?.code).toBeDefined()
+        expect(result.meta.capability_id).toBe("project_v2.items.issue.remove")
+      })
+
+      it("returns error when runner throws", async () => {
+        const runner = {
+          run: vi.fn().mockRejectedValue(new Error("runner failure")),
+        } as unknown as import("@core/core/execution/adapters/cli-adapter.js").CliCommandRunner
+
+        const result = await h("project_v2.items.issue.remove")(
+          runner,
+          { owner: "myorg", projectNumber: 123, itemId: "PVTI_abc123" },
+          undefined,
+        )
+        expect(result.ok).toBe(false)
+        expect(result.error?.message).toContain("runner failure")
+      })
     })
   })
 })

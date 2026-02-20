@@ -1,0 +1,29 @@
+capability_id: pr.assignees.add
+version: "1.0.0"
+description: Add assignees to a pull request without replacing existing ones.
+input_schema:
+  type: object
+  required: [owner, name, prNumber, assignees]
+  properties:
+    owner: { type: string, minLength: 1 }
+    name: { type: string, minLength: 1 }
+    prNumber: { type: integer, minimum: 1 }
+    assignees:
+      type: array
+      items: { type: string, minLength: 1 }
+      minItems: 1
+  additionalProperties: false
+output_schema:
+  type: object
+  required: [prNumber, added]
+  properties:
+    prNumber: { type: integer, minimum: 1 }
+    added:
+      type: array
+      items: { type: string }
+  additionalProperties: false
+routing:
+  preferred: cli
+  fallbacks: []
+cli:
+  command: pr edit

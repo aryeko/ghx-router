@@ -2,7 +2,7 @@ import { executeTask } from "@core/core/routing/engine.js"
 import type { GithubClient } from "@core/gql/github-client.js"
 import { describe, expect, it, vi } from "vitest"
 
-describe("pr.review.submit executeTask contract", () => {
+describe("pr.reviews.submit executeTask contract", () => {
   it("returns GraphQL review payload shape from engine", async () => {
     const githubClient = {
       fetchRepoView: vi.fn(),
@@ -29,7 +29,7 @@ describe("pr.review.submit executeTask contract", () => {
 
     const result = await executeTask(
       {
-        task: "pr.review.submit",
+        task: "pr.reviews.submit",
         input: {
           owner: "owner",
           name: "repo",

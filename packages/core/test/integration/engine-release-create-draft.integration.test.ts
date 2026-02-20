@@ -3,8 +3,8 @@ import { executeTask } from "@core/core/routing/engine.js"
 import { createGithubClient } from "@core/gql/github-client.js"
 import { describe, expect, it } from "vitest"
 
-describe("executeTask release.create_draft", () => {
-  it("returns cli envelope for release.create_draft", async () => {
+describe("executeTask release.create", () => {
+  it("returns cli envelope for release.create", async () => {
     const githubClient = createGithubClient({
       async execute<TData>(): Promise<TData> {
         return {} as TData
@@ -12,7 +12,7 @@ describe("executeTask release.create_draft", () => {
     })
 
     const request: TaskRequest = {
-      task: "release.create_draft",
+      task: "release.create",
       input: {
         owner: "go-modkit",
         name: "modkit",
@@ -56,7 +56,7 @@ describe("executeTask release.create_draft", () => {
     })
 
     const request: TaskRequest = {
-      task: "release.create_draft",
+      task: "release.create",
       input: {
         owner: "go-modkit",
         name: "modkit",

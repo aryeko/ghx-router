@@ -3,7 +3,7 @@ import { executeTask } from "@core/core/routing/engine.js"
 import { createGithubClient } from "@core/gql/github-client.js"
 import { describe, expect, it } from "vitest"
 
-describe("executeTask pr.checks.rerun_all", () => {
+describe("executeTask pr.checks.rerun.all", () => {
   it("returns validation error envelope for invalid prNumber", async () => {
     const githubClient = createGithubClient({
       async execute<TData>(): Promise<TData> {
@@ -12,7 +12,7 @@ describe("executeTask pr.checks.rerun_all", () => {
     })
 
     const request: TaskRequest = {
-      task: "pr.checks.rerun_all",
+      task: "pr.checks.rerun.all",
       input: {
         owner: "go-modkit",
         name: "modkit",

@@ -1,6 +1,10 @@
 import {
+  handleIssueAssigneesAdd,
+  handleIssueAssigneesRemove,
   handleIssueCommentsList,
+  handleIssueLabelsRemove,
   handleIssueList,
+  handleIssueMilestoneClear,
   handleIssueView,
 } from "@core/core/execution/adapters/cli/domains/issue.js"
 import type { CliCommandRunner } from "@core/core/execution/adapters/cli-adapter.js"
@@ -403,6 +407,228 @@ describe("issue domain handlers – additional coverage", () => {
       )
       expect(result.ok).toBe(false)
       expect(result.error?.message).toContain("Invalid CLI payload")
+    })
+  })
+})
+
+describe("issue domain handlers – new capabilities", () => {
+  describe("handleIssueLabelsRemove", () => {
+    it("returns success with removed labels", async () => {
+      const result = await handleIssueLabelsRemove(
+        mockRunner(0, ""),
+        { owner: "owner", name: "repo", issueNumber: 42, labels: ["bug", "wontfix"] },
+        undefined,
+      )
+      expect(result.ok).toBe(true)
+      expect(result.data).toMatchObject({ issueNumber: 42, removed: ["bug", "wontfix"] })
+      expect(result.meta.capability_id).toBe("issue.labels.remove")
+      expect(result.meta.route_used).toBe("cli")
+    })
+
+    it("returns error for invalid issueNumber", async () => {
+      const result = await handleIssueLabelsRemove(
+        mockRunner(0, ""),
+        { owner: "owner", name: "repo", issueNumber: 0, labels: ["bug"] },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("issueNumber")
+    })
+
+    it("returns error for empty labels array", async () => {
+      const result = await handleIssueLabelsRemove(
+        mockRunner(0, ""),
+        { owner: "owner", name: "repo", issueNumber: 1, labels: [] },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("labels")
+    })
+
+    it("returns error on non-zero exit code", async () => {
+      const result = await handleIssueLabelsRemove(
+        mockRunner(1, "", "label not found"),
+        { owner: "owner", name: "repo", issueNumber: 1, labels: ["missing"] },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.code).toBeDefined()
+    })
+
+    it("returns error when runner throws", async () => {
+      const runner = {
+        run: vi.fn().mockRejectedValue(new Error("timeout")),
+      } as unknown as CliCommandRunner
+
+      const result = await handleIssueLabelsRemove(
+        runner,
+        { owner: "owner", name: "repo", issueNumber: 1, labels: ["bug"] },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("timeout")
+    })
+  })
+
+  describe("handleIssueAssigneesAdd", () => {
+    it("returns success with added assignees", async () => {
+      const result = await handleIssueAssigneesAdd(
+        mockRunner(0, ""),
+        { owner: "owner", name: "repo", issueNumber: 7, assignees: ["alice", "bob"] },
+        undefined,
+      )
+      expect(result.ok).toBe(true)
+      expect(result.data).toMatchObject({ issueNumber: 7, added: ["alice", "bob"] })
+      expect(result.meta.capability_id).toBe("issue.assignees.add")
+    })
+
+    it("returns error for invalid issueNumber", async () => {
+      const result = await handleIssueAssigneesAdd(
+        mockRunner(0, ""),
+        { owner: "owner", name: "repo", issueNumber: -1, assignees: ["alice"] },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("issueNumber")
+    })
+
+    it("returns error for empty assignees array", async () => {
+      const result = await handleIssueAssigneesAdd(
+        mockRunner(0, ""),
+        { owner: "owner", name: "repo", issueNumber: 1, assignees: [] },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("assignees")
+    })
+
+    it("returns error on non-zero exit code", async () => {
+      const result = await handleIssueAssigneesAdd(
+        mockRunner(1, "", "user not found"),
+        { owner: "owner", name: "repo", issueNumber: 1, assignees: ["ghost"] },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.code).toBeDefined()
+    })
+
+    it("returns error when runner throws", async () => {
+      const runner = {
+        run: vi.fn().mockRejectedValue(new Error("network error")),
+      } as unknown as CliCommandRunner
+
+      const result = await handleIssueAssigneesAdd(
+        runner,
+        { owner: "owner", name: "repo", issueNumber: 1, assignees: ["alice"] },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("network error")
+    })
+  })
+
+  describe("handleIssueAssigneesRemove", () => {
+    it("returns success with removed assignees", async () => {
+      const result = await handleIssueAssigneesRemove(
+        mockRunner(0, ""),
+        { owner: "owner", name: "repo", issueNumber: 5, assignees: ["carol"] },
+        undefined,
+      )
+      expect(result.ok).toBe(true)
+      expect(result.data).toMatchObject({ issueNumber: 5, removed: ["carol"] })
+      expect(result.meta.capability_id).toBe("issue.assignees.remove")
+    })
+
+    it("returns error for invalid issueNumber", async () => {
+      const result = await handleIssueAssigneesRemove(
+        mockRunner(0, ""),
+        { owner: "owner", name: "repo", issueNumber: 0, assignees: ["carol"] },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("issueNumber")
+    })
+
+    it("returns error for empty assignees array", async () => {
+      const result = await handleIssueAssigneesRemove(
+        mockRunner(0, ""),
+        { owner: "owner", name: "repo", issueNumber: 1, assignees: [] },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("assignees")
+    })
+
+    it("returns error on non-zero exit code", async () => {
+      const result = await handleIssueAssigneesRemove(
+        mockRunner(1, "", "permission denied"),
+        { owner: "owner", name: "repo", issueNumber: 1, assignees: ["carol"] },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.code).toBeDefined()
+    })
+
+    it("returns error when runner throws", async () => {
+      const runner = {
+        run: vi.fn().mockRejectedValue(new Error("runner failure")),
+      } as unknown as CliCommandRunner
+
+      const result = await handleIssueAssigneesRemove(
+        runner,
+        { owner: "owner", name: "repo", issueNumber: 1, assignees: ["carol"] },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("runner failure")
+    })
+  })
+
+  describe("handleIssueMilestoneClear", () => {
+    it("returns success with cleared: true", async () => {
+      const result = await handleIssueMilestoneClear(
+        mockRunner(0, ""),
+        { owner: "owner", name: "repo", issueNumber: 3 },
+        undefined,
+      )
+      expect(result.ok).toBe(true)
+      expect(result.data).toMatchObject({ issueNumber: 3, cleared: true })
+      expect(result.meta.capability_id).toBe("issue.milestone.clear")
+      expect(result.meta.route_used).toBe("cli")
+    })
+
+    it("returns error for invalid issueNumber", async () => {
+      const result = await handleIssueMilestoneClear(
+        mockRunner(0, ""),
+        { owner: "owner", name: "repo", issueNumber: 0 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("issueNumber")
+    })
+
+    it("returns error on non-zero exit code", async () => {
+      const result = await handleIssueMilestoneClear(
+        mockRunner(1, "", "issue not found"),
+        { owner: "owner", name: "repo", issueNumber: 99 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.code).toBeDefined()
+    })
+
+    it("returns error when runner throws", async () => {
+      const runner = {
+        run: vi.fn().mockRejectedValue(new Error("timeout")),
+      } as unknown as CliCommandRunner
+
+      const result = await handleIssueMilestoneClear(
+        runner,
+        { owner: "owner", name: "repo", issueNumber: 1 },
+        undefined,
+      )
+      expect(result.ok).toBe(false)
+      expect(result.error?.message).toContain("timeout")
     })
   })
 })

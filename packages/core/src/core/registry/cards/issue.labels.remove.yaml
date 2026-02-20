@@ -1,0 +1,29 @@
+capability_id: issue.labels.remove
+version: "1.0.0"
+description: Remove specific labels from an issue.
+input_schema:
+  type: object
+  required: [owner, name, issueNumber, labels]
+  properties:
+    owner: { type: string, minLength: 1 }
+    name: { type: string, minLength: 1 }
+    issueNumber: { type: integer, minimum: 1 }
+    labels:
+      type: array
+      items: { type: string, minLength: 1 }
+      minItems: 1
+  additionalProperties: false
+output_schema:
+  type: object
+  required: [issueNumber, removed]
+  properties:
+    issueNumber: { type: integer, minimum: 1 }
+    removed:
+      type: array
+      items: { type: string }
+  additionalProperties: false
+routing:
+  preferred: cli
+  fallbacks: []
+cli:
+  command: issue edit

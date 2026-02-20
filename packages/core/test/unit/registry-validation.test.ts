@@ -44,9 +44,9 @@ describe("validateOperationCard", () => {
 })
 
 describe("card resolution blocks", () => {
-  it("issue.labels.update has resolution config", async () => {
+  it("issue.labels.set has resolution config", async () => {
     const { getOperationCard } = await import("@core/core/registry/index.js")
-    const card = getOperationCard("issue.labels.update")
+    const card = getOperationCard("issue.labels.set")
     expect(card).toBeDefined()
     if (!card) return
     expect(card.graphql?.resolution).toBeDefined()
