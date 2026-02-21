@@ -59,6 +59,20 @@ export type IssueAssigneesUpdateInput = {
   assignees: string[]
 }
 
+export type IssueAssigneesAddInput = {
+  owner: string
+  name: string
+  issueNumber: number
+  assignees: string[]
+}
+
+export type IssueAssigneesRemoveInput = {
+  owner: string
+  name: string
+  issueNumber: number
+  assignees: string[]
+}
+
 export type IssueMilestoneSetInput = {
   issueId: string
   milestoneNumber: number
@@ -166,6 +180,16 @@ export type IssueLabelsAddData = {
 }
 
 export type IssueAssigneesUpdateData = {
+  id: string
+  assignees: string[]
+}
+
+export type IssueAssigneesAddData = {
+  id: string
+  assignees: string[]
+}
+
+export type IssueAssigneesRemoveData = {
   id: string
   assignees: string[]
 }

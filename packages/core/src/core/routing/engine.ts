@@ -20,6 +20,7 @@ import { normalizeError } from "@core/core/execution/normalizer.js"
 import { preflightCheck } from "@core/core/execution/preflight.js"
 import { getOperationCard } from "@core/core/registry/index.js"
 import { validateInput } from "@core/core/registry/schema-validator.js"
+import type { OperationCard } from "@core/core/registry/types.js"
 import { routePreferenceOrder } from "@core/core/routing/policy.js"
 import type { RouteReasonCode } from "@core/core/routing/reason-codes.js"
 import { buildBatchMutation, buildBatchQuery } from "@core/gql/batch.js"
@@ -336,21 +337,30 @@ export async function executeTasks(
   }> = []
   const lookupResults: Record<number, unknown> = {}
 
+  function buildLookupVars(
+    card: OperationCard,
+    req: { input: Record<string, unknown> },
+  ): Record<string, unknown> {
+    const vars: Record<string, unknown> = {}
+    if (card.graphql?.resolution) {
+      for (const [lookupVar, inputField] of Object.entries(card.graphql.resolution.lookup.vars)) {
+        vars[lookupVar] = req.input[inputField]
+      }
+    }
+    return vars
+  }
+
   for (let i = 0; i < requests.length; i += 1) {
     const card = cards[i]
     const req = requests[i]
     if (card === undefined || req === undefined) continue
     if (!card.graphql?.resolution) continue
 
-    const { lookup } = card.graphql.resolution
-    const lookupVars: Record<string, unknown> = {}
-    for (const [lookupVar, inputField] of Object.entries(lookup.vars)) {
-      lookupVars[lookupVar] = req.input[inputField]
-    }
+    const lookupVars = buildLookupVars(card, req)
 
     // Check resolution cache before scheduling network call
     if (deps.resolutionCache) {
-      const cacheKey = buildCacheKey(lookup.operationName, lookupVars)
+      const cacheKey = buildCacheKey(card.graphql.resolution.lookup.operationName, lookupVars)
       const cached = deps.resolutionCache.get(cacheKey)
       if (cached !== undefined) {
         lookupResults[i] = cached
@@ -360,7 +370,7 @@ export async function executeTasks(
 
     lookupInputs.push({
       alias: `step${i}`,
-      query: getLookupDocument(lookup.operationName),
+      query: getLookupDocument(card.graphql.resolution.lookup.operationName),
       variables: lookupVars,
       stepIndex: i,
     })
@@ -382,12 +392,11 @@ export async function executeTasks(
           const card = cards[stepIndex]
           const req = requests[stepIndex]
           if (card?.graphql?.resolution && req) {
-            const { lookup } = card.graphql.resolution
-            const lookupVars: Record<string, unknown> = {}
-            for (const [lookupVar, inputField] of Object.entries(lookup.vars)) {
-              lookupVars[lookupVar] = req.input[inputField]
-            }
-            deps.resolutionCache.set(buildCacheKey(lookup.operationName, lookupVars), result)
+            const lookupVars = buildLookupVars(card, req)
+            deps.resolutionCache.set(
+              buildCacheKey(card.graphql.resolution.lookup.operationName, lookupVars),
+              result,
+            )
           }
         }
       }
@@ -534,7 +543,7 @@ export async function executeTasks(
         task: req.task,
         ok: false,
         error: {
-          code: mapErrorToCode(new Error(stepError)),
+          code: mapErrorToCode(stepError),
           message: stepError,
           retryable: false,
         },

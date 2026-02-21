@@ -1,5 +1,7 @@
 import {
   asRecord,
+  assertIssueAssigneesAddInput,
+  assertIssueAssigneesRemoveInput,
   assertIssueAssigneesUpdateInput,
   assertIssueBlockedByInput,
   assertIssueCommentCreateInput,
@@ -15,7 +17,10 @@ import {
   assertIssueUpdateInput,
   assertNonEmptyString,
 } from "../assertions.js"
+import { getSdk as getIssueAssigneesAddSdk } from "../operations/issue-assignees-add.generated.js"
 import { getSdk as getIssueAssigneesLookupSdk } from "../operations/issue-assignees-lookup.generated.js"
+import { getSdk as getIssueAssigneesLookupByNumberSdk } from "../operations/issue-assignees-lookup-by-number.generated.js"
+import { getSdk as getIssueAssigneesRemoveSdk } from "../operations/issue-assignees-remove.generated.js"
 import { getSdk as getIssueAssigneesUpdateSdk } from "../operations/issue-assignees-update.generated.js"
 import { getSdk as getIssueBlockedByAddSdk } from "../operations/issue-blocked-by-add.generated.js"
 import { getSdk as getIssueBlockedByRemoveSdk } from "../operations/issue-blocked-by-remove.generated.js"
@@ -39,6 +44,10 @@ import { getSdk as getIssueUpdateSdk } from "../operations/issue-update.generate
 import type { GraphqlTransport } from "../transport.js"
 import { createGraphqlRequestClient } from "../transport.js"
 import type {
+  IssueAssigneesAddData,
+  IssueAssigneesAddInput,
+  IssueAssigneesRemoveData,
+  IssueAssigneesRemoveInput,
   IssueAssigneesUpdateData,
   IssueAssigneesUpdateInput,
   IssueBlockedByData,
@@ -345,6 +354,106 @@ export async function runIssueAssigneesUpdate(
       .map((assignee) => asRecord(assignee)?.["login"])
       .filter((login): login is string => typeof login === "string"),
   }
+}
+
+function resolveAssigneeIds(
+  lookupResult: unknown,
+  assigneeLogins: string[],
+): { assignableId: string; assigneeIds: string[] } {
+  const repo = asRecord(asRecord(lookupResult)?.repository)
+  const issueId = asRecord(repo?.issue)?.id
+  if (typeof issueId !== "string" || issueId.length === 0) {
+    throw new Error("Issue not found")
+  }
+
+  const assignableNodes = Array.isArray(asRecord(repo?.assignableUsers)?.nodes)
+    ? (asRecord(repo?.assignableUsers)?.nodes as unknown[])
+    : []
+
+  const idsByLogin = new Map<string, string>()
+  for (const node of assignableNodes) {
+    const rec = asRecord(node)
+    if (typeof rec?.login === "string" && typeof rec?.id === "string") {
+      idsByLogin.set(rec.login.toLowerCase(), rec.id)
+    }
+  }
+
+  const assigneeIds = assigneeLogins.map((login) => {
+    const id = idsByLogin.get(login.toLowerCase())
+    if (!id) {
+      throw new Error(`Assignee not found: ${login}`)
+    }
+    return id
+  })
+
+  return { assignableId: issueId, assigneeIds }
+}
+
+function parseAssignableResult(
+  result: unknown,
+  mutationKey: string,
+): { id: string; assignees: string[] } {
+  const mutation = asRecord(asRecord(result)?.[mutationKey])
+  const assignable = asRecord(mutation?.assignable)
+  const assignees = asRecord(assignable?.assignees)
+  const nodes = Array.isArray(assignees?.nodes) ? assignees.nodes : []
+
+  return {
+    id: assertNonEmptyString(assignable?.id, "Issue id"),
+    assignees: nodes
+      .map((n) => asRecord(n)?.login)
+      .filter((login): login is string => typeof login === "string"),
+  }
+}
+
+export async function runIssueAssigneesAdd(
+  transport: GraphqlTransport,
+  input: IssueAssigneesAddInput,
+): Promise<IssueAssigneesAddData> {
+  assertIssueAssigneesAddInput(input)
+
+  const client = createGraphqlRequestClient(transport)
+  const lookupResult = await getIssueAssigneesLookupByNumberSdk(
+    client,
+  ).IssueAssigneesLookupByNumber({
+    owner: input.owner,
+    name: input.name,
+    issueNumber: input.issueNumber,
+  })
+
+  const { assignableId, assigneeIds } = resolveAssigneeIds(lookupResult, input.assignees)
+
+  const result = await getIssueAssigneesAddSdk(client).IssueAssigneesAdd({
+    assignableId,
+    assigneeIds,
+  })
+
+  return parseAssignableResult(result, "addAssigneesToAssignable")
+}
+
+export async function runIssueAssigneesRemove(
+  transport: GraphqlTransport,
+  input: IssueAssigneesRemoveInput,
+): Promise<IssueAssigneesRemoveData> {
+  assertIssueAssigneesRemoveInput(input)
+
+  const client = createGraphqlRequestClient(transport)
+  const lookupResult = await getIssueAssigneesLookupByNumberSdk(
+    client,
+  ).IssueAssigneesLookupByNumber({
+    owner: input.owner,
+    name: input.name,
+    issueNumber: input.issueNumber,
+  })
+
+  const { assignableId, assigneeIds } = resolveAssigneeIds(lookupResult, input.assignees)
+
+  const result = await getIssueAssigneesRemoveSdk(client).IssueAssigneesRemove({
+    assignableId,
+    assigneeIds,
+  })
+
+  return parseAssignableResult(result, "removeAssigneesFromAssignable")
 }
 
 export async function runIssueMilestoneSet(

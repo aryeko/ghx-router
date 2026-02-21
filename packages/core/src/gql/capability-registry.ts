@@ -1,5 +1,7 @@
 import type { GithubClient } from "./github-client.js"
 import type {
+  IssueAssigneesAddInput,
+  IssueAssigneesRemoveInput,
   IssueAssigneesUpdateInput,
   IssueBlockedByInput,
   IssueCommentCreateInput,
@@ -132,6 +134,24 @@ const handlers = new Map<string, GraphqlHandler>([
         throw new Error("updateIssueAssignees operation not available")
       }
       return c.updateIssueAssignees(p as IssueAssigneesUpdateInput)
+    },
+  ],
+  [
+    "issue.assignees.add",
+    (c, p) => {
+      if (!c.addIssueAssignees) {
+        throw new Error("addIssueAssignees operation not available")
+      }
+      return c.addIssueAssignees(p as IssueAssigneesAddInput)
+    },
+  ],
+  [
+    "issue.assignees.remove",
+    (c, p) => {
+      if (!c.removeIssueAssignees) {
+        throw new Error("removeIssueAssignees operation not available")
+      }
+      return c.removeIssueAssignees(p as IssueAssigneesRemoveInput)
     },
   ],
   [

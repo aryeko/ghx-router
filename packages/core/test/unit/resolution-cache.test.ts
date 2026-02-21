@@ -22,6 +22,9 @@ describe("createResolutionCache", () => {
     const cache = createResolutionCache({ ttlMs: 100 })
     cache.set("key1", "value1")
 
+    // Entry should be accessible before TTL elapses
+    expect(cache.get("key1")).toBe("value1")
+
     // Advance time past TTL
     const now = Date.now()
     vi.spyOn(Date, "now").mockReturnValue(now + 200)
@@ -52,6 +55,23 @@ describe("createResolutionCache", () => {
     cache.clear()
     expect(cache.size).toBe(0)
     expect(cache.get("a")).toBeUndefined()
+  })
+
+  it("evicts expired entries before FIFO when at capacity", () => {
+    const cache = createResolutionCache({ maxEntries: 2, ttlMs: 100 })
+    cache.set("a", 1)
+    cache.set("b", 2)
+
+    // Expire "a" by advancing time
+    const now = Date.now()
+    vi.spyOn(Date, "now").mockReturnValue(now + 200)
+
+    // Adding "c" should sweep expired "a" and "b", no FIFO needed
+    cache.set("c", 3)
+    expect(cache.get("a")).toBeUndefined()
+    expect(cache.get("b")).toBeUndefined()
+    expect(cache.get("c")).toBe(3)
+    expect(cache.size).toBe(1)
   })
 
   it("updating an existing key does not evict", () => {

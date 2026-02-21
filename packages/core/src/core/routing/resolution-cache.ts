@@ -32,11 +32,20 @@ export function createResolutionCache(opts?: ResolutionCacheOptions): Resolution
     },
 
     set(key: string, value: unknown): void {
-      // Evict oldest entry (first inserted) if at capacity
       if (!store.has(key) && store.size >= maxEntries) {
-        const oldest = store.keys().next()
-        if (!oldest.done) {
-          store.delete(oldest.value)
+        // Sweep expired entries before falling back to FIFO eviction
+        const now = Date.now()
+        for (const [k, entry] of store) {
+          if (now > entry.expiresAt) {
+            store.delete(k)
+          }
+        }
+        // FIFO eviction if still at capacity after sweep
+        if (store.size >= maxEntries) {
+          const oldest = store.keys().next()
+          if (!oldest.done) {
+            store.delete(oldest.value)
+          }
         }
       }
       store.set(key, { value, expiresAt: Date.now() + ttlMs })

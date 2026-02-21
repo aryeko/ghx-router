@@ -149,13 +149,20 @@ async function fetchGraphql<TData>(
     body: JSON.stringify({ query, variables: variables ?? {} }),
   })
 
-  const payload = (await response.json()) as JsonPayload<TData>
-
   if (!response.ok) {
-    throw new Error(payload.message ?? `GraphQL request failed (${response.status})`)
+    let message = `GraphQL request failed (${response.status})`
+    try {
+      const body = (await response.json()) as JsonPayload<TData>
+      if (body.message) {
+        message = body.message
+      }
+    } catch {
+      // Non-JSON error body — use status-based message
+    }
+    throw new Error(message)
   }
 
-  return payload
+  return (await response.json()) as JsonPayload<TData>
 }
 
 export function createTokenTransport(token: string, graphqlUrl?: string): GraphqlTransport {

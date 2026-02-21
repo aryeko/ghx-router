@@ -1,6 +1,10 @@
 import type { GraphqlClient, GraphqlTransport, TokenClientOptions } from "./transport.js"
 import { createGraphqlClient, createTokenTransport } from "./transport.js"
 import type {
+  IssueAssigneesAddData,
+  IssueAssigneesAddInput,
+  IssueAssigneesRemoveData,
+  IssueAssigneesRemoveInput,
   IssueAssigneesUpdateData,
   IssueAssigneesUpdateInput,
   IssueBlockedByData,
@@ -63,6 +67,8 @@ export interface GithubClient extends GraphqlClient {
   updateIssueLabels(input: IssueLabelsUpdateInput): Promise<IssueLabelsUpdateData>
   addIssueLabels(input: IssueLabelsAddInput): Promise<IssueLabelsAddData>
   updateIssueAssignees(input: IssueAssigneesUpdateInput): Promise<IssueAssigneesUpdateData>
+  addIssueAssignees(input: IssueAssigneesAddInput): Promise<IssueAssigneesAddData>
+  removeIssueAssignees(input: IssueAssigneesRemoveInput): Promise<IssueAssigneesRemoveData>
   setIssueMilestone(input: IssueMilestoneSetInput): Promise<IssueMilestoneSetData>
   createIssueComment(input: IssueCommentCreateInput): Promise<IssueCommentCreateData>
   fetchIssueLinkedPrs(input: IssueLinkedPrsListInput): Promise<IssueLinkedPrsListData>
@@ -133,6 +139,10 @@ export function createGithubClient(transport: GraphqlTransport): GithubClient {
       (await loadIssueMutations()).runIssueLabelsAdd(transport, input),
     updateIssueAssignees: async (input) =>
       (await loadIssueMutations()).runIssueAssigneesUpdate(transport, input),
+    addIssueAssignees: async (input) =>
+      (await loadIssueMutations()).runIssueAssigneesAdd(transport, input),
+    removeIssueAssignees: async (input) =>
+      (await loadIssueMutations()).runIssueAssigneesRemove(transport, input),
     setIssueMilestone: async (input) =>
       (await loadIssueMutations()).runIssueMilestoneSet(transport, input),
     createIssueComment: async (input) =>
