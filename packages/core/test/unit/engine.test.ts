@@ -859,6 +859,118 @@ describe("executeTasks — partial error handling", () => {
     expect(result.results[1]?.error?.message).toBe("Internal server error")
   })
 
+  it("Phase 2 missing alias: step result absent from response → error for that step", async () => {
+    vi.resetModules()
+    vi.doMock("@core/core/execute/execute.js", () => ({
+      execute: (...args: unknown[]) => executeMock(...args),
+    }))
+    vi.doMock("@core/core/registry/index.js", () => ({
+      getOperationCard: (...args: unknown[]) => getOperationCardMock(...args),
+    }))
+
+    const card = {
+      ...baseCard,
+      graphql: {
+        operationName: "IssueClose",
+        documentPath: "src/gql/operations/issue-close.graphql",
+      },
+    }
+    getOperationCardMock.mockReturnValue(card)
+
+    vi.doMock("@core/gql/document-registry.js", () => ({
+      getLookupDocument: vi.fn(),
+      getMutationDocument: vi.fn().mockReturnValue("mutation IssueClose { closeIssue { id } }"),
+    }))
+    vi.doMock("@core/gql/batch.js", () => ({
+      buildBatchMutation: vi.fn().mockReturnValue({
+        document: "mutation { step0: closeIssue { id } step1: closeIssue { id } }",
+        variables: {},
+      }),
+      buildBatchQuery: vi.fn(),
+    }))
+
+    const { executeTasks } = await import("@core/core/routing/engine.js")
+
+    const result = await executeTasks(
+      [
+        { task: "issue.close", input: { issueId: "I1" } },
+        { task: "issue.close", input: { issueId: "I2" } },
+      ],
+      {
+        githubClient: createGithubClient({
+          queryRaw: vi.fn().mockResolvedValue({
+            data: { step0: { closeIssue: { id: "I1" } } },
+            errors: undefined,
+          }),
+        }),
+      },
+    )
+
+    // step0 succeeded, step1 has missing alias
+    const r0 = result.results[0]
+    const r1 = result.results[1]
+    expect(r0?.ok).toBe(true)
+    expect(r1?.ok).toBe(false)
+    expect((r1 as { ok: false; error: { message: string } }).error.message).toContain(
+      "missing mutation result",
+    )
+  })
+
+  it("Phase 2 transport failure: queryRaw throws → all steps failed with retryable code", async () => {
+    vi.resetModules()
+    vi.doMock("@core/core/execute/execute.js", () => ({
+      execute: (...args: unknown[]) => executeMock(...args),
+    }))
+    vi.doMock("@core/core/registry/index.js", () => ({
+      getOperationCard: (...args: unknown[]) => getOperationCardMock(...args),
+    }))
+
+    const card = {
+      ...baseCard,
+      graphql: {
+        operationName: "IssueClose",
+        documentPath: "src/gql/operations/issue-close.graphql",
+      },
+    }
+    getOperationCardMock.mockReturnValue(card)
+
+    vi.doMock("@core/gql/document-registry.js", () => ({
+      getLookupDocument: vi.fn(),
+      getMutationDocument: vi.fn().mockReturnValue("mutation IssueClose { closeIssue { id } }"),
+    }))
+    vi.doMock("@core/gql/batch.js", () => ({
+      buildBatchMutation: vi.fn().mockReturnValue({
+        document: "mutation { step0: closeIssue { id } step1: closeIssue { id } }",
+        variables: {},
+      }),
+      buildBatchQuery: vi.fn(),
+    }))
+
+    const { executeTasks } = await import("@core/core/routing/engine.js")
+
+    const result = await executeTasks(
+      [
+        { task: "issue.close", input: { issueId: "I1" } },
+        { task: "issue.close", input: { issueId: "I2" } },
+      ],
+      {
+        githubClient: createGithubClient({
+          queryRaw: vi.fn().mockRejectedValue(new Error("connect ECONNREFUSED 127.0.0.1")),
+        }),
+      },
+    )
+
+    expect(result.status).toBe("failed")
+    expect(result.results).toHaveLength(2)
+    const s0 = result.results[0]
+    const s1 = result.results[1]
+    expect(s0?.ok).toBe(false)
+    expect(s1?.ok).toBe(false)
+    const err = (s0 as { ok: false; error: { message: string; retryable: boolean } }).error
+    expect(err.message).toBe("connect ECONNREFUSED 127.0.0.1")
+    expect(err.retryable).toBe(true)
+  })
+
   it("Phase 2 clean response: no errors → status success (regression)", async () => {
     vi.resetModules()
     vi.doMock("@core/core/execute/execute.js", () => ({

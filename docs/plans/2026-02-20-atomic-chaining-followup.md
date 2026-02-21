@@ -3,6 +3,8 @@
 > Status snapshot after `feat/atomic-chaining` implementation.
 > 18 capabilities are now batchable. Items below are improvements and gaps
 > discovered during implementation.
+>
+> **Last updated:** 2026-02-21 (PR #60 review fixes applied)
 
 ---
 
@@ -47,24 +49,17 @@ No scenarios exercise `executeTasks` / `ghx chain`. The benchmark only tests sin
 
 ---
 
-## 3. GQL — partial error handling in Phase 2
+## 3. GQL — partial error handling in Phase 2 ✅ Done
 
-**Current behavior:** if `githubClient.query()` throws during Phase 2 (the batch
-mutation), all steps are marked failed. But GitHub GraphQL returns HTTP 200 even
-when individual mutations error — errors appear in the `errors[]` field alongside
-partial `data`. The chain command (`chain.ts`) already throws on `errors[]`
-presence, which means one bad mutation kills the whole batch.
+**Resolved in PR #60.** Phase 2 now uses `queryRaw` which returns `{data, errors}`
+without throwing. Per-step errors are mapped by `path[0]` alias. Individual step
+failures produce `status: "partial"` while preserving successful step data.
 
-**Required work:**
-
-- In `chain.ts` (or `engine.ts` Phase 2), after receiving the batch mutation
-  response, check `data` and `errors` separately:
-  - Map each error back to its aliased step (errors include a `path` field like
-    `["step1", "createIssue"]`)
-  - Mark only the failed step(s) as `ok: false`; keep successful step data
-  - Update `ChainStatus` to `partial` if some steps succeeded
-- This requires changing `GithubClient.query()` to return raw `{data, errors}`
-  instead of throwing, or a new lower-level method for chain use
+Additional hardening applied:
+- `GraphqlError.path` typed as `ReadonlyArray<string | number>` per spec
+- `queryRaw` normalizes transport errors consistently via try/catch
+- Step error check uses `!== undefined` instead of truthy check
+- Cache guards against `undefined` values from missing batch aliases
 
 ---
 
@@ -96,41 +91,29 @@ evaluate whether the use-case frequency justifies it.
 
 ---
 
-## 5. GQL — expand chainable coverage for currently CLI-only mutations
+## 5. GQL — expand chainable coverage for currently CLI-only mutations (partially done)
 
-Several useful mutations are CLI-only and cannot be chained. The highest-value
-candidates for adding a GraphQL route (and thus making them chainable):
+Several useful mutations were CLI-only and could not be chained. Status:
 
-| Capability | Why valuable in chains |
-|---|---|
-| `issue.labels.remove` | complement to `issue.labels.add` in same chain |
-| `issue.assignees.add` | complement to `issue.assignees.set` in same chain |
-| `issue.assignees.remove` | complement to `issue.assignees.set` in same chain |
-| `issue.milestone.clear` | complement to `issue.milestone.set` in same chain |
+| Capability | Status | Notes |
+|---|---|---|
+| `issue.labels.remove` | ⬜ Pending | Needs resolution lookup for label IDs |
+| `issue.assignees.add` | ✅ Done (PR #60) | Full GraphQL handler registered |
+| `issue.assignees.remove` | ✅ Done (PR #60) | Full GraphQL handler registered |
+| `issue.milestone.clear` | ⬜ Pending | Needs resolution lookup for milestone ID |
 
-For each: add a GraphQL mutation `.graphql` file, run codegen, add to card YAML
-(`graphql:` block), register in `MUTATION_DOCUMENTS`. Milestone clear and label
-remove need resolution lookups (need the current milestone/label IDs).
+**Remaining work:** `issue.labels.remove` and `issue.milestone.clear` still need
+GraphQL mutation files, codegen, card YAML updates, and handler registration.
 
 ---
 
-## 6. Resolution — cache lookup results across calls
+## 6. Resolution — cache lookup results across calls ✅ Done
 
-**Current behavior:** every `executeTasks` call re-fetches all Phase 1 lookups
-(label IDs, assignee IDs, milestone IDs, etc.) even if the same repo's data was
-fetched in a recent prior call.
-
-**Opportunity:** a short-lived in-memory cache keyed by `(operationName, variables)`
-with a TTL (e.g. 60s) would eliminate redundant lookups for agents issuing multiple
-chains against the same repo in rapid succession.
-
-**Note:** Phase 1 already batches lookups within a single chain into one HTTP
-request. This is about cross-call caching, not intra-chain batching.
-
-**Scope:** small addition to `engine.ts` or a dedicated `resolution-cache.ts`
-module. Use a `Map<string, { value: unknown; expiresAt: number }>` keyed by
-`${operationName}:${stableStringify(variables)}` with explicit TTL eviction.
-(Note: `WeakMap` cannot be used here — its keys must be objects, not strings.)
+**Resolved in PR #60.** `resolution-cache.ts` implements a TTL-based cache keyed by
+`operationName:stableStringify(variables)`. Hardened in review:
+- Expired entries are swept before FIFO eviction
+- `undefined` values are not cached
+- Full test coverage for TTL, eviction, and sweep behavior
 
 ---
 

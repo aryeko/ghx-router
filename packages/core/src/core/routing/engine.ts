@@ -538,7 +538,7 @@ export async function executeTasks(
 
     // Check for per-step GraphQL errors
     const stepError = stepErrors.get(mutInput.alias)
-    if (stepError) {
+    if (stepError !== undefined) {
       return {
         task: req.task,
         ok: false,

@@ -11,6 +11,26 @@ vi.mock("@core/gql/github-client.js", () => ({
 }))
 
 describe("chainCommand parsing", () => {
+  it("returns 1 with usage when called with no arguments", async () => {
+    const { chainCommand } = await import("@core/cli/commands/chain.js")
+    const stdoutSpy = vi.spyOn(process.stdout, "write").mockImplementation(() => true)
+
+    const exitCode = await chainCommand([])
+    expect(exitCode).toBe(1)
+    expect(stdoutSpy).toHaveBeenCalledWith(expect.stringContaining("Usage:"))
+    stdoutSpy.mockRestore()
+  })
+
+  it("returns 1 with usage when called without args (default)", async () => {
+    const { chainCommand } = await import("@core/cli/commands/chain.js")
+    const stdoutSpy = vi.spyOn(process.stdout, "write").mockImplementation(() => true)
+
+    const exitCode = await chainCommand()
+    expect(exitCode).toBe(1)
+    expect(stdoutSpy).toHaveBeenCalledWith(expect.stringContaining("Usage:"))
+    stdoutSpy.mockRestore()
+  })
+
   it("parseChainFlags extracts inline --steps", async () => {
     const { parseChainFlags } = await import("@core/cli/commands/chain.js")
 
@@ -136,6 +156,255 @@ describe("chainCommand parsing", () => {
     expect(exitCode).toBe(1)
     expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("Invalid JSON"))
     stderrSpy.mockRestore()
+  })
+
+  it("chainCommand returns 1 when --steps is not an array", async () => {
+    const { chainCommand } = await import("@core/cli/commands/chain.js")
+
+    vi.stubEnv("GITHUB_TOKEN", "tok")
+
+    const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true)
+    const exitCode = await chainCommand(["--steps", '{"task":"foo"}'])
+    expect(exitCode).toBe(1)
+    expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("must be a JSON array"))
+    stderrSpy.mockRestore()
+  })
+
+  it("chainCommand returns 1 when step items have invalid shape", async () => {
+    const { chainCommand } = await import("@core/cli/commands/chain.js")
+
+    vi.stubEnv("GITHUB_TOKEN", "tok")
+
+    const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true)
+    const exitCode = await chainCommand(["--steps", '[{"bad":"shape"}]'])
+    expect(exitCode).toBe(1)
+    expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("task"))
+    stderrSpy.mockRestore()
+  })
+
+  it("parseChainFlags handles --steps= inline format", async () => {
+    const { parseChainFlags } = await import("@core/cli/commands/chain.js")
+
+    const flags = parseChainFlags(['--steps=[{"task":"a","input":{}}]'])
+    expect(flags.stepsSource).toEqual({ raw: '[{"task":"a","input":{}}]' })
+  })
+
+  it("parseChainFlags throws when --steps is missing", async () => {
+    const { parseChainFlags } = await import("@core/cli/commands/chain.js")
+
+    expect(() => parseChainFlags(["--other-flag"])).toThrow("Missing --steps JSON")
+  })
+})
+
+describe("chainCommand — executeRawGraphqlRequest path", () => {
+  it("provides executeRaw transport that returns settled results", async () => {
+    vi.resetModules()
+
+    let capturedTransport: { executeRaw?: (q: string) => Promise<unknown> } | undefined
+    vi.doMock("@core/core/routing/engine.js", () => ({
+      executeTasks: vi
+        .fn()
+        .mockImplementation(
+          async (
+            _steps: unknown,
+            opts: { githubClient: { executeRaw?: (q: string) => Promise<unknown> } },
+          ) => {
+            capturedTransport = opts.githubClient
+            const raw = await opts.githubClient.executeRaw?.("mutation {}")
+            return {
+              status: "success",
+              results: [],
+              meta: { route_used: "graphql", total: 0, succeeded: 0, failed: 0 },
+              _rawForTest: raw,
+            }
+          },
+        ),
+    }))
+    vi.doMock("@core/gql/github-client.js", () => ({
+      createGithubClient: (transport: unknown) => transport,
+    }))
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: vi.fn().mockResolvedValue({
+          data: { step0: { id: "I_1" } },
+          errors: [{ message: "partial", path: ["step1"] }],
+        }),
+      }),
+    )
+    vi.stubEnv("GITHUB_TOKEN", "tok")
+
+    const { chainCommand } = await import("@core/cli/commands/chain.js")
+    await chainCommand(["--steps", '[{"task":"issue.close","input":{"issueId":"I1"}}]'])
+
+    expect(capturedTransport?.executeRaw).toBeDefined()
+    vi.unstubAllGlobals()
+  })
+
+  it("handles GH_TOKEN fallback", async () => {
+    vi.resetModules()
+
+    vi.doMock("@core/core/routing/engine.js", () => ({
+      executeTasks: vi.fn().mockResolvedValue({
+        status: "success",
+        results: [],
+        meta: { route_used: "graphql", total: 0, succeeded: 0, failed: 0 },
+      }),
+    }))
+    vi.doMock("@core/gql/github-client.js", () => ({
+      createGithubClient: (transport: unknown) => transport,
+    }))
+
+    vi.stubEnv("GITHUB_TOKEN", undefined)
+    vi.stubEnv("GH_TOKEN", "gh-token")
+
+    const { chainCommand } = await import("@core/cli/commands/chain.js")
+    const exitCode = await chainCommand([
+      "--steps",
+      '[{"task":"issue.close","input":{"issueId":"I1"}}]',
+    ])
+    expect(exitCode).toBe(0)
+  })
+
+  it("handles HTTP error from fetchGqlPayload when response has JSON message", async () => {
+    vi.resetModules()
+
+    vi.doMock("@core/core/routing/engine.js", () => ({
+      executeTasks: vi
+        .fn()
+        .mockImplementation(
+          async (
+            _steps: unknown,
+            opts: { githubClient: { execute: (q: string) => Promise<unknown> } },
+          ) => {
+            await opts.githubClient.execute("query {}")
+            return {
+              status: "success",
+              results: [],
+              meta: { route_used: "graphql", total: 0, succeeded: 0, failed: 0 },
+            }
+          },
+        ),
+    }))
+    vi.doMock("@core/gql/github-client.js", () => ({
+      createGithubClient: (transport: unknown) => transport,
+    }))
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 403,
+        json: vi.fn().mockResolvedValue({ message: "API rate limit exceeded" }),
+      }),
+    )
+    vi.stubEnv("GITHUB_TOKEN", "tok")
+
+    const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true)
+    const { chainCommand } = await import("@core/cli/commands/chain.js")
+    const code = await chainCommand([
+      "--steps",
+      '[{"task":"issue.close","input":{"issueId":"I1"}}]',
+    ])
+    expect(code).toBe(1)
+    expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("rate limit"))
+    stderrSpy.mockRestore()
+    vi.unstubAllGlobals()
+  })
+
+  it("handles GraphQL errors in execute path", async () => {
+    vi.resetModules()
+
+    vi.doMock("@core/core/routing/engine.js", () => ({
+      executeTasks: vi
+        .fn()
+        .mockImplementation(
+          async (
+            _steps: unknown,
+            opts: { githubClient: { execute: (q: string) => Promise<unknown> } },
+          ) => {
+            await opts.githubClient.execute("query {}")
+            return {
+              status: "success",
+              results: [],
+              meta: { route_used: "graphql", total: 0, succeeded: 0, failed: 0 },
+            }
+          },
+        ),
+    }))
+    vi.doMock("@core/gql/github-client.js", () => ({
+      createGithubClient: (transport: unknown) => transport,
+    }))
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: vi.fn().mockResolvedValue({ errors: [{ message: "Field 'bad' doesn't exist" }] }),
+      }),
+    )
+    vi.stubEnv("GITHUB_TOKEN", "tok")
+
+    const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true)
+    const { chainCommand } = await import("@core/cli/commands/chain.js")
+    const code = await chainCommand([
+      "--steps",
+      '[{"task":"issue.close","input":{"issueId":"I1"}}]',
+    ])
+    expect(code).toBe(1)
+    expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("doesn't exist"))
+    stderrSpy.mockRestore()
+    vi.unstubAllGlobals()
+  })
+
+  it("handles missing data in execute path", async () => {
+    vi.resetModules()
+
+    vi.doMock("@core/core/routing/engine.js", () => ({
+      executeTasks: vi
+        .fn()
+        .mockImplementation(
+          async (
+            _steps: unknown,
+            opts: { githubClient: { execute: (q: string) => Promise<unknown> } },
+          ) => {
+            await opts.githubClient.execute("query {}")
+            return {
+              status: "success",
+              results: [],
+              meta: { route_used: "graphql", total: 0, succeeded: 0, failed: 0 },
+            }
+          },
+        ),
+    }))
+    vi.doMock("@core/gql/github-client.js", () => ({
+      createGithubClient: (transport: unknown) => transport,
+    }))
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: vi.fn().mockResolvedValue({}),
+      }),
+    )
+    vi.stubEnv("GITHUB_TOKEN", "tok")
+
+    const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true)
+    const { chainCommand } = await import("@core/cli/commands/chain.js")
+    const code = await chainCommand([
+      "--steps",
+      '[{"task":"issue.close","input":{"issueId":"I1"}}]',
+    ])
+    expect(code).toBe(1)
+    expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("missing data"))
+    stderrSpy.mockRestore()
+    vi.unstubAllGlobals()
   })
 })
 
