@@ -87,6 +87,7 @@ export type IssueLabelsLookupQuery = {
           __typename?: "Repository"
           labels?: {
             __typename?: "LabelConnection"
+            pageInfo: { __typename?: "PageInfo"; hasNextPage: boolean; endCursor?: string | null }
             nodes?: Array<{ __typename?: "Label"; id: string; name: string } | null> | null
           } | null
         }
@@ -287,6 +288,10 @@ export const IssueLabelsLookupDocument = `
     ... on Issue {
       repository {
         labels(first: 100) {
+          pageInfo {
+            hasNextPage
+            endCursor
+          }
           nodes {
             id
             name

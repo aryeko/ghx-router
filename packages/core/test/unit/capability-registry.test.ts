@@ -71,8 +71,8 @@ describe("capabilityRegistry", () => {
       },
       {
         task: "issue.labels.remove",
-        defaultRoute: "cli",
-        fallbackRoutes: [],
+        defaultRoute: "graphql",
+        fallbackRoutes: ["cli"],
       },
       {
         task: "issue.assignees.set",
@@ -81,13 +81,13 @@ describe("capabilityRegistry", () => {
       },
       {
         task: "issue.assignees.add",
-        defaultRoute: "cli",
-        fallbackRoutes: [],
+        defaultRoute: "graphql",
+        fallbackRoutes: ["cli"],
       },
       {
         task: "issue.assignees.remove",
-        defaultRoute: "cli",
-        fallbackRoutes: [],
+        defaultRoute: "graphql",
+        fallbackRoutes: ["cli"],
       },
       {
         task: "issue.milestone.set",
@@ -96,8 +96,8 @@ describe("capabilityRegistry", () => {
       },
       {
         task: "issue.milestone.clear",
-        defaultRoute: "cli",
-        fallbackRoutes: [],
+        defaultRoute: "graphql",
+        fallbackRoutes: ["cli"],
       },
       {
         task: "issue.comments.create",

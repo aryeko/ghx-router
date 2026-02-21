@@ -1,5 +1,7 @@
 import { executeTasks } from "@core/core/routing/engine.js"
+import { createResolutionCache } from "@core/core/routing/resolution-cache.js"
 import { createGithubClient } from "@core/gql/github-client.js"
+import type { GraphqlError, GraphqlRawResult } from "@core/gql/transport.js"
 import { resolveGraphqlUrl } from "@core/gql/transport.js"
 import { readStdin } from "./run.js"
 
@@ -71,11 +73,17 @@ function resolveGithubToken(): string {
   return token
 }
 
-async function executeGraphqlRequest<TData>(
+type GqlPayload<TData> = {
+  data?: TData
+  errors?: GraphqlError[]
+  message?: string
+}
+
+async function fetchGqlPayload<TData>(
   token: string,
   query: string,
   variables?: Record<string, unknown>,
-): Promise<TData> {
+): Promise<GqlPayload<TData>> {
   const response = await fetch(GITHUB_GRAPHQL_ENDPOINT, {
     method: "POST",
     headers: {
@@ -88,9 +96,9 @@ async function executeGraphqlRequest<TData>(
     signal: AbortSignal.timeout(30_000),
   })
 
-  let payload: { data?: TData; errors?: Array<{ message?: string }>; message?: string }
+  let payload: GqlPayload<TData>
   try {
-    payload = (await response.json()) as typeof payload
+    payload = (await response.json()) as GqlPayload<TData>
   } catch {
     throw new Error(`GitHub GraphQL returned non-JSON response (status ${response.status})`)
   }
@@ -100,6 +108,16 @@ async function executeGraphqlRequest<TData>(
       payload.message ?? `GitHub GraphQL request failed with status ${response.status}`
     throw new Error(message)
   }
+
+  return payload
+}
+
+async function executeGraphqlRequest<TData>(
+  token: string,
+  query: string,
+  variables?: Record<string, unknown>,
+): Promise<TData> {
+  const payload = await fetchGqlPayload<TData>(token, query, variables)
 
   if (Array.isArray(payload.errors) && payload.errors.length > 0) {
     const message = payload.errors[0]?.message ?? "GitHub GraphQL returned errors"
@@ -111,6 +129,18 @@ async function executeGraphqlRequest<TData>(
   }
 
   return payload.data
+}
+
+async function executeRawGraphqlRequest<TData>(
+  token: string,
+  query: string,
+  variables?: Record<string, unknown>,
+): Promise<GraphqlRawResult<TData>> {
+  const payload = await fetchGqlPayload<TData>(token, query, variables)
+  return {
+    data: payload.data,
+    errors: payload.errors?.length ? payload.errors : undefined,
+  }
 }
 
 export async function chainCommand(argv: string[] = []): Promise<number> {
@@ -131,12 +161,20 @@ export async function chainCommand(argv: string[] = []): Promise<number> {
       async execute<TData>(query: string, variables?: Record<string, unknown>): Promise<TData> {
         return executeGraphqlRequest<TData>(githubToken, query, variables)
       },
+      async executeRaw<TData>(
+        query: string,
+        variables?: Record<string, unknown>,
+      ): Promise<GraphqlRawResult<TData>> {
+        return executeRawGraphqlRequest<TData>(githubToken, query, variables)
+      },
     })
 
+    const resolutionCache = createResolutionCache()
     const result = await executeTasks(steps, {
       githubClient,
       githubToken,
       skipGhPreflight,
+      resolutionCache,
     })
 
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`)

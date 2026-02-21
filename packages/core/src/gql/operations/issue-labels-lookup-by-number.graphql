@@ -1,0 +1,17 @@
+query IssueLabelsLookupByNumber($owner: String!, $name: String!, $issueNumber: Int!) {
+  repository(owner: $owner, name: $name) {
+    issue(number: $issueNumber) {
+      id
+    }
+    # Hard cap: GitHub enforces a max of 100 items per connection page.
+    # hasNextPage is checked by applyInject.map_array; it throws a descriptive
+    # error when the repo exceeds 100 labels. Pagination is not yet implemented.
+    labels(first: 100) {
+      pageInfo { hasNextPage endCursor }
+      nodes {
+        id
+        name
+      }
+    }
+  }
+}

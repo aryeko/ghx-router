@@ -182,8 +182,12 @@ Any capability with a `graphql` route can be chained. Capabilities that also dec
 | Capability | Phase 1 (resolution) | Phase 2 (mutation) |
 |------------|---------------------|-------------------|
 | `issue.labels.set` | Yes — resolves label names to IDs | Yes |
+| `issue.labels.remove` | Yes — resolves label names to IDs via repo lookup | Yes |
 | `issue.assignees.set` | Yes — resolves login names to user IDs | Yes |
+| `issue.assignees.add` | Yes — resolves login names to user IDs via repo lookup | Yes |
+| `issue.assignees.remove` | Yes — resolves login names to user IDs via repo lookup | Yes |
 | `issue.milestone.set` | No | Yes |
+| `issue.milestone.clear` | Yes — resolves issue node ID | Yes |
 | `issue.close` | No | Yes |
 | `pr.thread.resolve` | No | Yes |
 | `pr.thread.reply` | No | Yes |
@@ -213,6 +217,10 @@ A network or auth failure during the batch mutation marks **all pending steps** 
 
 If individual mutations within Phase 2 return GraphQL errors, those steps are marked as
 failed while other steps may succeed — resulting in `status: "partial"`.
+
+Errors are mapped back to steps via the `path` field in each GraphQL error
+(e.g., `["step0", "createIssue"]`). If the error cannot be attributed to a
+specific step, all steps in the batch are marked failed.
 
 ## Example: Update Assignees and Labels Atomically
 

@@ -1,4 +1,6 @@
 import type {
+  IssueAssigneesAddInput,
+  IssueAssigneesRemoveInput,
   IssueAssigneesUpdateInput,
   IssueBlockedByInput,
   IssueCommentCreateInput,
@@ -130,6 +132,16 @@ export function assertIssueLabelsAddInput(input: IssueLabelsAddInput): void {
 
 export function assertIssueAssigneesUpdateInput(input: IssueAssigneesUpdateInput): void {
   assertIssueMutationInput({ issueId: input.issueId })
+  assertStringArray(input.assignees, "Assignees")
+}
+
+export function assertIssueAssigneesAddInput(input: IssueAssigneesAddInput): void {
+  assertIssueInput({ owner: input.owner, name: input.name, issueNumber: input.issueNumber })
+  assertStringArray(input.assignees, "Assignees")
+}
+
+export function assertIssueAssigneesRemoveInput(input: IssueAssigneesRemoveInput): void {
+  assertIssueInput({ owner: input.owner, name: input.name, issueNumber: input.issueNumber })
   assertStringArray(input.assignees, "Assignees")
 }
 

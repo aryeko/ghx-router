@@ -17,7 +17,24 @@ output_schema:
     cleared: { type: boolean }
   additionalProperties: false
 routing:
-  preferred: cli
-  fallbacks: []
+  preferred: graphql
+  fallbacks: [cli]
+graphql:
+  operationName: IssueMilestoneSet
+  documentPath: src/gql/operations/issue-milestone-set.graphql
+  resolution:
+    lookup:
+      operationName: IssueNodeIdLookup
+      documentPath: src/gql/operations/issue-node-id-lookup.graphql
+      vars:
+        owner: owner
+        name: name
+        issueNumber: issueNumber
+    inject:
+      - target: issueId
+        source: scalar
+        path: repository.issue.id
+      - target: milestoneId
+        source: "null_literal"
 cli:
   command: issue edit

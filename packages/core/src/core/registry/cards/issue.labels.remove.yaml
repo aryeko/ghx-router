@@ -23,7 +23,28 @@ output_schema:
       items: { type: string }
   additionalProperties: false
 routing:
-  preferred: cli
-  fallbacks: []
+  preferred: graphql
+  fallbacks: [cli]
+graphql:
+  operationName: IssueLabelsRemove
+  documentPath: src/gql/operations/issue-labels-remove.graphql
+  resolution:
+    lookup:
+      operationName: IssueLabelsLookupByNumber
+      documentPath: src/gql/operations/issue-labels-lookup-by-number.graphql
+      vars:
+        owner: owner
+        name: name
+        issueNumber: issueNumber
+    inject:
+      - target: labelableId
+        source: scalar
+        path: repository.issue.id
+      - target: labelIds
+        source: map_array
+        from_input: labels
+        nodes_path: repository.labels.nodes
+        match_field: name
+        extract_field: id
 cli:
   command: issue edit

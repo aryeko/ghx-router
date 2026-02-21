@@ -546,6 +546,8 @@ describe("runGraphqlCapability", () => {
       addIssueLabels: vi.fn(async () => ({ id: "issue-1", labels: ["bug", "batch-b"] })),
       updateIssueLabels: vi.fn(async () => ({ id: "issue-1", labels: ["bug", "batch-b"] })),
       updateIssueAssignees: vi.fn(async () => ({ id: "issue-1", assignees: ["octocat"] })),
+      addIssueAssignees: vi.fn(async () => ({ id: "issue-1", assignees: ["octocat", "alice"] })),
+      removeIssueAssignees: vi.fn(async () => ({ id: "issue-1", assignees: [] })),
       setIssueMilestone: vi.fn(async () => ({ id: "issue-1", milestoneNumber: 3 })),
       createIssueComment: vi.fn(async () => ({
         id: "comment-1",
@@ -648,6 +650,26 @@ describe("runGraphqlCapability", () => {
         assignees: ["octocat"],
       },
     )
+    const assigneesAddResult = await runGraphqlCapability(
+      client as unknown as GithubClient,
+      "issue.assignees.add",
+      {
+        owner: "acme",
+        name: "modkit",
+        issueNumber: 501,
+        assignees: ["alice"],
+      },
+    )
+    const assigneesRemoveResult = await runGraphqlCapability(
+      client as unknown as GithubClient,
+      "issue.assignees.remove",
+      {
+        owner: "acme",
+        name: "modkit",
+        issueNumber: 501,
+        assignees: ["octocat"],
+      },
+    )
     const milestoneResult = await runGraphqlCapability(
       client as unknown as GithubClient,
       "issue.milestone.set",
@@ -722,6 +744,8 @@ describe("runGraphqlCapability", () => {
     expect(labelsAddResult.ok).toBe(true)
     expect(labelsResult.ok).toBe(true)
     expect(assigneesResult.ok).toBe(true)
+    expect(assigneesAddResult.ok).toBe(true)
+    expect(assigneesRemoveResult.ok).toBe(true)
     expect(milestoneResult.ok).toBe(true)
     expect(commentResult.ok).toBe(true)
     expect(linkedPrsResult.ok).toBe(true)

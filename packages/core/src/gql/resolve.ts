@@ -16,6 +16,10 @@ export function applyInject(
   lookupResult: unknown,
   input: Record<string, unknown>,
 ): Record<string, unknown> {
+  if (spec.source === "null_literal") {
+    return { [spec.target]: null }
+  }
+
   if (spec.source === "scalar") {
     const value = getAtPath(lookupResult, spec.path)
     if (value === undefined || value === null) {
@@ -42,6 +46,14 @@ export function applyInject(
   if (!Array.isArray(nodes)) {
     throw new Error(
       `Resolution failed for '${spec.target}': nodes at '${spec.nodes_path}' is not an array`,
+    )
+  }
+
+  // Guard: if the lookup connection reported more pages, our 100-item cap may truncate results
+  const pageInfoPath = spec.nodes_path.replace(/\.nodes$/, ".pageInfo.hasNextPage")
+  if (getAtPath(lookupResult, pageInfoPath) === true) {
+    throw new Error(
+      `Resolution failed for '${spec.target}': lookup returned 100 items but more exist — request may be truncated. Narrow the scope or use a repository with fewer items.`,
     )
   }
 

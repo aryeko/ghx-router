@@ -79,6 +79,62 @@ describe("applyInject", () => {
     const input = { labels: ["nonexistent"] }
     expect(() => applyInject(spec, lookupResult, input)).toThrow("nonexistent")
   })
+
+  it("map_array throws when pageInfo.hasNextPage is true", () => {
+    const nodes = Array.from({ length: 100 }, (_, i) => ({
+      id: `U_${i}`,
+      login: `user${i}`,
+    }))
+    const lookupResult = {
+      repository: {
+        assignableUsers: {
+          pageInfo: { hasNextPage: true },
+          nodes,
+        },
+      },
+    }
+    const spec: InjectSpec = {
+      target: "assigneeIds",
+      source: "map_array",
+      from_input: "assignees",
+      nodes_path: "repository.assignableUsers.nodes",
+      match_field: "login",
+      extract_field: "id",
+    }
+    const input = { assignees: ["user1"] }
+    expect(() => applyInject(spec, lookupResult, input)).toThrow(
+      "lookup returned 100 items but more exist",
+    )
+  })
+
+  it("map_array succeeds when pageInfo.hasNextPage is false", () => {
+    const lookupResult = {
+      repository: {
+        assignableUsers: {
+          pageInfo: { hasNextPage: false },
+          nodes: [{ login: "user1", id: "U_abc" }],
+        },
+      },
+    }
+    const spec: InjectSpec = {
+      target: "assigneeIds",
+      source: "map_array",
+      from_input: "assignees",
+      nodes_path: "repository.assignableUsers.nodes",
+      match_field: "login",
+      extract_field: "id",
+    }
+    const input = { assignees: ["user1"] }
+    expect(applyInject(spec, lookupResult, input)).toEqual({ assigneeIds: ["U_abc"] })
+  })
+
+  it("null_literal: returns target set to null", () => {
+    const spec: InjectSpec = {
+      target: "milestoneId",
+      source: "null_literal",
+    }
+    expect(applyInject(spec, {}, {})).toEqual({ milestoneId: null })
+  })
 })
 
 describe("buildMutationVars", () => {

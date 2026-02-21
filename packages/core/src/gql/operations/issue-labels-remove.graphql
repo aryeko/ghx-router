@@ -1,0 +1,14 @@
+mutation IssueLabelsRemove($labelableId: ID!, $labelIds: [ID!]!) {
+  removeLabelsFromLabelable(input: { labelableId: $labelableId, labelIds: $labelIds }) {
+    labelable {
+      ... on Issue {
+        id
+        labels(first: 50) {
+          nodes {
+            name
+          }
+        }
+      }
+    }
+  }
+}
