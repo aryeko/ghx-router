@@ -1,5 +1,5 @@
 ---
-description: Execute GitHub operations via ghx — deterministic routing, normalized output, 69 capabilities
+description: Execute GitHub operations via ghx — deterministic routing, normalized output, 70 capabilities
 ---
 
 # ghx CLI Skill
@@ -14,7 +14,7 @@ If you don't know the capability ID or required inputs, list by domain first:
 ghx capabilities list --domain pr
 ```
 
-Domains: `repo`, `issue`, `pr`, `release`, `workflow`, `project_v2`, `check_run`.
+Domains: `repo`, `issue`, `pr`, `release`, `workflow`, `project_v2`.
 Required inputs shown in brackets (e.g. `[owner, name, prNumber]`).
 
 Only if you need the full input/output schema for a specific capability:
@@ -32,6 +32,40 @@ EOF
 ```
 
 Result: `{ ok, data, error, meta }`. Check `ok` first. If `ok=false` and `error.retryable=true`, retry once.
+
+## Chain
+
+Use `ghx chain` when two or more mutations must succeed together. A single chain call is one GraphQL round-trip — it avoids partial state from sequential `ghx run` calls.
+
+```bash
+ghx chain --steps '[
+  {"task":"issue.close","input":{"issueId":"I_abc"}},
+  {"task":"issue.comments.create","input":{"owner":"o","name":"r","issueNumber":1,"body":"Closed."}}
+]'
+```
+
+**stdin variant:**
+
+```bash
+ghx chain --steps - <<'EOF'
+[{"task":"...","input":{...}},{"task":"...","input":{...}}]
+EOF
+```
+
+**Result:** `{ status, results[], meta }`. Check `status` first (`"success"` | `"partial"` | `"failed"`). Each `results[i]` has `{ task, ok, data | error }`.
+
+**Chainable capabilities:** any capability with a `graphql:` route (i.e. those that accept node IDs or perform internal lookups — labels, assignees, milestones, relations, reviews, comments). Capabilities with only a `cli:` route cannot be chained.
+
+**Example — close an issue and leave a closing comment atomically:**
+
+```bash
+ghx chain --steps - <<'EOF'
+[
+  {"task":"issue.close","input":{"issueId":"I_abc123"}},
+  {"task":"issue.comments.create","input":{"owner":"octocat","name":"hello-world","issueNumber":42,"body":"Closed — see linked PR."}}
+]
+EOF
+```
 
 ## Examples
 
