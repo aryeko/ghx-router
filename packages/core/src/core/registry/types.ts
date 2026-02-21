@@ -73,7 +73,25 @@ export interface InputPassthroughInject {
   from_input: string
 }
 
-export type InjectSpec = ScalarInject | MapArrayInject | InputPassthroughInject
+/**
+ * Injects an explicit `null` value into a mutation variable.
+ *
+ * Use when a mutation variable must be explicitly set to `null` to clear a field
+ * (e.g. clearing a milestone from an issue by passing `milestoneId: null`).
+ *
+ * @example
+ * ```yaml
+ * inject:
+ *   - target: milestoneId
+ *     source: "null_literal"
+ * ```
+ */
+export interface NullLiteralInject {
+  target: string
+  source: "null_literal"
+}
+
+export type InjectSpec = ScalarInject | MapArrayInject | InputPassthroughInject | NullLiteralInject
 
 export interface LookupSpec {
   operationName: string

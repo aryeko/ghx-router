@@ -1,0 +1,13 @@
+query IssueAssigneesLookupByNumber($owner: String!, $name: String!, $issueNumber: Int!) {
+  repository(owner: $owner, name: $name) {
+    issue(number: $issueNumber) {
+      id
+    }
+    assignableUsers(first: 100) {
+      nodes {
+        id
+        login
+      }
+    }
+  }
+}

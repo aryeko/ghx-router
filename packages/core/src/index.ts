@@ -24,6 +24,8 @@ export {
 export type { OperationCard } from "./core/registry/types.js"
 export { executeTask, executeTasks } from "./core/routing/engine.js"
 export type { RouteReasonCode } from "./core/routing/reason-codes.js"
+export type { ResolutionCache, ResolutionCacheOptions } from "./core/routing/resolution-cache.js"
+export { buildCacheKey, createResolutionCache } from "./core/routing/resolution-cache.js"
 export type { GithubClient } from "./gql/github-client.js"
 export {
   createGithubClient,
@@ -31,6 +33,8 @@ export {
 } from "./gql/github-client.js"
 export type {
   GraphqlClient,
+  GraphqlError,
+  GraphqlRawResult,
   GraphqlTransport,
   TokenClientOptions,
 } from "./gql/transport.js"

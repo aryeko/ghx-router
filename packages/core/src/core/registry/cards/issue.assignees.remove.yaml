@@ -23,7 +23,28 @@ output_schema:
       items: { type: string, minLength: 1 }
   additionalProperties: false
 routing:
-  preferred: cli
-  fallbacks: []
+  preferred: graphql
+  fallbacks: [cli]
+graphql:
+  operationName: IssueAssigneesRemove
+  documentPath: src/gql/operations/issue-assignees-remove.graphql
+  resolution:
+    lookup:
+      operationName: IssueAssigneesLookupByNumber
+      documentPath: src/gql/operations/issue-assignees-lookup-by-number.graphql
+      vars:
+        owner: owner
+        name: name
+        issueNumber: issueNumber
+    inject:
+      - target: assignableId
+        source: scalar
+        path: repository.issue.id
+      - target: assigneeIds
+        source: map_array
+        from_input: assignees
+        nodes_path: repository.assignableUsers.nodes
+        match_field: login
+        extract_field: id
 cli:
   command: issue edit

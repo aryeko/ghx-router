@@ -42,6 +42,7 @@ function createGithubClient(overrides?: Partial<GithubClient>): GithubClient {
     unresolveReviewThread: vi.fn(),
     submitPrReview: vi.fn(),
     query: vi.fn(),
+    queryRaw: vi.fn().mockResolvedValue({ data: {}, errors: undefined }),
     ...overrides,
   } as unknown as GithubClient
 }
@@ -439,9 +440,10 @@ describe("executeTasks chaining", () => {
       ],
       {
         githubClient: createGithubClient({
-          query: vi
-            .fn()
-            .mockResolvedValue({ step0: { issue: { id: "I1" } }, step1: { issue: { id: "I2" } } }),
+          queryRaw: vi.fn().mockResolvedValue({
+            data: { step0: { issue: { id: "I1" } }, step1: { issue: { id: "I2" } } },
+            errors: undefined,
+          }),
         }),
       },
     )
@@ -498,7 +500,7 @@ describe("executeTasks chaining", () => {
       ],
       {
         githubClient: createGithubClient({
-          query: vi.fn().mockRejectedValue(new Error("network error")),
+          queryRaw: vi.fn().mockRejectedValue(new Error("network error")),
         }),
       },
     )
@@ -596,17 +598,17 @@ describe("executeTasks — mixed resolution chain", () => {
 
     const { executeTasks } = await import("@core/core/routing/engine.js")
 
-    const queryMock = vi
-      .fn()
-      // Phase 1: label lookup for step 1
-      .mockResolvedValueOnce({
-        step1: { repository: { labels: { nodes: [{ id: "L1", name: "bug" }] } } },
-      })
-      // Phase 2: both mutations
-      .mockResolvedValueOnce({
+    // Phase 1 uses query (lookup), Phase 2 uses queryRaw (mutation)
+    const queryMock = vi.fn().mockResolvedValueOnce({
+      step1: { repository: { labels: { nodes: [{ id: "L1", name: "bug" }] } } },
+    })
+    const queryRawMock = vi.fn().mockResolvedValueOnce({
+      data: {
         step0: { closeIssue: { issue: { id: "I1" } } },
         step1: { updateIssue: { issue: { id: "I2" } } },
-      })
+      },
+      errors: undefined,
+    })
 
     const result = await executeTasks(
       [
@@ -616,14 +618,303 @@ describe("executeTasks — mixed resolution chain", () => {
           input: { issueId: "I2", owner: "acme", name: "repo", labels: ["bug"] },
         },
       ],
-      { githubClient: createGithubClient({ query: queryMock }) },
+      { githubClient: createGithubClient({ query: queryMock, queryRaw: queryRawMock }) },
     )
 
     expect(buildBatchQueryMock).toHaveBeenCalled()
     expect(buildBatchMutationMock).toHaveBeenCalled()
-    expect(queryMock).toHaveBeenCalledTimes(2)
+    expect(queryMock).toHaveBeenCalledTimes(1)
+    expect(queryRawMock).toHaveBeenCalledTimes(1)
     expect(result.status).toBe("success")
     expect(result.results[0]).toMatchObject({ task: "issue.close", ok: true })
     expect(result.results[1]).toMatchObject({ task: "issue.labels.set", ok: true })
+  })
+})
+
+describe("executeTasks — resolution cache", () => {
+  it("skips Phase 1 network call when all lookups are cached", async () => {
+    vi.resetModules()
+    vi.doMock("@core/core/execute/execute.js", () => ({
+      execute: (...args: unknown[]) => executeMock(...args),
+    }))
+    vi.doMock("@core/core/registry/index.js", () => ({
+      getOperationCard: (...args: unknown[]) => getOperationCardMock(...args),
+    }))
+
+    const cardWithResolution = {
+      ...baseCard,
+      graphql: {
+        operationName: "IssueLabelsSet",
+        documentPath: "src/gql/operations/issue-labels-set.graphql",
+        resolution: {
+          lookup: {
+            operationName: "IssueLabelsLookup",
+            documentPath: "src/gql/operations/issue-labels-lookup.graphql",
+            vars: { issueId: "issueId" },
+          },
+          inject: [
+            {
+              target: "labelIds",
+              source: "map_array" as const,
+              from_input: "labels",
+              nodes_path: "repository.labels.nodes",
+              match_field: "name",
+              extract_field: "id",
+            },
+          ],
+        },
+      },
+    }
+    getOperationCardMock.mockReturnValue(cardWithResolution)
+
+    const buildBatchQueryMock = vi.fn()
+    const buildBatchMutationMock = vi.fn().mockReturnValue({
+      document: `mutation Batch { step0: updateIssue { issue { id } } step1: updateIssue { issue { id } } }`,
+      variables: {},
+    })
+
+    vi.doMock("@core/gql/document-registry.js", () => ({
+      getLookupDocument: vi
+        .fn()
+        .mockReturnValue(
+          `query IssueLabelsLookup($issueId: ID!) { node(id: $issueId) { ... on Issue { repository { labels(first: 100) { nodes { id name } } } } } }`,
+        ),
+      getMutationDocument: vi
+        .fn()
+        .mockReturnValue(
+          `mutation IssueLabelsSet($issueId: ID!, $labelIds: [ID!]!) { updateIssue(input: {id: $issueId, labelIds: $labelIds}) { issue { id } } }`,
+        ),
+    }))
+    vi.doMock("@core/gql/batch.js", () => ({
+      buildBatchQuery: buildBatchQueryMock,
+      buildBatchMutation: buildBatchMutationMock,
+    }))
+    vi.doMock("@core/gql/resolve.js", () => ({
+      applyInject: vi.fn().mockReturnValue({ labelIds: ["L1"] }),
+      buildMutationVars: vi
+        .fn()
+        .mockImplementation(
+          (_doc: string, input: Record<string, unknown>, resolved: Record<string, unknown>) => ({
+            ...input,
+            ...resolved,
+          }),
+        ),
+    }))
+
+    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { buildCacheKey, createResolutionCache } = await import(
+      "@core/core/routing/resolution-cache.js"
+    )
+
+    // Pre-populate cache for both lookups
+    const cache = createResolutionCache()
+    const cachedData = { repository: { labels: { nodes: [{ id: "L1", name: "bug" }] } } }
+    cache.set(buildCacheKey("IssueLabelsLookup", { issueId: "I1" }), cachedData)
+    cache.set(buildCacheKey("IssueLabelsLookup", { issueId: "I2" }), cachedData)
+
+    const queryRawMock = vi.fn().mockResolvedValueOnce({
+      data: {
+        step0: { updateIssue: { issue: { id: "I1" } } },
+        step1: { updateIssue: { issue: { id: "I2" } } },
+      },
+      errors: undefined,
+    })
+
+    const result = await executeTasks(
+      [
+        { task: "issue.labels.set", input: { issueId: "I1", labels: ["bug"] } },
+        { task: "issue.labels.set", input: { issueId: "I2", labels: ["bug"] } },
+      ],
+      {
+        githubClient: createGithubClient({ queryRaw: queryRawMock }),
+        resolutionCache: cache,
+      },
+    )
+
+    // Phase 1 batch query should NOT have been called
+    expect(buildBatchQueryMock).not.toHaveBeenCalled()
+    // Only Phase 2 mutation query (via queryRaw)
+    expect(queryRawMock).toHaveBeenCalledTimes(1)
+    expect(result.status).toBe("success")
+  })
+})
+
+describe("executeTasks — partial error handling", () => {
+  it("Phase 2 partial failure: one step errors, other succeeds → status partial", async () => {
+    vi.resetModules()
+    vi.doMock("@core/core/execute/execute.js", () => ({
+      execute: (...args: unknown[]) => executeMock(...args),
+    }))
+    vi.doMock("@core/core/registry/index.js", () => ({
+      getOperationCard: (...args: unknown[]) => getOperationCardMock(...args),
+    }))
+
+    const cardWithGql = {
+      ...baseCard,
+      graphql: {
+        operationName: "IssueCreate",
+        documentPath: "src/gql/operations/issue-create.graphql",
+      },
+    }
+    getOperationCardMock.mockReturnValue(cardWithGql)
+
+    vi.doMock("@core/gql/document-registry.js", () => ({
+      getLookupDocument: vi.fn(),
+      getMutationDocument: vi
+        .fn()
+        .mockReturnValue(
+          `mutation IssueCreate($repositoryId: ID!, $title: String!) { createIssue(input: {repositoryId: $repositoryId, title: $title}) { issue { id } } }`,
+        ),
+    }))
+    vi.doMock("@core/gql/batch.js", () => ({
+      buildBatchMutation: vi.fn().mockReturnValue({
+        document: `mutation Batch { step0: createIssue { issue { id } } step1: createIssue { issue { id } } }`,
+        variables: {},
+      }),
+      buildBatchQuery: vi.fn(),
+    }))
+
+    const { executeTasks } = await import("@core/core/routing/engine.js")
+
+    const result = await executeTasks(
+      [
+        { task: "issue.create", input: { repositoryId: "R1", title: "Issue 1" } },
+        { task: "issue.create", input: { repositoryId: "R2", title: "Issue 2" } },
+      ],
+      {
+        githubClient: createGithubClient({
+          queryRaw: vi.fn().mockResolvedValue({
+            data: {
+              step0: { createIssue: { issue: { id: "I1" } } },
+              step1: null,
+            },
+            errors: [{ message: "Could not resolve repository", path: ["step1", "createIssue"] }],
+          }),
+        }),
+      },
+    )
+
+    expect(result.status).toBe("partial")
+    expect(result.results[0]?.ok).toBe(true)
+    expect(result.results[0]?.data).toEqual({ createIssue: { issue: { id: "I1" } } })
+    expect(result.results[1]?.ok).toBe(false)
+    expect(result.results[1]?.error?.message).toContain("Could not resolve repository")
+  })
+
+  it("Phase 2 unattributed error: errors without path → all steps failed", async () => {
+    vi.resetModules()
+    vi.doMock("@core/core/execute/execute.js", () => ({
+      execute: (...args: unknown[]) => executeMock(...args),
+    }))
+    vi.doMock("@core/core/registry/index.js", () => ({
+      getOperationCard: (...args: unknown[]) => getOperationCardMock(...args),
+    }))
+
+    const cardWithGql = {
+      ...baseCard,
+      graphql: {
+        operationName: "IssueCreate",
+        documentPath: "src/gql/operations/issue-create.graphql",
+      },
+    }
+    getOperationCardMock.mockReturnValue(cardWithGql)
+
+    vi.doMock("@core/gql/document-registry.js", () => ({
+      getLookupDocument: vi.fn(),
+      getMutationDocument: vi
+        .fn()
+        .mockReturnValue(
+          `mutation IssueCreate($repositoryId: ID!, $title: String!) { createIssue(input: {repositoryId: $repositoryId, title: $title}) { issue { id } } }`,
+        ),
+    }))
+    vi.doMock("@core/gql/batch.js", () => ({
+      buildBatchMutation: vi.fn().mockReturnValue({
+        document: `mutation Batch { step0: createIssue { issue { id } } step1: createIssue { issue { id } } }`,
+        variables: {},
+      }),
+      buildBatchQuery: vi.fn(),
+    }))
+
+    const { executeTasks } = await import("@core/core/routing/engine.js")
+
+    const result = await executeTasks(
+      [
+        { task: "issue.create", input: { repositoryId: "R1", title: "Issue 1" } },
+        { task: "issue.create", input: { repositoryId: "R2", title: "Issue 2" } },
+      ],
+      {
+        githubClient: createGithubClient({
+          queryRaw: vi.fn().mockResolvedValue({
+            data: {},
+            errors: [{ message: "Internal server error" }],
+          }),
+        }),
+      },
+    )
+
+    expect(result.status).toBe("failed")
+    expect(result.results[0]?.ok).toBe(false)
+    expect(result.results[0]?.error?.message).toBe("Internal server error")
+    expect(result.results[1]?.ok).toBe(false)
+    expect(result.results[1]?.error?.message).toBe("Internal server error")
+  })
+
+  it("Phase 2 clean response: no errors → status success (regression)", async () => {
+    vi.resetModules()
+    vi.doMock("@core/core/execute/execute.js", () => ({
+      execute: (...args: unknown[]) => executeMock(...args),
+    }))
+    vi.doMock("@core/core/registry/index.js", () => ({
+      getOperationCard: (...args: unknown[]) => getOperationCardMock(...args),
+    }))
+
+    const cardWithGql = {
+      ...baseCard,
+      graphql: {
+        operationName: "IssueClose",
+        documentPath: "src/gql/operations/issue-close.graphql",
+      },
+    }
+    getOperationCardMock.mockReturnValue(cardWithGql)
+
+    vi.doMock("@core/gql/document-registry.js", () => ({
+      getLookupDocument: vi.fn(),
+      getMutationDocument: vi
+        .fn()
+        .mockReturnValue(
+          `mutation IssueClose($issueId: ID!) { closeIssue(input: {issueId: $issueId}) { issue { id } } }`,
+        ),
+    }))
+    vi.doMock("@core/gql/batch.js", () => ({
+      buildBatchMutation: vi.fn().mockReturnValue({
+        document: `mutation Batch { step0: closeIssue { issue { id } } step1: closeIssue { issue { id } } }`,
+        variables: {},
+      }),
+      buildBatchQuery: vi.fn(),
+    }))
+
+    const { executeTasks } = await import("@core/core/routing/engine.js")
+
+    const result = await executeTasks(
+      [
+        { task: "issue.close", input: { issueId: "I1" } },
+        { task: "issue.close", input: { issueId: "I2" } },
+      ],
+      {
+        githubClient: createGithubClient({
+          queryRaw: vi.fn().mockResolvedValue({
+            data: {
+              step0: { closeIssue: { issue: { id: "I1" } } },
+              step1: { closeIssue: { issue: { id: "I2" } } },
+            },
+            errors: undefined,
+          }),
+        }),
+      },
+    )
+
+    expect(result.status).toBe("success")
+    expect(result.results[0]?.ok).toBe(true)
+    expect(result.results[1]?.ok).toBe(true)
   })
 })

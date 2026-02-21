@@ -79,6 +79,14 @@ describe("applyInject", () => {
     const input = { labels: ["nonexistent"] }
     expect(() => applyInject(spec, lookupResult, input)).toThrow("nonexistent")
   })
+
+  it("null_literal: returns target set to null", () => {
+    const spec: InjectSpec = {
+      target: "milestoneId",
+      source: "null_literal",
+    }
+    expect(applyInject(spec, {}, {})).toEqual({ milestoneId: null })
+  })
 })
 
 describe("buildMutationVars", () => {

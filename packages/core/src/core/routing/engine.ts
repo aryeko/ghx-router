@@ -26,6 +26,8 @@ import { buildBatchMutation, buildBatchQuery } from "@core/gql/batch.js"
 import { getLookupDocument, getMutationDocument } from "@core/gql/document-registry.js"
 import type { GithubClient } from "@core/gql/github-client.js"
 import { applyInject, buildMutationVars } from "@core/gql/resolve.js"
+import type { ResolutionCache } from "./resolution-cache.js"
+import { buildCacheKey } from "./resolution-cache.js"
 
 export type ExecutionDeps = {
   githubClient: GithubClient
@@ -35,6 +37,7 @@ export type ExecutionDeps = {
   ghAuthenticated?: boolean
   skipGhPreflight?: boolean
   reason?: RouteReasonCode
+  resolutionCache?: ResolutionCache
 }
 
 const DEFAULT_REASON: RouteReasonCode = "DEFAULT_POLICY"
@@ -331,6 +334,8 @@ export async function executeTasks(
     variables: Record<string, unknown>
     stepIndex: number
   }> = []
+  const lookupResults: Record<number, unknown> = {}
+
   for (let i = 0; i < requests.length; i += 1) {
     const card = cards[i]
     const req = requests[i]
@@ -342,6 +347,17 @@ export async function executeTasks(
     for (const [lookupVar, inputField] of Object.entries(lookup.vars)) {
       lookupVars[lookupVar] = req.input[inputField]
     }
+
+    // Check resolution cache before scheduling network call
+    if (deps.resolutionCache) {
+      const cacheKey = buildCacheKey(lookup.operationName, lookupVars)
+      const cached = deps.resolutionCache.get(cacheKey)
+      if (cached !== undefined) {
+        lookupResults[i] = cached
+        continue
+      }
+    }
+
     lookupInputs.push({
       alias: `step${i}`,
       query: getLookupDocument(lookup.operationName),
@@ -350,7 +366,6 @@ export async function executeTasks(
     })
   }
 
-  const lookupResults: Record<number, unknown> = {}
   if (lookupInputs.length > 0) {
     try {
       const { document, variables } = buildBatchQuery(
@@ -359,7 +374,22 @@ export async function executeTasks(
       const rawResult = await deps.githubClient.query(document, variables)
       // Un-alias results: BatchChain result has keys like "step0", "step2", etc.
       for (const { alias, stepIndex } of lookupInputs) {
-        lookupResults[stepIndex] = (rawResult as Record<string, unknown>)[alias]
+        const result = (rawResult as Record<string, unknown>)[alias]
+        lookupResults[stepIndex] = result
+
+        // Populate resolution cache
+        if (deps.resolutionCache) {
+          const card = cards[stepIndex]
+          const req = requests[stepIndex]
+          if (card?.graphql?.resolution && req) {
+            const { lookup } = card.graphql.resolution
+            const lookupVars: Record<string, unknown> = {}
+            for (const [lookupVar, inputField] of Object.entries(lookup.vars)) {
+              lookupVars[lookupVar] = req.input[inputField]
+            }
+            deps.resolutionCache.set(buildCacheKey(lookup.operationName, lookupVars), result)
+          }
+        }
       }
     } catch (err) {
       // Phase 1 failure: mark all steps as failed
@@ -434,14 +464,37 @@ export async function executeTasks(
   }
 
   let rawMutResult: Record<string, unknown> = {}
+  const stepErrors = new Map<string, string>()
+
   if (mutationInputs.length > 0) {
     try {
       const { document, variables } = buildBatchMutation(
         mutationInputs.map(({ alias, mutation, variables }) => ({ alias, mutation, variables })),
       )
-      rawMutResult = (await deps.githubClient.query(document, variables)) as Record<string, unknown>
+      const rawResponse = await deps.githubClient.queryRaw<Record<string, unknown>>(
+        document,
+        variables,
+      )
+
+      // Map per-step errors from GraphQL error path
+      if (rawResponse.errors?.length) {
+        for (const err of rawResponse.errors) {
+          const alias = err.path?.[0]
+          if (typeof alias === "string" && alias.startsWith("step")) {
+            stepErrors.set(alias, err.message)
+          }
+        }
+        // If errors don't have per-step paths, mark all steps as failed
+        if (stepErrors.size === 0) {
+          for (const { alias } of mutationInputs) {
+            stepErrors.set(alias, rawResponse.errors[0]?.message ?? "GraphQL batch error")
+          }
+        }
+      }
+
+      rawMutResult = rawResponse.data ?? {}
     } catch (err) {
-      // Whole batch mutation failed — mark all pending steps as failed
+      // Transport-level failure (network, HTTP error) — mark all pending steps as failed
       const code = mapErrorToCode(err)
       for (const { stepIndex } of mutationInputs) {
         const reqAtIndex = requests[stepIndex]
@@ -473,6 +526,21 @@ export async function executeTasks(
         error: { code: errorCodes.Unknown, message: "step skipped", retryable: false },
       }
     }
+
+    // Check for per-step GraphQL errors
+    const stepError = stepErrors.get(mutInput.alias)
+    if (stepError) {
+      return {
+        task: req.task,
+        ok: false,
+        error: {
+          code: mapErrorToCode(new Error(stepError)),
+          message: stepError,
+          retryable: false,
+        },
+      }
+    }
+
     if (rawMutResult == null || typeof rawMutResult !== "object") {
       return {
         task: req.task,

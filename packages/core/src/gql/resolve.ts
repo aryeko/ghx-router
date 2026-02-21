@@ -16,6 +16,10 @@ export function applyInject(
   lookupResult: unknown,
   input: Record<string, unknown>,
 ): Record<string, unknown> {
+  if (spec.source === "null_literal") {
+    return { [spec.target]: null }
+  }
+
   if (spec.source === "scalar") {
     const value = getAtPath(lookupResult, spec.path)
     if (value === undefined || value === null) {

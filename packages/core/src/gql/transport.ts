@@ -3,11 +3,23 @@ import type { GraphQLClient, RequestDocument, RequestOptions } from "graphql-req
 
 export type GraphqlVariables = Record<string, unknown>
 
+export type GraphqlError = {
+  message: string
+  path?: string[]
+  extensions?: Record<string, unknown>
+}
+
+export type GraphqlRawResult<TData> = {
+  data: TData | undefined
+  errors: GraphqlError[] | undefined
+}
+
 type GraphqlDocument = string | DocumentNode
 type QueryLike = GraphqlDocument | RequestDocument
 
 export interface GraphqlTransport {
   execute<TData>(query: string, variables?: GraphqlVariables): Promise<TData>
+  executeRaw?<TData>(query: string, variables?: GraphqlVariables): Promise<GraphqlRawResult<TData>>
 }
 
 export interface GraphqlClient {
@@ -15,6 +27,10 @@ export interface GraphqlClient {
     query: GraphqlDocument,
     variables?: TVariables,
   ): Promise<TData>
+  queryRaw<TData, TVariables extends GraphqlVariables = GraphqlVariables>(
+    query: GraphqlDocument,
+    variables?: TVariables,
+  ): Promise<GraphqlRawResult<TData>>
 }
 
 export type TokenClientOptions = {
@@ -49,6 +65,26 @@ export function createGraphqlClient(transport: GraphqlTransport): GraphqlClient 
       const queryText = queryToString(query)
       assertQuery(queryText)
       return transport.execute<TData>(queryText, variables)
+    },
+    async queryRaw<TData, TVariables extends GraphqlVariables = GraphqlVariables>(
+      query: GraphqlDocument,
+      variables?: TVariables,
+    ): Promise<GraphqlRawResult<TData>> {
+      const queryText = queryToString(query)
+      assertQuery(queryText)
+      if (transport.executeRaw) {
+        return transport.executeRaw<TData>(queryText, variables)
+      }
+      // Fallback: wrap execute — cannot distinguish partial data from full failure
+      try {
+        const data = await transport.execute<TData>(queryText, variables)
+        return { data, errors: undefined }
+      } catch (err) {
+        return {
+          data: undefined,
+          errors: [{ message: err instanceof Error ? err.message : String(err) }],
+        }
+      }
     },
   }
 }
@@ -92,29 +128,42 @@ export function resolveGraphqlUrl(): string {
   return DEFAULT_GRAPHQL_URL
 }
 
+type JsonPayload<TData> = {
+  data?: TData
+  errors?: GraphqlError[]
+  message?: string
+}
+
+async function fetchGraphql<TData>(
+  url: string,
+  token: string,
+  query: string,
+  variables?: GraphqlVariables,
+): Promise<JsonPayload<TData>> {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ query, variables: variables ?? {} }),
+  })
+
+  const payload = (await response.json()) as JsonPayload<TData>
+
+  if (!response.ok) {
+    throw new Error(payload.message ?? `GraphQL request failed (${response.status})`)
+  }
+
+  return payload
+}
+
 export function createTokenTransport(token: string, graphqlUrl?: string): GraphqlTransport {
   const url = graphqlUrl ?? resolveGraphqlUrl()
 
   return {
     async execute<TData>(query: string, variables?: GraphqlVariables): Promise<TData> {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ query, variables: variables ?? {} }),
-      })
-
-      const payload = (await response.json()) as {
-        data?: TData
-        errors?: Array<{ message?: string }>
-        message?: string
-      }
-
-      if (!response.ok) {
-        throw new Error(payload.message ?? `GraphQL request failed (${response.status})`)
-      }
+      const payload = await fetchGraphql<TData>(url, token, query, variables)
 
       if (payload.errors?.length) {
         throw new Error(payload.errors[0]?.message ?? "GraphQL returned errors")
@@ -125,6 +174,17 @@ export function createTokenTransport(token: string, graphqlUrl?: string): Graphq
       }
 
       return payload.data
+    },
+
+    async executeRaw<TData>(
+      query: string,
+      variables?: GraphqlVariables,
+    ): Promise<GraphqlRawResult<TData>> {
+      const payload = await fetchGraphql<TData>(url, token, query, variables)
+      return {
+        data: payload.data,
+        errors: payload.errors?.length ? payload.errors : undefined,
+      }
     },
   }
 }

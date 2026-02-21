@@ -1,0 +1,14 @@
+mutation IssueAssigneesRemove($assignableId: ID!, $assigneeIds: [ID!]!) {
+  removeAssigneesFromAssignable(input: { assignableId: $assignableId, assigneeIds: $assigneeIds }) {
+    assignable {
+      ... on Issue {
+        id
+        assignees(first: 50) {
+          nodes {
+            login
+          }
+        }
+      }
+    }
+  }
+}

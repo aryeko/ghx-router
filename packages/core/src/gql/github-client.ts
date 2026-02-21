@@ -116,6 +116,7 @@ export function createGithubClient(transport: GraphqlTransport): GithubClient {
 
   return {
     query: (query, variables) => graphqlClient.query(query, variables),
+    queryRaw: (query, variables) => graphqlClient.queryRaw(query, variables),
     fetchRepoView: async (input) => (await loadRepo()).runRepoView(transport, input),
     fetchIssueView: async (input) => (await loadIssueQueries()).runIssueView(transport, input),
     fetchIssueList: async (input) => (await loadIssueQueries()).runIssueList(transport, input),

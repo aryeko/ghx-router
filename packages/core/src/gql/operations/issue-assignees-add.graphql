@@ -1,0 +1,14 @@
+mutation IssueAssigneesAdd($assignableId: ID!, $assigneeIds: [ID!]!) {
+  addAssigneesToAssignable(input: { assignableId: $assignableId, assigneeIds: $assigneeIds }) {
+    assignable {
+      ... on Issue {
+        id
+        assignees(first: 50) {
+          nodes {
+            login
+          }
+        }
+      }
+    }
+  }
+}

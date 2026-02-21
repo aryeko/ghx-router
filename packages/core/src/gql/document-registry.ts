@@ -1,4 +1,7 @@
+import { IssueAssigneesAddDocument } from "./operations/issue-assignees-add.generated.js"
 import { IssueAssigneesLookupDocument } from "./operations/issue-assignees-lookup.generated.js"
+import { IssueAssigneesLookupByNumberDocument } from "./operations/issue-assignees-lookup-by-number.generated.js"
+import { IssueAssigneesRemoveDocument } from "./operations/issue-assignees-remove.generated.js"
 import { IssueAssigneesUpdateDocument } from "./operations/issue-assignees-update.generated.js"
 import { IssueBlockedByAddDocument } from "./operations/issue-blocked-by-add.generated.js"
 import { IssueBlockedByRemoveDocument } from "./operations/issue-blocked-by-remove.generated.js"
@@ -9,9 +12,12 @@ import { IssueCreateRepositoryIdDocument } from "./operations/issue-create-repos
 import { IssueDeleteDocument } from "./operations/issue-delete.generated.js"
 import { IssueLabelsAddDocument } from "./operations/issue-labels-add.generated.js"
 import { IssueLabelsLookupDocument } from "./operations/issue-labels-lookup.generated.js"
+import { IssueLabelsLookupByNumberDocument } from "./operations/issue-labels-lookup-by-number.generated.js"
+import { IssueLabelsRemoveDocument } from "./operations/issue-labels-remove.generated.js"
 import { IssueLabelsUpdateDocument } from "./operations/issue-labels-update.generated.js"
 import { IssueMilestoneLookupDocument } from "./operations/issue-milestone-lookup.generated.js"
 import { IssueMilestoneSetDocument } from "./operations/issue-milestone-set.generated.js"
+import { IssueNodeIdLookupDocument } from "./operations/issue-node-id-lookup.generated.js"
 import { IssueParentLookupDocument } from "./operations/issue-parent-lookup.generated.js"
 import { IssueParentRemoveDocument } from "./operations/issue-parent-remove.generated.js"
 import { IssueParentSetDocument } from "./operations/issue-parent-set.generated.js"
@@ -25,16 +31,21 @@ import { PrReviewSubmitDocument } from "./operations/pr-review-submit.generated.
 
 // Resolution lookup queries (Phase 1)
 const LOOKUP_DOCUMENTS: Record<string, string> = {
-  IssueLabelsLookup: IssueLabelsLookupDocument,
   IssueAssigneesLookup: IssueAssigneesLookupDocument,
-  IssueMilestoneLookup: IssueMilestoneLookupDocument,
-  IssueParentLookup: IssueParentLookupDocument,
+  IssueAssigneesLookupByNumber: IssueAssigneesLookupByNumberDocument,
   IssueCreateRepositoryId: IssueCreateRepositoryIdDocument,
+  IssueLabelsLookup: IssueLabelsLookupDocument,
+  IssueLabelsLookupByNumber: IssueLabelsLookupByNumberDocument,
+  IssueMilestoneLookup: IssueMilestoneLookupDocument,
+  IssueNodeIdLookup: IssueNodeIdLookupDocument,
+  IssueParentLookup: IssueParentLookupDocument,
   PrNodeId: PrNodeIdDocument,
 }
 
 // Mutation documents for chaining (Phase 2)
 const MUTATION_DOCUMENTS: Record<string, string> = {
+  IssueAssigneesAdd: IssueAssigneesAddDocument,
+  IssueAssigneesRemove: IssueAssigneesRemoveDocument,
   IssueAssigneesUpdate: IssueAssigneesUpdateDocument,
   IssueBlockedByAdd: IssueBlockedByAddDocument,
   IssueBlockedByRemove: IssueBlockedByRemoveDocument,
@@ -43,6 +54,7 @@ const MUTATION_DOCUMENTS: Record<string, string> = {
   IssueCreate: IssueCreateDocument,
   IssueDelete: IssueDeleteDocument,
   IssueLabelsAdd: IssueLabelsAddDocument,
+  IssueLabelsRemove: IssueLabelsRemoveDocument,
   IssueLabelsUpdate: IssueLabelsUpdateDocument,
   IssueMilestoneSet: IssueMilestoneSetDocument,
   IssueParentRemove: IssueParentRemoveDocument,

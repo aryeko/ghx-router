@@ -1,0 +1,13 @@
+query IssueLabelsLookupByNumber($owner: String!, $name: String!, $issueNumber: Int!) {
+  repository(owner: $owner, name: $name) {
+    issue(number: $issueNumber) {
+      id
+    }
+    labels(first: 100) {
+      nodes {
+        id
+        name
+      }
+    }
+  }
+}

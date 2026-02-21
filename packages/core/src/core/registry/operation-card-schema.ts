@@ -110,6 +110,15 @@ export const operationCardSchema = {
                     },
                     additionalProperties: false,
                   },
+                  {
+                    type: "object",
+                    required: ["target", "source"],
+                    properties: {
+                      target: { type: "string", minLength: 1 },
+                      source: { const: "null_literal" },
+                    },
+                    additionalProperties: false,
+                  },
                 ],
               },
             },
