@@ -4,13 +4,13 @@ import { tmpdir } from "node:os"
 import { delimiter, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import type { BenchmarkMode } from "@bench/domain/types.js"
-import { isObject } from "@bench/util/guards.js"
 import { createOpencode } from "@opencode-ai/sdk"
 import {
   AGENT_DIRECT_INSTRUCTION,
   MCP_INSTRUCTION,
   modeInstructions,
 } from "../../runner/mode-instructions.js"
+import { unwrapData } from "./unwrap.js"
 
 const MODULE_DIR = fileURLToPath(new URL(".", import.meta.url))
 const BENCHMARK_PACKAGE_ROOT = resolve(MODULE_DIR, "../..", "..")
@@ -18,18 +18,6 @@ const BENCHMARK_BIN_DIR = join(BENCHMARK_PACKAGE_ROOT, "bin")
 const GHX_BENCHMARK_ALIAS_PATH = join(BENCHMARK_BIN_DIR, "ghx")
 const GHX_SKILL_ASSET_PATH = resolve(BENCHMARK_PACKAGE_ROOT, "../core/skills/using-ghx/SKILL.md")
 const OPENCODE_PORT = Number.parseInt(process.env.BENCH_OPENCODE_PORT ?? "3000", 10)
-
-function unwrapData<T>(value: unknown, label: string): T {
-  if (isObject(value) && "data" in value) {
-    const wrapped = value as { data?: unknown; error?: unknown }
-    if (wrapped.error) {
-      throw new Error(`${label} returned error payload`)
-    }
-    return wrapped.data as T
-  }
-
-  return value as T
-}
 
 async function ensureBenchmarkGhxAliasReady(): Promise<void> {
   try {
@@ -59,17 +47,67 @@ function resolveGhTokenFromCli(): string | null {
   return token.length > 0 ? token : null
 }
 
+type EnvSnapshot = {
+  OPENCODE_CONFIG: string | undefined
+  OPENCODE_CONFIG_DIR: string | undefined
+  XDG_CONFIG_HOME: string | undefined
+  GH_TOKEN: string | undefined
+  GITHUB_TOKEN: string | undefined
+  PATH: string | undefined
+}
+
+function restoreEnv(previous: EnvSnapshot, tmpDir: string): () => Promise<void> {
+  return async () => {
+    if (previous.OPENCODE_CONFIG === undefined) {
+      delete process.env.OPENCODE_CONFIG
+    } else {
+      process.env.OPENCODE_CONFIG = previous.OPENCODE_CONFIG
+    }
+
+    if (previous.OPENCODE_CONFIG_DIR === undefined) {
+      delete process.env.OPENCODE_CONFIG_DIR
+    } else {
+      process.env.OPENCODE_CONFIG_DIR = previous.OPENCODE_CONFIG_DIR
+    }
+
+    if (previous.XDG_CONFIG_HOME === undefined) {
+      delete process.env.XDG_CONFIG_HOME
+    } else {
+      process.env.XDG_CONFIG_HOME = previous.XDG_CONFIG_HOME
+    }
+
+    if (previous.GH_TOKEN === undefined) {
+      delete process.env.GH_TOKEN
+    } else {
+      process.env.GH_TOKEN = previous.GH_TOKEN
+    }
+
+    if (previous.GITHUB_TOKEN === undefined) {
+      delete process.env.GITHUB_TOKEN
+    } else {
+      process.env.GITHUB_TOKEN = previous.GITHUB_TOKEN
+    }
+
+    if (previous.PATH === undefined) {
+      delete process.env.PATH
+    } else {
+      process.env.PATH = previous.PATH
+    }
+
+    await rm(tmpDir, { recursive: true, force: true })
+  }
+}
+
 export interface BenchmarkClient {
   client: unknown
   systemInstruction: string
 }
 
-export async function withIsolatedBenchmarkClient<T>(
+export async function openBenchmarkClient(
   mode: BenchmarkMode,
   providerId: string,
   modelId: string,
-  run: (ctx: BenchmarkClient) => Promise<T>,
-): Promise<T> {
+): Promise<{ client: unknown; systemInstruction: string; close: () => Promise<void> }> {
   const isolatedXdgConfigHome = await mkdtemp(join(tmpdir(), "ghx-benchmark-opencode-"))
   const instructions = await modeInstructions(mode, loadGhxSkillInstruction)
   const systemInstruction = instructions.join("\n\n")
@@ -77,7 +115,7 @@ export async function withIsolatedBenchmarkClient<T>(
     await ensureBenchmarkGhxAliasReady()
   }
 
-  const previousEnv = {
+  const previousEnv: EnvSnapshot = {
     OPENCODE_CONFIG: process.env.OPENCODE_CONFIG,
     OPENCODE_CONFIG_DIR: process.env.OPENCODE_CONFIG_DIR,
     XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME,
@@ -101,6 +139,8 @@ export async function withIsolatedBenchmarkClient<T>(
         ? `${BENCHMARK_BIN_DIR}${delimiter}${previousEnv.PATH}`
         : BENCHMARK_BIN_DIR
   }
+
+  const teardown = restoreEnv(previousEnv, isolatedXdgConfigHome)
 
   let server: { close: () => void } | null = null
 
@@ -165,48 +205,30 @@ export async function withIsolatedBenchmarkClient<T>(
       }
     }
 
+    const close = async () => {
+      if (server) {
+        server.close()
+      }
+      await teardown()
+    }
+
+    return { client, systemInstruction, close }
+  } catch (error) {
+    await teardown()
+    throw error
+  }
+}
+
+export async function withIsolatedBenchmarkClient<T>(
+  mode: BenchmarkMode,
+  providerId: string,
+  modelId: string,
+  run: (ctx: BenchmarkClient) => Promise<T>,
+): Promise<T> {
+  const { client, systemInstruction, close } = await openBenchmarkClient(mode, providerId, modelId)
+  try {
     return await run({ client, systemInstruction })
   } finally {
-    if (server) {
-      server.close()
-    }
-
-    if (previousEnv.OPENCODE_CONFIG === undefined) {
-      delete process.env.OPENCODE_CONFIG
-    } else {
-      process.env.OPENCODE_CONFIG = previousEnv.OPENCODE_CONFIG
-    }
-
-    if (previousEnv.OPENCODE_CONFIG_DIR === undefined) {
-      delete process.env.OPENCODE_CONFIG_DIR
-    } else {
-      process.env.OPENCODE_CONFIG_DIR = previousEnv.OPENCODE_CONFIG_DIR
-    }
-
-    if (previousEnv.XDG_CONFIG_HOME === undefined) {
-      delete process.env.XDG_CONFIG_HOME
-    } else {
-      process.env.XDG_CONFIG_HOME = previousEnv.XDG_CONFIG_HOME
-    }
-
-    if (previousEnv.GH_TOKEN === undefined) {
-      delete process.env.GH_TOKEN
-    } else {
-      process.env.GH_TOKEN = previousEnv.GH_TOKEN
-    }
-
-    if (previousEnv.GITHUB_TOKEN === undefined) {
-      delete process.env.GITHUB_TOKEN
-    } else {
-      process.env.GITHUB_TOKEN = previousEnv.GITHUB_TOKEN
-    }
-
-    if (previousEnv.PATH === undefined) {
-      delete process.env.PATH
-    } else {
-      process.env.PATH = previousEnv.PATH
-    }
-
-    await rm(isolatedXdgConfigHome, { recursive: true, force: true })
+    await close()
   }
 }

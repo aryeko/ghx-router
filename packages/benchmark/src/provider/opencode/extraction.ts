@@ -1,6 +1,7 @@
 import type { SessionMessageEntry, SessionMessagePart } from "@bench/domain/types.js"
 import { isObject } from "@bench/util/guards.js"
 import { asNumber } from "./polling.js"
+import { unwrapData } from "./unwrap.js"
 
 export { extractTimingBreakdown } from "./extraction-timing.js"
 
@@ -46,18 +47,6 @@ type PromptResponse = {
   }
   cost?: number
   error?: unknown
-}
-
-function unwrapData<T>(value: unknown, label: string): T {
-  if (isObject(value) && "data" in value) {
-    const wrapped = value as Record<string, unknown>
-    if (wrapped.error) {
-      throw new Error(`${label} returned error payload`)
-    }
-    return wrapped.data as T
-  }
-
-  return value as T
 }
 
 function hasTextPart(parts: SessionMessagePart[]): boolean {

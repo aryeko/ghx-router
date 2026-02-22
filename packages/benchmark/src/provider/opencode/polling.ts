@@ -1,5 +1,6 @@
 import type { SessionMessageEntry, SessionMessagePart } from "@bench/domain/types.js"
 import { isObject } from "@bench/util/guards.js"
+import { unwrapData } from "./unwrap.js"
 
 export function hasAssistantMetadata(info: unknown): boolean {
   if (!isObject(info)) {
@@ -154,18 +155,6 @@ export async function fetchSessionMessages(
 
   const data = unwrapData<SessionMessageEntry[]>(messagesResult, "session.messages")
   return data
-}
-
-function unwrapData<T>(value: unknown, label: string): T {
-  if (isObject(value) && "data" in value) {
-    const wrapped = value as { data?: unknown; error?: unknown }
-    if (wrapped.error) {
-      throw new Error(`${label} returned error payload`)
-    }
-    return wrapped.data as T
-  }
-
-  return value as T
 }
 
 export function asNumber(value: unknown): number | null {
