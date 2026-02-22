@@ -15,8 +15,6 @@ export async function runScenarioIteration(config: {
 }): Promise<BenchmarkRow> {
   const { provider, scenario, mode, iteration, scenarioSet, manifest, runId } = config
 
-  const githubToken = process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN ?? ""
-
   const scenarioStartedAt = Date.now()
   let sessionId: string | null = null
 
@@ -45,6 +43,7 @@ export async function runScenarioIteration(config: {
     const promptText = resolvedScenario.prompt
     const promptResult = await provider.prompt(sessionHandle, promptText)
 
+    const githubToken = process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN ?? ""
     const { allPassed: checkpointsPassed, results: checkpointResults } = await evaluateCheckpoints(
       resolvedScenario.assertions.checkpoints,
       {},

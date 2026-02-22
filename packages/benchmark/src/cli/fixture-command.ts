@@ -1,5 +1,4 @@
 import { access, rm } from "node:fs/promises"
-import { resolve } from "node:path"
 import { z } from "zod"
 import { applyFixtureAppAuthIfConfigured, mintFixtureAppToken } from "../fixture/app-auth.js"
 import { cleanupSeededFixtures } from "../fixture/cleanup.js"
@@ -87,16 +86,7 @@ export function parseArgs(argv: string[]): {
   }
 }
 
-function loadEnvLocal(): void {
-  try {
-    process.loadEnvFile(resolve(import.meta.dirname ?? ".", "../../.env.local"))
-  } catch {
-    // .env.local is optional
-  }
-}
-
 export async function main(argv: string[] = process.argv.slice(2)): Promise<void> {
-  loadEnvLocal()
   const parsed = parseArgs(argv)
   const restoreFixtureAuth =
     parsed.command === "cleanup" ? await applyFixtureAppAuthIfConfigured() : () => undefined

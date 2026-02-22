@@ -321,7 +321,26 @@ export function createPrWithMixedThreads(
   }
 }
 
+function deletePrReplyComments(repo: string, prNumber: number): void {
+  const { owner, name } = parseRepo(repo)
+  const result = tryRunGhJson([
+    "api",
+    `repos/${owner}/${name}/pulls/${prNumber}/comments?per_page=100`,
+  ])
+  const comments = parseArrayResponse(result)
+  for (const comment of comments) {
+    if (typeof comment !== "object" || comment === null) continue
+    const c = comment as Record<string, unknown>
+    if (typeof c.in_reply_to_id !== "number") continue
+    const id = c.id
+    if (typeof id !== "number") continue
+    tryRunGh(["api", `repos/${owner}/${name}/pulls/comments/${id}`, "--method", "DELETE"])
+  }
+}
+
 export function resetMixedPrThreads(repo: string, prNumber: number, token: string): void {
+  deletePrReplyComments(repo, prNumber)
+
   const threadIds = getAllPrThreadIds(repo, prNumber)
 
   // Unresolve all 7 threads

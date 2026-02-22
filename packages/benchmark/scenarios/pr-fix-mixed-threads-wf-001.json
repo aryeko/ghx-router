@@ -2,7 +2,7 @@
   "type": "workflow",
   "id": "pr-fix-mixed-threads-wf-001",
   "name": "Resolve only unresolved review threads (mixed state)",
-  "prompt": "PR #{{prNumber}} in {{owner}}/{{name}} has review threads in a mixed state — some already resolved and some unresolved. Fetch only the unresolved threads, reply to each addressing the feedback, then resolve them. Do not touch already-resolved threads.",
+  "prompt": "PR #{{prNumber}} in {{owner}}/{{name}} has review threads in a mixed state — some already resolved and some unresolved. List only the unresolved threads, reply to each with a brief acknowledgment (e.g. \"Acknowledged, will address.\"), then resolve each one. Do not read or modify any source files. Do not touch already-resolved threads.",
   "expected_capabilities": ["pr.threads.list", "pr.threads.reply", "pr.threads.resolve"],
   "timeout_ms": 180000,
   "allowed_retries": 1,

@@ -37,8 +37,12 @@ export class OpencodeSessionProvider implements SessionProvider {
     this.closeClient = close
 
     const sessionApi = getSessionApi(this.benchmarkClient.client)
+    const sessionWorkdir = process.env.BENCH_SESSION_WORKDIR
     const sessionResult = await withTimeout(
-      sessionApi.create({ url: "/session" }),
+      sessionApi.create({
+        url: "/session",
+        ...(sessionWorkdir ? { query: { directory: sessionWorkdir } } : {}),
+      }),
       30000,
       "session.create",
     )

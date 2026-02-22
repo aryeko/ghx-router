@@ -135,7 +135,9 @@ export async function waitForAssistantFromMessages(
         stepFinish.reason !== "error"
       const isCompletedAssistant =
         (assistantByMetadata &&
-          (hasCompletedStep || hasTextPart(parts) || assistantWithStructuredOutput)) ||
+          (hasCompletedStep ||
+            (hasTextPart(parts) && stepFinish?.reason !== "tool-calls") ||
+            assistantWithStructuredOutput)) ||
         hasCompletedStep ||
         assistantWithStructuredOutput
 
