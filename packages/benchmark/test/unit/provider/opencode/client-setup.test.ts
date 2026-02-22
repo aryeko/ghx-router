@@ -1,4 +1,7 @@
-import { withIsolatedBenchmarkClient } from "@bench/provider/opencode/client-setup.js"
+import {
+  openBenchmarkClient,
+  withIsolatedBenchmarkClient,
+} from "@bench/provider/opencode/client-setup.js"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const mocks = vi.hoisted(() => {
@@ -298,6 +301,74 @@ describe("client-setup", () => {
           throw new Error("callback error")
         }),
       ).rejects.toThrow("callback error")
+
+      expect(mocks.rmMock).toHaveBeenCalled()
+    })
+  })
+
+  describe("openBenchmarkClient", () => {
+    it("returns client, systemInstruction, and close function", async () => {
+      const result = await openBenchmarkClient("agent_direct", "openai", "gpt-4")
+
+      expect(result).toHaveProperty("client")
+      expect(result).toHaveProperty("systemInstruction")
+      expect(result).toHaveProperty("close")
+      expect(typeof result.close).toBe("function")
+    })
+
+    it("returns the system instruction from mode instructions", async () => {
+      const result = await openBenchmarkClient("agent_direct", "openai", "gpt-4")
+
+      expect(result.systemInstruction).toBe("Use GitHub CLI")
+    })
+
+    it("does not close server until close() is called", async () => {
+      const closeMock = vi.fn()
+      mocks.createOpencodeMock.mockResolvedValue({
+        server: { close: closeMock },
+        client: {
+          session: {
+            create: vi.fn().mockResolvedValue({ data: { id: "session-1" } }),
+            promptAsync: vi.fn().mockResolvedValue({}),
+            messages: vi.fn().mockResolvedValue({ data: [] }),
+            abort: vi.fn().mockResolvedValue({}),
+          },
+          config: {
+            get: vi.fn().mockResolvedValue({
+              data: { instructions: ["Use GitHub CLI"], plugin: [] },
+            }),
+          },
+        },
+      })
+
+      const { close } = await openBenchmarkClient("agent_direct", "openai", "gpt-4")
+
+      expect(closeMock).not.toHaveBeenCalled()
+
+      await close()
+
+      expect(closeMock).toHaveBeenCalled()
+    })
+
+    it("cleans up temp directory when close() is called", async () => {
+      const { close } = await openBenchmarkClient("agent_direct", "openai", "gpt-4")
+
+      expect(mocks.rmMock).not.toHaveBeenCalled()
+
+      await close()
+
+      expect(mocks.rmMock).toHaveBeenCalledWith("/tmp/test-dir", {
+        recursive: true,
+        force: true,
+      })
+    })
+
+    it("cleans up immediately if createOpencode throws", async () => {
+      mocks.createOpencodeMock.mockRejectedValue(new Error("opencode failed"))
+
+      await expect(openBenchmarkClient("agent_direct", "openai", "gpt-4")).rejects.toThrow(
+        "opencode failed",
+      )
 
       expect(mocks.rmMock).toHaveBeenCalled()
     })

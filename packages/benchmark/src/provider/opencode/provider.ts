@@ -1,5 +1,6 @@
 import type { PromptResult, SessionConfig, SessionHandle, SessionProvider } from "../types.js"
-import { type BenchmarkClient, withIsolatedBenchmarkClient } from "./client-setup.js"
+import type { BenchmarkClient } from "./client-setup.js"
+import { openBenchmarkClient } from "./client-setup.js"
 import {
   aggregateToolCounts,
   coercePromptResponse,
@@ -7,6 +8,7 @@ import {
   extractTimingBreakdown,
 } from "./extraction.js"
 import { fetchSessionMessages, getSessionApi, withTimeout } from "./polling.js"
+import { unwrapData } from "./unwrap.js"
 import { waitForAssistantFromMessages } from "./wait-for-assistant.js"
 
 export type OpencodeProviderConfig = {
@@ -18,27 +20,21 @@ export type OpencodeProviderConfig = {
 export class OpencodeSessionProvider implements SessionProvider {
   private config: OpencodeProviderConfig
   private benchmarkClient: BenchmarkClient | null = null
+  private closeClient: (() => Promise<void>) | null = null
 
   constructor(config: OpencodeProviderConfig) {
     this.config = config
   }
 
   async createSession(config: SessionConfig): Promise<SessionHandle> {
-    this.benchmarkClient = await new Promise((resolve, reject) => {
-      withIsolatedBenchmarkClient(
-        config.mode,
-        this.config.providerId,
-        this.config.modelId,
-        async (ctx) => {
-          resolve(ctx)
-          return null
-        },
-      ).catch(reject)
-    })
+    const { client, systemInstruction, close } = await openBenchmarkClient(
+      config.mode,
+      this.config.providerId,
+      this.config.modelId,
+    )
 
-    if (!this.benchmarkClient) {
-      throw new Error("Failed to initialize benchmark client")
-    }
+    this.benchmarkClient = { client, systemInstruction }
+    this.closeClient = close
 
     const sessionApi = getSessionApi(this.benchmarkClient.client)
     const sessionResult = await withTimeout(
@@ -47,7 +43,7 @@ export class OpencodeSessionProvider implements SessionProvider {
       "session.create",
     )
 
-    const sessionData = this.unwrapData<{ id: string }>(sessionResult, "session.create")
+    const sessionData = unwrapData<{ id: string }>(sessionResult, "session.create")
     return { sessionId: sessionData.id }
   }
 
@@ -118,6 +114,7 @@ export class OpencodeSessionProvider implements SessionProvider {
         total: tokenTotal,
       },
       toolCalls: toolCounts.toolCalls,
+      apiCalls: toolCounts.apiCalls,
       cost: assistant.cost,
       latencyMs: latencyWall,
       sdkLatencyMs: sdkLatency,
@@ -132,20 +129,8 @@ export class OpencodeSessionProvider implements SessionProvider {
   }
 
   async cleanup(): Promise<void> {
+    await this.closeClient?.()
     this.benchmarkClient = null
-  }
-
-  private unwrapData<T>(value: unknown, label: string): T {
-    if (typeof value === "object" && value !== null && !Array.isArray(value)) {
-      const obj = value as Record<string, unknown>
-      if ("data" in obj) {
-        if (obj.error) {
-          throw new Error(`${label} returned error payload`)
-        }
-        return obj.data as T
-      }
-    }
-
-    return value as T
+    this.closeClient = null
   }
 }

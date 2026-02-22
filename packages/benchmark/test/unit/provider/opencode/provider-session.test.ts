@@ -3,7 +3,7 @@ import type { SessionHandle } from "@bench/provider/types.js"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const mocks = vi.hoisted(() => ({
-  withIsolatedBenchmarkClientMock: vi.fn(),
+  openBenchmarkClientMock: vi.fn(),
   getSessionApiMock: vi.fn(),
   withTimeoutMock: vi.fn(),
   waitForAssistantFromMessagesMock: vi.fn(),
@@ -15,7 +15,7 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock("@bench/provider/opencode/client-setup.js", () => ({
-  withIsolatedBenchmarkClient: mocks.withIsolatedBenchmarkClientMock,
+  openBenchmarkClient: mocks.openBenchmarkClientMock,
 }))
 
 vi.mock("@bench/provider/opencode/polling.js", () => ({
@@ -47,6 +47,8 @@ describe("OpencodeSessionProvider - createSession", () => {
     },
   }
 
+  const mockClose = vi.fn().mockResolvedValue(undefined)
+
   beforeEach(() => {
     vi.clearAllMocks()
     vi.useFakeTimers()
@@ -60,14 +62,14 @@ describe("OpencodeSessionProvider - createSession", () => {
 
     mocks.withTimeoutMock.mockImplementation((promise: Promise<unknown>) => promise)
     mocks.getSessionApiMock.mockReturnValue(mockClient.session)
+    mocks.openBenchmarkClientMock.mockResolvedValue({
+      client: mockClient,
+      systemInstruction: "test instruction",
+      close: mockClose,
+    })
   })
 
-  it("calls withIsolatedBenchmarkClient with correct parameters", async () => {
-    mocks.withIsolatedBenchmarkClientMock.mockImplementation(
-      async (mode: string, pid: string, mid: string, run: (ctx: unknown) => unknown) => {
-        return run({ client: mockClient, systemInstruction: "test instruction" })
-      },
-    )
+  it("calls openBenchmarkClient with correct parameters", async () => {
     mockClient.session.create.mockResolvedValue({ data: { id: "session-1" } })
 
     await provider.createSession({
@@ -75,20 +77,10 @@ describe("OpencodeSessionProvider - createSession", () => {
       mode: "agent_direct",
     })
 
-    expect(mocks.withIsolatedBenchmarkClientMock).toHaveBeenCalledWith(
-      "agent_direct",
-      "openai",
-      "gpt-4",
-      expect.any(Function),
-    )
+    expect(mocks.openBenchmarkClientMock).toHaveBeenCalledWith("agent_direct", "openai", "gpt-4")
   })
 
   it("creates a session via the session API", async () => {
-    mocks.withIsolatedBenchmarkClientMock.mockImplementation(
-      async (mode: string, pid: string, mid: string, run: (ctx: unknown) => unknown) => {
-        return run({ client: mockClient, systemInstruction: "test instruction" })
-      },
-    )
     mockClient.session.create.mockResolvedValue({ data: { id: "session-1" } })
 
     await provider.createSession({
@@ -102,11 +94,6 @@ describe("OpencodeSessionProvider - createSession", () => {
   })
 
   it("returns a session handle with the session id", async () => {
-    mocks.withIsolatedBenchmarkClientMock.mockImplementation(
-      async (mode: string, pid: string, mid: string, run: (ctx: unknown) => unknown) => {
-        return run({ client: mockClient, systemInstruction: "test instruction" })
-      },
-    )
     mockClient.session.create.mockResolvedValue({ data: { id: "session-xyz" } })
 
     const handle = await provider.createSession({
@@ -117,25 +104,18 @@ describe("OpencodeSessionProvider - createSession", () => {
     expect(handle.sessionId).toBe("session-xyz")
   })
 
-  it("throws if benchmarkClient is null after withIsolatedBenchmarkClient", async () => {
-    mocks.withIsolatedBenchmarkClientMock.mockImplementation(
-      async (mode: string, pid: string, mid: string, run: (ctx: unknown) => unknown) => run(null),
-    )
+  it("throws if openBenchmarkClient rejects", async () => {
+    mocks.openBenchmarkClientMock.mockRejectedValue(new Error("opencode init failed"))
 
     await expect(
       provider.createSession({
         systemInstructions: ["instruction1"],
         mode: "agent_direct",
       }),
-    ).rejects.toThrow("Failed to initialize benchmark client")
+    ).rejects.toThrow("opencode init failed")
   })
 
   it("applies withTimeout to session.create call", async () => {
-    mocks.withIsolatedBenchmarkClientMock.mockImplementation(
-      async (mode: string, pid: string, mid: string, run: (ctx: unknown) => unknown) => {
-        return run({ client: mockClient, systemInstruction: "test instruction" })
-      },
-    )
     mockClient.session.create.mockResolvedValue({ data: { id: "session-1" } })
 
     await provider.createSession({
@@ -146,6 +126,17 @@ describe("OpencodeSessionProvider - createSession", () => {
     expect(mocks.withTimeoutMock).toHaveBeenCalled()
     expect(mocks.withTimeoutMock.mock.calls[0]?.[1]).toBe(30000)
     expect(mocks.withTimeoutMock.mock.calls[0]?.[2]).toBe("session.create")
+  })
+
+  it("keeps client alive after createSession returns", async () => {
+    mockClient.session.create.mockResolvedValue({ data: { id: "session-1" } })
+
+    await provider.createSession({
+      systemInstructions: ["instruction1"],
+      mode: "agent_direct",
+    })
+
+    expect(mockClose).not.toHaveBeenCalled()
   })
 })
 
@@ -160,6 +151,8 @@ describe("OpencodeSessionProvider - cleanup", () => {
       abort: vi.fn(),
     },
   }
+
+  const mockClose = vi.fn().mockResolvedValue(undefined)
 
   let sessionHandle: SessionHandle
 
@@ -176,11 +169,11 @@ describe("OpencodeSessionProvider - cleanup", () => {
 
     mocks.withTimeoutMock.mockImplementation((promise: Promise<unknown>) => promise)
     mocks.getSessionApiMock.mockReturnValue(mockClient.session)
-    mocks.withIsolatedBenchmarkClientMock.mockImplementation(
-      async (mode: string, pid: string, mid: string, run: (ctx: unknown) => unknown) => {
-        return run({ client: mockClient, systemInstruction: "test instruction" })
-      },
-    )
+    mocks.openBenchmarkClientMock.mockResolvedValue({
+      client: mockClient,
+      systemInstruction: "test instruction",
+      close: mockClose,
+    })
     mockClient.session.create.mockResolvedValue({ data: { id: "session-1" } })
 
     sessionHandle = await provider.createSession({
@@ -189,7 +182,13 @@ describe("OpencodeSessionProvider - cleanup", () => {
     })
   })
 
-  it("sets benchmarkClient to null", async () => {
+  it("calls close on cleanup", async () => {
+    await provider.cleanup()
+
+    expect(mockClose).toHaveBeenCalled()
+  })
+
+  it("prevents subsequent prompts after cleanup", async () => {
     await provider.cleanup()
 
     await expect(provider.prompt(sessionHandle, "test prompt")).rejects.toThrow(
@@ -197,9 +196,7 @@ describe("OpencodeSessionProvider - cleanup", () => {
     )
   })
 
-  it("prevents subsequent prompts", async () => {
-    await provider.cleanup()
-
+  it("prevents subsequent prompts on new provider without session", async () => {
     const newProvider = new OpencodeSessionProvider({
       type: "opencode",
       providerId: "openai",
