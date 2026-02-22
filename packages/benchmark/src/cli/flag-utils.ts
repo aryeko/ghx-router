@@ -1,8 +1,3 @@
-/**
- * Parses a single optional string flag from CLI args.
- * Supports both `--flag value` and `--flag=value` forms.
- * Returns null if the flag is absent, the next arg is missing, or the next arg is another flag.
- */
 export function parseFlagValue(args: string[], flag: string): string | null {
   const index = args.findIndex((arg) => arg === flag)
   if (index !== -1) {
@@ -25,11 +20,6 @@ export function parseFlagValue(args: string[], flag: string): string | null {
   return null
 }
 
-/**
- * Parses an optional string flag strictly from CLI args.
- * Returns null if the flag is absent.
- * Throws if the flag is present but its value is missing or empty.
- */
 export function parseStrictFlagValue(args: string[], flag: string): string | null {
   const index = args.findIndex((arg) => arg === flag)
   if (index !== -1) {
@@ -52,10 +42,6 @@ export function parseStrictFlagValue(args: string[], flag: string): string | nul
   return null
 }
 
-/**
- * Parses a required string flag from CLI args.
- * Throws if the flag is absent or its value is missing/empty.
- */
 export function parseRequiredFlag(args: string[], flag: string): string {
   const value = parseFlagValue(args, flag)
   if (value === null) {
@@ -64,10 +50,6 @@ export function parseRequiredFlag(args: string[], flag: string): string {
   return value
 }
 
-/**
- * Collects all values for a repeatable flag (e.g. `--scenario-id a --scenario-id b`).
- * Returns an empty array if the flag never appears.
- */
 export function parseMultiFlagValues(args: string[], flag: string): string[] {
   const values: string[] = []
 
@@ -98,9 +80,6 @@ export function parseMultiFlagValues(args: string[], flag: string): string[] {
   return values
 }
 
-/**
- * Returns true if the flag is present (bare boolean flag).
- */
 export function hasFlag(args: string[], flag: string): boolean {
   return args.includes(flag)
 }

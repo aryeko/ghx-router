@@ -2,7 +2,7 @@ export type BenchmarkMode = "agent_direct" | "mcp" | "ghx"
 
 export type GateProfile = "verify_pr" | "verify_release"
 
-export type GateV2Thresholds = {
+export type GateThresholds = {
   minTokensActiveReductionPct: number
   minLatencyReductionPct: number
   minToolCallReductionPct: number
@@ -16,14 +16,14 @@ export type GateV2Thresholds = {
   minCostReductionPct: number
 }
 
-export type GateV2ThresholdMap = Record<GateProfile, GateV2Thresholds>
+export type GateThresholdMap = Record<GateProfile, GateThresholds>
 
 export type BenchmarkSummary = {
   generatedAt: string
   modes: Partial<Record<BenchmarkMode, ModeSummary>>
   profiling: Partial<Record<BenchmarkMode, ProfilingSummary>>
-  deltaVsAgentDirect: DeltaSummary | null
-  gateV2: GateV2Summary
+  delta: DeltaSummary | null
+  gate: GateSummary
 }
 
 export type ModeSummary = {
@@ -48,7 +48,7 @@ export type ModeSummary = {
   medianCostUsd: number
 }
 
-type ProfilingSummary = {
+export type ProfilingSummary = {
   runsWithProfiling: number
   medianAssistantTotalMs: number
   medianAssistantReasoningMs: number
@@ -58,7 +58,7 @@ type ProfilingSummary = {
   medianAssistantPostToolMs: number
 }
 
-type DeltaSummary = {
+export type DeltaSummary = {
   tokensReductionPct: number
   tokensActiveReductionPct: number
   latencyReductionPct: number
@@ -70,7 +70,7 @@ type DeltaSummary = {
   latencyReductionCI: [number, number]
 }
 
-type GateCheck = {
+export type GateCheck = {
   name: string
   passed: boolean
   value: number
@@ -78,7 +78,7 @@ type GateCheck = {
   operator: ">=" | "<="
 }
 
-type GateV2Reliability = {
+export type GateReliability = {
   successRateDeltaPct: number
   outputValidityRatePct: number
   runnerFailureRatePct: number
@@ -86,7 +86,7 @@ type GateV2Reliability = {
   retryRatePct: number
 }
 
-type GateV2Efficiency = {
+export type GateEfficiency = {
   minSamplesPerScenarioPerMode: number
   eligibleScenarioCount: number
   totalScenarioCount: number
@@ -98,11 +98,11 @@ type GateV2Efficiency = {
   scenarioWinRateTokensActivePct: number
 }
 
-type GateV2Summary = {
+export type GateSummary = {
   profile: GateProfile
   passed: boolean
-  reliability: GateV2Reliability | null
-  efficiency: GateV2Efficiency | null
+  reliability: GateReliability | null
+  efficiency: GateEfficiency | null
   checks: GateCheck[]
 }
 
