@@ -1,9 +1,10 @@
 import type { FixtureManifest, Scenario } from "../domain/types.js"
+import { resetIssueTriage } from "./seed-issue.js"
 import { resetPrBugs } from "./seed-pr-bugs.js"
 import { resetMixedPrThreads } from "./seed-pr-mixed-threads.js"
 import { resetPrReviewThreads } from "./seed-pr-reviews.js"
 
-type ResetFn = (repo: string, prNumber: number, token: string) => void
+type ResetFn = (repo: string, resourceNumber: number, token: string) => void
 
 type ResetEntry = {
   fn: ResetFn
@@ -14,6 +15,7 @@ const RESET_REGISTRY: Record<string, ResetEntry> = {
   pr_with_bugs: { fn: resetPrBugs, requiresToken: false },
   pr_with_mixed_threads: { fn: resetMixedPrThreads, requiresToken: true },
   pr_with_reviews: { fn: resetPrReviewThreads, requiresToken: true },
+  issue_for_triage: { fn: resetIssueTriage, requiresToken: false },
 }
 
 export function resetScenarioFixtures(
@@ -48,8 +50,8 @@ export function resetScenarioFixtures(
       continue
     }
 
-    const prNumber = (raw as Record<string, unknown>)["number"]
-    if (typeof prNumber !== "number" || prNumber === 0) {
+    const resourceNumber = (raw as Record<string, unknown>)["number"]
+    if (typeof resourceNumber !== "number" || resourceNumber === 0) {
       console.warn(
         `[benchmark] warn: fixture resource '${resource}' has no valid .number for scenario '${scenario.id}' — skipping reset`,
       )
@@ -57,7 +59,7 @@ export function resetScenarioFixtures(
     }
 
     try {
-      entry.fn(manifest.repo.full_name, prNumber, reviewerToken ?? "")
+      entry.fn(manifest.repo.full_name, resourceNumber, reviewerToken ?? "")
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       console.warn(

@@ -38,6 +38,7 @@ vi.mock("@bench/fixture/seed-pr-mixed-threads.js", () => ({
 
 vi.mock("@bench/fixture/seed-issue.js", () => ({
   findOrCreateIssue: vi.fn().mockReturnValue({ id: "I_1", number: 1, url: "https://..." }),
+  createIssueTriage: vi.fn().mockReturnValue({ id: "I_2", number: 2, url: "https://..." }),
 }))
 
 vi.mock("@bench/fixture/seed-release.js", () => ({

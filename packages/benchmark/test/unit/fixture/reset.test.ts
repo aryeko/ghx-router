@@ -3,12 +3,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const resetMixedPrThreadsMock = vi.hoisted(() => vi.fn())
 const resetPrReviewThreadsMock = vi.hoisted(() => vi.fn())
+const resetIssueTriageMock = vi.hoisted(() => vi.fn())
 
 vi.mock("@bench/fixture/seed-pr-mixed-threads.js", () => ({
   resetMixedPrThreads: resetMixedPrThreadsMock,
 }))
 vi.mock("@bench/fixture/seed-pr-reviews.js", () => ({
   resetPrReviewThreads: resetPrReviewThreadsMock,
+}))
+vi.mock("@bench/fixture/seed-issue.js", () => ({
+  resetIssueTriage: resetIssueTriageMock,
 }))
 
 import { resetScenarioFixtures } from "@bench/fixture/reset.js"
@@ -179,5 +183,43 @@ describe("resetScenarioFixtures", () => {
     }
     resetScenarioFixtures(scenario, baseManifest, "token123")
     expect(resetMixedPrThreadsMock).not.toHaveBeenCalled()
+  })
+
+  it("calls resetIssueTriage with correct args when no reviewer token", () => {
+    const manifest: FixtureManifest = {
+      ...baseManifest,
+      resources: { issue_for_triage: { number: 15, id: "I_15" } },
+    }
+    const scenario = makeScenario({ requires: ["issue_for_triage"] })
+    resetScenarioFixtures(scenario, manifest, null)
+    expect(resetIssueTriageMock).toHaveBeenCalledWith("test-owner/test-repo", 15, "")
+  })
+
+  it("calls resetIssueTriage when reviewer token is provided", () => {
+    const manifest: FixtureManifest = {
+      ...baseManifest,
+      resources: { issue_for_triage: { number: 20, id: "I_20" } },
+    }
+    const scenario = makeScenario({ requires: ["issue_for_triage"] })
+    resetScenarioFixtures(scenario, manifest, "reviewer-token")
+    expect(resetIssueTriageMock).toHaveBeenCalledWith("test-owner/test-repo", 20, "reviewer-token")
+  })
+
+  it("runs issue_for_triage reset even when token-required resources are skipped", () => {
+    const manifest: FixtureManifest = {
+      ...baseManifest,
+      resources: {
+        pr_with_mixed_threads: { number: 42, id: "node1" },
+        issue_for_triage: { number: 30, id: "I_30" },
+      },
+    }
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
+    const scenario = makeScenario({
+      requires: ["pr_with_mixed_threads", "issue_for_triage"],
+    })
+    resetScenarioFixtures(scenario, manifest, null)
+    expect(resetMixedPrThreadsMock).not.toHaveBeenCalled()
+    expect(resetIssueTriageMock).toHaveBeenCalledWith("test-owner/test-repo", 30, "")
+    warnSpy.mockRestore()
   })
 })

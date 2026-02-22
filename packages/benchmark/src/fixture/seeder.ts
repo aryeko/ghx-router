@@ -7,7 +7,7 @@ import { z } from "zod"
 import type { FixtureManifest } from "../domain/types.js"
 import { runGh } from "./gh-client.js"
 import { parseRepo } from "./gh-utils.js"
-import { findOrCreateIssue } from "./seed-issue.js"
+import { createIssueTriage, findOrCreateIssue } from "./seed-issue.js"
 import { createSeedPr, ensurePrThread, findSeededPr } from "./seed-pr-basic.js"
 import { createPrWithBugs } from "./seed-pr-bugs.js"
 import { createPrWithMixedThreads } from "./seed-pr-mixed-threads.js"
@@ -29,6 +29,7 @@ const VALID_REQUIRES = [
   "workflow_run",
   "release",
   "project",
+  "issue_for_triage",
 ] as const
 
 type SeedOptions = {
@@ -130,11 +131,22 @@ async function buildManifest(
     }
   }
 
+  // Issue for triage: needed by "issue_for_triage"
+  const issueForTriage = needs("issue_for_triage")
+    ? createIssueTriage(repo)
+    : { id: "", number: 0, url: "" }
+
   // Release: needed by "release"
   const release = needs("release") ? findLatestDraftRelease(repo) : null
 
   // Project: needed by "project"
-  let project: { number: number; id: string; item_id: string; field_id: string; option_id: string }
+  let project: {
+    number: number
+    id: string
+    item_id: string
+    field_id: string
+    option_id: string
+  }
   if (needs("project")) {
     try {
       project = ensureProjectFixture(owner, issue.url)
@@ -206,6 +218,7 @@ async function buildManifest(
         tag_name: "v0.0.0-bench",
       },
       project,
+      issue_for_triage: issueForTriage,
       metadata: {
         seed_id: seedId,
         generated_at: new Date().toISOString(),

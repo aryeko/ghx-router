@@ -1,9 +1,15 @@
 {
   "type": "workflow",
   "id": "issue-triage-comment-wf-001",
-  "name": "Triage issue with label and comment",
-  "prompt": "Issue #{{issueNumber}} in {{owner}}/{{name}} needs triage. Read the issue, then add the label 'enhancement' to it, and leave a comment saying 'Triaged — tracking as enhancement.'",
-  "expected_capabilities": ["issue.view", "issue.labels.set", "issue.comments.create"],
+  "name": "Triage issue — reclassify labels and comment",
+  "prompt": "Issue #{{issueNumber}} in {{owner}}/{{name}} is a new feature request awaiting triage. Read the issue, then triage it: remove the labels 'triage' and 'feature-request', add the label 'enhancement', and leave a comment saying 'Triaged — tracking as enhancement.'",
+  "expected_capabilities": [
+    "issue.view",
+    "issue.labels.set",
+    "issue.labels.add",
+    "issue.labels.remove",
+    "issue.comments.create"
+  ],
   "timeout_ms": 180000,
   "allowed_retries": 1,
   "fixture": {
@@ -11,9 +17,10 @@
     "bindings": {
       "input.owner": "repo.owner",
       "input.name": "repo.name",
-      "input.issueNumber": "resources.issue.number"
+      "input.issueNumber": "resources.issue_for_triage.number"
     },
-    "requires": ["issue"]
+    "requires": ["issue_for_triage"],
+    "reseed_per_iteration": true
   },
   "assertions": {
     "expected_outcome": "success",
@@ -21,10 +28,15 @@
       {
         "name": "comment_added",
         "verification_task": "issue.comments.list",
-        "verification_input": {
-          "first": 50
-        },
+        "verification_input": { "first": 50 },
         "condition": "non_empty"
+      },
+      {
+        "name": "labels_correct",
+        "verification_task": "issue.labels.list",
+        "verification_input": {},
+        "condition": "count_eq",
+        "expected_value": 2
       }
     ]
   },
