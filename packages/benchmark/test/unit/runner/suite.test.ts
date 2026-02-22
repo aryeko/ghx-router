@@ -23,6 +23,10 @@ vi.mock("@bench/fixture/manifest.js", () => ({
   resolveWorkflowFixtureBindings: vi.fn((s) => s),
 }))
 
+vi.mock("@bench/fixture/reset.js", () => ({
+  resetScenarioFixtures: vi.fn(),
+}))
+
 describe("runSuite", () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -440,5 +444,141 @@ describe("runSuite", () => {
     const errorEvent = events.find((e) => e.type === "suite_error")
     expect(errorEvent).toBeDefined()
     expect(errorEvent?.message).toBe("mkdir-string-error")
+  })
+
+  it("calls resetScenarioFixtures once per iteration when manifest is non-null", async () => {
+    const { runScenarioIteration } = await import("@bench/runner/scenario-runner.js")
+    const { createSessionProvider } = await import("@bench/provider/factory.js")
+    const { resetScenarioFixtures } = await import("@bench/fixture/reset.js")
+
+    vi.mocked(runScenarioIteration).mockResolvedValue(mockBenchmarkRow)
+    vi.mocked(createSessionProvider).mockResolvedValue({
+      createSession: vi.fn(),
+      prompt: vi.fn(),
+      cleanup: vi.fn().mockResolvedValue(undefined),
+    } as unknown as import("@bench/provider/types.js").SessionProvider)
+
+    const scenario = makeWorkflowScenario({ fixture: { reseed_per_iteration: true } })
+    const manifest = {
+      version: 1 as const,
+      repo: { owner: "o", name: "r", full_name: "o/r", default_branch: "main" },
+      resources: {},
+    }
+
+    await runSuite({
+      modes: ["ghx"],
+      scenarios: [scenario],
+      repetitions: 3,
+      manifest,
+      outputJsonlPath: "/tmp/test.jsonl",
+      onProgress: () => {},
+      providerConfig: { type: "opencode", providerId: "test", modelId: "test" },
+      skipWarmup: true,
+      reviewerToken: "tok-abc",
+    })
+
+    expect(vi.mocked(resetScenarioFixtures)).toHaveBeenCalledTimes(3)
+    expect(vi.mocked(resetScenarioFixtures)).toHaveBeenCalledWith(scenario, manifest, "tok-abc")
+  })
+
+  it("does not call resetScenarioFixtures when manifest is null", async () => {
+    const { runScenarioIteration } = await import("@bench/runner/scenario-runner.js")
+    const { createSessionProvider } = await import("@bench/provider/factory.js")
+    const { resetScenarioFixtures } = await import("@bench/fixture/reset.js")
+
+    vi.mocked(runScenarioIteration).mockResolvedValue(mockBenchmarkRow)
+    vi.mocked(createSessionProvider).mockResolvedValue({
+      createSession: vi.fn(),
+      prompt: vi.fn(),
+      cleanup: vi.fn().mockResolvedValue(undefined),
+    } as unknown as import("@bench/provider/types.js").SessionProvider)
+
+    const scenario = makeWorkflowScenario({ fixture: { reseed_per_iteration: true } })
+
+    await runSuite({
+      modes: ["ghx"],
+      scenarios: [scenario],
+      repetitions: 2,
+      manifest: null,
+      outputJsonlPath: "/tmp/test.jsonl",
+      onProgress: () => {},
+      providerConfig: { type: "opencode", providerId: "test", modelId: "test" },
+      skipWarmup: true,
+      reviewerToken: "tok-abc",
+    })
+
+    expect(vi.mocked(resetScenarioFixtures)).not.toHaveBeenCalled()
+  })
+
+  it("passes reviewerToken from config to resetScenarioFixtures", async () => {
+    const { runScenarioIteration } = await import("@bench/runner/scenario-runner.js")
+    const { createSessionProvider } = await import("@bench/provider/factory.js")
+    const { resetScenarioFixtures } = await import("@bench/fixture/reset.js")
+
+    vi.mocked(runScenarioIteration).mockResolvedValue(mockBenchmarkRow)
+    vi.mocked(createSessionProvider).mockResolvedValue({
+      createSession: vi.fn(),
+      prompt: vi.fn(),
+      cleanup: vi.fn().mockResolvedValue(undefined),
+    } as unknown as import("@bench/provider/types.js").SessionProvider)
+
+    const scenario = makeWorkflowScenario()
+    const manifest = {
+      version: 1 as const,
+      repo: { owner: "o", name: "r", full_name: "o/r", default_branch: "main" },
+      resources: {},
+    }
+
+    await runSuite({
+      modes: ["ghx"],
+      scenarios: [scenario],
+      repetitions: 1,
+      manifest,
+      outputJsonlPath: "/tmp/test.jsonl",
+      onProgress: () => {},
+      providerConfig: { type: "opencode", providerId: "test", modelId: "test" },
+      skipWarmup: true,
+      reviewerToken: "my-special-token",
+    })
+
+    expect(vi.mocked(resetScenarioFixtures)).toHaveBeenCalledWith(
+      scenario,
+      manifest,
+      "my-special-token",
+    )
+  })
+
+  it("passes null reviewerToken when reviewerToken not provided in config", async () => {
+    const { runScenarioIteration } = await import("@bench/runner/scenario-runner.js")
+    const { createSessionProvider } = await import("@bench/provider/factory.js")
+    const { resetScenarioFixtures } = await import("@bench/fixture/reset.js")
+
+    vi.mocked(runScenarioIteration).mockResolvedValue(mockBenchmarkRow)
+    vi.mocked(createSessionProvider).mockResolvedValue({
+      createSession: vi.fn(),
+      prompt: vi.fn(),
+      cleanup: vi.fn().mockResolvedValue(undefined),
+    } as unknown as import("@bench/provider/types.js").SessionProvider)
+
+    const scenario = makeWorkflowScenario()
+    const manifest = {
+      version: 1 as const,
+      repo: { owner: "o", name: "r", full_name: "o/r", default_branch: "main" },
+      resources: {},
+    }
+
+    await runSuite({
+      modes: ["ghx"],
+      scenarios: [scenario],
+      repetitions: 1,
+      manifest,
+      outputJsonlPath: "/tmp/test.jsonl",
+      onProgress: () => {},
+      providerConfig: { type: "opencode", providerId: "test", modelId: "test" },
+      skipWarmup: true,
+      // reviewerToken not provided
+    })
+
+    expect(vi.mocked(resetScenarioFixtures)).toHaveBeenCalledWith(scenario, manifest, null)
   })
 })

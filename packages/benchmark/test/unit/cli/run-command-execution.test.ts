@@ -7,6 +7,7 @@ const loadScenarioSetsMock = vi.hoisted(() => vi.fn())
 const seedFixtureManifestMock = vi.hoisted(() => vi.fn())
 const loadFixtureManifestMock = vi.hoisted(() => vi.fn())
 const accessMock = vi.hoisted(() => vi.fn())
+const mintFixtureAppTokenMock = vi.hoisted(() => vi.fn())
 
 vi.mock("@bench/runner/suite.js", () => ({ runSuite: runSuiteMock }))
 vi.mock("@bench/scenario/loader.js", () => ({
@@ -18,6 +19,9 @@ vi.mock("@bench/fixture/seeder.js", () => ({
 }))
 vi.mock("@bench/fixture/manifest.js", () => ({
   loadFixtureManifest: loadFixtureManifestMock,
+}))
+vi.mock("@bench/fixture/app-auth.js", () => ({
+  mintFixtureAppToken: mintFixtureAppTokenMock,
 }))
 vi.mock("node:fs/promises", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:fs/promises")>()
@@ -55,6 +59,7 @@ describe("run-command execution behavior", () => {
     accessMock.mockRejectedValue(new Error("Not found"))
     seedFixtureManifestMock.mockResolvedValue(undefined)
     loadFixtureManifestMock.mockResolvedValue(null)
+    mintFixtureAppTokenMock.mockResolvedValue(null)
   })
 
   it("throws error when no scenarios found", async () => {
@@ -168,5 +173,82 @@ describe("run-command execution behavior", () => {
     accessMock.mockRejectedValue(new Error("Not found"))
 
     await expect(main(["ghx", "1"])).rejects.toThrow("Selected scenarios require fixture bindings")
+  })
+
+  it("calls mintFixtureAppToken when any scenario has reseed_per_iteration=true", async () => {
+    const scenario = mockScenario("s1")
+    scenario.fixture = { reseed_per_iteration: true }
+    loadScenariosMock.mockResolvedValue([scenario])
+    mintFixtureAppTokenMock.mockResolvedValue("minted-token")
+
+    await main(["ghx", "1"])
+
+    expect(mintFixtureAppTokenMock).toHaveBeenCalledTimes(1)
+  })
+
+  it("does not call mintFixtureAppToken when no scenario has reseed_per_iteration=true", async () => {
+    loadScenariosMock.mockResolvedValue([mockScenario("s1")])
+
+    await main(["ghx", "1"])
+
+    expect(mintFixtureAppTokenMock).not.toHaveBeenCalled()
+  })
+
+  it("passes minted reviewerToken to runSuite", async () => {
+    const scenario = mockScenario("s1")
+    scenario.fixture = { reseed_per_iteration: true }
+    loadScenariosMock.mockResolvedValue([scenario])
+    mintFixtureAppTokenMock.mockResolvedValue("minted-token")
+
+    await main(["ghx", "1"])
+
+    expect(runSuiteMock).toHaveBeenCalledWith(
+      expect.objectContaining({ reviewerToken: "minted-token" }),
+    )
+  })
+
+  it("logs warning when needsReseed but token is null", async () => {
+    const scenario = mockScenario("s1")
+    scenario.fixture = { reseed_per_iteration: true }
+    loadScenariosMock.mockResolvedValue([scenario])
+    mintFixtureAppTokenMock.mockResolvedValue(null)
+
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
+
+    await main(["ghx", "1"])
+
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("no reviewer token"))
+    warnSpy.mockRestore()
+  })
+
+  it("passes reviewerToken to seedFixtureManifest when --seed-if-missing", async () => {
+    const scenarioWithReseed = mockScenario("s1")
+    scenarioWithReseed.fixture = {
+      bindings: { repo: "test" },
+      requires: ["pr_with_mixed_threads"],
+      reseed_per_iteration: true,
+    }
+    loadScenariosMock.mockResolvedValue([scenarioWithReseed])
+    mintFixtureAppTokenMock.mockResolvedValue("seed-token")
+    loadFixtureManifestMock.mockResolvedValue({
+      version: 1,
+      repo: { owner: "o", name: "n", full_name: "o/n", default_branch: "main" },
+      resources: {},
+    })
+
+    await main(["ghx", "1", "--seed-if-missing"])
+
+    expect(seedFixtureManifestMock).toHaveBeenCalledWith(
+      expect.objectContaining({ requires: expect.arrayContaining(["pr_with_mixed_threads"]) }),
+      "seed-token",
+    )
+  })
+
+  it("passes null reviewerToken to runSuite when no reseed scenarios", async () => {
+    loadScenariosMock.mockResolvedValue([mockScenario("s1")])
+
+    await main(["ghx", "1"])
+
+    expect(runSuiteMock).toHaveBeenCalledWith(expect.objectContaining({ reviewerToken: null }))
   })
 })

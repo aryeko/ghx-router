@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto"
 import { appendFile, mkdir } from "node:fs/promises"
 import { dirname } from "node:path"
 import type { BenchmarkMode, FixtureManifest, Scenario } from "../domain/types.js"
+import { resetScenarioFixtures } from "../fixture/reset.js"
 import { createSessionProvider } from "../provider/factory.js"
 import { runScenarioIteration } from "./scenario-runner.js"
 
@@ -48,6 +49,7 @@ export async function runSuite(config: {
   providerConfig: { type: "opencode"; providerId: string; modelId: string }
   skipWarmup?: boolean
   scenarioSet?: string | null
+  reviewerToken?: string | null
 }): Promise<{ rowCount: number; durationMs: number }> {
   const {
     modes,
@@ -59,6 +61,7 @@ export async function runSuite(config: {
     providerConfig,
     skipWarmup = false,
     scenarioSet = null,
+    reviewerToken = null,
   } = config
 
   const suiteStartedAt = Date.now()
@@ -137,6 +140,10 @@ export async function runSuite(config: {
 
       for (const scenario of scenarios) {
         for (let iteration = 1; iteration <= repetitions; iteration += 1) {
+          if (manifest !== null) {
+            resetScenarioFixtures(scenario, manifest, reviewerToken)
+          }
+
           onProgress({
             type: "scenario_started",
             scenarioId: scenario.id,

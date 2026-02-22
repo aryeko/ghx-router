@@ -2,6 +2,7 @@ import { access } from "node:fs/promises"
 import { join } from "node:path"
 import { z } from "zod"
 import type { BenchmarkMode, Scenario } from "../domain/types.js"
+import { mintFixtureAppToken } from "../fixture/app-auth.js"
 import { loadFixtureManifest } from "../fixture/manifest.js"
 import { seedFixtureManifest } from "../fixture/seeder.js"
 import { type ProgressEvent, runSuite } from "../runner/suite.js"
@@ -161,6 +162,19 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
 
   const selectedScenarios = allSelectedScenarios
 
+  const needsReseed = selectedScenarios.some((s) => s.fixture?.reseed_per_iteration === true)
+
+  let reviewerToken: string | null = null
+  if (needsReseed) {
+    reviewerToken = await mintFixtureAppToken()
+    if (reviewerToken === null) {
+      console.warn(
+        "[benchmark] warn: reseed_per_iteration scenarios detected but no reviewer token. " +
+          "Resets will be skipped. Configure BENCH_FIXTURE_GH_APP_* env vars to enable.",
+      )
+    }
+  }
+
   const needsFixtureBindings = selectedScenarios.some((scenario) => {
     const bindings = scenario.fixture?.bindings
     return !!bindings && Object.keys(bindings).length > 0
@@ -211,12 +225,15 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
         }
       }
 
-      await seedFixtureManifest({
-        repo: seedSourceRepo,
-        outFile: fixtureManifestPath,
-        seedId: process.env.BENCH_FIXTURE_SEED_ID ?? "default",
-        ...(requiredResources.size > 0 ? { requires: [...requiredResources] } : {}),
-      })
+      await seedFixtureManifest(
+        {
+          repo: seedSourceRepo,
+          outFile: fixtureManifestPath,
+          seedId: process.env.BENCH_FIXTURE_SEED_ID ?? "default",
+          ...(requiredResources.size > 0 ? { requires: [...requiredResources] } : {}),
+        },
+        reviewerToken,
+      )
     }
 
     fixtureManifest = await loadFixtureManifest(fixtureManifestPath)
@@ -249,6 +266,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
     providerConfig: { type: "opencode", providerId, modelId },
     skipWarmup: parsed.skipWarmup,
     scenarioSet: resolvedScenarioSet,
+    reviewerToken,
   })
 }
 
