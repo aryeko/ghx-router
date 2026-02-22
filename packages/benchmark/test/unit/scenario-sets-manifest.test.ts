@@ -9,10 +9,18 @@ function loadScenarioSets(): Record<string, string[]> {
 }
 
 describe("scenario-sets manifest", () => {
-  it("keeps default set equal to all workflow scenarios", () => {
+  it("keeps default set equal to workflows plus chaining scenarios", () => {
     const scenarioSets = loadScenarioSets()
 
-    expect(scenarioSets.default).toEqual([
+    expect(new Set(scenarioSets.default)).toEqual(
+      new Set([...(scenarioSets.workflows ?? []), ...(scenarioSets.chaining ?? [])]),
+    )
+  })
+
+  it("defines workflows set as the workflow-only subset", () => {
+    const scenarioSets = loadScenarioSets()
+
+    expect(scenarioSets.workflows).toEqual([
       "pr-fix-review-comments-wf-001",
       "issue-triage-comment-wf-001",
       "pr-review-comment-wf-001",
@@ -20,16 +28,10 @@ describe("scenario-sets manifest", () => {
     ])
   })
 
-  it("defines workflows set matching default", () => {
+  it("defines all as equal to default", () => {
     const scenarioSets = loadScenarioSets()
 
-    expect(scenarioSets.workflows).toEqual(scenarioSets.default)
-  })
-
-  it("defines all as equal to workflows", () => {
-    const scenarioSets = loadScenarioSets()
-
-    expect(new Set(scenarioSets.all ?? [])).toEqual(new Set(scenarioSets.workflows ?? []))
+    expect(new Set(scenarioSets.all ?? [])).toEqual(new Set(scenarioSets.default ?? []))
   })
 
   it("defines full-seeded as equal to all", () => {

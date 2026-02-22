@@ -1,0 +1,30 @@
+{
+  "type": "workflow",
+  "id": "issue-triage-atomic-wf-001",
+  "name": "Atomically triage issue: set labels, assignee, and milestone in one chain",
+  "prompt": "Issue #{{issueNumber}} in {{owner}}/{{name}} needs atomic triage. In a single ghx chain call, set the label 'bug' using issue.labels.set, set the assignee to 'aryeko' using issue.assignees.set, and set milestone number 1 using issue.milestone.set. All three must happen in one chain — do not use separate ghx run calls.",
+  "expected_capabilities": ["issue.labels.set", "issue.assignees.set", "issue.milestone.set"],
+  "timeout_ms": 180000,
+  "allowed_retries": 1,
+  "fixture": {
+    "repo": "aryeko/ghx-bench-fixtures",
+    "bindings": {
+      "input.owner": "repo.owner",
+      "input.name": "repo.name",
+      "input.issueNumber": "resources.issue.number"
+    },
+    "requires": ["issue"]
+  },
+  "assertions": {
+    "expected_outcome": "success",
+    "checkpoints": [
+      {
+        "name": "issue_view_non_empty",
+        "verification_task": "issue.view",
+        "verification_input": {},
+        "condition": "non_empty"
+      }
+    ]
+  },
+  "tags": ["workflow", "chaining", "issue", "atomic"]
+}
