@@ -2,7 +2,6 @@ import { randomUUID } from "node:crypto"
 import { appendFile, mkdir } from "node:fs/promises"
 import { dirname } from "node:path"
 import type { BenchmarkMode, FixtureManifest, Scenario } from "../domain/types.js"
-import { resolveWorkflowFixtureBindings } from "../fixture/manifest.js"
 import { createSessionProvider } from "../provider/factory.js"
 import { runScenarioIteration } from "./scenario-runner.js"
 
@@ -88,7 +87,6 @@ export async function runSuite(config: {
         try {
           const provider = await createSessionProvider({
             type: "opencode",
-            mode: modes[0] ?? "ghx",
             providerId: providerConfig.providerId,
             modelId: providerConfig.modelId,
           })
@@ -133,7 +131,6 @@ export async function runSuite(config: {
 
       const provider = await createSessionProvider({
         type: "opencode",
-        mode,
         providerId: providerConfig.providerId,
         modelId: providerConfig.modelId,
       })
@@ -148,14 +145,9 @@ export async function runSuite(config: {
             completed: totalCompleted,
           })
 
-          let resolvedScenario = scenario
-          if (manifest) {
-            resolvedScenario = resolveWorkflowFixtureBindings(scenario, manifest)
-          }
-
           const result = await runScenarioIteration({
             provider,
-            scenario: resolvedScenario,
+            scenario,
             mode,
             iteration,
             scenarioSet,
