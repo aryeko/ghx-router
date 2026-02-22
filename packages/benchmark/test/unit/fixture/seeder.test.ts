@@ -13,17 +13,23 @@ vi.mock("@bench/fixture/gh-client.js", () => ({
   runGh: runGhMock,
 }))
 
-vi.mock("@bench/fixture/seed-pr.js", () => ({
+vi.mock("@bench/fixture/seed-pr-basic.js", () => ({
   findSeededPr: vi.fn().mockReturnValue(null),
   createSeedPr: vi.fn().mockReturnValue({ id: "PR_1", number: 1 }),
+  ensurePrThread: vi.fn().mockReturnValue("THREAD_1"),
+}))
+
+vi.mock("@bench/fixture/seed-pr-reviews.js", () => ({
   createPrWithReviews: vi.fn().mockReturnValue({ id: "PR_2", number: 2, thread_count: 4 }),
+}))
+
+vi.mock("@bench/fixture/seed-pr-mixed-threads.js", () => ({
   createPrWithMixedThreads: vi.fn().mockReturnValue({
     id: "PR_3",
     number: 3,
     resolved_count: 4,
     unresolved_count: 3,
   }),
-  ensurePrThread: vi.fn().mockReturnValue("THREAD_1"),
 }))
 
 vi.mock("@bench/fixture/seed-issue.js", () => ({
@@ -107,7 +113,7 @@ describe("validateManifest", () => {
 
   it("throws when pr_with_reviews is required but number is 0", async () => {
     const { createPrWithReviews: createPrWithReviewsMock } = await import(
-      "@bench/fixture/seed-pr.js"
+      "@bench/fixture/seed-pr-reviews.js"
     )
 
     vi.mocked(createPrWithReviewsMock).mockReturnValue({
@@ -131,7 +137,7 @@ describe("validateManifest", () => {
 
   it("throws when pr_with_mixed_threads is required but number is 0", async () => {
     const { createPrWithMixedThreads: createPrWithMixedThreadsMock } = await import(
-      "@bench/fixture/seed-pr.js"
+      "@bench/fixture/seed-pr-mixed-threads.js"
     )
 
     vi.mocked(createPrWithMixedThreadsMock).mockReturnValue({
@@ -156,7 +162,7 @@ describe("validateManifest", () => {
 
   it("does not throw when required fixtures have valid numbers", async () => {
     const { createPrWithReviews: createPrWithReviewsMock } = await import(
-      "@bench/fixture/seed-pr.js"
+      "@bench/fixture/seed-pr-reviews.js"
     )
 
     vi.mocked(createPrWithReviewsMock).mockReturnValue({
@@ -224,7 +230,7 @@ describe("pr_with_mixed_threads seeding", () => {
 
   it("seeds pr_with_mixed_threads when reviewerToken is provided", async () => {
     const { createPrWithMixedThreads: createPrWithMixedThreadsMock } = await import(
-      "@bench/fixture/seed-pr.js"
+      "@bench/fixture/seed-pr-mixed-threads.js"
     )
 
     vi.mocked(createPrWithMixedThreadsMock).mockReturnValue({
@@ -252,7 +258,7 @@ describe("pr_with_mixed_threads seeding", () => {
     const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
 
     const { createPrWithMixedThreads: createPrWithMixedThreadsMock } = await import(
-      "@bench/fixture/seed-pr.js"
+      "@bench/fixture/seed-pr-mixed-threads.js"
     )
 
     vi.mocked(createPrWithMixedThreadsMock).mockReturnValue({
@@ -280,7 +286,7 @@ describe("pr_with_mixed_threads seeding", () => {
 
   it("seeds pr_with_reviews when reviewerToken is provided", async () => {
     const { createPrWithReviews: createPrWithReviewsMock } = await import(
-      "@bench/fixture/seed-pr.js"
+      "@bench/fixture/seed-pr-reviews.js"
     )
 
     vi.mocked(createPrWithReviewsMock).mockReturnValue({
@@ -307,7 +313,7 @@ describe("pr_with_mixed_threads seeding", () => {
     const consoleSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
 
     const { createPrWithReviews: createPrWithReviewsMock } = await import(
-      "@bench/fixture/seed-pr.js"
+      "@bench/fixture/seed-pr-reviews.js"
     )
 
     vi.mocked(createPrWithReviewsMock).mockReturnValue({

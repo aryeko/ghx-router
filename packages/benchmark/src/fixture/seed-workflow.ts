@@ -1,54 +1,15 @@
 import { runGhJson, sleep, tryRunGh, tryRunGhJson } from "./gh-client.js"
+import { parseArrayResponse } from "./gh-utils.js"
+import {
+  parseCheckRunIdFromJob,
+  parseWorkflowRunCreatedAtMs,
+  parseWorkflowRunIdFromLink,
+} from "./workflow-parse-utils.js"
 
 const FAILED_RERUN_WORKFLOW_FILE =
   process.env.BENCH_FIXTURE_FAILED_RERUN_WORKFLOW ?? "bench-rerun-failed.yml"
 const FAILED_RERUN_POLL_INTERVAL_MS = 2000
 const FAILED_RERUN_TIMEOUT_MS = 90_000
-
-function parseArrayResponse(value: unknown): unknown[] {
-  if (Array.isArray(value)) {
-    return value
-  }
-
-  if (typeof value === "object" && value !== null) {
-    const items = (value as { items?: unknown[] }).items
-    if (Array.isArray(items)) {
-      return items
-    }
-
-    const projects = (value as { projects?: unknown[] }).projects
-    if (Array.isArray(projects)) {
-      return projects
-    }
-
-    const nodes = (value as { nodes?: unknown[] }).nodes
-    if (Array.isArray(nodes)) {
-      return nodes
-    }
-
-    const fields = (value as { fields?: unknown[] }).fields
-    if (Array.isArray(fields)) {
-      return fields
-    }
-  }
-
-  return []
-}
-
-function parseWorkflowRunIdFromLink(link: string): number | null {
-  const match = /\/actions\/runs\/(\d+)/.exec(link)
-  if (!match) {
-    return null
-  }
-
-  const runId = Number(match[1])
-  return Number.isInteger(runId) && runId > 0 ? runId : null
-}
-
-function parseWorkflowRunCreatedAtMs(entry: Record<string, unknown>): number {
-  const createdAt = typeof entry.createdAt === "string" ? Date.parse(entry.createdAt) : Number.NaN
-  return Number.isFinite(createdAt) ? createdAt : 0
-}
 
 export function findDispatchedFailedRunId(
   repo: string,
@@ -96,34 +57,6 @@ export function findDispatchedFailedRunId(
     Number(nearDispatch.databaseId) > 0
   ) {
     return Number(nearDispatch.databaseId)
-  }
-
-  return null
-}
-
-function parseCheckRunIdFromJob(entry: Record<string, unknown>): number | null {
-  const directIdCandidates = [entry.checkRunId, entry.check_run_id]
-  for (const candidate of directIdCandidates) {
-    if (typeof candidate === "number" && Number.isInteger(candidate) && candidate > 0) {
-      return Number(candidate)
-    }
-  }
-
-  const urlCandidates = [entry.checkRunUrl, entry.check_run_url]
-  for (const candidate of urlCandidates) {
-    if (typeof candidate !== "string") {
-      continue
-    }
-
-    const match = candidate.match(/\/check-runs\/(\d+)(?:[/?#]|$)/)
-    if (!match) {
-      continue
-    }
-
-    const parsed = Number(match[1])
-    if (Number.isInteger(parsed) && parsed > 0) {
-      return parsed
-    }
   }
 
   return null

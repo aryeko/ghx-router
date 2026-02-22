@@ -70,7 +70,7 @@ pnpm --filter @ghx-dev/benchmark run report:gate
 - `--model <id>` — override model (e.g., `gpt-5.3-codex`)
 - `--output-jsonl <path>` — write raw results to specified JSONL file
 
-**Fixture CLI flags** (`pnpm --filter @ghx-dev/benchmark run fixtures --`):
+**Fixture CLI flags** (`pnpm --filter @ghx-dev/benchmark run bench:fixture --`):
 
 - `seed` / `status` / `cleanup` — fixture lifecycle commands
 - `--repo <owner/name>` — target repo (default: `aryeko/ghx-bench-fixtures`, env: `BENCH_FIXTURE_REPO`)
@@ -105,7 +105,7 @@ User/Agent → CLI (packages/core/src/cli/) → executeTask() [core/routing/engi
 
 ### Benchmark Flow
 
-`packages/benchmark/src/cli/benchmark.ts` → scenario selection from `packages/benchmark/scenario-sets.json` → isolated OpenCode sessions → envelope/tool/attempt extraction (`src/extract/`) → assertion validation → `results/*.jsonl` → `reports/latest-summary.{json,md}`.
+`packages/benchmark/src/cli/index.ts` → scenario selection from `packages/benchmark/scenario-sets.json` → isolated OpenCode sessions → assertion validation → `results/*.jsonl` → `reports/latest-summary.{json,md}`.
 
 ## Code Style
 

@@ -2,32 +2,16 @@
   "fixtures": {
     "setup": {
       "cleanup": {
-        "command": [
-          "rm",
-          "-f",
-          "reports/latest-summary.json",
-          "reports/latest-summary.md"
-        ]
+        "command": ["rm", "-f", "reports/latest-summary.json", "reports/latest-summary.md"]
       },
       "seed": {
-        "command": [
-          "pnpm",
-          "run",
-          "fixtures",
-          "--",
-          "seed"
-        ]
+        "command": ["pnpm", "run", "bench:fixture", "--", "seed"]
       }
     }
   },
   "benchmark": {
     "base": {
-      "command": [
-        "pnpm",
-        "run",
-        "benchmark",
-        "--"
-      ],
+      "command": ["pnpm", "run", "bench", "--"],
       "repetitions": 3,
       "scenarioSet": "ci-verify-pr"
     },
@@ -48,22 +32,10 @@
   "reporting": {
     "analysis": {
       "report": {
-        "command": [
-          "pnpm",
-          "run",
-          "report"
-        ]
+        "command": ["pnpm", "run", "report"]
       },
       "gate": {
-        "command": [
-          "pnpm",
-          "run",
-          "report",
-          "--",
-          "--gate",
-          "--gate-profile",
-          "verify_pr"
-        ]
+        "command": ["pnpm", "run", "report", "--", "--gate", "--gate-profile", "verify_pr"]
       }
     }
   }

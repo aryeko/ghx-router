@@ -43,7 +43,7 @@ function mockScenario(id: string): Scenario {
   }
 }
 
-describe("run-command main", () => {
+describe("run-command flag parsing", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     loadScenarioSetsMock.mockResolvedValue({
@@ -121,12 +121,6 @@ describe("run-command main", () => {
     ).rejects.toThrow("--scenario and --scenario-set cannot be used together")
   })
 
-  it("throws error when no scenarios found", async () => {
-    loadScenariosMock.mockResolvedValue([])
-
-    await expect(main(["ghx", "1"])).rejects.toThrow("No benchmark scenarios found")
-  })
-
   it("filters scenarios by --scenario flag", async () => {
     loadScenariosMock.mockResolvedValue([mockScenario("s1"), mockScenario("s2")])
 
@@ -188,48 +182,6 @@ describe("run-command main", () => {
     )
   })
 
-  it("throws error when scenario set references unknown scenario id", async () => {
-    loadScenariosMock.mockResolvedValue([mockScenario("s1")])
-    loadScenarioSetsMock.mockResolvedValue({ default: ["unknown"] })
-
-    await expect(main(["ghx", "1"])).rejects.toThrow("references unknown scenario id")
-  })
-
-  it("auto-discovers default fixture manifest when scenarios need bindings", async () => {
-    const scenarioWithBindings = mockScenario("s1")
-    scenarioWithBindings.fixture = { bindings: { repo: "test" } }
-    loadScenariosMock.mockResolvedValue([scenarioWithBindings])
-    accessMock.mockResolvedValue(undefined)
-
-    await main(["ghx", "1"])
-
-    expect(loadFixtureManifestMock).toHaveBeenCalledWith("fixtures/latest.json")
-  })
-
-  it("seeds fixture manifest when --seed-if-missing provided and manifest missing", async () => {
-    const scenarioWithBindings = mockScenario("s1")
-    scenarioWithBindings.fixture = { bindings: { repo: "test" }, requires: ["resource1"] }
-    loadScenariosMock.mockResolvedValue([scenarioWithBindings])
-    loadFixtureManifestMock.mockResolvedValue({
-      version: 1,
-      repo: { owner: "o", name: "n", full_name: "o/n", default_branch: "main" },
-      resources: {},
-    })
-
-    await main(["ghx", "1", "--seed-if-missing"])
-
-    expect(seedFixtureManifestMock).toHaveBeenCalled()
-  })
-
-  it("throws error when fixture manifest missing and not auto-seeding", async () => {
-    const scenarioWithBindings = mockScenario("s1")
-    scenarioWithBindings.fixture = { bindings: { repo: "test" } }
-    loadScenariosMock.mockResolvedValue([scenarioWithBindings])
-    accessMock.mockRejectedValue(new Error("Not found"))
-
-    await expect(main(["ghx", "1"])).rejects.toThrow("Selected scenarios require fixture bindings")
-  })
-
   it("respects --skip-warmup flag", async () => {
     loadScenariosMock.mockResolvedValue([mockScenario("s1")])
 
@@ -282,79 +234,6 @@ describe("run-command main", () => {
     )
   })
 
-  it("defaults to ghx mode when not specified", async () => {
-    loadScenariosMock.mockResolvedValue([mockScenario("s1")])
-
-    await main([])
-
-    expect(runSuiteMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        modes: ["ghx"],
-      }),
-    )
-  })
-
-  it("defaults to 1 repetition when not specified", async () => {
-    loadScenariosMock.mockResolvedValue([mockScenario("s1")])
-
-    await main([])
-
-    expect(runSuiteMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        repetitions: 1,
-      }),
-    )
-  })
-
-  it("passes scenarios to runSuite", async () => {
-    const scenarios = [mockScenario("s1")]
-    loadScenariosMock.mockResolvedValue(scenarios)
-
-    await main(["ghx", "1"])
-
-    expect(runSuiteMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        scenarios: expect.arrayContaining(scenarios),
-      }),
-    )
-  })
-
-  it("resolves scenario set name", async () => {
-    loadScenariosMock.mockResolvedValue([mockScenario("s1")])
-    loadScenarioSetsMock.mockResolvedValue({
-      default: ["s1"],
-      custom: ["s1"],
-    })
-
-    await main(["ghx", "1", "--scenario-set", "custom"])
-
-    expect(runSuiteMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        scenarioSet: "custom",
-      }),
-    )
-  })
-
-  it("sets scenarioSet to null when using --scenario filter", async () => {
-    loadScenariosMock.mockResolvedValue([mockScenario("s1")])
-
-    await main(["ghx", "1", "--scenario", "s1"])
-
-    expect(runSuiteMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        scenarioSet: null,
-      }),
-    )
-  })
-
-  it("throws error when --seed-if-missing without --fixture-manifest", async () => {
-    loadScenariosMock.mockResolvedValue([mockScenario("s1")])
-
-    await expect(main(["ghx", "1", "--seed-if-missing"])).rejects.toThrow(
-      "--seed-if-missing requires --fixture-manifest",
-    )
-  })
-
   it("supports --fixture-manifest flag", async () => {
     loadScenariosMock.mockResolvedValue([mockScenario("s1")])
     accessMock.mockResolvedValue(undefined)
@@ -367,6 +246,14 @@ describe("run-command main", () => {
     await main(["ghx", "1", "--fixture-manifest=/custom/path.json"])
 
     expect(loadFixtureManifestMock).toHaveBeenCalledWith("/custom/path.json")
+  })
+
+  it("throws error when --seed-if-missing without --fixture-manifest", async () => {
+    loadScenariosMock.mockResolvedValue([mockScenario("s1")])
+
+    await expect(main(["ghx", "1", "--seed-if-missing"])).rejects.toThrow(
+      "--seed-if-missing requires --fixture-manifest",
+    )
   })
 
   it("throws error when fixture manifest file not found", async () => {

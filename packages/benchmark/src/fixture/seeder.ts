@@ -6,14 +6,11 @@ import { z } from "zod"
 
 import type { FixtureManifest } from "../domain/types.js"
 import { runGh } from "./gh-client.js"
+import { parseRepo } from "./gh-utils.js"
 import { findOrCreateIssue } from "./seed-issue.js"
-import {
-  createPrWithMixedThreads,
-  createPrWithReviews,
-  createSeedPr,
-  ensurePrThread,
-  findSeededPr,
-} from "./seed-pr.js"
+import { createSeedPr, ensurePrThread, findSeededPr } from "./seed-pr-basic.js"
+import { createPrWithMixedThreads } from "./seed-pr-mixed-threads.js"
+import { createPrWithReviews } from "./seed-pr-reviews.js"
 import { ensureProjectFixture } from "./seed-project.js"
 import { findLatestDraftRelease } from "./seed-release.js"
 import {
@@ -45,17 +42,6 @@ const seedOptionsSchema = z.object({
   seedId: z.string().trim().min(1, "seedId must be a non-empty string"),
   requires: z.array(z.enum(VALID_REQUIRES)).optional(),
 })
-
-function parseRepo(repo: string): { owner: string; name: string } {
-  const parts = repo.split("/")
-  if (parts.length !== 2 || !parts[0] || !parts[1]) {
-    throw new Error(`invalid repo format: ${repo}; expected owner/name`)
-  }
-
-  const [owner, name] = parts
-
-  return { owner, name }
-}
 
 async function buildManifest(
   repo: string,

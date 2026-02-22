@@ -22,7 +22,8 @@
     "fixtures:env:bootstrap": "bash scripts/bootstrap-fixture-app-env.sh",
     "check:scenarios": "tsx src/cli/index.ts check",
     "report": "tsx src/cli/index.ts report",
-    "report:gate": "pnpm run report -- --gate"
+    "report:gate": "pnpm run report -- --gate",
+    "inspect": "tsx scripts/inspect-session.ts"
   },
   "nx": {
     "targets": {
