@@ -25,7 +25,7 @@ export function tryRunGh(args: string[]): string | null {
 export function runGhJson<T = unknown>(args: string[]): T {
   const output = runGh(args)
   if (output.length === 0) {
-    return {} as T
+    throw new Error(`gh command returned empty output: gh ${args.join(" ")}`)
   }
 
   return JSON.parse(output) as T
@@ -38,10 +38,14 @@ export function tryRunGhJson<T = unknown>(args: string[]): T | null {
   }
 
   if (output.length === 0) {
-    return {} as T
+    return null
   }
 
-  return JSON.parse(output) as T
+  try {
+    return JSON.parse(output) as T
+  } catch {
+    return null
+  }
 }
 
 export function runGhWithToken(args: string[], token: string): string {
@@ -69,7 +73,9 @@ export function tryRunGhWithToken(args: string[], token: string): string | null 
 
 export function runGhJsonWithToken<T = unknown>(args: string[], token: string): T {
   const output = runGhWithToken(args, token)
-  if (output.length === 0) return {} as T
+  if (output.length === 0) {
+    throw new Error(`gh command returned empty output: gh ${args.join(" ")}`)
+  }
   return JSON.parse(output) as T
 }
 

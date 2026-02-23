@@ -1,5 +1,5 @@
-import type { Scenario } from "@bench/domain/types.js"
 import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from "vitest"
+import { makeMockScenario } from "../../helpers/scenario-factory.js"
 
 const loadScenariosMock = vi.hoisted(() => vi.fn())
 const loadScenarioSetsMock = vi.hoisted(() => vi.fn())
@@ -9,22 +9,7 @@ vi.mock("@bench/scenario/loader.js", () => ({
   loadScenarioSets: loadScenarioSetsMock,
 }))
 
-function mockScenario(id: string): Scenario {
-  return {
-    type: "workflow",
-    id,
-    name: `Scenario ${id}`,
-    prompt: "Do some work",
-    expected_capabilities: [],
-    timeout_ms: 60000,
-    allowed_retries: 0,
-    assertions: {
-      expected_outcome: "success",
-      checkpoints: [],
-    },
-    tags: [],
-  }
-}
+const mockScenario = makeMockScenario
 
 describe("check-command", () => {
   let consoleLogSpy: MockInstance

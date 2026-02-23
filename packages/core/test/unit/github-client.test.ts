@@ -1639,8 +1639,7 @@ describe("createGithubClient", () => {
     const milestoneLookupMissingClient = createGithubClient({
       execute: vi
         .fn()
-        .mockResolvedValueOnce({ repository: { issue: { id: "issue-1" } } })
-        .mockResolvedValueOnce({ node: { repository: { milestone: null } } }),
+        .mockResolvedValueOnce({ repository: { issue: { id: "issue-1" }, milestone: null } }),
     } as never)
     await expect(
       milestoneLookupMissingClient.setIssueMilestone({

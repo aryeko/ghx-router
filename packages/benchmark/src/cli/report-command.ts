@@ -1,6 +1,6 @@
 import { appendFile, mkdir, readdir, writeFile } from "node:fs/promises"
 import { dirname, join } from "node:path"
-import { z } from "zod"
+import { benchmarkRowSchema } from "../domain/schemas.js"
 import type { BenchmarkMode, BenchmarkRow, GateProfile, HistoryEntry } from "../domain/types.js"
 import { buildSummary } from "../report/aggregate.js"
 import {
@@ -16,85 +16,15 @@ import { detectRegressions, formatRegressionWarnings, loadHistory } from "../rep
 import { readJsonlFile } from "../util/jsonl.js"
 import { parseFlagValue, parseMultiFlagValues } from "./flag-utils.js"
 
-const benchmarkRowSchema = z.object({
-  timestamp: z.string(),
-  run_id: z.string(),
-  mode: z.enum(["agent_direct", "mcp", "ghx"]),
-  scenario_id: z.string(),
-  scenario_set: z.string().nullable(),
-  iteration: z.number(),
-  session_id: z.string().nullable(),
-  success: z.boolean(),
-  output_valid: z.boolean(),
-  latency_ms_wall: z.number(),
-  sdk_latency_ms: z.number().nullable(),
-  timing_breakdown: z
-    .object({
-      assistant_total_ms: z.number(),
-      assistant_pre_reasoning_ms: z.number(),
-      assistant_reasoning_ms: z.number(),
-      assistant_between_reasoning_and_tool_ms: z.number(),
-      assistant_post_tool_ms: z.number(),
-      tool_total_ms: z.number(),
-      tool_bash_ms: z.number(),
-      tool_structured_output_ms: z.number(),
-      observed_assistant_turns: z.number(),
-    })
-    .optional(),
-  tokens: z.object({
-    input: z.number(),
-    output: z.number(),
-    reasoning: z.number(),
-    cache_read: z.number(),
-    cache_write: z.number(),
-    total: z.number(),
-  }),
-  cost: z.number(),
-  tool_calls: z.number(),
-  api_calls: z.number(),
-  internal_retry_count: z.number(),
-  external_retry_count: z.number(),
-  model: z.object({
-    provider_id: z.string(),
-    model_id: z.string(),
-    mode: z.string().nullable(),
-  }),
-  git: z.object({
-    repo: z.string().nullable(),
-    commit: z.string().nullable(),
-  }),
-  error: z
-    .object({
-      type: z.string(),
-      message: z.string(),
-    })
-    .nullable(),
-})
-
 const RESULTS_DIR = join(process.cwd(), "results")
 const REPORTS_DIR = join(process.cwd(), "reports")
 const DEFAULT_EXPECTATIONS_CONFIG = join(process.cwd(), "config", "expectations.json")
 
 function parseGateProfile(args: string[]): GateProfile {
-  const inline = args.find((arg) => arg.startsWith("--gate-profile="))
-  if (inline) {
-    const value = inline.slice("--gate-profile=".length)
-    if (value === "verify_pr" || value === "verify_release") {
-      return value
-    }
-    throw new Error("Unknown gate profile. Expected verify_pr or verify_release")
-  }
-
-  const index = args.findIndex((arg) => arg === "--gate-profile")
-  if (index === -1) {
-    return "verify_pr"
-  }
-
-  const value = args[index + 1]
+  const value = parseFlagValue(args, "--gate-profile") ?? "verify_pr"
   if (value === "verify_pr" || value === "verify_release") {
     return value
   }
-
   throw new Error("Unknown gate profile. Expected verify_pr or verify_release")
 }
 
@@ -123,7 +53,7 @@ function parseArgs(args: string[]): {
 async function loadLatestRowsPerMode(): Promise<BenchmarkRow[]> {
   const files = await readdir(RESULTS_DIR)
   const jsonlFiles = files.filter((f) => f.endsWith(".jsonl"))
-  const latestPerMode: Record<string, { file: string; time: number }> = {}
+  const latestPerMode: Record<string, { file: string; timestamp: string }> = {}
 
   for (const file of jsonlFiles) {
     const match = file.match(/^([\d-]+)-(agent_direct|mcp|ghx)-suite\.jsonl$/)
@@ -132,10 +62,9 @@ async function loadLatestRowsPerMode(): Promise<BenchmarkRow[]> {
     const timestamp = match[1]
     const mode = match[2]
     if (!timestamp || !mode) continue
-    const time = new Date(timestamp.replace(/-/g, ":").replace("T", " ")).getTime()
 
-    if (!latestPerMode[mode] || latestPerMode[mode].time < time) {
-      latestPerMode[mode] = { file, time }
+    if (!latestPerMode[mode] || latestPerMode[mode].timestamp < timestamp) {
+      latestPerMode[mode] = { file, timestamp }
     }
   }
 

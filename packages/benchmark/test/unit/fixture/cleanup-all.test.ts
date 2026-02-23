@@ -28,7 +28,6 @@ describe("cleanupAllFixtures", () => {
         stderr: "",
       })
       .mockReturnValueOnce({ status: 0, stdout: "", stderr: "" })
-      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
       .mockReturnValueOnce({
         status: 0,
         stdout: JSON.stringify([
@@ -86,7 +85,6 @@ describe("cleanupAllFixtures", () => {
       .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
       .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
       .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
-      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
       .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
       .mockReturnValueOnce({ status: 0, stdout: JSON.stringify({ projects: [] }), stderr: "" })
 
@@ -107,7 +105,6 @@ describe("cleanupAllFixtures", () => {
     spawnSyncMock
       .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
       .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
-      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
       .mockReturnValueOnce({
         status: 0,
         stdout: JSON.stringify([{ ref: "refs/heads/bench-seed-abc" }]),
@@ -138,7 +135,6 @@ describe("cleanupAllFixtures", () => {
       .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
       .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
       .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
-      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
       .mockReturnValueOnce({
         status: 0,
         stdout: JSON.stringify([{ name: "bench-fixture" }, { name: "bench-seed:local" }]),
@@ -163,7 +159,6 @@ describe("cleanupAllFixtures", () => {
       .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
       .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
       .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
-      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
       .mockReturnValueOnce({ status: 0, stdout: "not valid json", stderr: "" })
       .mockReturnValueOnce({ status: 0, stdout: JSON.stringify({ projects: [] }), stderr: "" })
 
@@ -179,7 +174,6 @@ describe("cleanupAllFixtures", () => {
       .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
       .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
       .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
-      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
       .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
       .mockReturnValueOnce({ status: 0, stdout: "invalid project json", stderr: "" })
 
@@ -194,7 +188,6 @@ describe("cleanupAllFixtures", () => {
       .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
       .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
       .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
-      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
       .mockReturnValueOnce({ status: 0, stdout: JSON.stringify({ projects: [] }), stderr: "" })
 
     const result = await cleanupAllFixtures("aryeko/ghx-bench-fixtures")
@@ -206,7 +199,6 @@ describe("cleanupAllFixtures", () => {
     spawnSyncMock
       .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
       .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
-      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
       .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
       .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
       .mockReturnValueOnce({
@@ -228,7 +220,6 @@ describe("cleanupAllFixtures", () => {
     spawnSyncMock
       .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
       .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
-      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
       .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
       .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
       .mockReturnValueOnce({
@@ -255,7 +246,6 @@ describe("cleanupAllFixtures", () => {
       .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
       .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
       .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
-      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
       .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
       .mockReturnValueOnce({
         status: 0,
@@ -279,7 +269,6 @@ describe("cleanupAllFixtures", () => {
     spawnSyncMock
       .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
       .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
-      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
       .mockReturnValueOnce({
         status: 0,
         stdout: JSON.stringify([
@@ -303,7 +292,6 @@ describe("cleanupAllFixtures", () => {
     spawnSyncMock
       .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
       .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" })
-      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
       .mockReturnValueOnce({
         status: 0,
         stdout: JSON.stringify([
@@ -330,8 +318,7 @@ describe("cleanupAllFixtures", () => {
     spawnSyncMock
       .mockReturnValueOnce({ status: 0, stdout: "", stderr: "" }) // PR list: empty stdout
       .mockReturnValueOnce({ status: 0, stdout: "", stderr: "" }) // issue list: empty stdout
-      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" }) // refs tryRunGhJson: null
-      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" }) // refs raw: null
+      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" }) // refs: null
       .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" }) // label list: null
       .mockReturnValueOnce({ status: 0, stdout: JSON.stringify({ projects: [] }), stderr: "" })
 
@@ -346,7 +333,6 @@ describe("cleanupAllFixtures", () => {
     spawnSyncMock
       .mockReturnValueOnce({ status: 0, stdout: '{"count": 0}', stderr: "" }) // PR list: object
       .mockReturnValueOnce({ status: 0, stdout: '{"count": 0}', stderr: "" }) // issue list: object
-      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
       .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
       .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" })
       .mockReturnValueOnce({ status: 0, stdout: JSON.stringify({ projects: [] }), stderr: "" })
@@ -368,9 +354,8 @@ describe("cleanupAllFixtures", () => {
       }) // 1. PR list → only {number:3} is valid
       .mockReturnValueOnce({ status: 0, stdout: "", stderr: "" }) // 2. PR close 3
       .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" }) // 3. issue list
-      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" }) // 4. tryRunGhJson: null
-      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" }) // 5. raw refs: null
-      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" }) // 6. label list: null
+      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" }) // 4. refs: null
+      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" }) // 5. label list: null
       .mockReturnValueOnce({ status: 0, stdout: JSON.stringify({ projects: [] }), stderr: "" }) // 7. project list
 
     const result = await cleanupAllFixtures("aryeko/ghx-bench-fixtures")
@@ -379,11 +364,11 @@ describe("cleanupAllFixtures", () => {
   })
 
   it("returns 0 deleted branches when tryRunGhJson returns a valid array", async () => {
-    // refs is valid array → condition false → return 0 immediately
+    // refs returns empty array → no matching branch prefixes → return 0
     spawnSyncMock
       .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" }) // PR list
       .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" }) // issue list
-      .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" }) // tryRunGhJson returns []
+      .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" }) // refs: empty array
       .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" }) // label list: null
       .mockReturnValueOnce({ status: 0, stdout: JSON.stringify({ projects: [] }), stderr: "" })
 
@@ -397,8 +382,7 @@ describe("cleanupAllFixtures", () => {
     spawnSyncMock
       .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" }) // PR list
       .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" }) // issue list
-      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" }) // tryRunGhJson: null
-      .mockReturnValueOnce({ status: 0, stdout: "not-valid-json", stderr: "" }) // raw: invalid JSON
+      .mockReturnValueOnce({ status: 0, stdout: "not-valid-json", stderr: "" }) // refs: invalid JSON
       .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" }) // label list: null
       .mockReturnValueOnce({ status: 0, stdout: JSON.stringify({ projects: [] }), stderr: "" })
 
@@ -412,8 +396,7 @@ describe("cleanupAllFixtures", () => {
     spawnSyncMock
       .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" }) // PR list
       .mockReturnValueOnce({ status: 0, stdout: "[]", stderr: "" }) // issue list
-      .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" }) // tryRunGhJson: null
-      .mockReturnValueOnce({ status: 0, stdout: '{"refs": []}', stderr: "" }) // raw: object not array
+      .mockReturnValueOnce({ status: 0, stdout: '{"refs": []}', stderr: "" }) // refs: object not array
       .mockReturnValueOnce({ status: 1, stdout: "", stderr: "" }) // label list: null
       .mockReturnValueOnce({ status: 0, stdout: JSON.stringify({ projects: [] }), stderr: "" })
 

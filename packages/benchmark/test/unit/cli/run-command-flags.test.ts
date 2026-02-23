@@ -1,5 +1,5 @@
-import type { Scenario } from "@bench/domain/types.js"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { makeMockScenario } from "../../helpers/scenario-factory.js"
 
 const runSuiteMock = vi.hoisted(() => vi.fn().mockResolvedValue({ rowCount: 1, durationMs: 100 }))
 const loadScenariosMock = vi.hoisted(() => vi.fn())
@@ -26,22 +26,7 @@ vi.mock("node:fs/promises", async (importOriginal) => {
 
 import { main } from "@bench/cli/run-command.js"
 
-function mockScenario(id: string): Scenario {
-  return {
-    type: "workflow",
-    id,
-    name: `Scenario ${id}`,
-    prompt: "Do some work",
-    expected_capabilities: [],
-    timeout_ms: 60000,
-    allowed_retries: 0,
-    assertions: {
-      expected_outcome: "success",
-      checkpoints: [],
-    },
-    tags: [],
-  }
-}
+const mockScenario = makeMockScenario
 
 describe("run-command flag parsing", () => {
   beforeEach(() => {

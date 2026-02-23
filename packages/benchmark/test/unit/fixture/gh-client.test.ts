@@ -87,13 +87,13 @@ describe("runGhJson", () => {
     expect(runGhJson(["api", "/repos"])).toEqual({ id: 1 })
   })
 
-  it("returns empty object when stdout is empty", () => {
+  it("throws when stdout is empty", () => {
     vi.mocked(spawnSync).mockReturnValue({
       status: 0,
       stdout: "",
       stderr: "",
     } as SpawnSyncReturns<string>)
-    expect(runGhJson(["api", "/repos"])).toEqual({})
+    expect(() => runGhJson(["some", "cmd"])).toThrow("gh command returned empty output")
   })
 
   it("throws on non-zero exit", () => {
@@ -129,13 +129,13 @@ describe("tryRunGhJson", () => {
     expect(tryRunGhJson(["api", "/repos"])).toBeNull()
   })
 
-  it("returns empty object when stdout is empty on success", () => {
+  it("returns null when stdout is empty", () => {
     vi.mocked(spawnSync).mockReturnValue({
       status: 0,
       stdout: "",
       stderr: "",
     } as SpawnSyncReturns<string>)
-    expect(tryRunGhJson(["api", "/repos"])).toEqual({})
+    expect(tryRunGhJson(["some", "cmd"])).toBeNull()
   })
 })
 
@@ -223,13 +223,15 @@ describe("runGhJsonWithToken", () => {
     expect(runGhJsonWithToken(["api", "/repos"], "test-token")).toEqual({ id: 42 })
   })
 
-  it("returns empty object when stdout is empty", () => {
+  it("throws when stdout is empty", () => {
     vi.mocked(spawnSync).mockReturnValue({
       status: 0,
       stdout: "",
       stderr: "",
     } as SpawnSyncReturns<string>)
-    expect(runGhJsonWithToken(["api", "/repos"], "test-token")).toEqual({})
+    expect(() => runGhJsonWithToken(["some", "cmd"], "token")).toThrow(
+      "gh command returned empty output",
+    )
   })
 
   it("passes token as GH_TOKEN env var", () => {

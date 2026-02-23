@@ -1,4 +1,4 @@
-import { runGh, tryRunGh, tryRunGhJson } from "./gh-client.js"
+import { runGh, tryRunGh } from "./gh-client.js"
 
 export type CleanupAllResult = {
   closedIssues: number
@@ -65,53 +65,39 @@ function closeIssues(repo: string): number {
 }
 
 function deleteOrphanBranches(repo: string): number {
-  const refs = tryRunGhJson<{ ref: string }[]>([
-    "api",
-    `repos/${repo}/git/refs/heads`,
-    "--jq",
-    ".[].ref",
-  ])
-
-  if (refs === null || !Array.isArray(refs)) {
-    // gh api with --jq returns newline-separated strings, try raw parsing
-    const raw = tryRunGh(["api", `repos/${repo}/git/refs/heads`])
-    if (raw === null) {
-      return 0
-    }
-
-    let parsed: unknown
-    try {
-      parsed = JSON.parse(raw)
-    } catch {
-      return 0
-    }
-
-    if (!Array.isArray(parsed)) {
-      return 0
-    }
-
-    const branchRefs = (parsed as { ref?: string }[])
-      .map((item) => (typeof item?.ref === "string" ? item.ref : null))
-      .filter((ref): ref is string => ref !== null)
-      .filter(
-        (ref) =>
-          ref.startsWith("refs/heads/bench-seed-") ||
-          ref.startsWith("refs/heads/bench-review-seed-"),
-      )
-
-    let deleted = 0
-    for (const ref of branchRefs) {
-      const result = tryRunGh(["api", "--method", "DELETE", `repos/${repo}/git/${ref}`])
-      if (result !== null) {
-        deleted++
-      } else {
-        console.warn(`Warning: failed to delete branch ref ${ref}`)
-      }
-    }
-    return deleted
+  const raw = tryRunGh(["api", `repos/${repo}/git/refs/heads`])
+  if (raw === null) {
+    return 0
   }
 
-  return 0
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    return 0
+  }
+
+  if (!Array.isArray(parsed)) {
+    return 0
+  }
+
+  const branchRefs = (parsed as { ref?: string }[])
+    .map((item) => (typeof item?.ref === "string" ? item.ref : null))
+    .filter((ref): ref is string => ref !== null)
+    .filter(
+      (ref) =>
+        ref.startsWith("refs/heads/bench-seed-") || ref.startsWith("refs/heads/bench-review-seed-"),
+    )
+
+  const deletedRefs = branchRefs.filter((ref) => {
+    const result = tryRunGh(["api", "--method", "DELETE", `repos/${repo}/git/${ref}`])
+    if (result === null) {
+      console.warn(`Warning: failed to delete branch ref ${ref}`)
+    }
+    return result !== null
+  })
+
+  return deletedRefs.length
 }
 
 function deleteLabels(repo: string): number {
@@ -137,16 +123,14 @@ function deleteLabels(repo: string): number {
     .filter((name): name is string => name !== null)
     .filter((name) => name.startsWith("bench-seed:"))
 
-  let deleted = 0
-  for (const label of seedLabels) {
+  const deleted = seedLabels.filter((label) => {
     const result = tryRunGh(["label", "delete", label, "--repo", repo, "--yes"])
-    if (result !== null) {
-      deleted++
-    } else {
+    if (result === null) {
       console.warn(`Warning: failed to delete label ${label}`)
     }
-  }
-  return deleted
+    return result !== null
+  })
+  return deleted.length
 }
 
 function deleteProjects(repo: string): number {
@@ -186,19 +170,22 @@ function deleteProjects(repo: string): number {
     (p) => typeof p?.title === "string" && p.title.startsWith("GHX Bench Fixtures"),
   )
 
-  let deleted = 0
-  for (const project of benchProjects) {
-    if (typeof project.number !== "number") {
-      continue
-    }
-    const result = tryRunGh(["project", "delete", String(project.number), "--owner", owner ?? repo])
-    if (result !== null) {
-      deleted++
-    } else {
-      console.warn(`Warning: failed to delete project ${project.title}`)
-    }
-  }
-  return deleted
+  const deleted = benchProjects
+    .filter((p): p is { title?: string; number: number } => typeof p.number === "number")
+    .filter((project) => {
+      const result = tryRunGh([
+        "project",
+        "delete",
+        String(project.number),
+        "--owner",
+        owner ?? repo,
+      ])
+      if (result === null) {
+        console.warn(`Warning: failed to delete project ${project.title}`)
+      }
+      return result !== null
+    })
+  return deleted.length
 }
 
 export async function cleanupAllFixtures(repo: string): Promise<CleanupAllResult> {

@@ -141,16 +141,9 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
       )
     }
 
-    allSelectedScenarios = selectedScenarioIds.map((scenarioId) => {
-      const matchedScenario = scenarios.find((scenario) => scenario.id === scenarioId)
-      if (!matchedScenario) {
-        throw new Error(
-          `Scenario set '${selectedSetName}' references unknown scenario id(s): ${scenarioId}`,
-        )
-      }
-
-      return matchedScenario
-    })
+    allSelectedScenarios = selectedScenarioIds.map(
+      (scenarioId) => scenarios.find((scenario) => scenario.id === scenarioId) as Scenario,
+    )
     resolvedScenarioSet = selectedSetName
   }
 

@@ -1,5 +1,5 @@
-import type { Scenario } from "@bench/domain/types.js"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { makeMockScenario } from "../../helpers/scenario-factory.js"
 
 const runSuiteMock = vi.hoisted(() => vi.fn().mockResolvedValue({ rowCount: 1, durationMs: 100 }))
 const loadScenariosMock = vi.hoisted(() => vi.fn())
@@ -30,22 +30,7 @@ vi.mock("node:fs/promises", async (importOriginal) => {
 
 import { main } from "@bench/cli/run-command.js"
 
-function mockScenario(id: string): Scenario {
-  return {
-    type: "workflow",
-    id,
-    name: `Scenario ${id}`,
-    prompt: "Do some work",
-    expected_capabilities: [],
-    timeout_ms: 60000,
-    allowed_retries: 0,
-    assertions: {
-      expected_outcome: "success",
-      checkpoints: [],
-    },
-    tags: [],
-  }
-}
+const mockScenario = makeMockScenario
 
 describe("run-command execution behavior", () => {
   beforeEach(() => {
@@ -141,9 +126,9 @@ describe("run-command execution behavior", () => {
   })
 
   it("auto-discovers default fixture manifest when scenarios need bindings", async () => {
-    const scenarioWithBindings = mockScenario("s1")
-    scenarioWithBindings.fixture = { bindings: { repo: "test" } }
-    loadScenariosMock.mockResolvedValue([scenarioWithBindings])
+    loadScenariosMock.mockResolvedValue([
+      mockScenario("s1", { fixture: { bindings: { repo: "test" } } }),
+    ])
     accessMock.mockResolvedValue(undefined)
 
     await main(["ghx", "1"])
@@ -152,9 +137,9 @@ describe("run-command execution behavior", () => {
   })
 
   it("seeds fixture manifest when --seed-if-missing provided and manifest missing", async () => {
-    const scenarioWithBindings = mockScenario("s1")
-    scenarioWithBindings.fixture = { bindings: { repo: "test" }, requires: ["resource1"] }
-    loadScenariosMock.mockResolvedValue([scenarioWithBindings])
+    loadScenariosMock.mockResolvedValue([
+      mockScenario("s1", { fixture: { bindings: { repo: "test" }, requires: ["resource1"] } }),
+    ])
     loadFixtureManifestMock.mockResolvedValue({
       version: 1,
       repo: { owner: "o", name: "n", full_name: "o/n", default_branch: "main" },
@@ -167,18 +152,18 @@ describe("run-command execution behavior", () => {
   })
 
   it("throws error when fixture manifest missing and not auto-seeding", async () => {
-    const scenarioWithBindings = mockScenario("s1")
-    scenarioWithBindings.fixture = { bindings: { repo: "test" } }
-    loadScenariosMock.mockResolvedValue([scenarioWithBindings])
+    loadScenariosMock.mockResolvedValue([
+      mockScenario("s1", { fixture: { bindings: { repo: "test" } } }),
+    ])
     accessMock.mockRejectedValue(new Error("Not found"))
 
     await expect(main(["ghx", "1"])).rejects.toThrow("Selected scenarios require fixture bindings")
   })
 
   it("calls mintFixtureAppToken when any scenario has reseed_per_iteration=true", async () => {
-    const scenario = mockScenario("s1")
-    scenario.fixture = { reseed_per_iteration: true }
-    loadScenariosMock.mockResolvedValue([scenario])
+    loadScenariosMock.mockResolvedValue([
+      mockScenario("s1", { fixture: { reseed_per_iteration: true } }),
+    ])
     mintFixtureAppTokenMock.mockResolvedValue("minted-token")
 
     await main(["ghx", "1"])
@@ -195,9 +180,9 @@ describe("run-command execution behavior", () => {
   })
 
   it("passes minted reviewerToken to runSuite", async () => {
-    const scenario = mockScenario("s1")
-    scenario.fixture = { reseed_per_iteration: true }
-    loadScenariosMock.mockResolvedValue([scenario])
+    loadScenariosMock.mockResolvedValue([
+      mockScenario("s1", { fixture: { reseed_per_iteration: true } }),
+    ])
     mintFixtureAppTokenMock.mockResolvedValue("minted-token")
 
     await main(["ghx", "1"])
@@ -208,9 +193,9 @@ describe("run-command execution behavior", () => {
   })
 
   it("logs warning when needsReseed but token is null", async () => {
-    const scenario = mockScenario("s1")
-    scenario.fixture = { reseed_per_iteration: true }
-    loadScenariosMock.mockResolvedValue([scenario])
+    loadScenariosMock.mockResolvedValue([
+      mockScenario("s1", { fixture: { reseed_per_iteration: true } }),
+    ])
     mintFixtureAppTokenMock.mockResolvedValue(null)
 
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
@@ -222,13 +207,15 @@ describe("run-command execution behavior", () => {
   })
 
   it("passes reviewerToken to seedFixtureManifest when --seed-if-missing", async () => {
-    const scenarioWithReseed = mockScenario("s1")
-    scenarioWithReseed.fixture = {
-      bindings: { repo: "test" },
-      requires: ["pr_with_mixed_threads"],
-      reseed_per_iteration: true,
-    }
-    loadScenariosMock.mockResolvedValue([scenarioWithReseed])
+    loadScenariosMock.mockResolvedValue([
+      mockScenario("s1", {
+        fixture: {
+          bindings: { repo: "test" },
+          requires: ["pr_with_mixed_threads"],
+          reseed_per_iteration: true,
+        },
+      }),
+    ])
     mintFixtureAppTokenMock.mockResolvedValue("seed-token")
     loadFixtureManifestMock.mockResolvedValue({
       version: 1,

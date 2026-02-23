@@ -2,46 +2,16 @@ import type { BenchmarkRow } from "@bench/domain/types.js"
 import { buildSummary } from "@bench/report/aggregate.js"
 import { toMarkdown } from "@bench/report/formatter.js"
 import { describe, expect, it } from "vitest"
+import { makeRow } from "../../helpers/report-fixtures.js"
 
 function row(overrides: Partial<BenchmarkRow>): BenchmarkRow {
-  return {
-    timestamp: "2026-02-13T00:00:00.000Z",
-    run_id: "run",
-    mode: "agent_direct",
+  return makeRow({
     scenario_id: "repo-view-001",
-    scenario_set: null,
-    iteration: 1,
-    session_id: "session",
-    success: true,
-    output_valid: true,
-    latency_ms_wall: 100,
-    latency_ms_agent: 70,
-    sdk_latency_ms: 90,
-    tokens: {
-      input: 10,
-      output: 10,
-      reasoning: 5,
-      cache_read: 0,
-      cache_write: 0,
-      total: 25,
-    },
     cost: 0,
-    tool_calls: 4,
-    api_calls: 2,
-    internal_retry_count: 0,
-    external_retry_count: 0,
-    model: {
-      provider_id: "openai",
-      model_id: "gpt-5.3-codex",
-      mode: null,
-    },
-    git: {
-      repo: "aryeko/ghx",
-      commit: "abc",
-    },
-    error: null,
+    model: { provider_id: "openai", model_id: "gpt-5.3-codex", mode: null },
+    git: { repo: "aryeko/ghx", commit: "abc" },
     ...overrides,
-  }
+  })
 }
 
 describe("buildSummary", () => {

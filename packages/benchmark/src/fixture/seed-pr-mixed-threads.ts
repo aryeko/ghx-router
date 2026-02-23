@@ -179,7 +179,7 @@ export function createPrWithMixedThreads(
   const existingFileSha =
     typeof existingFile?.sha === "string" && existingFile.sha.length > 0 ? existingFile.sha : null
 
-  const contentArgs = [
+  runGhJson([
     "api",
     `repos/${owner}/${name}/contents/${MIXED_THREAD_FILE_PATH}`,
     "--method",
@@ -190,11 +190,8 @@ export function createPrWithMixedThreads(
     `content=${encodedContent}`,
     "-f",
     `branch=${branch}`,
-  ]
-  if (existingFileSha) {
-    contentArgs.push("-f", `sha=${existingFileSha}`)
-  }
-  runGhJson(contentArgs)
+    ...(existingFileSha ? ["-f", `sha=${existingFileSha}`] : []),
+  ])
 
   const existingPrResult = tryRunGhJson([
     "pr",

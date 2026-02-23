@@ -35,6 +35,15 @@ type SeedOptions = {
   requires?: string[]
 }
 
+type PrWithReviews = { id: string; number: number; thread_count: number }
+type PrWithBugs = { id: string; number: number }
+type PrWithMixedThreads = {
+  id: string
+  number: number
+  resolved_count: number
+  unresolved_count: number
+}
+
 const seedOptionsSchema = z.object({
   repo: z.string().trim().min(1, "invalid repo format: ; expected owner/name"),
   outFile: z.string().trim().min(1, "seed outFile must be a non-empty path"),
@@ -42,6 +51,12 @@ const seedOptionsSchema = z.object({
   requires: z.array(z.enum(VALID_REQUIRES)).optional(),
 })
 
+// buildManifest creates or reuses GitHub resources (labels, issues, PRs, etc.) for the fixture.
+// Most seed helpers are idempotent: they find an existing resource by label/seedId before creating.
+// The exceptions are createPrWithBugs, createPrWithReviews, and createPrWithMixedThreads — each
+// always creates a fresh PR. If seeding fails mid-way (e.g. createPrWithMixedThreads throws after
+// createPrWithBugs succeeded), the created PR will be left open as an orphan. Run
+// `bench:fixture cleanup --all` to remove dangling resources.
 async function buildManifest(
   repo: string,
   seedId: string,
@@ -70,7 +85,6 @@ async function buildManifest(
   const prThreadId = needsPr ? ensurePrThread(repo, pr.number, seedId) : ""
 
   // PR with reviews: needed by "pr_with_reviews"
-  type PrWithReviews = { id: string; number: number; thread_count: number }
   let prWithReviews: PrWithReviews | null = null
   if (needs("pr_with_reviews")) {
     if (!reviewerToken) {
@@ -82,7 +96,6 @@ async function buildManifest(
   }
 
   // PR with bugs: needed by "pr_with_bugs"
-  type PrWithBugs = { id: string; number: number }
   let prWithBugs: PrWithBugs | null = null
   if (needs("pr_with_bugs")) {
     if (!reviewerToken) {
@@ -94,12 +107,6 @@ async function buildManifest(
   }
 
   // PR with mixed threads: needed by "pr_with_mixed_threads"
-  type PrWithMixedThreads = {
-    id: string
-    number: number
-    resolved_count: number
-    unresolved_count: number
-  }
   let prWithMixedThreads: PrWithMixedThreads | null = null
   if (needs("pr_with_mixed_threads")) {
     if (!reviewerToken) {

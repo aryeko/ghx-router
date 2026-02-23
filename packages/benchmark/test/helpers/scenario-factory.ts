@@ -1,4 +1,22 @@
-import type { WorkflowScenario } from "@bench/domain/types.js"
+import type { Scenario, WorkflowScenario } from "@bench/domain/types.js"
+
+export function makeMockScenario(id: string, overrides: Partial<Scenario> = {}): Scenario {
+  return {
+    type: "workflow" as const,
+    id,
+    name: `Scenario ${id}`,
+    prompt: "Do some work",
+    expected_capabilities: [],
+    timeout_ms: 60000,
+    allowed_retries: 0,
+    assertions: {
+      expected_outcome: "success",
+      checkpoints: [],
+    },
+    tags: [],
+    ...overrides,
+  }
+}
 
 export function makeWorkflowScenario(overrides: Partial<WorkflowScenario> = {}): WorkflowScenario {
   const { assertions: assertionOverrides, ...restOverrides } = overrides

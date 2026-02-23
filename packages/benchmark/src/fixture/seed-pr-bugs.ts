@@ -67,7 +67,7 @@ export function createPrWithBugs(
   const existingFileSha =
     typeof existingFile?.sha === "string" && existingFile.sha.length > 0 ? existingFile.sha : null
 
-  const contentArgs = [
+  runGhJson([
     "api",
     `repos/${owner}/${name}/contents/${BUGS_FILE_PATH}`,
     "--method",
@@ -78,11 +78,8 @@ export function createPrWithBugs(
     `content=${encodedContent}`,
     "-f",
     `branch=${branch}`,
-  ]
-  if (existingFileSha) {
-    contentArgs.push("-f", `sha=${existingFileSha}`)
-  }
-  runGhJson(contentArgs)
+    ...(existingFileSha ? ["-f", `sha=${existingFileSha}`] : []),
+  ])
 
   const existingPrResult = tryRunGhJson([
     "pr",

@@ -100,22 +100,24 @@ export async function runSuite(config: {
             modelId: providerConfig.modelId,
           })
 
-          const warmupResult = await runScenarioIteration({
-            provider,
-            scenario: warmupScenario,
-            mode: modes[0] ?? "ghx",
-            iteration: 0,
-            scenarioSet: null,
-            manifest,
-            runId: suiteRunId,
-            githubToken,
-          })
+          try {
+            const warmupResult = await runScenarioIteration({
+              provider,
+              scenario: warmupScenario,
+              mode: modes[0] ?? "ghx",
+              iteration: 0,
+              scenarioSet: null,
+              manifest,
+              runId: suiteRunId,
+              githubToken,
+            })
 
-          await provider.cleanup()
-
-          console.log(
-            `[benchmark] warm-up canary: ${warmupResult.success ? "success" : "failed"} (${warmupResult.latency_ms_wall}ms)`,
-          )
+            console.log(
+              `[benchmark] warm-up canary: ${warmupResult.success ? "success" : "failed"} (${warmupResult.latency_ms_wall}ms)`,
+            )
+          } finally {
+            await provider.cleanup()
+          }
         } catch (error) {
           console.log(
             `[benchmark] warm-up canary: error (${error instanceof Error ? error.message : String(error)})`,

@@ -79,7 +79,7 @@ export function createSeedPr(
   const existingFileSha =
     typeof existingFile?.sha === "string" && existingFile.sha.length > 0 ? existingFile.sha : null
 
-  const contentArgs = [
+  runGhJson([
     "api",
     `repos/${owner}/${name}/contents/${contentPath}`,
     "--method",
@@ -90,12 +90,8 @@ export function createSeedPr(
     `content=${encodedBody}`,
     "-f",
     `branch=${branch}`,
-  ]
-  if (existingFileSha) {
-    contentArgs.push("-f", `sha=${existingFileSha}`)
-  }
-
-  runGhJson(contentArgs)
+    ...(existingFileSha ? ["-f", `sha=${existingFileSha}`] : []),
+  ])
 
   const existingPrResult = tryRunGhJson([
     "pr",
