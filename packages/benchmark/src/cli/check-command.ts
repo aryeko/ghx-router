@@ -52,7 +52,7 @@ function assertNoOrphanScenarios(
   }
 }
 
-async function main(cwd: string = process.cwd()): Promise<void> {
+export async function main(cwd: string = process.cwd()): Promise<void> {
   const scenariosDir = `${cwd}/scenarios`
   const benchmarkRoot = cwd
   const scenarios = await loadScenarios(scenariosDir)
@@ -74,9 +74,3 @@ async function main(cwd: string = process.cwd()): Promise<void> {
     `Validated ${scenarios.length} benchmark scenarios across ${Object.keys(scenarioSets).length} sets`,
   )
 }
-
-main(process.cwd()).catch((error: unknown) => {
-  const message = error instanceof Error ? error.message : String(error)
-  console.error(message)
-  process.exit(1)
-})

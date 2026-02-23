@@ -132,11 +132,3 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
     restoreFixtureAuth()
   }
 }
-
-if (!process.env.VITEST) {
-  main(process.argv.slice(3)).catch((error: unknown) => {
-    const message = error instanceof Error ? error.message : String(error)
-    console.error(message)
-    process.exit(1)
-  })
-}

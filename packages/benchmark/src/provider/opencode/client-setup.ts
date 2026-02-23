@@ -54,7 +54,6 @@ type EnvSnapshot = {
   GH_TOKEN: string | undefined
   GITHUB_TOKEN: string | undefined
   PATH: string | undefined
-  cwd: string
 }
 
 function restoreEnv(previous: EnvSnapshot, tmpDir: string): () => Promise<void> {
@@ -95,8 +94,6 @@ function restoreEnv(previous: EnvSnapshot, tmpDir: string): () => Promise<void> 
       process.env.PATH = previous.PATH
     }
 
-    process.chdir(previous.cwd)
-
     await rm(tmpDir, { recursive: true, force: true })
   }
 }
@@ -125,7 +122,6 @@ export async function openBenchmarkClient(
     GH_TOKEN: process.env.GH_TOKEN,
     GITHUB_TOKEN: process.env.GITHUB_TOKEN,
     PATH: process.env.PATH,
-    cwd: process.cwd(),
   }
 
   const ghToken = previousEnv.GH_TOKEN ?? previousEnv.GITHUB_TOKEN ?? resolveGhTokenFromCli()
@@ -142,11 +138,6 @@ export async function openBenchmarkClient(
       previousEnv.PATH && previousEnv.PATH.length > 0
         ? `${BENCHMARK_BIN_DIR}${delimiter}${previousEnv.PATH}`
         : BENCHMARK_BIN_DIR
-  }
-
-  const sessionWorkdir = process.env.BENCH_SESSION_WORKDIR
-  if (sessionWorkdir) {
-    process.chdir(sessionWorkdir)
   }
 
   const teardown = restoreEnv(previousEnv, isolatedXdgConfigHome)

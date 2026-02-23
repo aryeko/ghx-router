@@ -6,6 +6,12 @@ import {
   parseWorkflowRunIdFromLink,
 } from "./workflow-parse-utils.js"
 
+type WorkflowRunRef = {
+  id: number
+  job_id: number | null
+  check_run_id: number | null
+}
+
 const FAILED_RERUN_WORKFLOW_FILE =
   process.env.BENCH_FIXTURE_FAILED_RERUN_WORKFLOW ?? "bench-rerun-failed.yml"
 const FAILED_RERUN_POLL_INTERVAL_MS = 5000
@@ -98,12 +104,6 @@ function readWorkflowRunJobRefs(
     job_id: jobId,
     check_run_id: parseCheckRunIdFromJob(selectedJobRecord),
   }
-}
-
-type WorkflowRunRef = {
-  id: number
-  job_id: number | null
-  check_run_id: number | null
 }
 
 export async function ensureFailedRerunWorkflowRun(

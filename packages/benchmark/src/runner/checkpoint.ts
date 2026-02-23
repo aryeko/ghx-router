@@ -82,7 +82,6 @@ async function evaluateCheckpoint(
 
 export async function evaluateCheckpoints(
   checkpoints: WorkflowCheckpoint[],
-  resolvedBindings: Record<string, unknown>,
   githubToken: string,
 ): Promise<{ allPassed: boolean; results: CheckpointResult[] }> {
   const { createGithubClientFromToken } = await import("@ghx-dev/core")

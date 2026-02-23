@@ -67,8 +67,8 @@ const parsedCliArgsSchema = z
 
 function parseCliArgs(argv: string[]): z.infer<typeof parsedCliArgsSchema> {
   const normalized = stripForwardingSeparator(argv)
-  const [modeRaw = "ghx", repetitionsRaw = "1"] = splitPositionalAndFlags(normalized).positional
-  const { flags } = splitPositionalAndFlags(normalized)
+  const { positional, flags } = splitPositionalAndFlags(normalized)
+  const [modeRaw = "ghx", repetitionsRaw = "1"] = positional
 
   const mode = modeRaw as BenchmarkMode
 
@@ -267,13 +267,5 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
     skipWarmup: parsed.skipWarmup,
     scenarioSet: resolvedScenarioSet,
     reviewerToken,
-  })
-}
-
-if (!process.env.VITEST) {
-  main(process.argv.slice(3)).catch((error: unknown) => {
-    const message = error instanceof Error ? error.message : String(error)
-    console.error(message)
-    process.exit(1)
   })
 }

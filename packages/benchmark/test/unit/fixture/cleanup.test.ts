@@ -61,7 +61,7 @@ describe("fixture cleanup", () => {
         "--json",
         "number",
       ],
-      { encoding: "utf8" },
+      { encoding: "utf8", timeout: 30_000 },
     )
   })
 
@@ -89,7 +89,7 @@ describe("fixture cleanup", () => {
       1,
       "gh",
       expect.arrayContaining(["bench-seed:default"]),
-      { encoding: "utf8" },
+      { encoding: "utf8", timeout: 30_000 },
     )
   })
 
@@ -214,7 +214,7 @@ describe("fixture cleanup", () => {
     expect(spawnSyncMock).toHaveBeenCalledWith(
       "gh",
       ["pr", "close", "20", "--repo", "aryeko/ghx-bench-fixtures", "--delete-branch"],
-      { encoding: "utf8" },
+      { encoding: "utf8", timeout: 30_000 },
     )
   })
 

@@ -55,7 +55,7 @@ export async function runSuite(config: {
     modes,
     scenarios,
     repetitions,
-    manifest,
+    manifest: initialManifest,
     outputJsonlPath,
     onProgress,
     providerConfig,
@@ -63,6 +63,7 @@ export async function runSuite(config: {
     scenarioSet = null,
     reviewerToken = null,
   } = config
+  let manifest = initialManifest
 
   const suiteStartedAt = Date.now()
   const suiteRunId = randomUUID()
@@ -89,7 +90,7 @@ export async function runSuite(config: {
         console.log(`[benchmark] warm-up canary: running ${warmupScenario.id}`)
         try {
           if (manifest !== null) {
-            await resetScenarioFixtures(warmupScenario, manifest, reviewerToken)
+            manifest = await resetScenarioFixtures(warmupScenario, manifest, reviewerToken)
           }
 
           const provider = await createSessionProvider({
@@ -142,49 +143,51 @@ export async function runSuite(config: {
         modelId: providerConfig.modelId,
       })
 
-      for (const scenario of scenarios) {
-        for (let iteration = 1; iteration <= repetitions; iteration += 1) {
-          onProgress({
-            type: "scenario_started",
-            scenarioId: scenario.id,
-            iteration,
-            total: totalScenarioExecutions,
-            completed: totalCompleted,
-          })
+      try {
+        for (const scenario of scenarios) {
+          for (let iteration = 1; iteration <= repetitions; iteration += 1) {
+            onProgress({
+              type: "scenario_started",
+              scenarioId: scenario.id,
+              iteration,
+              total: totalScenarioExecutions,
+              completed: totalCompleted,
+            })
 
-          if (manifest !== null) {
-            await resetScenarioFixtures(scenario, manifest, reviewerToken)
+            if (manifest !== null) {
+              manifest = await resetScenarioFixtures(scenario, manifest, reviewerToken)
+            }
+
+            const result = await runScenarioIteration({
+              provider,
+              scenario,
+              mode,
+              iteration,
+              scenarioSet,
+              manifest,
+              runId: suiteRunId,
+            })
+
+            await appendFile(outputJsonlPath, `${JSON.stringify(result)}\n`, "utf8")
+
+            totalCompleted += 1
+            if (result.success) {
+              totalSuccessful += 1
+            }
+
+            onProgress({
+              type: "scenario_finished",
+              scenarioId: scenario.id,
+              iteration,
+              success: result.success,
+              total: totalScenarioExecutions,
+              completed: totalCompleted,
+            })
           }
-
-          const result = await runScenarioIteration({
-            provider,
-            scenario,
-            mode,
-            iteration,
-            scenarioSet,
-            manifest,
-            runId: suiteRunId,
-          })
-
-          await appendFile(outputJsonlPath, `${JSON.stringify(result)}\n`, "utf8")
-
-          totalCompleted += 1
-          if (result.success) {
-            totalSuccessful += 1
-          }
-
-          onProgress({
-            type: "scenario_finished",
-            scenarioId: scenario.id,
-            iteration,
-            success: result.success,
-            total: totalScenarioExecutions,
-            completed: totalCompleted,
-          })
         }
+      } finally {
+        await provider.cleanup()
       }
-
-      await provider.cleanup()
 
       onProgress({
         type: "suite_finished",

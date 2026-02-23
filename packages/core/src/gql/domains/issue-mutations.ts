@@ -32,7 +32,7 @@ import { getSdk as getIssueLabelsAddSdk } from "../operations/issue-labels-add.g
 import { getSdk as getIssueLabelsLookupByNumberSdk } from "../operations/issue-labels-lookup-by-number.generated.js"
 import { getSdk as getIssueLabelsUpdateSdk } from "../operations/issue-labels-update.generated.js"
 import { getSdk as getIssueLinkedPrsListSdk } from "../operations/issue-linked-prs-list.generated.js"
-import { getSdk as getIssueMilestoneLookupSdk } from "../operations/issue-milestone-lookup.generated.js"
+import { getSdk as getIssueMilestoneLookupByNumberSdk } from "../operations/issue-milestone-lookup-by-number.generated.js"
 import { getSdk as getIssueMilestoneSetSdk } from "../operations/issue-milestone-set.generated.js"
 import { getSdk as getIssueNodeIdLookupSdk } from "../operations/issue-node-id-lookup.generated.js"
 import { getSdk as getIssueParentLookupSdk } from "../operations/issue-parent-lookup.generated.js"
@@ -498,25 +498,21 @@ export async function runIssueMilestoneSet(
   assertIssueMilestoneSetInput(input)
 
   const client = createGraphqlRequestClient(transport)
-  const nodeLookupResult = await getIssueNodeIdLookupSdk(client).IssueNodeIdLookup({
+  const lookupResult = await getIssueMilestoneLookupByNumberSdk(
+    client,
+  ).IssueMilestoneLookupByNumber({
     owner: input.owner,
     name: input.name,
     issueNumber: input.issueNumber,
+    milestoneNumber: input.milestoneNumber,
   })
+  const repo = asRecord(asRecord(lookupResult)?.repository)
+  const issueId = asRecord(repo?.issue)?.id
+  const milestoneId = asRecord(repo?.milestone)?.id
 
-  const issueId = asRecord(asRecord(asRecord(nodeLookupResult)?.repository)?.issue)?.id
   if (typeof issueId !== "string" || issueId.length === 0) {
     throw new Error("Issue not found")
   }
-
-  const milestoneLookupResult = await getIssueMilestoneLookupSdk(client).IssueMilestoneLookup({
-    issueId,
-    milestoneNumber: input.milestoneNumber,
-  })
-
-  const milestoneId = asRecord(
-    asRecord(asRecord(asRecord(milestoneLookupResult)?.node)?.repository)?.milestone,
-  )?.id
   if (typeof milestoneId !== "string" || milestoneId.length === 0) {
     throw new Error(`Milestone not found: ${input.milestoneNumber}`)
   }

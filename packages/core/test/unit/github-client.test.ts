@@ -1368,14 +1368,11 @@ describe("createGithubClient", () => {
         }
       }
 
-      if (query.includes("query IssueMilestoneLookup")) {
+      if (query.includes("query IssueMilestoneLookupByNumber")) {
         return {
-          node: {
-            repository: {
-              milestone: {
-                id: "milestone-3",
-              },
-            },
+          repository: {
+            issue: { id: "issue-1" },
+            milestone: { id: "milestone-3" },
           },
         }
       }

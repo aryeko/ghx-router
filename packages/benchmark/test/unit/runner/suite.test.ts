@@ -24,7 +24,7 @@ vi.mock("@bench/fixture/manifest.js", () => ({
 }))
 
 vi.mock("@bench/fixture/reset.js", () => ({
-  resetScenarioFixtures: vi.fn(),
+  resetScenarioFixtures: vi.fn((_scenario, manifest) => Promise.resolve(manifest)),
 }))
 
 describe("runSuite", () => {
@@ -456,8 +456,9 @@ describe("runSuite", () => {
       callOrder.push("runScenarioIteration")
       return mockBenchmarkRow
     })
-    vi.mocked(resetScenarioFixtures).mockImplementation(async () => {
+    vi.mocked(resetScenarioFixtures).mockImplementation(async (_scenario, manifest) => {
       callOrder.push("resetScenarioFixtures")
+      return manifest
     })
     vi.mocked(createSessionProvider).mockResolvedValue({
       createSession: vi.fn(),

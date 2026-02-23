@@ -1,82 +1,10 @@
 import type { SessionMessageEntry, SessionMessagePart } from "@bench/domain/types.js"
 import { isObject } from "@bench/util/guards.js"
-import { asNumber } from "./polling.js"
+import { asNumber, hasAssistantMetadata, hasStructuredOutput, hasTextPart } from "./polling.js"
+import type { AssistantMessage, PromptResponse } from "./types.js"
 import { unwrapData } from "./unwrap.js"
 
 export { extractTimingBreakdown } from "./extraction-timing.js"
-
-type AssistantMessage = {
-  id: string
-  sessionID: string
-  time: {
-    created: number
-    completed?: number
-  }
-  tokens: {
-    input: number
-    output: number
-    reasoning: number
-    cache: {
-      read: number
-      write: number
-    }
-  }
-  cost: number
-  error?: unknown
-  role?: string
-  structured_output?: unknown
-}
-
-type PromptResponse = {
-  info?: AssistantMessage
-  parts?: SessionMessagePart[]
-  id?: string
-  sessionID?: string
-  time?: {
-    created: number
-    completed?: number
-  }
-  tokens?: {
-    input: number
-    output: number
-    reasoning: number
-    cache: {
-      read: number
-      write: number
-    }
-  }
-  cost?: number
-  error?: unknown
-}
-
-function hasTextPart(parts: SessionMessagePart[]): boolean {
-  return parts.some((part) => part.type === "text" && typeof part.text === "string")
-}
-
-function hasAssistantMetadata(info: unknown): boolean {
-  if (!isObject(info)) {
-    return false
-  }
-
-  const infoTime = isObject(info.time) ? (info.time as Record<string, unknown>) : null
-  const infoTokens = isObject(info.tokens) ? (info.tokens as Record<string, unknown>) : null
-
-  const hasCompleted = infoTime !== null && typeof infoTime.completed === "number"
-  const hasTokens = infoTokens !== null && typeof infoTokens.input === "number"
-
-  return hasCompleted && hasTokens
-}
-
-function hasStructuredOutput(info: unknown): boolean {
-  if (!isObject(info)) {
-    return false
-  }
-
-  const structuredOutput = (info as { structured_output?: unknown }).structured_output
-  const structured = (info as { structured?: unknown }).structured
-
-  return structuredOutput !== undefined || structured !== undefined
-}
 
 export function extractSnapshotFromParts(parts: SessionMessagePart[]): {
   input: number

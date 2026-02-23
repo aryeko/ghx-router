@@ -37,6 +37,6 @@ export type PromptResult = {
 
 export interface SessionProvider {
   createSession(config: SessionConfig): Promise<SessionHandle>
-  prompt(handle: SessionHandle, text: string): Promise<PromptResult>
+  prompt(handle: SessionHandle, text: string, timeoutMs?: number): Promise<PromptResult>
   cleanup(): Promise<void>
 }

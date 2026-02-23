@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process"
 export function runGh(args: string[]): string {
   const result = spawnSync("gh", args, {
     encoding: "utf8",
+    timeout: 30_000,
   })
 
   if (result.status !== 0) {
@@ -46,6 +47,7 @@ export function tryRunGhJson<T = unknown>(args: string[]): T | null {
 export function runGhWithToken(args: string[], token: string): string {
   const result = spawnSync("gh", args, {
     encoding: "utf8",
+    timeout: 30_000,
     env: { ...process.env, GH_TOKEN: token },
   })
 

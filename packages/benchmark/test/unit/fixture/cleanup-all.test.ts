@@ -77,7 +77,7 @@ describe("cleanupAllFixtures", () => {
     expect(spawnSyncMock).toHaveBeenCalledWith(
       "gh",
       ["pr", "close", "5", "--repo", "aryeko/ghx-bench-fixtures", "--delete-branch"],
-      { encoding: "utf8" },
+      { encoding: "utf8", timeout: 30_000 },
     )
   })
 

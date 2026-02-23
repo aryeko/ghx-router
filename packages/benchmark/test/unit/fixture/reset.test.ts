@@ -105,7 +105,8 @@ describe("resetScenarioFixtures", () => {
 
   it("skips resource not in registry without throwing", async () => {
     const scenario = makeScenario({ requires: ["pr", "issue"] })
-    await expect(resetScenarioFixtures(scenario, baseManifest, "token123")).resolves.toBeUndefined()
+    const result = await resetScenarioFixtures(scenario, baseManifest, "token123")
+    expect(result).toEqual(baseManifest)
     expect(resetMixedPrThreadsMock).not.toHaveBeenCalled()
     expect(resetPrReviewThreadsMock).not.toHaveBeenCalled()
   })
@@ -157,7 +158,8 @@ describe("resetScenarioFixtures", () => {
     const scenario = makeScenario({
       requires: ["pr_with_mixed_threads", "pr_with_reviews"],
     })
-    await expect(resetScenarioFixtures(scenario, baseManifest, "token123")).resolves.toBeUndefined()
+    const result = await resetScenarioFixtures(scenario, baseManifest, "token123")
+    expect(result).toEqual(baseManifest)
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("network error"))
     // Second resource should still be called
     expect(resetPrReviewThreadsMock).toHaveBeenCalled()
@@ -225,28 +227,30 @@ describe("resetScenarioFixtures", () => {
     warnSpy.mockRestore()
   })
 
-  it("calls reseedWorkflowRun and mutates manifest.resources when workflow_run is in requires", async () => {
+  it("returns new manifest with updated workflow_run resource when reseed succeeds", async () => {
     const manifest: FixtureManifest = {
       ...baseManifest,
       resources: { workflow_run: { id: 99999, number: 99999 } },
     }
     reseedWorkflowRunMock.mockResolvedValueOnce({ id: 12345, job_id: 1, check_run_id: 2 })
     const scenario = makeScenario({ requires: ["workflow_run"] })
-    await resetScenarioFixtures(scenario, manifest, null)
+    const result = await resetScenarioFixtures(scenario, manifest, null)
     expect(reseedWorkflowRunMock).toHaveBeenCalledWith("test-owner/test-repo", "default")
-    expect(manifest.resources["workflow_run"]).toEqual({ id: 12345, number: 12345 })
+    expect(result.resources["workflow_run"]).toEqual({ id: 12345, number: 12345 })
+    // Original manifest is not mutated
+    expect(manifest.resources["workflow_run"]).toEqual({ id: 99999, number: 99999 })
   })
 
-  it("does not mutate manifest when reseedWorkflowRun returns null", async () => {
+  it("returns original manifest when reseedWorkflowRun returns null", async () => {
     const manifest: FixtureManifest = {
       ...baseManifest,
       resources: { workflow_run: { id: 99999, number: 99999 } },
     }
     reseedWorkflowRunMock.mockResolvedValueOnce(null)
     const scenario = makeScenario({ requires: ["workflow_run"] })
-    await resetScenarioFixtures(scenario, manifest, null)
+    const result = await resetScenarioFixtures(scenario, manifest, null)
     expect(reseedWorkflowRunMock).toHaveBeenCalled()
-    expect(manifest.resources["workflow_run"]).toEqual({ id: 99999, number: 99999 })
+    expect(result.resources["workflow_run"]).toEqual({ id: 99999, number: 99999 })
   })
 
   it("warns and continues when reseedWorkflowRun throws", async () => {
@@ -257,7 +261,8 @@ describe("resetScenarioFixtures", () => {
     }
     reseedWorkflowRunMock.mockRejectedValueOnce(new Error("dispatch failed"))
     const scenario = makeScenario({ requires: ["workflow_run"] })
-    await expect(resetScenarioFixtures(scenario, manifest, null)).resolves.toBeUndefined()
+    const result = await resetScenarioFixtures(scenario, manifest, null)
+    expect(result).toEqual(manifest)
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("dispatch failed"))
     warnSpy.mockRestore()
   })
@@ -269,8 +274,10 @@ describe("resetScenarioFixtures", () => {
     }
     reseedWorkflowRunMock.mockResolvedValueOnce({ id: 555, job_id: null, check_run_id: null })
     const scenario = makeScenario({ requires: ["workflow_run"] })
-    await resetScenarioFixtures(scenario, manifest, null)
+    const result = await resetScenarioFixtures(scenario, manifest, null)
     expect(reseedWorkflowRunMock).toHaveBeenCalled()
-    expect(manifest.resources["workflow_run"]).toEqual({ id: 555, number: 555 })
+    expect(result.resources["workflow_run"]).toEqual({ id: 555, number: 555 })
+    // Original manifest is not mutated
+    expect(manifest.resources["workflow_run"]).toEqual({ id: 1, number: 1 })
   })
 })

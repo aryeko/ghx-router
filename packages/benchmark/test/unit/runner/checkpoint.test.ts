@@ -1,6 +1,6 @@
 import type { WorkflowCheckpoint } from "@bench/domain/types.js"
 import { evaluateCheckpoints, evaluateCondition } from "@bench/runner/checkpoint.js"
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 const executeTaskMock = vi.hoisted(() => vi.fn())
 const createGithubClientFromTokenMock = vi.hoisted(() => vi.fn(() => ({})))
@@ -23,14 +23,19 @@ function makeCheckpoint(overrides: Partial<WorkflowCheckpoint> = {}): WorkflowCh
 describe("evaluateCheckpoints", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.useFakeTimers()
     createGithubClientFromTokenMock.mockReturnValue({})
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it("returns {allPassed:true} when all checkpoints pass", async () => {
     executeTaskMock.mockResolvedValue({ ok: true, data: [{ id: 1 }] })
 
     const checkpoints = [makeCheckpoint({ condition: "non_empty" })]
-    const result = await evaluateCheckpoints(checkpoints, {}, "token-abc")
+    const result = await evaluateCheckpoints(checkpoints, "token-abc")
 
     expect(result.allPassed).toBe(true)
     expect(result.results).toHaveLength(1)
@@ -41,7 +46,9 @@ describe("evaluateCheckpoints", () => {
     executeTaskMock.mockResolvedValue({ ok: true, data: [] })
 
     const checkpoints = [makeCheckpoint({ condition: "non_empty" })]
-    const result = await evaluateCheckpoints(checkpoints, {}, "token-abc")
+    const promise = evaluateCheckpoints(checkpoints, "token-abc")
+    await vi.runAllTimersAsync()
+    const result = await promise
 
     expect(result.allPassed).toBe(false)
     expect(result.results[0]?.passed).toBe(false)
@@ -51,7 +58,9 @@ describe("evaluateCheckpoints", () => {
     executeTaskMock.mockResolvedValue({ ok: false, error: "not found" })
 
     const checkpoints = [makeCheckpoint()]
-    const result = await evaluateCheckpoints(checkpoints, {}, "token-abc")
+    const promise = evaluateCheckpoints(checkpoints, "token-abc")
+    await vi.runAllTimersAsync()
+    const result = await promise
 
     expect(result.allPassed).toBe(false)
     expect(result.results[0]?.passed).toBe(false)
@@ -61,7 +70,9 @@ describe("evaluateCheckpoints", () => {
     executeTaskMock.mockRejectedValue(new Error("network error"))
 
     const checkpoints = [makeCheckpoint()]
-    const result = await evaluateCheckpoints(checkpoints, {}, "token-abc")
+    const promise = evaluateCheckpoints(checkpoints, "token-abc")
+    await vi.runAllTimersAsync()
+    const result = await promise
 
     expect(result.allPassed).toBe(false)
     expect(result.results[0]?.passed).toBe(false)
@@ -72,7 +83,7 @@ describe("evaluateCheckpoints", () => {
     executeTaskMock.mockResolvedValue({ ok: true, data: { items: [{ id: 1 }, { id: 2 }] } })
 
     const checkpoints = [makeCheckpoint({ condition: "count_gte", expected_value: 2 })]
-    const result = await evaluateCheckpoints(checkpoints, {}, "token-abc")
+    const result = await evaluateCheckpoints(checkpoints, "token-abc")
 
     expect(result.allPassed).toBe(true)
     expect(result.results[0]?.data).toEqual([{ id: 1 }, { id: 2 }])
@@ -87,7 +98,7 @@ describe("evaluateCheckpoints", () => {
     const checkpoints = [
       makeCheckpoint({ condition: "count_eq", expected_value: 2, verification_field: "labels" }),
     ]
-    const result = await evaluateCheckpoints(checkpoints, {}, "token-abc")
+    const result = await evaluateCheckpoints(checkpoints, "token-abc")
 
     expect(result.allPassed).toBe(true)
     expect(result.results[0]?.passed).toBe(true)
@@ -103,7 +114,9 @@ describe("evaluateCheckpoints", () => {
     const checkpoints = [
       makeCheckpoint({ condition: "count_eq", expected_value: 2, verification_field: "labels" }),
     ]
-    const result = await evaluateCheckpoints(checkpoints, {}, "token-abc")
+    const promise = evaluateCheckpoints(checkpoints, "token-abc")
+    await vi.runAllTimersAsync()
+    const result = await promise
 
     expect(result.allPassed).toBe(false)
     expect(result.results[0]?.passed).toBe(false)
@@ -116,7 +129,9 @@ describe("evaluateCheckpoints", () => {
     })
 
     const checkpoints = [makeCheckpoint({ condition: "non_empty", verification_field: "labels" })]
-    const result = await evaluateCheckpoints(checkpoints, {}, "token-abc")
+    const promise = evaluateCheckpoints(checkpoints, "token-abc")
+    await vi.runAllTimersAsync()
+    const result = await promise
 
     expect(result.allPassed).toBe(false)
     expect(result.results[0]?.data).toBeNull()

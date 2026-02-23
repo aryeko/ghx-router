@@ -24,9 +24,9 @@ export async function resetScenarioFixtures(
   scenario: Scenario,
   manifest: FixtureManifest,
   reviewerToken: string | null,
-): Promise<void> {
+): Promise<FixtureManifest> {
   if (scenario.fixture?.reseed_per_iteration !== true) {
-    return
+    return manifest
   }
 
   const requires = scenario.fixture.requires ?? []
@@ -77,7 +77,10 @@ export async function resetScenarioFixtures(
     try {
       const ref = await reseedWorkflowRun(manifest.repo.full_name, "default")
       if (ref !== null) {
-        manifest.resources["workflow_run"] = { id: ref.id, number: ref.id }
+        return {
+          ...manifest,
+          resources: { ...manifest.resources, workflow_run: { id: ref.id, number: ref.id } },
+        }
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
@@ -86,4 +89,6 @@ export async function resetScenarioFixtures(
       )
     }
   }
+
+  return manifest
 }

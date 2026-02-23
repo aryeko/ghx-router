@@ -279,11 +279,3 @@ export async function main(args: string[] = process.argv.slice(2)): Promise<void
     throw new Error(`Benchmark gate failed for profile ${gateProfile}`)
   }
 }
-
-if (!process.env.VITEST) {
-  main(process.argv.slice(2)).catch((error: unknown) => {
-    const message = error instanceof Error ? error.message : String(error)
-    console.error(message)
-    process.exit(1)
-  })
-}

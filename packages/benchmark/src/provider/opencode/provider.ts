@@ -53,7 +53,7 @@ export class OpencodeSessionProvider implements SessionProvider {
     return { sessionId: sessionData.id }
   }
 
-  async prompt(handle: SessionHandle, text: string): Promise<PromptResult> {
+  async prompt(handle: SessionHandle, text: string, timeoutMs?: number): Promise<PromptResult> {
     if (!this.benchmarkClient) {
       throw new Error("No session initialized")
     }
@@ -78,7 +78,8 @@ export class OpencodeSessionProvider implements SessionProvider {
       "session.promptAsync",
     )
 
-    const remainingTimeoutMs = Math.max(1000, 180000 - (Date.now() - wallClockStart))
+    const effectiveTimeoutMs = timeoutMs ?? 180_000
+    const remainingTimeoutMs = Math.max(1000, effectiveTimeoutMs - (Date.now() - wallClockStart))
     const immediatePrompt = extractPromptResponseFromPromptResult(promptResult)
     const hydrated =
       immediatePrompt ||

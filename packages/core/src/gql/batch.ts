@@ -22,6 +22,7 @@ export type BatchQueryResult = {
   variables: GraphqlVariables
 }
 
+/** Assumes no literal '{' appears before the operation body (true for all generated operations). */
 export function extractRootFieldName(query: string): string | null {
   const headerEnd = query.indexOf("{")
   if (headerEnd === -1) return null

@@ -1,4 +1,4 @@
-import type { SessionMessageEntry, SessionMessagePart } from "@bench/domain/types.js"
+import type { SessionMessageEntry } from "@bench/domain/types.js"
 import { isObject } from "@bench/util/guards.js"
 import {
   fetchSessionMessages,
@@ -9,50 +9,7 @@ import {
   hasTextPart,
   messageProgressSignature,
 } from "./polling.js"
-
-type AssistantMessage = {
-  id: string
-  sessionID: string
-  time: {
-    created: number
-    completed?: number
-  }
-  tokens: {
-    input: number
-    output: number
-    reasoning: number
-    cache: {
-      read: number
-      write: number
-    }
-  }
-  cost: number
-  error?: unknown
-  role?: string
-  structured_output?: unknown
-}
-
-type PromptResponse = {
-  info?: AssistantMessage
-  parts?: SessionMessagePart[]
-  id?: string
-  sessionID?: string
-  time?: {
-    created: number
-    completed?: number
-  }
-  tokens?: {
-    input: number
-    output: number
-    reasoning: number
-    cache: {
-      read: number
-      write: number
-    }
-  }
-  cost?: number
-  error?: unknown
-}
+import type { AssistantMessage, PromptResponse } from "./types.js"
 
 type SessionApi = ReturnType<typeof getSessionApi>
 
@@ -77,8 +34,8 @@ export async function waitForAssistantFromMessages(
   let lastWaitLogAt = started
   let lastProgressAt = started
   let lastSignature = ""
-  const firstAssistantBudgetMs = timeoutMs
-  const stallBudgetMs = timeoutMs
+  const firstAssistantBudgetMs = Math.min(30_000, timeoutMs)
+  const stallBudgetMs = Math.min(60_000, timeoutMs)
 
   while (Date.now() - started < timeoutMs) {
     const now = Date.now()

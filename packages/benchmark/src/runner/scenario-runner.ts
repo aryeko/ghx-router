@@ -3,6 +3,7 @@ import { resolveWorkflowFixtureBindings } from "../fixture/manifest.js"
 import type { SessionProvider } from "../provider/types.js"
 import { evaluateCheckpoints } from "./checkpoint.js"
 import { modeInstructions } from "./mode-instructions.js"
+import { withRetry } from "./retry.js"
 
 export async function runScenarioIteration(config: {
   provider: SessionProvider
@@ -41,12 +42,15 @@ export async function runScenarioIteration(config: {
     sessionId = sessionHandle.sessionId
 
     const promptText = resolvedScenario.prompt
-    const promptResult = await provider.prompt(sessionHandle, promptText)
+    const maxAttempts = (scenario.allowed_retries ?? 0) + 1
+    const { result: promptResult, attempts } = await withRetry(
+      () => provider.prompt(sessionHandle, promptText, scenario.timeout_ms),
+      { maxAttempts, backoffMs: 2000 },
+    )
 
     const githubToken = process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN ?? ""
     const { allPassed: checkpointsPassed, results: checkpointResults } = await evaluateCheckpoints(
       resolvedScenario.assertions.checkpoints,
-      {},
       githubToken,
     )
 
@@ -86,7 +90,7 @@ export async function runScenarioIteration(config: {
       tool_calls: promptResult.toolCalls,
       api_calls: promptResult.apiCalls,
       internal_retry_count: 0,
-      external_retry_count: 0,
+      external_retry_count: attempts - 1,
       model: {
         provider_id: promptResult.model.providerId,
         model_id: promptResult.model.modelId,

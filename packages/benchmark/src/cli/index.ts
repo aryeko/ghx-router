@@ -14,18 +14,26 @@ async function main(): Promise<void> {
   const command = process.argv[2]
 
   switch (command) {
-    case "run":
-      await import("./run-command.js")
+    case "run": {
+      const { main } = await import("./run-command.js")
+      await main(process.argv.slice(3))
       break
-    case "fixture":
-      await import("./fixture-command.js")
+    }
+    case "fixture": {
+      const { main } = await import("./fixture-command.js")
+      await main(process.argv.slice(3))
       break
-    case "report":
-      await import("./report-command.js")
+    }
+    case "report": {
+      const { main } = await import("./report-command.js")
+      await main(process.argv.slice(3))
       break
-    case "check":
-      await import("./check-command.js")
+    }
+    case "check": {
+      const { main } = await import("./check-command.js")
+      await main()
       break
+    }
     default:
       console.error(`Unknown command: ${command}`)
       process.exit(1)

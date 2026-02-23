@@ -28,14 +28,10 @@ function mockScenario(id: string): Scenario {
 
 describe("check-command", () => {
   let consoleLogSpy: MockInstance
-  let consoleErrorSpy: MockInstance
-  let processExitSpy: MockInstance
 
   beforeEach(() => {
     vi.clearAllMocks()
     consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {})
-    consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
-    processExitSpy = vi.spyOn(process, "exit").mockImplementation((() => {}) as never)
 
     loadScenarioSetsMock.mockResolvedValue({
       default: ["s1"],
@@ -47,14 +43,13 @@ describe("check-command", () => {
 
   afterEach(() => {
     consoleLogSpy.mockRestore()
-    consoleErrorSpy.mockRestore()
-    processExitSpy.mockRestore()
   })
 
   it("validates scenarios and scenario sets successfully", async () => {
     loadScenariosMock.mockResolvedValue([mockScenario("s1")])
 
-    await import("@bench/cli/check-command.js")
+    const { main } = await import("@bench/cli/check-command.js")
+    await main()
 
     expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining("Validated"))
   })
@@ -63,10 +58,9 @@ describe("check-command", () => {
     loadScenariosMock.mockResolvedValue([mockScenario("s1"), mockScenario("s1")])
 
     vi.resetModules()
-    await import("@bench/cli/check-command.js")
+    const { main } = await import("@bench/cli/check-command.js")
 
-    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining("Duplicate scenario"))
-    expect(processExitSpy).toHaveBeenCalledWith(1)
+    await expect(main()).rejects.toThrow("Duplicate scenario")
   })
 
   it("throws error for missing required scenario set", async () => {
@@ -74,12 +68,9 @@ describe("check-command", () => {
     loadScenarioSetsMock.mockResolvedValue({ default: ["s1"] })
 
     vi.resetModules()
-    await import("@bench/cli/check-command.js")
+    const { main } = await import("@bench/cli/check-command.js")
 
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      expect.stringContaining("Missing required scenario set"),
-    )
-    expect(processExitSpy).toHaveBeenCalledWith(1)
+    await expect(main()).rejects.toThrow("Missing required scenario set")
   })
 
   it("throws error when scenario set references unknown scenario id", async () => {
@@ -92,12 +83,9 @@ describe("check-command", () => {
     })
 
     vi.resetModules()
-    await import("@bench/cli/check-command.js")
+    const { main } = await import("@bench/cli/check-command.js")
 
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      expect.stringContaining("references unknown scenario id"),
-    )
-    expect(processExitSpy).toHaveBeenCalledWith(1)
+    await expect(main()).rejects.toThrow("references unknown scenario id")
   })
 
   it("throws error for orphan scenario not in any set", async () => {
@@ -110,22 +98,18 @@ describe("check-command", () => {
     })
 
     vi.resetModules()
-    await import("@bench/cli/check-command.js")
+    const { main } = await import("@bench/cli/check-command.js")
 
-    expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining("orphan scenario"))
-    expect(processExitSpy).toHaveBeenCalledWith(1)
+    await expect(main()).rejects.toThrow("orphan scenario")
   })
 
   it("throws error when no scenarios found", async () => {
     loadScenariosMock.mockResolvedValue([])
 
     vi.resetModules()
-    await import("@bench/cli/check-command.js")
+    const { main } = await import("@bench/cli/check-command.js")
 
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      expect.stringContaining("No benchmark scenarios found"),
-    )
-    expect(processExitSpy).toHaveBeenCalledWith(1)
+    await expect(main()).rejects.toThrow("No benchmark scenarios found")
   })
 
   it("logs validation summary with scenario and set counts", async () => {
@@ -138,7 +122,8 @@ describe("check-command", () => {
     })
 
     vi.resetModules()
-    await import("@bench/cli/check-command.js")
+    const { main } = await import("@bench/cli/check-command.js")
+    await main()
 
     expect(consoleLogSpy).toHaveBeenCalledWith(
       expect.stringMatching(/Validated 2 benchmark scenarios/),
@@ -159,7 +144,8 @@ describe("check-command", () => {
     })
 
     vi.resetModules()
-    await import("@bench/cli/check-command.js")
+    const { main } = await import("@bench/cli/check-command.js")
+    await main()
 
     expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining("Validated"))
   })
