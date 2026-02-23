@@ -8,8 +8,8 @@ import {
 
 const FAILED_RERUN_WORKFLOW_FILE =
   process.env.BENCH_FIXTURE_FAILED_RERUN_WORKFLOW ?? "bench-rerun-failed.yml"
-const FAILED_RERUN_POLL_INTERVAL_MS = 2000
-const FAILED_RERUN_TIMEOUT_MS = 30_000
+const FAILED_RERUN_POLL_INTERVAL_MS = 5000
+const FAILED_RERUN_TIMEOUT_MS = 60_000
 
 export function findDispatchedFailedRunId(
   repo: string,
