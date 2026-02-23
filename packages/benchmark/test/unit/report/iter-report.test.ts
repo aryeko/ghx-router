@@ -1,10 +1,18 @@
+import type { BenchmarkRow } from "@bench/domain/types.js"
 import type { IterData } from "@bench/report/iter-reader.js"
 import type { IterReport } from "@bench/report/iter-report.js"
-import { buildIterReport, formatIterReport, toMetrics } from "@bench/report/iter-report.js"
-import { describe, expect, it, vi } from "vitest"
+import {
+  buildIterReport,
+  formatIterReport,
+  toMetrics,
+  toResultsMetrics,
+} from "@bench/report/iter-report.js"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const readRunDirMock = vi.hoisted(() => vi.fn())
+const loadResultsMapMock = vi.hoisted(() => vi.fn())
 vi.mock("@bench/report/iter-reader.js", () => ({ readRunDir: readRunDirMock }))
+vi.mock("@bench/report/results-reader.js", () => ({ loadResultsMap: loadResultsMapMock }))
 
 function makeIterData(overrides: Partial<IterData> = {}): IterData {
   return {
@@ -25,6 +33,33 @@ function makeIterData(overrides: Partial<IterData> = {}): IterData {
     },
     ...overrides,
   }
+}
+
+function makeBenchmarkRow(overrides: Record<string, unknown> = {}): BenchmarkRow {
+  return {
+    timestamp: "2026-01-01T00:00:00.000Z",
+    run_id: "run-001",
+    scenario_id: "sc-001",
+    scenario_set: null,
+    iteration: 1,
+    mode: "ghx",
+    session_id: null,
+    success: true,
+    output_valid: true,
+    cost: 0.0123,
+    latency_ms_wall: 5000,
+    latency_ms_agent: 4500,
+    sdk_latency_ms: null,
+    tokens: { input: 0, output: 0, reasoning: 0, cache_read: 0, cache_write: 0, total: 0 },
+    tool_calls: 0,
+    api_calls: 0,
+    internal_retry_count: 0,
+    external_retry_count: 0,
+    model: { provider_id: "anthropic", model_id: "claude-sonnet-4-6", mode: null },
+    git: { repo: null, commit: null },
+    error: null,
+    ...overrides,
+  } as BenchmarkRow
 }
 
 describe("toMetrics", () => {
@@ -94,7 +129,42 @@ describe("toMetrics", () => {
   })
 })
 
+describe("toResultsMetrics", () => {
+  it("maps all fields from BenchmarkRow correctly", () => {
+    const row = makeBenchmarkRow({
+      success: true,
+      output_valid: false,
+      cost: 0.0456,
+      latency_ms_wall: 7000,
+      internal_retry_count: 2,
+      external_retry_count: 1,
+      error: { type: "timeout", message: "timed out after 60s" },
+    })
+
+    const metrics = toResultsMetrics(row)
+
+    expect(metrics.success).toBe(true)
+    expect(metrics.outputValid).toBe(false)
+    expect(metrics.cost).toBe(0.0456)
+    expect(metrics.latencyMsWall).toBe(7000)
+    expect(metrics.internalRetryCount).toBe(2)
+    expect(metrics.externalRetryCount).toBe(1)
+    expect(metrics.error).toEqual({ type: "timeout", message: "timed out after 60s" })
+  })
+
+  it("preserves null error", () => {
+    const row = makeBenchmarkRow({ error: null })
+    const metrics = toResultsMetrics(row)
+
+    expect(metrics.error).toBeNull()
+  })
+})
+
 describe("buildIterReport", () => {
+  beforeEach(() => {
+    loadResultsMapMock.mockResolvedValue(new Map())
+  })
+
   it("returns correct pairs when both dirs have matching iterations", async () => {
     const ghxIter = makeIterData({ mode: "ghx", scenarioId: "sc-001", iteration: 1 })
     const adIter = makeIterData({ mode: "agent_direct", scenarioId: "sc-001", iteration: 1 })
@@ -281,6 +351,152 @@ describe("buildIterReport", () => {
     const summary = report.scenarioSummaries.find((s) => s.scenarioId === "sc-nulltok")
     expect(summary?.avgGhxTokens).toBeNull()
   })
+
+  it("populates ghxResults and adResults from results map", async () => {
+    const ghxIter = makeIterData({ mode: "ghx", scenarioId: "sc-001", iteration: 1 })
+    const adIter = makeIterData({ mode: "agent_direct", scenarioId: "sc-001", iteration: 1 })
+    const ghxRow = makeBenchmarkRow({
+      scenario_id: "sc-001",
+      iteration: 1,
+      success: true,
+      output_valid: true,
+      cost: 0.01,
+      latency_ms_wall: 3000,
+      internal_retry_count: 0,
+      external_retry_count: 0,
+      error: null,
+    })
+    const adRow = makeBenchmarkRow({
+      scenario_id: "sc-001",
+      iteration: 1,
+      success: false,
+      output_valid: false,
+      cost: 0.02,
+      latency_ms_wall: 6000,
+      internal_retry_count: 1,
+      external_retry_count: 0,
+      error: { type: "timeout", message: "timed out" },
+    })
+
+    readRunDirMock.mockResolvedValueOnce([ghxIter]).mockResolvedValueOnce([adIter])
+    loadResultsMapMock
+      .mockResolvedValueOnce(new Map([["sc-001::1", ghxRow]]))
+      .mockResolvedValueOnce(new Map([["sc-001::1", adRow]]))
+
+    const report = await buildIterReport("/runs/ghx", "/runs/ad")
+
+    const pair = report.pairs[0]
+    expect(pair?.ghxResults).toEqual({
+      success: true,
+      outputValid: true,
+      cost: 0.01,
+      latencyMsWall: 3000,
+      internalRetryCount: 0,
+      externalRetryCount: 0,
+      error: null,
+    })
+    expect(pair?.adResults).toEqual({
+      success: false,
+      outputValid: false,
+      cost: 0.02,
+      latencyMsWall: 6000,
+      internalRetryCount: 1,
+      externalRetryCount: 0,
+      error: { type: "timeout", message: "timed out" },
+    })
+  })
+
+  it("scenarioSummaries compute correct success and outputValid rates", async () => {
+    const ghxIter1 = makeIterData({ mode: "ghx", scenarioId: "sc-001", iteration: 1 })
+    const ghxIter2 = makeIterData({ mode: "ghx", scenarioId: "sc-001", iteration: 2 })
+    const adIter1 = makeIterData({ mode: "agent_direct", scenarioId: "sc-001", iteration: 1 })
+    const adIter2 = makeIterData({ mode: "agent_direct", scenarioId: "sc-001", iteration: 2 })
+
+    readRunDirMock
+      .mockResolvedValueOnce([ghxIter1, ghxIter2])
+      .mockResolvedValueOnce([adIter1, adIter2])
+    loadResultsMapMock
+      .mockResolvedValueOnce(
+        new Map([
+          [
+            "sc-001::1",
+            makeBenchmarkRow({
+              scenario_id: "sc-001",
+              iteration: 1,
+              success: true,
+              output_valid: true,
+              cost: 0.01,
+              latency_ms_wall: 3000,
+            }),
+          ],
+          [
+            "sc-001::2",
+            makeBenchmarkRow({
+              scenario_id: "sc-001",
+              iteration: 2,
+              success: false,
+              output_valid: false,
+              cost: 0.02,
+              latency_ms_wall: 5000,
+            }),
+          ],
+        ]),
+      )
+      .mockResolvedValueOnce(
+        new Map([
+          [
+            "sc-001::1",
+            makeBenchmarkRow({
+              scenario_id: "sc-001",
+              iteration: 1,
+              success: true,
+              output_valid: false,
+              cost: 0.03,
+              latency_ms_wall: 4000,
+            }),
+          ],
+          [
+            "sc-001::2",
+            makeBenchmarkRow({
+              scenario_id: "sc-001",
+              iteration: 2,
+              success: true,
+              output_valid: true,
+              cost: 0.04,
+              latency_ms_wall: 6000,
+            }),
+          ],
+        ]),
+      )
+
+    const report = await buildIterReport("/runs/ghx", "/runs/ad")
+
+    const summary = report.scenarioSummaries[0]
+    expect(summary?.ghxSuccessRate).toBe(50)
+    expect(summary?.adSuccessRate).toBe(100)
+    expect(summary?.ghxOutputValidRate).toBe(50)
+    expect(summary?.adOutputValidRate).toBe(50)
+    expect(summary?.avgGhxCost).toBe(0.015)
+    expect(summary?.avgAdCost).toBe(0.035)
+    expect(summary?.avgGhxLatencyWall).toBe(4000)
+    expect(summary?.avgAdLatencyWall).toBe(5000)
+  })
+
+  it("scenarioSummaries returns null rates when results map is empty", async () => {
+    const ghxIter = makeIterData({ mode: "ghx", scenarioId: "sc-001", iteration: 1 })
+
+    readRunDirMock.mockResolvedValueOnce([ghxIter]).mockResolvedValueOnce([])
+
+    const report = await buildIterReport("/runs/ghx", "/runs/ad")
+
+    const summary = report.scenarioSummaries[0]
+    expect(summary?.ghxSuccessRate).toBeNull()
+    expect(summary?.adSuccessRate).toBeNull()
+    expect(summary?.ghxOutputValidRate).toBeNull()
+    expect(summary?.adOutputValidRate).toBeNull()
+    expect(summary?.avgGhxCost).toBeNull()
+    expect(summary?.avgAdCost).toBeNull()
+  })
 })
 
 describe("formatIterReport", () => {
@@ -320,6 +536,8 @@ describe("formatIterReport", () => {
           agentDirect: null,
           ghxMetrics: toMetrics(ghxIter),
           adMetrics: null,
+          ghxResults: null,
+          adResults: null,
         },
       ],
       scenarioSummaries: [
@@ -330,6 +548,14 @@ describe("formatIterReport", () => {
           avgAdToolCalls: null,
           avgGhxTokens: 180,
           avgAdTokens: null,
+          ghxSuccessRate: null,
+          adSuccessRate: null,
+          ghxOutputValidRate: null,
+          adOutputValidRate: null,
+          avgGhxCost: null,
+          avgAdCost: null,
+          avgGhxLatencyWall: null,
+          avgAdLatencyWall: null,
         },
       ],
     })
@@ -350,6 +576,8 @@ describe("formatIterReport", () => {
           agentDirect: null,
           ghxMetrics: toMetrics(ghxIter),
           adMetrics: null,
+          ghxResults: null,
+          adResults: null,
         },
       ],
       scenarioSummaries: [],
@@ -382,6 +610,8 @@ describe("formatIterReport", () => {
           agentDirect: null,
           ghxMetrics: toMetrics(ghxIter),
           adMetrics: null,
+          ghxResults: null,
+          adResults: null,
         },
       ],
       scenarioSummaries: [],
@@ -417,6 +647,8 @@ describe("formatIterReport", () => {
           agentDirect: adIter,
           ghxMetrics: null,
           adMetrics: toMetrics(adIter),
+          ghxResults: null,
+          adResults: null,
         },
       ],
       scenarioSummaries: [],
@@ -471,6 +703,8 @@ describe("formatIterReport", () => {
           agentDirect: adIter,
           ghxMetrics: toMetrics(ghxIter),
           adMetrics: toMetrics(adIter),
+          ghxResults: null,
+          adResults: null,
         },
       ],
       scenarioSummaries: [],
@@ -493,6 +727,8 @@ describe("formatIterReport", () => {
           agentDirect: null,
           ghxMetrics: toMetrics(ghxIter),
           adMetrics: null,
+          ghxResults: null,
+          adResults: null,
         },
       ],
       scenarioSummaries: [],
@@ -513,6 +749,14 @@ describe("formatIterReport", () => {
           avgAdToolCalls: 5.0,
           avgGhxTokens: 150.0,
           avgAdTokens: 300.0,
+          ghxSuccessRate: 100,
+          adSuccessRate: 50,
+          ghxOutputValidRate: 100,
+          adOutputValidRate: 50,
+          avgGhxCost: null,
+          avgAdCost: null,
+          avgGhxLatencyWall: null,
+          avgAdLatencyWall: null,
         },
       ],
     })
@@ -523,6 +767,35 @@ describe("formatIterReport", () => {
     expect(output).toContain("sc-001")
     expect(output).toContain("3.0")
     expect(output).toContain("5.0")
+  })
+
+  it("summary table includes ok% and valid% columns", () => {
+    const report = makeReport({
+      scenarioSummaries: [
+        {
+          scenarioId: "sc-001",
+          iterCount: 2,
+          avgGhxToolCalls: null,
+          avgAdToolCalls: null,
+          avgGhxTokens: null,
+          avgAdTokens: null,
+          ghxSuccessRate: 75,
+          adSuccessRate: 100,
+          ghxOutputValidRate: 50,
+          adOutputValidRate: 100,
+          avgGhxCost: 0.01,
+          avgAdCost: 0.02,
+          avgGhxLatencyWall: null,
+          avgAdLatencyWall: null,
+        },
+      ],
+    })
+
+    const output = formatIterReport(report)
+
+    expect(output).toContain("75%")
+    expect(output).toContain("100%")
+    expect(output).toContain("50%")
   })
 
   it("handles ghx capabilities with null route", () => {
@@ -544,6 +817,8 @@ describe("formatIterReport", () => {
           agentDirect: null,
           ghxMetrics: toMetrics(ghxIter),
           adMetrics: null,
+          ghxResults: null,
+          adResults: null,
         },
       ],
       scenarioSummaries: [],
@@ -570,6 +845,8 @@ describe("formatIterReport", () => {
           agentDirect: adIter,
           ghxMetrics: null,
           adMetrics: null,
+          ghxResults: null,
+          adResults: null,
         },
       ],
       scenarioSummaries: [],
@@ -596,6 +873,8 @@ describe("formatIterReport", () => {
           agentDirect: null,
           ghxMetrics: toMetrics(ghxIter),
           adMetrics: null,
+          ghxResults: null,
+          adResults: null,
         },
       ],
       scenarioSummaries: [],
@@ -648,6 +927,8 @@ describe("formatIterReport", () => {
           agentDirect: adIter,
           ghxMetrics: toMetrics(ghxIter),
           adMetrics: toMetrics(adIter),
+          ghxResults: null,
+          adResults: null,
         },
       ],
       scenarioSummaries: [],
@@ -694,6 +975,8 @@ describe("formatIterReport", () => {
           agentDirect: adIter,
           ghxMetrics: toMetrics(ghxIter),
           adMetrics: toMetrics(adIter),
+          ghxResults: null,
+          adResults: null,
         },
       ],
       scenarioSummaries: [],
@@ -702,5 +985,98 @@ describe("formatIterReport", () => {
     const output = formatIterReport(report)
 
     expect(output).toContain("+3")
+  })
+
+  it("shows results rows (Success, Cost, Latency) when ghxResults or adResults is present", () => {
+    const ghxIter = makeIterData({ mode: "ghx", scenarioId: "sc-001", iteration: 1 })
+    const report = makeReport({
+      pairs: [
+        {
+          scenarioId: "sc-001",
+          iteration: 1,
+          ghx: ghxIter,
+          agentDirect: null,
+          ghxMetrics: toMetrics(ghxIter),
+          adMetrics: null,
+          ghxResults: {
+            success: true,
+            outputValid: true,
+            cost: 0.0123,
+            latencyMsWall: 5000,
+            internalRetryCount: 0,
+            externalRetryCount: 0,
+            error: null,
+          },
+          adResults: null,
+        },
+      ],
+      scenarioSummaries: [],
+    })
+
+    const output = formatIterReport(report)
+
+    expect(output).toContain("| Success")
+    expect(output).toContain("| Output valid")
+    expect(output).toContain("| Cost (USD)")
+    expect(output).toContain("| Latency wall (ms)")
+    expect(output).toContain("pass")
+    expect(output).toContain("$0.0123")
+    expect(output).toContain("5000")
+  })
+
+  it("shows fail for failed results and error text", () => {
+    const adIter = makeIterData({ mode: "agent_direct", scenarioId: "sc-001", iteration: 1 })
+    const report = makeReport({
+      pairs: [
+        {
+          scenarioId: "sc-001",
+          iteration: 1,
+          ghx: null,
+          agentDirect: adIter,
+          ghxMetrics: null,
+          adMetrics: toMetrics(adIter),
+          ghxResults: null,
+          adResults: {
+            success: false,
+            outputValid: false,
+            cost: 0.0,
+            latencyMsWall: 60000,
+            internalRetryCount: 0,
+            externalRetryCount: 1,
+            error: { type: "timeout", message: "request timed out" },
+          },
+        },
+      ],
+      scenarioSummaries: [],
+    })
+
+    const output = formatIterReport(report)
+
+    expect(output).toContain("fail")
+    expect(output).toContain("timeout: request timed out")
+  })
+
+  it("does not show results rows when both ghxResults and adResults are null", () => {
+    const ghxIter = makeIterData({ mode: "ghx", scenarioId: "sc-001", iteration: 1 })
+    const report = makeReport({
+      pairs: [
+        {
+          scenarioId: "sc-001",
+          iteration: 1,
+          ghx: ghxIter,
+          agentDirect: null,
+          ghxMetrics: toMetrics(ghxIter),
+          adMetrics: null,
+          ghxResults: null,
+          adResults: null,
+        },
+      ],
+      scenarioSummaries: [],
+    })
+
+    const output = formatIterReport(report)
+
+    expect(output).not.toContain("| Success")
+    expect(output).not.toContain("| Cost (USD)")
   })
 })
