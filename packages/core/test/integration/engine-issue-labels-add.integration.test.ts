@@ -4,7 +4,7 @@ import { createGithubClient } from "@core/gql/github-client.js"
 import { describe, expect, it } from "vitest"
 
 describe("executeTask issue.labels.add", () => {
-  it("returns validation error envelope for missing issueId", async () => {
+  it("returns validation error envelope for missing issueNumber", async () => {
     const githubClient = createGithubClient({
       async execute<TData>(): Promise<TData> {
         return {} as TData
@@ -13,7 +13,7 @@ describe("executeTask issue.labels.add", () => {
 
     const request: TaskRequest = {
       task: "issue.labels.add",
-      input: { labels: ["bug"] },
+      input: { owner: "acme", name: "modkit", labels: ["bug"] },
     }
 
     const result = await executeTask(request, {
@@ -37,7 +37,7 @@ describe("executeTask issue.labels.add", () => {
 
     const request: TaskRequest = {
       task: "issue.labels.add",
-      input: { issueId: "MDU6SXNzdWUx" },
+      input: { owner: "acme", name: "modkit", issueNumber: 42 },
     }
 
     const result = await executeTask(request, {
@@ -58,22 +58,23 @@ describe("executeTask issue.labels.add", () => {
       async execute<TData>(): Promise<TData> {
         callCount++
         if (callCount === 1) {
-          // First call: ISSUE_LABELS_LOOKUP_QUERY
+          // First call: IssueLabelsLookupByNumber
           const response = {
-            node: {
-              repository: {
-                labels: {
-                  nodes: [
-                    { id: "MDEyOkxhYmVsODk=", name: "bug" },
-                    { id: "MDEyOkxhYmVsOTA=", name: "enhancement" },
-                  ],
-                },
+            repository: {
+              issue: {
+                id: "MDU6SXNzdWUx",
+              },
+              labels: {
+                nodes: [
+                  { id: "MDEyOkxhYmVsODk=", name: "bug" },
+                  { id: "MDEyOkxhYmVsOTA=", name: "enhancement" },
+                ],
               },
             },
           }
           return response as TData
         }
-        // Second call: ISSUE_LABELS_ADD_MUTATION
+        // Second call: IssueLabelsAdd mutation
         const response = {
           addLabelsToLabelable: {
             labelable: {
@@ -91,7 +92,9 @@ describe("executeTask issue.labels.add", () => {
     const request: TaskRequest = {
       task: "issue.labels.add",
       input: {
-        issueId: "MDU6SXNzdWUx",
+        owner: "acme",
+        name: "modkit",
+        issueNumber: 42,
         labels: ["bug", "enhancement"],
       },
     }

@@ -1382,6 +1382,14 @@ describe("createGithubClient", () => {
         }
       }
 
+      if (query.includes("query IssueNodeIdLookup")) {
+        return {
+          repository: {
+            issue: { id: "issue-1" },
+          },
+        }
+      }
+
       if (query.includes("mutation IssueCommentCreate")) {
         return {
           addComment: {
@@ -1517,9 +1525,9 @@ describe("createGithubClient", () => {
     await expect(
       client.setIssueMilestone({ issueId: "issue-1", milestoneNumber: 3 }),
     ).resolves.toEqual(expect.objectContaining({ id: "issue-1", milestoneNumber: 3 }))
-    await expect(client.createIssueComment({ issueId: "issue-1", body: "ack" })).resolves.toEqual(
-      expect.objectContaining({ id: "comment-1", body: "ack" }),
-    )
+    await expect(
+      client.createIssueComment({ owner: "acme", name: "modkit", issueNumber: 501, body: "ack" }),
+    ).resolves.toEqual(expect.objectContaining({ id: "comment-1", body: "ack" }))
     await expect(
       client.fetchIssueLinkedPrs({ owner: "acme", name: "modkit", issueNumber: 501 }),
     ).resolves.toEqual(
@@ -1607,10 +1615,18 @@ describe("createGithubClient", () => {
     ).rejects.toThrow("Milestone not found: 2")
 
     const commentMalformedClient = createGithubClient({
-      execute: vi.fn(async () => ({ addComment: { commentEdge: { node: { id: "comment-1" } } } })),
+      execute: vi
+        .fn()
+        .mockResolvedValueOnce({ repository: { issue: { id: "issue-1" } } })
+        .mockResolvedValueOnce({ addComment: { commentEdge: { node: { id: "comment-1" } } } }),
     } as never)
     await expect(
-      commentMalformedClient.createIssueComment({ issueId: "issue-1", body: "ack" }),
+      commentMalformedClient.createIssueComment({
+        owner: "acme",
+        name: "modkit",
+        issueNumber: 501,
+        body: "ack",
+      }),
     ).rejects.toThrow("Issue comment creation failed")
   })
 

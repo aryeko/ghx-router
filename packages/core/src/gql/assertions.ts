@@ -126,7 +126,7 @@ export function assertIssueLabelsUpdateInput(input: IssueLabelsUpdateInput): voi
 }
 
 export function assertIssueLabelsAddInput(input: IssueLabelsAddInput): void {
-  assertIssueMutationInput({ issueId: input.issueId })
+  assertIssueInput({ owner: input.owner, name: input.name, issueNumber: input.issueNumber })
   assertStringArray(input.labels, "Labels")
 }
 
@@ -153,7 +153,7 @@ export function assertIssueMilestoneSetInput(input: IssueMilestoneSetInput): voi
 }
 
 export function assertIssueCommentCreateInput(input: IssueCommentCreateInput): void {
-  assertIssueMutationInput({ issueId: input.issueId })
+  assertIssueInput({ owner: input.owner, name: input.name, issueNumber: input.issueNumber })
   assertNonEmptyString(input.body, "Issue comment body")
 }
 

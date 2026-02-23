@@ -50,7 +50,9 @@ export type IssueLabelsUpdateInput = {
 }
 
 export type IssueLabelsAddInput = {
-  issueId: string
+  owner: string
+  name: string
+  issueNumber: number
   labels: string[]
 }
 
@@ -79,7 +81,9 @@ export type IssueMilestoneSetInput = {
 }
 
 export type IssueCommentCreateInput = {
-  issueId: string
+  owner: string
+  name: string
+  issueNumber: number
   body: string
 }
 

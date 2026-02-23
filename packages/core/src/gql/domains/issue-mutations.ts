@@ -31,10 +31,12 @@ import { getSdk as getIssueCreateRepositoryIdSdk } from "../operations/issue-cre
 import { getSdk as getIssueDeleteSdk } from "../operations/issue-delete.generated.js"
 import { getSdk as getIssueLabelsAddSdk } from "../operations/issue-labels-add.generated.js"
 import { getSdk as getIssueLabelsLookupSdk } from "../operations/issue-labels-lookup.generated.js"
+import { getSdk as getIssueLabelsLookupByNumberSdk } from "../operations/issue-labels-lookup-by-number.generated.js"
 import { getSdk as getIssueLabelsUpdateSdk } from "../operations/issue-labels-update.generated.js"
 import { getSdk as getIssueLinkedPrsListSdk } from "../operations/issue-linked-prs-list.generated.js"
 import { getSdk as getIssueMilestoneLookupSdk } from "../operations/issue-milestone-lookup.generated.js"
 import { getSdk as getIssueMilestoneSetSdk } from "../operations/issue-milestone-set.generated.js"
+import { getSdk as getIssueNodeIdLookupSdk } from "../operations/issue-node-id-lookup.generated.js"
 import { getSdk as getIssueParentLookupSdk } from "../operations/issue-parent-lookup.generated.js"
 import { getSdk as getIssueParentRemoveSdk } from "../operations/issue-parent-remove.generated.js"
 import { getSdk as getIssueParentSetSdk } from "../operations/issue-parent-set.generated.js"
@@ -259,15 +261,20 @@ export async function runIssueLabelsAdd(
   assertIssueLabelsAddInput(input)
 
   const client = createGraphqlRequestClient(transport)
-  const lookupResult = await getIssueLabelsLookupSdk(client).IssueLabelsLookup({
-    issueId: input.issueId,
+  const lookupResult = await getIssueLabelsLookupByNumberSdk(client).IssueLabelsLookupByNumber({
+    owner: input.owner,
+    name: input.name,
+    issueNumber: input.issueNumber,
   })
 
-  const availableLabels = Array.isArray(
-    asRecord(asRecord(asRecord(asRecord(lookupResult)?.node)?.repository)?.labels)?.nodes,
-  )
-    ? (asRecord(asRecord(asRecord(asRecord(lookupResult)?.node)?.repository)?.labels)
-        ?.nodes as unknown[])
+  const repo = asRecord(asRecord(lookupResult)?.repository)
+  const labelableId = asRecord(repo?.issue)?.id
+  if (typeof labelableId !== "string" || labelableId.length === 0) {
+    throw new Error("Issue not found")
+  }
+
+  const availableLabels = Array.isArray(asRecord(repo?.labels)?.nodes)
+    ? (asRecord(repo?.labels)?.nodes as unknown[])
     : []
 
   const labelIdsByName = new Map<string, string>()
@@ -287,7 +294,7 @@ export async function runIssueLabelsAdd(
   })
 
   const result = await getIssueLabelsAddSdk(client).IssueLabelsAdd({
-    labelableId: input.issueId,
+    labelableId,
     labelIds,
   })
 
@@ -497,10 +504,20 @@ export async function runIssueCommentCreate(
 ): Promise<IssueCommentCreateData> {
   assertIssueCommentCreateInput(input)
 
-  const result = await getIssueCommentCreateSdk(
-    createGraphqlRequestClient(transport),
-  ).IssueCommentCreate({
-    issueId: input.issueId,
+  const client = createGraphqlRequestClient(transport)
+  const lookupResult = await getIssueNodeIdLookupSdk(client).IssueNodeIdLookup({
+    owner: input.owner,
+    name: input.name,
+    issueNumber: input.issueNumber,
+  })
+
+  const issueId = asRecord(asRecord(asRecord(lookupResult)?.repository)?.issue)?.id
+  if (typeof issueId !== "string" || issueId.length === 0) {
+    throw new Error("Issue not found")
+  }
+
+  const result = await getIssueCommentCreateSdk(client).IssueCommentCreate({
+    issueId,
     body: input.body,
   })
 

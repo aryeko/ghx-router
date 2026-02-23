@@ -18,15 +18,7 @@ describe("executeTasks – no-resolution mutations (batch Phase 2 path)", () => 
             closeIssue: { issue: { id: "I_abc123", number: 10, state: "CLOSED" } },
           },
           step1: {
-            addComment: {
-              commentEdge: {
-                node: {
-                  id: "IC_comment1",
-                  body: "Closing comment.",
-                  url: "https://github.com/o/r/issues/10#issuecomment-1",
-                },
-              },
-            },
+            reopenIssue: { issue: { id: "I_abc123", number: 10, state: "OPEN" } },
           },
         } as TData,
         errors: undefined,
@@ -43,7 +35,7 @@ describe("executeTasks – no-resolution mutations (batch Phase 2 path)", () => 
     const result = await executeTasks(
       [
         { task: "issue.close", input: { issueId: "I_abc123" } },
-        { task: "issue.comments.create", input: { issueId: "I_abc123", body: "Closing comment." } },
+        { task: "issue.reopen", input: { issueId: "I_abc123" } },
       ],
       { githubClient, githubToken: "test-token" },
     )
@@ -59,13 +51,13 @@ describe("executeTasks – no-resolution mutations (batch Phase 2 path)", () => 
       data: { closeIssue: { issue: { state: "CLOSED" } } },
     })
     expect(result.results[1]).toMatchObject({
-      task: "issue.comments.create",
+      task: "issue.reopen",
       ok: true,
     })
 
     const calledDoc = String(queryRawFn.mock.calls[0]?.[0])
     expect(calledDoc).toContain("closeIssue")
-    expect(calledDoc).toContain("addComment")
+    expect(calledDoc).toContain("reopenIssue")
     expect(queryRawFn).toHaveBeenCalledOnce()
   })
 
@@ -82,7 +74,7 @@ describe("executeTasks – no-resolution mutations (batch Phase 2 path)", () => 
     const result = await executeTasks(
       [
         { task: "issue.close", input: { issueId: "I_abc123" } },
-        { task: "issue.comments.create", input: { issueId: "I_abc123", body: "Closing comment." } },
+        { task: "issue.reopen", input: { issueId: "I_abc123" } },
       ],
       { githubClient, githubToken: "test-token" },
     )
