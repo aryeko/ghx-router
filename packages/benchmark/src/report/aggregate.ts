@@ -9,39 +9,10 @@ import type {
   ProfilingSummary,
 } from "../domain/types.js"
 import { DEFAULT_GATE_THRESHOLDS, evaluateGate } from "./gate.js"
+import { activeTokens, isRunnerError, median, pct, safeReductionPct } from "./report-utils.js"
 import { bootstrapCI, coefficientOfVariation, iqr, percentile } from "./statistics.js"
 
 export type { GateProfile, GateThresholdMap, BenchmarkSummary }
-
-function median(values: number[]): number {
-  if (values.length === 0) return 0
-  const sorted = [...values].sort((a, b) => a - b)
-  const middle = Math.floor(sorted.length / 2)
-  if (sorted.length % 2 === 0) {
-    const left = sorted[middle - 1] ?? 0
-    const right = sorted[middle] ?? 0
-    return (left + right) / 2
-  }
-  return sorted[middle] ?? 0
-}
-
-function pct(numerator: number, denominator: number): number {
-  if (denominator === 0) return 0
-  return (numerator / denominator) * 100
-}
-
-function safeReductionPct(baseline: number, target: number): number {
-  if (baseline <= 0) return 0
-  return ((baseline - target) / baseline) * 100
-}
-
-function activeTokens(row: BenchmarkRow): number {
-  return row.tokens.total - row.tokens.cache_read
-}
-
-function isRunnerError(row: BenchmarkRow): boolean {
-  return row.error?.type === "runner_error"
-}
 
 function isTimeoutStallError(row: BenchmarkRow): boolean {
   if (!isRunnerError(row) || !row.error) {
