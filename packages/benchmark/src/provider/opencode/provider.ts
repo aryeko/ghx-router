@@ -27,14 +27,16 @@ export class OpencodeSessionProvider implements SessionProvider {
   }
 
   async createSession(config: SessionConfig): Promise<SessionHandle> {
-    const { client, systemInstruction, close } = await openBenchmarkClient(
-      config.mode,
-      this.config.providerId,
-      this.config.modelId,
-    )
+    if (!this.benchmarkClient) {
+      const { client, systemInstruction, close } = await openBenchmarkClient(
+        config.mode,
+        this.config.providerId,
+        this.config.modelId,
+      )
 
-    this.benchmarkClient = { client, systemInstruction }
-    this.closeClient = close
+      this.benchmarkClient = { client, systemInstruction }
+      this.closeClient = close
+    }
 
     const sessionApi = getSessionApi(this.benchmarkClient.client)
     const sessionWorkdir = process.env.BENCH_SESSION_WORKDIR
