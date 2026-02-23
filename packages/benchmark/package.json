@@ -23,6 +23,7 @@
     "check:scenarios": "tsx src/cli/index.ts check",
     "report": "tsx src/cli/index.ts report",
     "report:gate": "pnpm run report -- --gate",
+    "report:iter": "tsx src/cli/index.ts report:iter",
     "inspect": "tsx scripts/inspect-session.ts"
   },
   "nx": {

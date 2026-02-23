@@ -2,6 +2,7 @@ import { analyzeGhxLogs, analyzeSession, readRunDir } from "@bench/report/iter-r
 import { describe, expect, it, vi } from "vitest"
 
 const readdirMock = vi.hoisted(() => vi.fn())
+const readFileMock = vi.hoisted(() => vi.fn())
 const readJsonlFileMock = vi.hoisted(() => vi.fn())
 
 vi.mock("node:fs/promises", async (importOriginal) => {
@@ -9,21 +10,75 @@ vi.mock("node:fs/promises", async (importOriginal) => {
   return {
     ...actual,
     readdir: readdirMock,
+    readFile: readFileMock,
   }
 })
 
 vi.mock("@bench/util/jsonl.js", () => ({ readJsonlFile: readJsonlFileMock }))
 
+/** Make readFile return non-JSON content so analyzeSession falls through to readJsonlFile. */
+function mockReadFileAsJsonl(): void {
+  readFileMock.mockResolvedValueOnce("not-valid-json-for-whole-doc")
+}
+
 describe("analyzeSession", () => {
-  it("returns null when readJsonlFile throws", async () => {
-    readJsonlFileMock.mockRejectedValueOnce(new Error("ENOENT"))
+  it("returns null when readFile throws", async () => {
+    readFileMock.mockRejectedValueOnce(new Error("ENOENT"))
 
     const result = await analyzeSession("/run/iter-1")
 
     expect(result).toBeNull()
   })
 
+  it("parses new JSON document format with messages[].parts[]", async () => {
+    readFileMock.mockResolvedValueOnce(
+      JSON.stringify({
+        info: {},
+        messages: [
+          {
+            parts: [
+              { type: "tool", state: { input: { command: "gh issue list" } } },
+              { type: "text" },
+            ],
+          },
+          {
+            parts: [
+              { type: "reasoning" },
+              {
+                type: "step-finish",
+                tokens: {
+                  input: 100,
+                  output: 50,
+                  reasoning: 20,
+                  cache: { read: 10, write: 5 },
+                  total: 185,
+                },
+              },
+            ],
+          },
+        ],
+      }),
+    )
+
+    const result = await analyzeSession("/run/iter-1")
+
+    expect(result).not.toBeNull()
+    expect(result?.toolCallCount).toBe(1)
+    expect(result?.toolCallCommands).toEqual(["gh issue list"])
+    expect(result?.assistantTurns).toBe(1)
+    expect(result?.reasoningBlocks).toBe(1)
+    expect(result?.tokens).toEqual({
+      input: 100,
+      output: 50,
+      reasoning: 20,
+      cache_read: 10,
+      cache_write: 5,
+      total: 185,
+    })
+  })
+
   it("counts tool calls and extracts commands from type=tool entries", async () => {
+    mockReadFileAsJsonl()
     readJsonlFileMock.mockResolvedValueOnce([
       { type: "tool", state: { input: { command: "gh issue list" } } },
       { type: "tool", state: { input: { command: "gh pr create" } } },
@@ -38,6 +93,7 @@ describe("analyzeSession", () => {
   })
 
   it("counts assistant turns from type=text entries", async () => {
+    mockReadFileAsJsonl()
     readJsonlFileMock.mockResolvedValueOnce([
       { type: "text" },
       { type: "text" },
@@ -51,6 +107,7 @@ describe("analyzeSession", () => {
   })
 
   it("counts reasoning blocks from type=reasoning entries", async () => {
+    mockReadFileAsJsonl()
     readJsonlFileMock.mockResolvedValueOnce([
       { type: "reasoning" },
       { type: "reasoning" },
@@ -65,14 +122,29 @@ describe("analyzeSession", () => {
   })
 
   it("accumulates tokens from type=step-finish entries", async () => {
+    mockReadFileAsJsonl()
     readJsonlFileMock.mockResolvedValueOnce([
       {
         type: "step-finish",
-        tokens: { input: 100, output: 50, reasoning: 20, cache_read: 10, cache_write: 5 },
+        tokens: {
+          input: 100,
+          output: 50,
+          reasoning: 20,
+          cache_read: 10,
+          cache_write: 5,
+          total: 185,
+        },
       },
       {
         type: "step-finish",
-        tokens: { input: 200, output: 80, reasoning: 30, cache_read: 15, cache_write: 10 },
+        tokens: {
+          input: 200,
+          output: 80,
+          reasoning: 30,
+          cache_read: 15,
+          cache_write: 10,
+          total: 335,
+        },
       },
     ])
 
@@ -89,7 +161,24 @@ describe("analyzeSession", () => {
     })
   })
 
+  it("normalizes cache fields from nested cache.{read,write}", async () => {
+    mockReadFileAsJsonl()
+    readJsonlFileMock.mockResolvedValueOnce([
+      {
+        type: "step-finish",
+        tokens: { input: 50, output: 20, reasoning: 0, cache: { read: 8, write: 3 }, total: 81 },
+      },
+    ])
+
+    const result = await analyzeSession("/run/iter-1")
+
+    expect(result).not.toBeNull()
+    expect(result?.tokens?.cache_read).toBe(8)
+    expect(result?.tokens?.cache_write).toBe(3)
+  })
+
   it("returns null tokens when no step-finish entries", async () => {
+    mockReadFileAsJsonl()
     readJsonlFileMock.mockResolvedValueOnce([
       { type: "text" },
       { type: "tool", state: { input: { command: "ls" } } },
@@ -170,11 +259,13 @@ describe("readRunDir", () => {
     readdirMock.mockResolvedValueOnce(["pr-fix-001"])
     // readdir for scenarioDir (iters)
     readdirMock.mockResolvedValueOnce(["iter-1", "iter-2", "not-iter"])
-    // analyzeSession calls readJsonlFile for iter-1 and iter-2
+    // analyzeSession calls readFile for iter-1
+    mockReadFileAsJsonl()
     readJsonlFileMock.mockResolvedValueOnce([{ type: "text" }])
     // analyzeGhxLogs readdir for iter-1
     readdirMock.mockResolvedValueOnce([])
     // analyzeSession for iter-2
+    mockReadFileAsJsonl()
     readJsonlFileMock.mockResolvedValueOnce([])
     // analyzeGhxLogs readdir for iter-2
     readdirMock.mockResolvedValueOnce(["ghx-run.jsonl"])

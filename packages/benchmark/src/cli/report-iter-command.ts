@@ -3,7 +3,8 @@ import { dirname } from "node:path"
 import { buildIterReport, formatIterReport } from "../report/iter-report.js"
 import { parseFlagValue } from "./flag-utils.js"
 
-export async function main(args: string[] = []): Promise<void> {
+export async function main(rawArgs: string[] = []): Promise<void> {
+  const args = rawArgs.filter((a) => a !== "--")
   const ghxRunDir = args[0]
   const adRunDir = args[1]
   if (!ghxRunDir || !adRunDir) {

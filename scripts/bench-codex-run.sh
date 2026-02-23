@@ -68,7 +68,7 @@ echo "=== [3/3] Generating comparison report ==="
 echo "GHX: $GHX_RUN_DIR"
 echo "AD:  $AD_RUN_DIR"
 
-pnpm run benchmark -- report:iter \
+pnpm --filter @ghx-dev/benchmark run report:iter -- \
   "$GHX_RUN_DIR" \
   "$AD_RUN_DIR" \
   --output "$REPORT_DIR/comparison.md"

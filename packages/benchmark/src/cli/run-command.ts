@@ -236,11 +236,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
   }
 
   const outFile =
-    parsed.outputJsonlPath ??
-    join(
-      RESULTS_DIR,
-      `${new Date().toISOString().replace(/[:.]/g, "-")}-${parsed.mode}-suite.jsonl`,
-    )
+    parsed.outputJsonlPath ?? join(RESULTS_DIR, `${benchRunTs}-${parsed.mode}-suite.jsonl`)
 
   const providerId = parsed.providerId ?? process.env.BENCH_PROVIDER_ID ?? "openai"
   const modelId = parsed.modelId ?? process.env.BENCH_MODEL_ID ?? "gpt-5.1-codex-mini"

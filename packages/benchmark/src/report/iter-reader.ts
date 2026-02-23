@@ -1,4 +1,4 @@
-import { readdir } from "node:fs/promises"
+import { readdir, readFile } from "node:fs/promises"
 import { join } from "node:path"
 import { readJsonlFile } from "../util/jsonl.js"
 
@@ -39,12 +39,25 @@ type SessionEntry = {
     }
   }
   tokens?: {
+    total?: number
     input?: number
     output?: number
     reasoning?: number
     cache_read?: number
     cache_write?: number
+    cache?: {
+      read?: number
+      write?: number
+    }
   }
+}
+
+type SessionDocument = {
+  info?: unknown
+  messages?: Array<{
+    info?: unknown
+    parts?: SessionEntry[]
+  }>
 }
 
 type GhxLogEntry = {
@@ -54,11 +67,31 @@ type GhxLogEntry = {
   ok?: boolean
 }
 
+async function readSessionEntries(sessionPath: string): Promise<SessionEntry[]> {
+  const content = await readFile(sessionPath, "utf8")
+
+  // Try new format: single pretty-printed JSON document with messages[].parts[]
+  let doc: unknown
+  try {
+    doc = JSON.parse(content)
+  } catch {
+    // Not valid JSON as a whole — fall through to JSONL parsing
+  }
+
+  if (doc !== undefined && typeof doc === "object" && doc !== null && "messages" in doc) {
+    const sessionDoc = doc as SessionDocument
+    return (sessionDoc.messages ?? []).flatMap((msg) => msg.parts ?? [])
+  }
+
+  // Fallback: classic JSONL (one object per line)
+  return readJsonlFile<SessionEntry>(sessionPath)
+}
+
 export async function analyzeSession(iterDir: string): Promise<SessionAnalysis | null> {
   const sessionPath = join(iterDir, "session.jsonl")
   let entries: SessionEntry[]
   try {
-    entries = await readJsonlFile<SessionEntry>(sessionPath)
+    entries = await readSessionEntries(sessionPath)
   } catch {
     return null
   }
@@ -66,7 +99,7 @@ export async function analyzeSession(iterDir: string): Promise<SessionAnalysis |
   const toolCallCommands: string[] = []
   let assistantTurns = 0
   let reasoningBlocks = 0
-  const tokenAccum = { input: 0, output: 0, reasoning: 0, cache_read: 0, cache_write: 0 }
+  const tokenAccum = { input: 0, output: 0, reasoning: 0, cache_read: 0, cache_write: 0, total: 0 }
   let hasTokens = false
 
   for (const entry of entries) {
@@ -86,22 +119,13 @@ export async function analyzeSession(iterDir: string): Promise<SessionAnalysis |
       tokenAccum.input += entry.tokens.input ?? 0
       tokenAccum.output += entry.tokens.output ?? 0
       tokenAccum.reasoning += entry.tokens.reasoning ?? 0
-      tokenAccum.cache_read += entry.tokens.cache_read ?? 0
-      tokenAccum.cache_write += entry.tokens.cache_write ?? 0
+      tokenAccum.cache_read += entry.tokens.cache_read ?? entry.tokens.cache?.read ?? 0
+      tokenAccum.cache_write += entry.tokens.cache_write ?? entry.tokens.cache?.write ?? 0
+      tokenAccum.total += entry.tokens.total ?? 0
     }
   }
 
-  const tokens = hasTokens
-    ? {
-        ...tokenAccum,
-        total:
-          tokenAccum.input +
-          tokenAccum.output +
-          tokenAccum.reasoning +
-          tokenAccum.cache_read +
-          tokenAccum.cache_write,
-      }
-    : null
+  const tokens = hasTokens ? { ...tokenAccum } : null
 
   return {
     toolCallCount: toolCallCommands.length,
