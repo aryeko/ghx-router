@@ -1,6 +1,7 @@
 import type { ResultEnvelope } from "@core/core/contracts/envelope.js"
 import { errorCodes } from "@core/core/errors/codes.js"
 import type { OperationCard } from "@core/core/registry/types.js"
+import { logger } from "@core/core/telemetry/log.js"
 import { normalizeError } from "../normalizer.js"
 import { getCliHandler } from "./cli/capability-registry.js"
 import type { CliCommandRunner } from "./cli-adapter.js"
@@ -64,9 +65,10 @@ export async function runCliCapability(
   params: Record<string, unknown>,
   card?: OperationCard,
 ): Promise<ResultEnvelope> {
+  logger.debug("cli.start", { capability_id: capabilityId })
   const handler = getCliHandler(capabilityId)
   if (handler === undefined) {
-    return normalizeError(
+    const result = normalizeError(
       {
         code: errorCodes.NotFound,
         message: `No CLI handler registered for capability: ${capabilityId}`,
@@ -75,6 +77,13 @@ export async function runCliCapability(
       "cli",
       { capabilityId, reason: "CARD_FALLBACK" },
     )
+    logger.debug("cli.complete", {
+      capability_id: capabilityId,
+      ok: result.ok,
+    })
+    return result
   }
-  return handler(runner, params, card)
+  const result = await handler(runner, params, card)
+  logger.debug("cli.complete", { capability_id: capabilityId, ok: result.ok })
+  return result
 }

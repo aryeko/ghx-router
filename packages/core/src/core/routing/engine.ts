@@ -23,6 +23,7 @@ import { validateInput } from "@core/core/registry/schema-validator.js"
 import type { OperationCard } from "@core/core/registry/types.js"
 import { routePreferenceOrder } from "@core/core/routing/policy.js"
 import type { RouteReasonCode } from "@core/core/routing/reason-codes.js"
+import { logger } from "@core/core/telemetry/log.js"
 import { buildBatchMutation, buildBatchQuery, extractRootFieldName } from "@core/gql/batch.js"
 import { getLookupDocument, getMutationDocument } from "@core/gql/document-registry.js"
 import type { GithubClient } from "@core/gql/github-client.js"
@@ -120,6 +121,7 @@ export async function executeTask(
   const reason = deps.reason ?? DEFAULT_REASON
   const card = getOperationCard(request.task)
   if (!card) {
+    logger.error("execute.unsupported_task", { task: request.task })
     return normalizeError(
       {
         code: errorCodes.Validation,
@@ -131,9 +133,12 @@ export async function executeTask(
     )
   }
 
+  logger.debug("execute.start", { capability_id: request.task })
+  const startMs = Date.now()
+
   const cliRunner = deps.cliRunner ?? defaultCliRunner
 
-  return execute({
+  const result = await execute({
     card,
     params: request.input as Record<string, unknown>,
     routingContext: {
@@ -216,17 +221,38 @@ export async function executeTask(
         ),
     },
   })
+
+  logger.info("execute.complete", {
+    capability_id: request.task,
+    ok: result.ok,
+    route_used: result.meta?.route_used ?? null,
+    duration_ms: Date.now() - startMs,
+    error_code: result.error?.code ?? null,
+  })
+
+  return result
 }
 
 export async function executeTasks(
   requests: Array<{ task: string; input: Record<string, unknown> }>,
   deps: ExecutionDeps,
 ): Promise<ChainResultEnvelope> {
+  logger.debug("execute_batch.start", { count: requests.length })
+  const batchStart = Date.now()
+
   // 1-item: delegate to existing routing engine
   if (requests.length === 1) {
     const [req] = requests
     if (req === undefined) {
       // This should never happen, but TypeScript needs it
+      logger.info("execute_batch.complete", {
+        ok: false,
+        status: "failed",
+        total: 0,
+        succeeded: 0,
+        failed: 0,
+        duration_ms: Date.now() - batchStart,
+      })
       return {
         status: "failed",
         results: [],
@@ -246,14 +272,23 @@ export async function executeTasks(
             retryable: false,
           },
         }
+    const succeeded1 = result.ok ? 1 : 0
+    logger.info("execute_batch.complete", {
+      ok: result.ok,
+      status: result.ok ? "success" : "failed",
+      total: 1,
+      succeeded: succeeded1,
+      failed: 1 - succeeded1,
+      duration_ms: Date.now() - batchStart,
+    })
     return {
       status: result.ok ? "success" : "failed",
       results: [step],
       meta: {
         route_used: result.meta?.route_used ?? "graphql",
         total: 1,
-        succeeded: result.ok ? 1 : 0,
-        failed: result.ok ? 0 : 1,
+        succeeded: succeeded1,
+        failed: 1 - succeeded1,
       },
     }
   }
@@ -316,7 +351,11 @@ export async function executeTasks(
           preflightErrorByIndex.get(i) ?? {
             task: req.task,
             ok: false,
-            error: { code: errorCodes.Unknown, message: "pre-flight failed", retryable: false },
+            error: {
+              code: errorCodes.Unknown,
+              message: "pre-flight failed",
+              retryable: false,
+            },
           },
       ),
       meta: {
@@ -364,10 +403,19 @@ export async function executeTasks(
       const cached = deps.resolutionCache.get(cacheKey)
       if (cached !== undefined) {
         lookupResults[i] = cached
+        logger.debug("resolution.cache_hit", {
+          step: i,
+          operation: card.graphql.resolution.lookup.operationName,
+          key: cacheKey,
+        })
         continue
       }
     }
 
+    logger.debug("resolution.lookup_scheduled", {
+      step: i,
+      operation: card.graphql.resolution.lookup.operationName,
+    })
     lookupInputs.push({
       alias: `step${i}`,
       query: getLookupDocument(card.graphql.resolution.lookup.operationName),
@@ -379,9 +427,15 @@ export async function executeTasks(
   if (lookupInputs.length > 0) {
     try {
       const { document, variables } = buildBatchQuery(
-        lookupInputs.map(({ alias, query, variables }) => ({ alias, query, variables })),
+        lookupInputs.map(({ alias, query, variables }) => ({
+          alias,
+          query,
+          variables,
+        })),
       )
+      logger.debug("query.batch_start", { count: lookupInputs.length })
       const rawResult = await deps.githubClient.query(document, variables)
+      logger.debug("query.batch_complete", { count: lookupInputs.length })
       // Un-alias results: BatchChain result has keys like "step0", "step2", etc.
       // GitHub returns the root field value directly under the alias key — no extra wrapper.
       // Re-wrap it so applyInject path traversal (e.g. "repository.issue.id") works correctly.
@@ -390,6 +444,7 @@ export async function executeTasks(
         const rootFieldName = extractRootFieldName(query)
         const result = rootFieldName !== null ? { [rootFieldName]: rawValue } : rawValue
         lookupResults[stepIndex] = result
+        logger.debug("resolution.step_resolved", { step: stepIndex, alias })
 
         // Populate resolution cache (skip undefined to avoid polluting cache)
         if (deps.resolutionCache && result !== undefined) {
@@ -401,6 +456,10 @@ export async function executeTasks(
               buildCacheKey(card.graphql.resolution.lookup.operationName, lookupVars),
               result,
             )
+            logger.debug("resolution.cache_set", {
+              step: stepIndex,
+              operation: card.graphql.resolution.lookup.operationName,
+            })
           }
         }
       }
@@ -408,6 +467,11 @@ export async function executeTasks(
       // Phase 1 failure: mark all steps as failed
       const errorMsg = err instanceof Error ? err.message : String(err)
       const code = mapErrorToCode(err)
+      logger.error("resolution.lookup_failed", {
+        count: lookupInputs.length,
+        error_code: code,
+        message: errorMsg,
+      })
       return {
         status: "failed",
         results: requests.map((req) => ({
@@ -444,6 +508,7 @@ export async function executeTasks(
     if (card === undefined || req === undefined) continue
 
     try {
+      logger.debug("resolution.inject", { step: i, capability_id: req.task })
       const resolved: Record<string, unknown> = {}
       if (card.graphql?.resolution && lookupResults[i] !== undefined) {
         for (const spec of card.graphql.resolution.inject) {
@@ -482,8 +547,13 @@ export async function executeTasks(
   if (mutationInputs.length > 0) {
     try {
       const { document, variables } = buildBatchMutation(
-        mutationInputs.map(({ alias, mutation, variables }) => ({ alias, mutation, variables })),
+        mutationInputs.map(({ alias, mutation, variables }) => ({
+          alias,
+          mutation,
+          variables,
+        })),
       )
+      logger.debug("mutation.batch_start", { count: mutationInputs.length })
       const rawResponse = await deps.githubClient.queryRaw<Record<string, unknown>>(
         document,
         variables,
@@ -506,9 +576,11 @@ export async function executeTasks(
       }
 
       rawMutResult = rawResponse.data ?? {}
+      logger.debug("mutation.batch_complete", { count: mutationInputs.length })
     } catch (err) {
       // Transport-level failure (network, HTTP error) — mark all pending steps as failed
       const code = mapErrorToCode(err)
+      logger.error("mutation.batch_failed", { error_code: code })
       for (const { stepIndex } of mutationInputs) {
         const reqAtIndex = requests[stepIndex]
         if (reqAtIndex !== undefined) {
@@ -536,7 +608,11 @@ export async function executeTasks(
       return {
         task: req.task,
         ok: false,
-        error: { code: errorCodes.Unknown, message: "step skipped", retryable: false },
+        error: {
+          code: errorCodes.Unknown,
+          message: "step skipped",
+          retryable: false,
+        },
       }
     }
 
@@ -583,6 +659,15 @@ export async function executeTasks(
   const succeeded = results.filter((r) => r.ok).length
   const status: ChainStatus =
     succeeded === results.length ? "success" : succeeded === 0 ? "failed" : "partial"
+
+  logger.info("execute_batch.complete", {
+    ok: status !== "failed",
+    status,
+    total: results.length,
+    succeeded,
+    failed: results.length - succeeded,
+    duration_ms: Date.now() - batchStart,
+  })
 
   return {
     status,
