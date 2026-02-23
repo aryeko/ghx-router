@@ -76,7 +76,7 @@ describe("evaluateCheckpoints", () => {
 
     expect(result.allPassed).toBe(false)
     expect(result.results[0]?.passed).toBe(false)
-    expect(result.results[0]?.data).toBeNull()
+    expect(result.results[0]?.data).toEqual({ error: "network error" })
   })
 
   it("resolves {items:[...]} wrapper via resolveCheckpointData", async () => {

@@ -68,7 +68,7 @@ export async function runScenarioIteration(config: {
         }`
       : null
 
-    const result: BenchmarkRow = {
+    return {
       timestamp: new Date().toISOString(),
       run_id: runId,
       mode,
@@ -104,13 +104,8 @@ export async function runScenarioIteration(config: {
         commit: null,
       },
       error: errorReason ? { type: "checkpoint_failed", message: errorReason } : null,
+      ...(promptResult.timingBreakdown ? { timing_breakdown: promptResult.timingBreakdown } : {}),
     }
-
-    if (promptResult.timingBreakdown) {
-      result.timing_breakdown = promptResult.timingBreakdown
-    }
-
-    return result
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error)
 

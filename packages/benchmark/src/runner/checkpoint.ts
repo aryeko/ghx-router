@@ -95,8 +95,12 @@ export async function evaluateCheckpoints(
     for (let attempt = 1; attempt <= POLL_MAX_ATTEMPTS; attempt += 1) {
       try {
         last = await evaluateCheckpoint(checkpoint, githubClient, githubToken)
-      } catch {
-        last = { name: checkpoint.name, passed: false, data: null }
+      } catch (err: unknown) {
+        last = {
+          name: checkpoint.name,
+          passed: false,
+          data: { error: err instanceof Error ? err.message : String(err) },
+        }
       }
 
       if (last.passed || attempt === POLL_MAX_ATTEMPTS) {

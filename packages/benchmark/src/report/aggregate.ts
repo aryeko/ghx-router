@@ -122,10 +122,10 @@ export function buildSummary(
   gateThresholds: GateThresholdMap = DEFAULT_GATE_THRESHOLDS,
   timestamp?: string,
 ): BenchmarkSummary {
-  const grouped: Partial<Record<BenchmarkMode, BenchmarkRow[]>> = {}
-  for (const row of rows) {
-    ;(grouped[row.mode] ??= []).push(row)
-  }
+  const grouped = rows.reduce<Partial<Record<BenchmarkMode, BenchmarkRow[]>>>(
+    (acc, row) => ({ ...acc, [row.mode]: [...(acc[row.mode] ?? []), row] }),
+    {},
+  )
 
   const modeSummaries: Partial<Record<BenchmarkMode, ModeSummary>> = {}
   const profilingSummaries: Partial<Record<BenchmarkMode, ProfilingSummary>> = {}
