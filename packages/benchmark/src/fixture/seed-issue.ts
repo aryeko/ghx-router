@@ -1,15 +1,5 @@
 import { runGh, runGhJson } from "./gh-client.js"
-
-function parseRepo(repo: string): { owner: string; name: string } {
-  const parts = repo.split("/")
-  if (parts.length !== 2 || !parts[0] || !parts[1]) {
-    throw new Error(`invalid repo format: ${repo}; expected owner/name`)
-  }
-
-  const [owner, name] = parts
-
-  return { owner, name }
-}
+import { parseRepo } from "./gh-utils.js"
 
 export function findOrCreateIssue(
   repo: string,

@@ -56,7 +56,7 @@ async function loadLatestRowsPerMode(): Promise<BenchmarkRow[]> {
   const latestPerMode: Record<string, { file: string; timestamp: string }> = {}
 
   for (const file of jsonlFiles) {
-    const match = file.match(/^([\d-]+)-(agent_direct|mcp|ghx)-suite\.jsonl$/)
+    const match = file.match(/^(.+?)-(agent_direct|mcp|ghx)-suite\.jsonl$/)
     if (!match) continue
 
     const timestamp = match[1]
