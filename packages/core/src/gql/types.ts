@@ -35,17 +35,23 @@ export type IssueCreateInput = {
 }
 
 export type IssueUpdateInput = {
-  issueId: string
+  owner: string
+  name: string
+  issueNumber: number
   title?: string
   body?: string
 }
 
 export type IssueMutationInput = {
-  issueId: string
+  owner: string
+  name: string
+  issueNumber: number
 }
 
 export type IssueLabelsUpdateInput = {
-  issueId: string
+  owner: string
+  name: string
+  issueNumber: number
   labels: string[]
 }
 
@@ -57,7 +63,9 @@ export type IssueLabelsAddInput = {
 }
 
 export type IssueAssigneesUpdateInput = {
-  issueId: string
+  owner: string
+  name: string
+  issueNumber: number
   assignees: string[]
 }
 
@@ -76,7 +84,9 @@ export type IssueAssigneesRemoveInput = {
 }
 
 export type IssueMilestoneSetInput = {
-  issueId: string
+  owner: string
+  name: string
+  issueNumber: number
   milestoneNumber: number
 }
 

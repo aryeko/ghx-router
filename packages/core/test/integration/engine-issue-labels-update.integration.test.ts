@@ -4,7 +4,7 @@ import { createGithubClient } from "@core/gql/github-client.js"
 import { describe, expect, it } from "vitest"
 
 describe("executeTask issue.labels.set", () => {
-  it("returns validation error envelope for missing issueId", async () => {
+  it("returns validation error envelope for missing owner", async () => {
     const githubClient = createGithubClient({
       async execute<TData>(): Promise<TData> {
         return {} as TData
@@ -13,7 +13,31 @@ describe("executeTask issue.labels.set", () => {
 
     const request: TaskRequest = {
       task: "issue.labels.set",
-      input: { labelNames: ["bug"] },
+      input: { labels: ["bug"] },
+    }
+
+    const result = await executeTask(request, {
+      githubClient,
+      githubToken: "test-token",
+      ghCliAvailable: false,
+      ghAuthenticated: false,
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe("VALIDATION")
+    expect(result.meta.reason).toBe("INPUT_VALIDATION")
+  })
+
+  it("returns validation error envelope for missing labels", async () => {
+    const githubClient = createGithubClient({
+      async execute<TData>(): Promise<TData> {
+        return {} as TData
+      },
+    })
+
+    const request: TaskRequest = {
+      task: "issue.labels.set",
+      input: { owner: "acme", name: "modkit", issueNumber: 42 },
     }
 
     const result = await executeTask(request, {

@@ -3,9 +3,11 @@ version: "1.0.0"
 description: Replace issue labels.
 input_schema:
   type: object
-  required: [issueId, labels]
+  required: [owner, name, issueNumber, labels]
   properties:
-    issueId: { type: string, minLength: 1 }
+    owner: { type: string, minLength: 1 }
+    name: { type: string, minLength: 1 }
+    issueNumber: { type: integer, minimum: 1 }
     labels:
       type: array
       items: { type: string, minLength: 1 }
@@ -27,14 +29,19 @@ graphql:
   documentPath: src/gql/operations/issue-labels-update.graphql
   resolution:
     lookup:
-      operationName: IssueLabelsLookup
-      documentPath: src/gql/operations/issue-labels-lookup.graphql
+      operationName: IssueLabelsLookupByNumber
+      documentPath: src/gql/operations/issue-labels-lookup-by-number.graphql
       vars:
-        issueId: issueId
+        owner: owner
+        name: name
+        issueNumber: issueNumber
     inject:
+      - target: labelableId
+        source: scalar
+        path: repository.issue.id
       - target: labelIds
         source: map_array
         from_input: labels
-        nodes_path: node.repository.labels.nodes
+        nodes_path: repository.labels.nodes
         match_field: name
         extract_field: id

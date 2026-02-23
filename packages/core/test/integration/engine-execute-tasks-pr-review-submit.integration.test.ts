@@ -37,7 +37,7 @@ describe("executeTasks – pr.reviews.submit resolution (Phase 1 → Phase 2)", 
             },
           },
           step1: {
-            closeIssue: { issue: { id: "I_abc", number: 10, state: "CLOSED" } },
+            addBlockedBy: { issue: { id: "I_abc123" }, blockingIssue: { id: "I_blocker" } },
           },
         } as TData,
         errors: undefined,
@@ -61,8 +61,11 @@ describe("executeTasks – pr.reviews.submit resolution (Phase 1 → Phase 2)", 
             body: "Reviewed atomically.",
           },
         },
-        // Second step forces the batch path (≥2 requests)
-        { task: "issue.close", input: { issueId: "I_abc" } },
+        // Second step forces the batch path (≥2 requests); no-resolution task accepts raw issueId
+        {
+          task: "issue.relations.blocked_by.add",
+          input: { issueId: "I_abc123", blockedByIssueId: "I_blocker" },
+        },
       ],
       { githubClient, githubToken: "test-token" },
     )
@@ -85,9 +88,9 @@ describe("executeTasks – pr.reviews.submit resolution (Phase 1 → Phase 2)", 
       },
     })
 
-    // Issue close step
+    // Blocked-by step
     expect(result.results[1]).toMatchObject({
-      task: "issue.close",
+      task: "issue.relations.blocked_by.add",
       ok: true,
     })
 
@@ -112,12 +115,12 @@ describe("executeTasks – pr.reviews.submit resolution (Phase 1 → Phase 2)", 
       } as TData
     })
 
-    // Phase 2: only step1 (issue.close) reaches the batch; step0 failed in Phase 2 prep
+    // Phase 2: only step1 (issue.relations.blocked_by.add) reaches the batch; step0 failed in Phase 2 prep
     const queryRawFn = vi.fn(async <TData>() => {
       return {
         data: {
           step1: {
-            closeIssue: { issue: { id: "I_abc", number: 10, state: "CLOSED" } },
+            addBlockedBy: { issue: { id: "I_abc123" }, blockingIssue: { id: "I_blocker" } },
           },
         } as TData,
         errors: undefined,
@@ -141,12 +144,16 @@ describe("executeTasks – pr.reviews.submit resolution (Phase 1 → Phase 2)", 
             body: "Test.",
           },
         },
-        { task: "issue.close", input: { issueId: "I_abc" } },
+        // No-resolution task accepts raw issueId
+        {
+          task: "issue.relations.blocked_by.add",
+          input: { issueId: "I_abc123", blockedByIssueId: "I_blocker" },
+        },
       ],
       { githubClient, githubToken: "test-token" },
     )
 
-    // step0 (pr.reviews.submit) fails due to resolution error; step1 (issue.close) succeeds
+    // step0 (pr.reviews.submit) fails due to resolution error; step1 (issue.relations.blocked_by.add) succeeds
     expect(result.status).toBe("partial")
     expect(result.results[0]?.ok).toBe(false)
     expect(result.results[0]).toMatchObject({

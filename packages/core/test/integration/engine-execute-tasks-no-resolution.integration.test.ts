@@ -4,6 +4,9 @@
  * Note: executeTasks with a single request delegates to executeTask (uses typed client
  * methods). These tests use ≥2 requests to exercise the Phase 2 batch mutation path
  * where queryRaw is called directly.
+ *
+ * Uses issue.relations.blocked_by.add and issue.relations.blocked_by.remove which
+ * accept raw node IDs and have no resolution block, exercising pure Phase 2 batching.
  */
 import { executeTasks } from "@core/core/routing/engine.js"
 import type { GithubClient } from "@core/gql/github-client.js"
@@ -15,10 +18,16 @@ describe("executeTasks – no-resolution mutations (batch Phase 2 path)", () => 
       return {
         data: {
           step0: {
-            closeIssue: { issue: { id: "I_abc123", number: 10, state: "CLOSED" } },
+            addBlockedBy: {
+              issue: { id: "I_abc123" },
+              blockingIssue: { id: "I_blocker" },
+            },
           },
           step1: {
-            reopenIssue: { issue: { id: "I_abc123", number: 10, state: "OPEN" } },
+            removeBlockedBy: {
+              issue: { id: "I_abc123" },
+              blockingIssue: { id: "I_blocker" },
+            },
           },
         } as TData,
         errors: undefined,
@@ -34,8 +43,14 @@ describe("executeTasks – no-resolution mutations (batch Phase 2 path)", () => 
 
     const result = await executeTasks(
       [
-        { task: "issue.close", input: { issueId: "I_abc123" } },
-        { task: "issue.reopen", input: { issueId: "I_abc123" } },
+        {
+          task: "issue.relations.blocked_by.add",
+          input: { issueId: "I_abc123", blockedByIssueId: "I_blocker" },
+        },
+        {
+          task: "issue.relations.blocked_by.remove",
+          input: { issueId: "I_abc123", blockedByIssueId: "I_blocker" },
+        },
       ],
       { githubClient, githubToken: "test-token" },
     )
@@ -46,18 +61,17 @@ describe("executeTasks – no-resolution mutations (batch Phase 2 path)", () => 
     expect(result.meta.failed).toBe(0)
     expect(result.results).toHaveLength(2)
     expect(result.results[0]).toMatchObject({
-      task: "issue.close",
+      task: "issue.relations.blocked_by.add",
       ok: true,
-      data: { closeIssue: { issue: { state: "CLOSED" } } },
     })
     expect(result.results[1]).toMatchObject({
-      task: "issue.reopen",
+      task: "issue.relations.blocked_by.remove",
       ok: true,
     })
 
     const calledDoc = String(queryRawFn.mock.calls[0]?.[0])
-    expect(calledDoc).toContain("closeIssue")
-    expect(calledDoc).toContain("reopenIssue")
+    expect(calledDoc).toContain("addBlockedBy")
+    expect(calledDoc).toContain("removeBlockedBy")
     expect(queryRawFn).toHaveBeenCalledOnce()
   })
 
@@ -73,8 +87,14 @@ describe("executeTasks – no-resolution mutations (batch Phase 2 path)", () => 
 
     const result = await executeTasks(
       [
-        { task: "issue.close", input: { issueId: "I_abc123" } },
-        { task: "issue.reopen", input: { issueId: "I_abc123" } },
+        {
+          task: "issue.relations.blocked_by.add",
+          input: { issueId: "I_abc123", blockedByIssueId: "I_blocker" },
+        },
+        {
+          task: "issue.relations.blocked_by.remove",
+          input: { issueId: "I_abc123", blockedByIssueId: "I_blocker" },
+        },
       ],
       { githubClient, githubToken: "test-token" },
     )

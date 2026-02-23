@@ -16,6 +16,7 @@ import { IssueLabelsLookupByNumberDocument } from "./operations/issue-labels-loo
 import { IssueLabelsRemoveDocument } from "./operations/issue-labels-remove.generated.js"
 import { IssueLabelsUpdateDocument } from "./operations/issue-labels-update.generated.js"
 import { IssueMilestoneLookupDocument } from "./operations/issue-milestone-lookup.generated.js"
+import { IssueMilestoneLookupByNumberDocument } from "./operations/issue-milestone-lookup-by-number.generated.js"
 import { IssueMilestoneSetDocument } from "./operations/issue-milestone-set.generated.js"
 import { IssueNodeIdLookupDocument } from "./operations/issue-node-id-lookup.generated.js"
 import { IssueParentLookupDocument } from "./operations/issue-parent-lookup.generated.js"
@@ -37,6 +38,7 @@ const LOOKUP_DOCUMENTS: Record<string, string> = {
   IssueLabelsLookup: IssueLabelsLookupDocument,
   IssueLabelsLookupByNumber: IssueLabelsLookupByNumberDocument,
   IssueMilestoneLookup: IssueMilestoneLookupDocument,
+  IssueMilestoneLookupByNumber: IssueMilestoneLookupByNumberDocument,
   IssueNodeIdLookup: IssueNodeIdLookupDocument,
   IssueParentLookup: IssueParentLookupDocument,
   PrNodeId: PrNodeIdDocument,

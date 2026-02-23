@@ -5,28 +5,35 @@ import { describe, expect, it } from "vitest"
 
 describe("executeTask issue.close", () => {
   it("returns graphql envelope for issue.close", async () => {
+    let callCount = 0
     const githubClient = createGithubClient({
-      async execute<TData>(query: string): Promise<TData> {
-        if (query.includes("mutation IssueClose")) {
+      async execute<TData>(): Promise<TData> {
+        callCount++
+        if (callCount === 1) {
+          // First call: IssueNodeIdLookup
           return {
-            closeIssue: {
-              issue: {
-                id: "issue-id-123",
-                number: 210,
-                state: "CLOSED",
-                closed: true,
-              },
+            repository: {
+              issue: { id: "issue-id-123" },
             },
           } as TData
         }
-
-        throw new Error("Unexpected query")
+        // Second call: IssueClose mutation
+        return {
+          closeIssue: {
+            issue: {
+              id: "issue-id-123",
+              number: 210,
+              state: "CLOSED",
+              closed: true,
+            },
+          },
+        } as TData
       },
     })
 
     const request: TaskRequest = {
       task: "issue.close",
-      input: { issueId: "issue-id-123" },
+      input: { owner: "acme", name: "modkit", issueNumber: 210 },
     }
 
     const result = await executeTask(request, {
@@ -46,7 +53,7 @@ describe("executeTask issue.close", () => {
     )
   })
 
-  it("returns validation error envelope for missing issueId", async () => {
+  it("returns validation error envelope for missing owner", async () => {
     const githubClient = createGithubClient({
       async execute<TData>(): Promise<TData> {
         return {} as TData

@@ -3,9 +3,11 @@ version: "1.0.0"
 description: Update issue title and/or body.
 input_schema:
   type: object
-  required: [issueId]
+  required: [owner, name, issueNumber]
   properties:
-    issueId: { type: string, minLength: 1 }
+    owner: { type: string, minLength: 1 }
+    name: { type: string, minLength: 1 }
+    issueNumber: { type: integer, minimum: 1 }
     title: { type: string }
     body: { type: string }
   additionalProperties: false
@@ -25,3 +27,15 @@ routing:
 graphql:
   operationName: IssueUpdate
   documentPath: src/gql/operations/issue-update.graphql
+  resolution:
+    lookup:
+      operationName: IssueNodeIdLookup
+      documentPath: src/gql/operations/issue-node-id-lookup.graphql
+      vars:
+        owner: owner
+        name: name
+        issueNumber: issueNumber
+    inject:
+      - target: issueId
+        source: scalar
+        path: repository.issue.id
