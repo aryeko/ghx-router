@@ -456,6 +456,51 @@ describe("runSuite", () => {
     )
   })
 
+  it("passes iterLogContext with correct iterDir when benchLogsDir and benchRunTs are provided", async () => {
+    const scenario = makeWorkflowScenario({ id: "my-scenario" })
+
+    await runSuite({
+      modes: ["ghx"],
+      scenarios: [scenario],
+      repetitions: 1,
+      manifest: null,
+      outputJsonlPath: "/tmp/test.jsonl",
+      onProgress: () => {},
+      providerConfig: { type: "opencode", providerId: "test", modelId: "test" },
+      skipWarmup: true,
+      benchLogsDir: "/bench/logs",
+      benchRunTs: "2026-02-23T14-30-00-000Z",
+    })
+
+    expect(runScenarioIterationMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        iterLogContext: expect.objectContaining({
+          iterDir: expect.stringContaining("my-scenario"),
+        }),
+      }),
+    )
+  })
+
+  it("passes iterLogContext=null when benchLogsDir is not provided", async () => {
+    const scenario = makeWorkflowScenario()
+
+    await runSuite({
+      modes: ["ghx"],
+      scenarios: [scenario],
+      repetitions: 1,
+      manifest: null,
+      outputJsonlPath: "/tmp/test.jsonl",
+      onProgress: () => {},
+      providerConfig: { type: "opencode", providerId: "test", modelId: "test" },
+      skipWarmup: true,
+      // benchLogsDir omitted
+    })
+
+    expect(runScenarioIterationMock).toHaveBeenCalledWith(
+      expect.objectContaining({ iterLogContext: null }),
+    )
+  })
+
   it("passes null reviewerToken when reviewerToken not provided in config", async () => {
     const { resetScenarioFixtures } = await import("@bench/fixture/reset.js")
 

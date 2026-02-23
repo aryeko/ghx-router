@@ -4,6 +4,7 @@ import { dirname } from "node:path"
 import type { BenchmarkMode, FixtureManifest, Scenario } from "../domain/types.js"
 import { resetScenarioFixtures } from "../fixture/reset.js"
 import { createSessionProvider } from "../provider/factory.js"
+import { buildIterDir } from "./iter-log-context.js"
 import { runScenarioIteration } from "./scenario-runner.js"
 
 export type ProgressEvent =
@@ -50,6 +51,8 @@ export async function runSuite(config: {
   skipWarmup?: boolean
   scenarioSet?: string | null
   reviewerToken?: string | null
+  benchRunTs?: string | null
+  benchLogsDir?: string | null
 }): Promise<{ rowCount: number; durationMs: number }> {
   const {
     modes,
@@ -62,6 +65,8 @@ export async function runSuite(config: {
     skipWarmup = false,
     scenarioSet = null,
     reviewerToken = null,
+    benchRunTs = null,
+    benchLogsDir = null,
   } = config
   let manifest = initialManifest
   const githubToken = process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN ?? ""
@@ -162,6 +167,19 @@ export async function runSuite(config: {
               manifest = await resetScenarioFixtures(scenario, manifest, reviewerToken)
             }
 
+            const iterLogContext =
+              benchLogsDir && benchRunTs
+                ? {
+                    iterDir: buildIterDir({
+                      benchLogsDir,
+                      benchRunTs,
+                      mode,
+                      scenarioId: scenario.id,
+                      iteration,
+                    }),
+                  }
+                : null
+
             const result = await runScenarioIteration({
               provider,
               scenario,
@@ -171,6 +189,7 @@ export async function runSuite(config: {
               manifest,
               runId: suiteRunId,
               githubToken,
+              iterLogContext,
             })
 
             await appendFile(outputJsonlPath, `${JSON.stringify(result)}\n`, "utf8")
