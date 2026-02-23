@@ -37,7 +37,7 @@
   },
   "dependencies": {
     "@ghx-dev/core": "workspace:*",
-    "@opencode-ai/sdk": "^1.2.6",
+    "@opencode-ai/sdk": "^1.2.10",
     "zod": "^4.3.6"
   },
   "devDependencies": {
