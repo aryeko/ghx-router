@@ -7,7 +7,7 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "build": "tsup \"src/**/*.ts\" --format esm --out-dir dist --clean --no-dts --sourcemap",
+    "build": "tsup",
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --project unit",
@@ -15,82 +15,22 @@
     "test:coverage": "vitest run --project unit --coverage",
     "test:e2e:local": "vitest run --project e2e:local --passWithNoTests",
     "test:e2e:sdk": "vitest run --project e2e:sdk --passWithNoTests",
-    "benchmark": "tsx src/cli/benchmark.ts run",
-    "suite:run": "tsx src/cli/run-suite.ts",
-    "suite:config": "tsx src/cli/generate-suite-config.ts",
-    "scenario": "tsx src/cli/run-scenario.ts",
-    "fixtures": "tsx src/cli/fixtures.ts",
+    "bench": "tsx src/cli/index.ts run",
+    "bench:fixture": "tsx src/cli/index.ts fixture",
+    "bench:report": "tsx src/cli/index.ts report",
+    "bench:check": "tsx src/cli/index.ts check",
     "fixtures:env:bootstrap": "bash scripts/bootstrap-fixture-app-env.sh",
-    "check:scenarios": "tsx src/cli/check-scenarios.ts",
-    "report": "tsx src/cli/report.ts",
+    "check:scenarios": "tsx src/cli/index.ts check",
+    "report": "tsx src/cli/index.ts report",
     "report:gate": "pnpm run report -- --gate",
-    "verify:set": "tsx src/cli/verify-by-set.ts",
-    "verify:all-sets": "bash scripts/run-verify-all-sets.sh",
-    "verify:pr:direct": "BENCH_OPENCODE_PORT=3002 pnpm run benchmark -- agent_direct 3 --scenario-set ci-verify-pr",
-    "verify:pr:ghx": "BENCH_OPENCODE_PORT=3001 pnpm run benchmark -- ghx 3 --scenario-set ci-verify-pr",
-    "verify:pr:report": "pnpm run report:gate --gate-profile verify_pr",
-    "verify:release:direct": "BENCH_OPENCODE_PORT=3004 pnpm run benchmark -- agent_direct 4 --scenario-set ci-verify-release",
-    "verify:release:ghx": "BENCH_OPENCODE_PORT=3003 pnpm run benchmark -- ghx 4 --scenario-set ci-verify-release",
-    "verify:release:report": "pnpm run report:gate --gate-profile verify_release"
+    "inspect": "tsx scripts/inspect-session.ts"
   },
   "nx": {
     "targets": {
       "ci": {},
       "ci:extra": {
         "dependsOn": [
-          "check:scenarios"
-        ]
-      },
-      "verify:pr:direct": {
-        "dependsOn": [
-          "build"
-        ],
-        "cache": false
-      },
-      "verify:pr:ghx": {
-        "dependsOn": [
-          "build"
-        ],
-        "cache": false
-      },
-      "verify:pr:report": {
-        "dependsOn": [
-          "verify:pr:direct",
-          "verify:pr:ghx"
-        ],
-        "cache": false
-      },
-      "verify:pr": {
-        "dependsOn": [
-          "verify:pr:direct",
-          "verify:pr:ghx",
-          "verify:pr:report"
-        ]
-      },
-      "verify:release:direct": {
-        "dependsOn": [
-          "build"
-        ],
-        "cache": false
-      },
-      "verify:release:ghx": {
-        "dependsOn": [
-          "build"
-        ],
-        "cache": false
-      },
-      "verify:release:report": {
-        "dependsOn": [
-          "verify:release:direct",
-          "verify:release:ghx"
-        ],
-        "cache": false
-      },
-      "verify:release": {
-        "dependsOn": [
-          "verify:release:direct",
-          "verify:release:ghx",
-          "verify:release:report"
+          "bench:check"
         ]
       }
     }
@@ -98,8 +38,6 @@
   "dependencies": {
     "@ghx-dev/core": "workspace:*",
     "@opencode-ai/sdk": "^1.2.6",
-    "colorette": "^2.0.20",
-    "log-update": "^7.1.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {

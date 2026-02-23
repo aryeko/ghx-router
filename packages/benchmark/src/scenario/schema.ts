@@ -8,6 +8,7 @@ const workflowCheckpointSchema = z.object({
   verification_input: z.record(z.string(), z.unknown()),
   condition: z.enum(["empty", "non_empty", "count_gte", "count_eq", "field_equals"]),
   expected_value: z.unknown().optional(),
+  verification_field: z.string().min(1).optional(),
 })
 
 const workflowAssertionsSchema = z

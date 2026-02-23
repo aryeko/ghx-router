@@ -497,6 +497,7 @@ export const handleWorkflowRunView: CliHandler = async (runner, params, card) =>
       updatedAt: typeof root.updatedAt === "string" ? root.updatedAt : null,
       startedAt: typeof root.startedAt === "string" ? root.startedAt : null,
       url: typeof root.url === "string" ? root.url : null,
+      attempt: typeof root.attempt === "number" ? root.attempt : 1,
       jobs: jobsArray.map((job) => {
         if (typeof job !== "object" || job === null || Array.isArray(job)) {
           return {

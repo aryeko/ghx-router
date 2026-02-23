@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises"
 import type { BenchmarkMode, BenchmarkSummary, HistoryEntry } from "../domain/types.js"
-import { parseJsonlLines } from "../utils/jsonl.js"
+import { parseJsonlLines } from "../util/jsonl.js"
 
 export type RegressionWarning = {
   metric: string

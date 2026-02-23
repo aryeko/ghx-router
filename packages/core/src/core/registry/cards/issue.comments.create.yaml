@@ -3,9 +3,11 @@ version: "1.0.0"
 description: Create an issue comment.
 input_schema:
   type: object
-  required: [issueId, body]
+  required: [owner, name, issueNumber, body]
   properties:
-    issueId: { type: string, minLength: 1 }
+    owner: { type: string, minLength: 1 }
+    name: { type: string, minLength: 1 }
+    issueNumber: { type: integer, minimum: 1 }
     body: { type: string, minLength: 1 }
   additionalProperties: false
 output_schema:
@@ -22,3 +24,15 @@ routing:
 graphql:
   operationName: IssueCommentCreate
   documentPath: src/gql/operations/issue-comment-create.graphql
+  resolution:
+    lookup:
+      operationName: IssueNodeIdLookup
+      documentPath: src/gql/operations/issue-node-id-lookup.graphql
+      vars:
+        owner: owner
+        name: name
+        issueNumber: issueNumber
+    inject:
+      - target: issueId
+        source: scalar
+        path: repository.issue.id

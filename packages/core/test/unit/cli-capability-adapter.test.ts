@@ -2891,6 +2891,7 @@ describe("runCliCapability", () => {
       updatedAt: null,
       startedAt: null,
       url: null,
+      attempt: 1,
       jobs: [],
     })
 

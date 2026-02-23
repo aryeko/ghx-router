@@ -1,6 +1,6 @@
 capability_id: pr.reviews.list
 version: "1.0.0"
-description: List pull request reviews.
+description: "List pull request reviews (state, author, overall review body). Returns review-level metadata only — use pr.threads.list for inline diff comments."
 input_schema:
   type: object
   required: [owner, name, prNumber]

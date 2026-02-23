@@ -1,0 +1,4 @@
+{
+  "smoke": ["basic-test-wf-001"],
+  "extended": ["basic-test-wf-001", "advanced-test-wf-002"]
+}

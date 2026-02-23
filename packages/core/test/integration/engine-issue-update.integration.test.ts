@@ -5,30 +5,39 @@ import { describe, expect, it } from "vitest"
 
 describe("executeTask issue.update", () => {
   it("returns graphql envelope for issue.update", async () => {
+    let callCount = 0
     const githubClient = createGithubClient({
-      async execute<TData>(query: string): Promise<TData> {
-        if (query.includes("mutation IssueUpdate")) {
+      async execute<TData>(): Promise<TData> {
+        callCount++
+        if (callCount === 1) {
+          // First call: IssueNodeIdLookup
           return {
-            updateIssue: {
-              issue: {
-                id: "issue-id-123",
-                number: 210,
-                title: "Updated title",
-                body: "Updated body",
-                state: "OPEN",
-              },
+            repository: {
+              issue: { id: "issue-id-123" },
             },
           } as TData
         }
-
-        throw new Error("Unexpected query")
+        // Second call: IssueUpdate mutation
+        return {
+          updateIssue: {
+            issue: {
+              id: "issue-id-123",
+              number: 210,
+              title: "Updated title",
+              body: "Updated body",
+              state: "OPEN",
+            },
+          },
+        } as TData
       },
     })
 
     const request: TaskRequest = {
       task: "issue.update",
       input: {
-        issueId: "issue-id-123",
+        owner: "acme",
+        name: "modkit",
+        issueNumber: 210,
         title: "Updated title",
         body: "Updated body",
       },
@@ -51,7 +60,7 @@ describe("executeTask issue.update", () => {
     )
   })
 
-  it("returns validation error envelope for missing issueId", async () => {
+  it("returns validation error envelope for missing owner", async () => {
     const githubClient = createGithubClient({
       async execute<TData>(): Promise<TData> {
         return {} as TData

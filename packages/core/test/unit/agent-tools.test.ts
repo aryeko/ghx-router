@@ -41,6 +41,23 @@ describe("agent interface tools", () => {
     expect(explained.required_inputs).toContain("first")
   })
 
+  it("explain pr.reviews.submit optional_inputs.comments has startLine and startSide", () => {
+    const explained = explainCapability("pr.reviews.submit")
+    const comments = explained.optional_inputs?.comments as {
+      items?: { properties?: Record<string, unknown> }
+    }
+    expect(comments).toBeDefined()
+    expect(comments.items?.properties).toHaveProperty("startLine")
+    expect(comments.items?.properties).toHaveProperty("startSide")
+  })
+
+  it("explain pr.reviews.submit body description mentions COMMENT and REQUEST_CHANGES", () => {
+    const explained = explainCapability("pr.reviews.submit")
+    const body = explained.optional_inputs?.body as { description?: string }
+    expect(body?.description).toMatch(/COMMENT/)
+    expect(body?.description).toMatch(/REQUEST_CHANGES/)
+  })
+
   it("list_capabilities returns ids and descriptions", () => {
     const items = listCapabilities()
     expect(items.length).toBeGreaterThan(0)

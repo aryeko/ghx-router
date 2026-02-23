@@ -3,9 +3,11 @@ version: "1.0.0"
 description: Replace issue assignees.
 input_schema:
   type: object
-  required: [issueId, assignees]
+  required: [owner, name, issueNumber, assignees]
   properties:
-    issueId: { type: string, minLength: 1 }
+    owner: { type: string, minLength: 1 }
+    name: { type: string, minLength: 1 }
+    issueNumber: { type: integer, minimum: 1 }
     assignees:
       type: array
       items: { type: string, minLength: 1 }
@@ -27,14 +29,19 @@ graphql:
   documentPath: src/gql/operations/issue-assignees-update.graphql
   resolution:
     lookup:
-      operationName: IssueAssigneesLookup
-      documentPath: src/gql/operations/issue-assignees-lookup.graphql
+      operationName: IssueAssigneesLookupByNumber
+      documentPath: src/gql/operations/issue-assignees-lookup-by-number.graphql
       vars:
-        issueId: issueId
+        owner: owner
+        name: name
+        issueNumber: issueNumber
     inject:
+      - target: assignableId
+        source: scalar
+        path: repository.issue.id
       - target: assigneeIds
         source: map_array
         from_input: assignees
-        nodes_path: node.repository.assignableUsers.nodes
+        nodes_path: repository.assignableUsers.nodes
         match_field: login
         extract_field: id

@@ -22,6 +22,15 @@ export type BatchQueryResult = {
   variables: GraphqlVariables
 }
 
+/** Assumes no literal '{' appears before the operation body (true for all generated operations). */
+export function extractRootFieldName(query: string): string | null {
+  const headerEnd = query.indexOf("{")
+  if (headerEnd === -1) return null
+  const body = query.slice(headerEnd + 1)
+  const match = body.match(/^\s*(\w+)/)
+  return match?.[1] ?? null
+}
+
 export function buildBatchMutation(operations: BatchOperationInput[]): BatchMutationResult {
   if (operations.length === 0) {
     throw new Error("buildBatchMutation requires at least one operation")

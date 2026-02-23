@@ -1,0 +1,42 @@
+{
+  "type": "workflow",
+  "id": "ci-diagnose-run-wf-001",
+  "name": "Diagnose a failed CI workflow run and rerun it",
+  "prompt": "Workflow run {{runId}} in {{owner}}/{{name}} has failed. Get the run details to confirm its status and conclusion, identify which job failed, fetch that job's logs to surface the top error lines, then rerun the failed jobs.",
+  "expected_capabilities": [
+    "workflow.run.view",
+    "workflow.job.logs.view",
+    "workflow.run.rerun.failed"
+  ],
+  "timeout_ms": 180000,
+  "allowed_retries": 1,
+  "fixture": {
+    "repo": "aryeko/ghx-bench-fixtures",
+    "reseed_per_iteration": true,
+    "bindings": {
+      "input.owner": "repo.owner",
+      "input.name": "repo.name",
+      "input.runId": "resources.workflow_run.id"
+    },
+    "requires": ["workflow_run"]
+  },
+  "assertions": {
+    "expected_outcome": "success",
+    "checkpoints": [
+      {
+        "name": "run_viewed",
+        "verification_task": "workflow.run.view",
+        "verification_input": {},
+        "condition": "non_empty"
+      },
+      {
+        "name": "rerun_triggered",
+        "verification_task": "workflow.run.view",
+        "verification_input": {},
+        "condition": "field_equals",
+        "expected_value": { "attempt": 2 }
+      }
+    ]
+  },
+  "tags": ["workflow", "ci", "diagnostics", "rerun"]
+}

@@ -24,7 +24,7 @@ A practical guide for executing benchmarks locally, interpreting results, and ga
    pnpm --filter @ghx-dev/benchmark run fixtures:env:bootstrap
 
    # Before benchmark with mutations
-   pnpm --filter @ghx-dev/benchmark run fixtures -- \
+   pnpm --filter @ghx-dev/benchmark run bench:fixture -- \
      seed --repo aryeko/ghx-bench-fixtures \
      --out fixtures/latest.json --seed-id local
    ```
@@ -38,11 +38,11 @@ A practical guide for executing benchmarks locally, interpreting results, and ga
 ### Run a Single Mode Against One Scenario
 
 ```bash
-# agent_direct mode, 1 repetition, specific scenario
-pnpm --filter @ghx-dev/benchmark run benchmark -- agent_direct 1 --scenario pr-view-001
+# agent_direct mode, specific scenario
+pnpm --filter @ghx-dev/benchmark run bench -- --scenario pr-view-001
 
-# ghx mode, 4 repetitions, scenario set
-pnpm --filter @ghx-dev/benchmark run benchmark -- ghx 4 --scenario-set default
+# ghx mode, scenario set
+pnpm --filter @ghx-dev/benchmark run bench -- --scenario-set default
 ```
 
 **Output:** JSONL rows written to `packages/benchmark/results/`
@@ -57,47 +57,12 @@ pnpm run benchmark:verify:pr
 pnpm run benchmark:verify:release
 ```
 
-### Run with Suite Runner (for Repeatable Configurations)
-
-Suite runner is the recommended approach for local development as it handles seeding, cleanup, and parallel mode execution:
-
-```bash
-# Step 1: Generate suite configuration
-pnpm --filter @ghx-dev/benchmark run suite:config -- \
-  --out config/suite-runner.json \
-  --scenario-set pr-exec \
-  --repetitions 3 \
-  --gate-profile verify_pr \
-  --with-cleanup \
-  --with-seed
-
-# Step 2: Run the suite
-pnpm --filter @ghx-dev/benchmark run suite:run -- --config config/suite-runner.json
-```
-
-**Flags:**
-- `--scenario-set` — which scenario set to run (default: `default`)
-- `--repetitions` — reps per scenario (default: 1)
-- `--gate-profile` — validation profile: `verify_pr` or `verify_release`
-- `--with-seed` — include fixture seeding phase
-- `--with-cleanup` — include fixture cleanup phase
-
-### Run Without Seeding/Cleanup (Iteration)
-
-```bash
-# Re-run suite without re-seeding fixtures (faster for iteration)
-pnpm --filter @ghx-dev/benchmark run suite:run -- \
-  --config config/suite-runner.json \
-  --skip-cleanup \
-  --skip-seed
-```
-
 ### Run Against Fixture Manifest
 
 For mutation scenarios that require specific fixture state:
 
 ```bash
-pnpm --filter @ghx-dev/benchmark run benchmark -- ghx 1 \
+pnpm --filter @ghx-dev/benchmark run bench -- \
   --scenario-set pr-exec \
   --fixture-manifest fixtures/latest.json
 ```
@@ -115,10 +80,11 @@ After each benchmark run, rows are written to `packages/benchmark/results/`:
 
 **Key fields:**
 - `success` — CLI executed without error
-- `output_valid` — envelope matched scenario assertions
+- `output_valid` — assertions (checkpoints) passed
 - `tokens` — token usage (active tokens = total - cache_read)
 - `latency_ms` — elapsed time from prompt to result
 - `tool_calls` — number of tool invocations
+- `api_calls` — number of API-related tool calls
 - `error.type` — failure category if not success (runner_error, timeout, validation, etc.)
 
 ### Summary Report
@@ -220,19 +186,12 @@ cat packages/benchmark/reports/latest-summary.md
 
 ```bash
 # 1. Seed fixtures
-pnpm --filter @ghx-dev/benchmark run fixtures -- \
+pnpm --filter @ghx-dev/benchmark run bench:fixture -- \
   seed --repo aryeko/ghx-bench-fixtures \
   --out fixtures/latest.json --seed-id local
 
-# 2. Generate and run suite
-pnpm --filter @ghx-dev/benchmark run suite:config -- \
-  --out config/suite-runner.json \
-  --scenario-set full-seeded \
-  --repetitions 3 \
-  --gate-profile verify_release \
-  --with-cleanup --with-seed
-
-pnpm --filter @ghx-dev/benchmark run suite:run -- --config config/suite-runner.json
+# 2. Run full suite
+pnpm run benchmark:verify:release
 
 # 3. Check gate
 pnpm --filter @ghx-dev/benchmark run report -- --gate --gate-profile verify_release
@@ -244,13 +203,13 @@ pnpm --filter @ghx-dev/benchmark run report -- --gate --gate-profile verify_rele
 
 ```bash
 # 1. Seed once
-pnpm --filter @ghx-dev/benchmark run fixtures -- \
+pnpm --filter @ghx-dev/benchmark run bench:fixture -- \
   seed --repo aryeko/ghx-bench-fixtures \
   --out fixtures/latest.json --seed-id local
 
 # 2. Run specific scenario multiple times
 for i in {1..3}; do
-  pnpm --filter @ghx-dev/benchmark run benchmark -- ghx 1 \
+  pnpm --filter @ghx-dev/benchmark run bench -- \
     --scenario-set pr-exec \
     --fixture-manifest fixtures/latest.json
 done
@@ -259,10 +218,10 @@ done
 pnpm --filter @ghx-dev/benchmark run report
 
 # 4. Cleanup (manifest-based, removes seeded resources for this manifest)
-pnpm --filter @ghx-dev/benchmark run fixtures -- cleanup --out fixtures/latest.json
+pnpm --filter @ghx-dev/benchmark run bench:fixture -- cleanup --out fixtures/latest.json
 
 # 4b. Cleanup all (no manifest needed, nukes all bench-fixture resources from repo)
-pnpm --filter @ghx-dev/benchmark run fixtures -- cleanup --all --repo aryeko/ghx-bench-fixtures
+pnpm --filter @ghx-dev/benchmark run bench:fixture -- cleanup --all --repo aryeko/ghx-bench-fixtures
 ```
 
 ## CI Integration
@@ -315,9 +274,8 @@ gh auth login
 
 ### Scenarios timeout or fail to complete
 
-- Increase `--timeout_ms` in scenario JSON (default: 60000ms)
-- Check fixture status: `pnpm --filter @ghx-dev/benchmark run fixtures -- status --out fixtures/latest.json`
-- Check opencode port conflicts: default ports are 3001 (ghx) and 3002 (agent_direct)
+- Check fixture status: `pnpm --filter @ghx-dev/benchmark run bench:fixture -- status --out fixtures/latest.json`
+- Check opencode port conflicts: default port is 3000 (configurable via `BENCH_OPENCODE_PORT`)
 
 ### Gate fails but metrics look good
 
@@ -333,9 +291,6 @@ jq -r 'to_entries[] | .value[]' packages/benchmark/scenario-sets.json | sort -u
 
 # Count scenarios per set
 jq 'map_values(length)' packages/benchmark/scenario-sets.json
-
-# View scenario metadata
-jq '.' packages/benchmark/scenarios/pr-view-001.json
 
 # Parse latest summary
 jq '.summary.reliability' packages/benchmark/reports/latest-summary.json

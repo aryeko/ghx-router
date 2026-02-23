@@ -1,0 +1,38 @@
+{
+  "type": "workflow",
+  "id": "pr-fix-mixed-threads-wf-001",
+  "name": "Resolve only unresolved review threads (mixed state)",
+  "prompt": "PR #{{prNumber}} in {{owner}}/{{name}} has review threads in a mixed state — some already resolved and some unresolved. List only the unresolved threads, reply to each with a brief acknowledgment (e.g. \"Acknowledged, will address.\"), then resolve each one. Do not read or modify any source files. Do not touch already-resolved threads.",
+  "expected_capabilities": ["pr.threads.list", "pr.threads.reply", "pr.threads.resolve"],
+  "timeout_ms": 180000,
+  "allowed_retries": 1,
+  "fixture": {
+    "repo": "aryeko/ghx-bench-fixtures",
+    "bindings": {
+      "input.owner": "repo.owner",
+      "input.name": "repo.name",
+      "input.prNumber": "resources.pr_with_mixed_threads.number"
+    },
+    "requires": ["pr_with_mixed_threads"],
+    "reseed_per_iteration": true
+  },
+  "assertions": {
+    "expected_outcome": "success",
+    "checkpoints": [
+      {
+        "name": "unresolved_threads_empty",
+        "verification_task": "pr.threads.list",
+        "verification_input": { "unresolvedOnly": true },
+        "condition": "empty"
+      },
+      {
+        "name": "total_threads_all_resolved",
+        "verification_task": "pr.threads.list",
+        "verification_input": { "unresolvedOnly": false },
+        "condition": "count_gte",
+        "expected_value": 7
+      }
+    ]
+  },
+  "tags": ["workflow", "pr", "review", "mixed-threads"]
+}

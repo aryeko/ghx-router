@@ -1,0 +1,205 @@
+import { runGh, tryRunGh } from "./gh-client.js"
+
+export type CleanupAllResult = {
+  closedIssues: number
+  closedPrs: number
+  deletedBranches: number
+  deletedLabels: number
+  deletedProjects: number
+}
+
+function listLabeledNumbers(repo: string, kind: "issue" | "pr"): number[] {
+  const output = runGh([
+    kind,
+    "list",
+    "--repo",
+    repo,
+    "--state",
+    "open",
+    "--label",
+    "bench-fixture",
+    "--limit",
+    "200",
+    "--json",
+    "number",
+  ])
+
+  const parsed = output.length === 0 ? [] : JSON.parse(output)
+  if (!Array.isArray(parsed)) {
+    return []
+  }
+
+  return parsed
+    .map((item) => {
+      if (typeof item !== "object" || item === null) {
+        return null
+      }
+      const value = (item as { number?: unknown }).number
+      return typeof value === "number" ? value : null
+    })
+    .filter((value): value is number => value !== null)
+}
+
+function closePrs(repo: string): number {
+  const numbers = listLabeledNumbers(repo, "pr")
+  for (const num of numbers) {
+    tryRunGh(["pr", "close", String(num), "--repo", repo, "--delete-branch"])
+  }
+  return numbers.length
+}
+
+function closeIssues(repo: string): number {
+  const numbers = listLabeledNumbers(repo, "issue")
+  for (const num of numbers) {
+    tryRunGh([
+      "issue",
+      "close",
+      String(num),
+      "--repo",
+      repo,
+      "--comment",
+      "Benchmark fixture cleanup (--all)",
+    ])
+  }
+  return numbers.length
+}
+
+function deleteOrphanBranches(repo: string): number {
+  const raw = tryRunGh(["api", `repos/${repo}/git/refs/heads`])
+  if (raw === null) {
+    return 0
+  }
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    return 0
+  }
+
+  if (!Array.isArray(parsed)) {
+    return 0
+  }
+
+  const branchRefs = (parsed as { ref?: string }[])
+    .map((item) => (typeof item?.ref === "string" ? item.ref : null))
+    .filter((ref): ref is string => ref !== null)
+    .filter(
+      (ref) =>
+        ref.startsWith("refs/heads/bench-seed-") || ref.startsWith("refs/heads/bench-review-seed-"),
+    )
+
+  const deletedRefs = branchRefs.filter((ref) => {
+    const result = tryRunGh(["api", "--method", "DELETE", `repos/${repo}/git/${ref}`])
+    if (result === null) {
+      console.warn(`Warning: failed to delete branch ref ${ref}`)
+    }
+    return result !== null
+  })
+
+  return deletedRefs.length
+}
+
+function deleteLabels(repo: string): number {
+  const output = tryRunGh(["label", "list", "--repo", repo, "--limit", "200", "--json", "name"])
+
+  if (output === null || output.length === 0) {
+    return 0
+  }
+
+  let labels: unknown
+  try {
+    labels = JSON.parse(output)
+  } catch {
+    return 0
+  }
+
+  if (!Array.isArray(labels)) {
+    return 0
+  }
+
+  const seedLabels = (labels as { name?: string }[])
+    .map((item) => (typeof item?.name === "string" ? item.name : null))
+    .filter((name): name is string => name !== null)
+    .filter((name) => name.startsWith("bench-seed:"))
+
+  const deleted = seedLabels.filter((label) => {
+    const result = tryRunGh(["label", "delete", label, "--repo", repo, "--yes"])
+    if (result === null) {
+      console.warn(`Warning: failed to delete label ${label}`)
+    }
+    return result !== null
+  })
+  return deleted.length
+}
+
+function deleteProjects(repo: string): number {
+  const [owner] = repo.split("/")
+  const output = tryRunGh([
+    "project",
+    "list",
+    "--owner",
+    owner ?? repo,
+    "--format",
+    "json",
+    "--limit",
+    "200",
+  ])
+
+  if (output === null || output.length === 0) {
+    return 0
+  }
+
+  let projects: unknown
+  try {
+    projects = JSON.parse(output)
+  } catch {
+    return 0
+  }
+
+  // gh project list --format json returns { projects: [...] }
+  const list = Array.isArray(projects)
+    ? projects
+    : typeof projects === "object" &&
+        projects !== null &&
+        Array.isArray((projects as { projects?: unknown }).projects)
+      ? (projects as { projects: unknown[] }).projects
+      : []
+
+  const benchProjects = (list as { title?: string; number?: number }[]).filter(
+    (p) => typeof p?.title === "string" && p.title.startsWith("GHX Bench Fixtures"),
+  )
+
+  const deleted = benchProjects
+    .filter((p): p is { title?: string; number: number } => typeof p.number === "number")
+    .filter((project) => {
+      const result = tryRunGh([
+        "project",
+        "delete",
+        String(project.number),
+        "--owner",
+        owner ?? repo,
+      ])
+      if (result === null) {
+        console.warn(`Warning: failed to delete project ${project.title}`)
+      }
+      return result !== null
+    })
+  return deleted.length
+}
+
+export async function cleanupAllFixtures(repo: string): Promise<CleanupAllResult> {
+  const closedPrs = closePrs(repo)
+  const closedIssues = closeIssues(repo)
+  const deletedBranches = deleteOrphanBranches(repo)
+  const deletedLabels = deleteLabels(repo)
+  const deletedProjects = deleteProjects(repo)
+
+  return {
+    closedIssues,
+    closedPrs,
+    deletedBranches,
+    deletedLabels,
+    deletedProjects,
+  }
+}

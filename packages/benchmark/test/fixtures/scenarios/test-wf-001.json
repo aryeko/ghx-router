@@ -1,0 +1,21 @@
+{
+  "type": "workflow",
+  "id": "basic-test-wf-001",
+  "name": "Basic Test Workflow",
+  "prompt": "Complete this test task",
+  "expected_capabilities": ["test_capability"],
+  "timeout_ms": 30000,
+  "allowed_retries": 1,
+  "assertions": {
+    "expected_outcome": "success",
+    "checkpoints": [
+      {
+        "name": "task_completed",
+        "verification_task": "verify_completion",
+        "verification_input": {},
+        "condition": "non_empty"
+      }
+    ]
+  },
+  "tags": ["test"]
+}

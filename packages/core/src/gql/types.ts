@@ -35,27 +35,37 @@ export type IssueCreateInput = {
 }
 
 export type IssueUpdateInput = {
-  issueId: string
+  owner: string
+  name: string
+  issueNumber: number
   title?: string
   body?: string
 }
 
 export type IssueMutationInput = {
-  issueId: string
+  owner: string
+  name: string
+  issueNumber: number
 }
 
 export type IssueLabelsUpdateInput = {
-  issueId: string
+  owner: string
+  name: string
+  issueNumber: number
   labels: string[]
 }
 
 export type IssueLabelsAddInput = {
-  issueId: string
+  owner: string
+  name: string
+  issueNumber: number
   labels: string[]
 }
 
 export type IssueAssigneesUpdateInput = {
-  issueId: string
+  owner: string
+  name: string
+  issueNumber: number
   assignees: string[]
 }
 
@@ -74,12 +84,16 @@ export type IssueAssigneesRemoveInput = {
 }
 
 export type IssueMilestoneSetInput = {
-  issueId: string
+  owner: string
+  name: string
+  issueNumber: number
   milestoneNumber: number
 }
 
 export type IssueCommentCreateInput = {
-  issueId: string
+  owner: string
+  name: string
+  issueNumber: number
   body: string
 }
 
@@ -383,6 +397,8 @@ export type DraftComment = {
   body: string
   line: number
   side?: "LEFT" | "RIGHT"
+  startLine?: number
+  startSide?: "LEFT" | "RIGHT"
 }
 
 export type PrReviewSubmitInput = {

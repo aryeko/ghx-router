@@ -1319,14 +1319,13 @@ describe("createGithubClient", () => {
 
       if (query.includes("query IssueLabelsLookup")) {
         return {
-          node: {
-            repository: {
-              labels: {
-                nodes: [
-                  { id: "label-bug", name: "bug" },
-                  { id: "label-batch-b", name: "batch-b" },
-                ],
-              },
+          repository: {
+            issue: { id: "issue-1" },
+            labels: {
+              nodes: [
+                { id: "label-bug", name: "bug" },
+                { id: "label-batch-b", name: "batch-b" },
+              ],
             },
           },
         }
@@ -1347,11 +1346,10 @@ describe("createGithubClient", () => {
 
       if (query.includes("query IssueAssigneesLookup")) {
         return {
-          node: {
-            repository: {
-              assignableUsers: {
-                nodes: [{ id: "user-octocat", login: "octocat" }],
-              },
+          repository: {
+            issue: { id: "issue-1" },
+            assignableUsers: {
+              nodes: [{ id: "user-octocat", login: "octocat" }],
             },
           },
         }
@@ -1370,14 +1368,19 @@ describe("createGithubClient", () => {
         }
       }
 
-      if (query.includes("query IssueMilestoneLookup")) {
+      if (query.includes("query IssueMilestoneLookupByNumber")) {
         return {
-          node: {
-            repository: {
-              milestone: {
-                id: "milestone-3",
-              },
-            },
+          repository: {
+            issue: { id: "issue-1" },
+            milestone: { id: "milestone-3" },
+          },
+        }
+      }
+
+      if (query.includes("query IssueNodeIdLookup")) {
+        return {
+          repository: {
+            issue: { id: "issue-1" },
           },
         }
       }
@@ -1497,29 +1500,49 @@ describe("createGithubClient", () => {
       expect.objectContaining({ id: "issue-1", number: 501, title: "Created issue" }),
     )
     await expect(
-      client.updateIssue({ issueId: "issue-1", title: "Updated issue" }),
+      client.updateIssue({
+        owner: "acme",
+        name: "modkit",
+        issueNumber: 501,
+        title: "Updated issue",
+      }),
     ).resolves.toEqual(expect.objectContaining({ id: "issue-1", title: "Updated issue" }))
-    await expect(client.closeIssue({ issueId: "issue-1" })).resolves.toEqual(
-      expect.objectContaining({ id: "issue-1", state: "CLOSED", closed: true }),
-    )
-    await expect(client.reopenIssue({ issueId: "issue-1" })).resolves.toEqual(
-      expect.objectContaining({ id: "issue-1", state: "OPEN", reopened: true }),
-    )
-    await expect(client.deleteIssue({ issueId: "issue-1" })).resolves.toEqual(
-      expect.objectContaining({ id: "issue-1", deleted: true }),
-    )
     await expect(
-      client.updateIssueLabels({ issueId: "issue-1", labels: ["bug", "batch-b"] }),
+      client.closeIssue({ owner: "acme", name: "modkit", issueNumber: 501 }),
+    ).resolves.toEqual(expect.objectContaining({ id: "issue-1", state: "CLOSED", closed: true }))
+    await expect(
+      client.reopenIssue({ owner: "acme", name: "modkit", issueNumber: 501 }),
+    ).resolves.toEqual(expect.objectContaining({ id: "issue-1", state: "OPEN", reopened: true }))
+    await expect(
+      client.deleteIssue({ owner: "acme", name: "modkit", issueNumber: 501 }),
+    ).resolves.toEqual(expect.objectContaining({ id: "issue-1", deleted: true }))
+    await expect(
+      client.updateIssueLabels({
+        owner: "acme",
+        name: "modkit",
+        issueNumber: 501,
+        labels: ["bug", "batch-b"],
+      }),
     ).resolves.toEqual(expect.objectContaining({ id: "issue-1", labels: ["bug", "batch-b"] }))
     await expect(
-      client.updateIssueAssignees({ issueId: "issue-1", assignees: ["octocat"] }),
+      client.updateIssueAssignees({
+        owner: "acme",
+        name: "modkit",
+        issueNumber: 501,
+        assignees: ["octocat"],
+      }),
     ).resolves.toEqual(expect.objectContaining({ id: "issue-1", assignees: ["octocat"] }))
     await expect(
-      client.setIssueMilestone({ issueId: "issue-1", milestoneNumber: 3 }),
+      client.setIssueMilestone({
+        owner: "acme",
+        name: "modkit",
+        issueNumber: 501,
+        milestoneNumber: 3,
+      }),
     ).resolves.toEqual(expect.objectContaining({ id: "issue-1", milestoneNumber: 3 }))
-    await expect(client.createIssueComment({ issueId: "issue-1", body: "ack" })).resolves.toEqual(
-      expect.objectContaining({ id: "comment-1", body: "ack" }),
-    )
+    await expect(
+      client.createIssueComment({ owner: "acme", name: "modkit", issueNumber: 501, body: "ack" }),
+    ).resolves.toEqual(expect.objectContaining({ id: "comment-1", body: "ack" }))
     await expect(
       client.fetchIssueLinkedPrs({ owner: "acme", name: "modkit", issueNumber: 501 }),
     ).resolves.toEqual(
@@ -1576,41 +1599,70 @@ describe("createGithubClient", () => {
     ).rejects.toThrow("Issue mutation failed")
 
     const deleteMissingMutationClient = createGithubClient({
-      execute: vi.fn(async () => ({ deleteIssue: null })),
-    } as never)
-    await expect(deleteMissingMutationClient.deleteIssue({ issueId: "issue-1" })).rejects.toThrow(
-      "Issue deletion failed",
-    )
-
-    const labelsLookupMissingClient = createGithubClient({
-      execute: vi.fn(async () => ({ node: { repository: { labels: { nodes: [] } } } })),
+      execute: vi
+        .fn()
+        .mockResolvedValueOnce({ repository: { issue: { id: "issue-1" } } })
+        .mockResolvedValueOnce({ deleteIssue: null }),
     } as never)
     await expect(
-      labelsLookupMissingClient.updateIssueLabels({ issueId: "issue-1", labels: ["bug"] }),
+      deleteMissingMutationClient.deleteIssue({ owner: "acme", name: "modkit", issueNumber: 501 }),
+    ).rejects.toThrow("Issue deletion failed")
+
+    const labelsLookupMissingClient = createGithubClient({
+      execute: vi.fn(async () => ({
+        repository: { issue: { id: "issue-1" }, labels: { nodes: [] } },
+      })),
+    } as never)
+    await expect(
+      labelsLookupMissingClient.updateIssueLabels({
+        owner: "acme",
+        name: "modkit",
+        issueNumber: 501,
+        labels: ["bug"],
+      }),
     ).rejects.toThrow("Label not found: bug")
 
     const assigneesLookupMissingClient = createGithubClient({
-      execute: vi.fn(async () => ({ node: { repository: { assignableUsers: { nodes: [] } } } })),
+      execute: vi.fn(async () => ({
+        repository: { issue: { id: "issue-1" }, assignableUsers: { nodes: [] } },
+      })),
     } as never)
     await expect(
       assigneesLookupMissingClient.updateIssueAssignees({
-        issueId: "issue-1",
+        owner: "acme",
+        name: "modkit",
+        issueNumber: 501,
         assignees: ["octocat"],
       }),
     ).rejects.toThrow("Assignee not found: octocat")
 
     const milestoneLookupMissingClient = createGithubClient({
-      execute: vi.fn(async () => ({ node: { repository: { milestone: null } } })),
+      execute: vi
+        .fn()
+        .mockResolvedValueOnce({ repository: { issue: { id: "issue-1" }, milestone: null } }),
     } as never)
     await expect(
-      milestoneLookupMissingClient.setIssueMilestone({ issueId: "issue-1", milestoneNumber: 2 }),
+      milestoneLookupMissingClient.setIssueMilestone({
+        owner: "acme",
+        name: "modkit",
+        issueNumber: 501,
+        milestoneNumber: 2,
+      }),
     ).rejects.toThrow("Milestone not found: 2")
 
     const commentMalformedClient = createGithubClient({
-      execute: vi.fn(async () => ({ addComment: { commentEdge: { node: { id: "comment-1" } } } })),
+      execute: vi
+        .fn()
+        .mockResolvedValueOnce({ repository: { issue: { id: "issue-1" } } })
+        .mockResolvedValueOnce({ addComment: { commentEdge: { node: { id: "comment-1" } } } }),
     } as never)
     await expect(
-      commentMalformedClient.createIssueComment({ issueId: "issue-1", body: "ack" }),
+      commentMalformedClient.createIssueComment({
+        owner: "acme",
+        name: "modkit",
+        issueNumber: 501,
+        body: "ack",
+      }),
     ).rejects.toThrow("Issue comment creation failed")
   })
 

@@ -1,4 +1,5 @@
 import { listCapabilities } from "@core/core/registry/list-capabilities.js"
+import { extractArrayItemHints } from "@core/core/registry/schema-utils.js"
 
 function parseArgs(argv: string[]): { asJson: boolean; domain: string | undefined } {
   const domainIndex = argv.indexOf("--domain")
@@ -30,7 +31,15 @@ export async function capabilitiesListCommand(argv: string[] = []): Promise<numb
   const lines = capabilities.map((item) => {
     const id = item.capability_id.padEnd(maxIdLen)
     const desc = item.description.padEnd(maxDescLen)
-    const inputs = `[${item.required_inputs.join(", ")}]`
+    const required = item.required_inputs.join(", ")
+    const arrayHints = extractArrayItemHints({ properties: item.optional_inputs_detail })
+    const optional = item.optional_inputs
+      .map((n) => {
+        const hints = arrayHints[n]
+        return hints ? `${n}?[${hints.join(", ")}]` : `${n}?`
+      })
+      .join(", ")
+    const inputs = optional.length > 0 ? `[${required}, ${optional}]` : `[${required}]`
     return `${id} - ${desc} ${inputs}`
   })
   process.stdout.write(`${lines.join("\n")}\n`)

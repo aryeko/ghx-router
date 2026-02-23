@@ -54,14 +54,15 @@ pnpm --filter @ghx-dev/core exec vitest run test/unit/run-command.test.ts -t "pa
 ```bash
 pnpm run ghx:gql:verify           # verify GraphQL operations (run if .graphql files change)
 pnpm run benchmark
-pnpm run benchmark:verify:pr
-pnpm run benchmark:verify:release
 pnpm --filter @ghx-dev/benchmark run check:scenarios
 pnpm --filter @ghx-dev/benchmark run report
 pnpm --filter @ghx-dev/benchmark run report:gate
 ```
 
 **Benchmark CLI flags:**
+
+**CRITICAL:** `mode` and `repetitions` are positional, not flags. Use: `pnpm run benchmark -- <mode> <repetitions> [flags]`
+Example: `pnpm run benchmark -- agent_direct 1 --scenario pr-fix-mixed-threads-wf-001 --skip-warmup --fixture-manifest fixtures/latest.json`
 
 - `--skip-warmup` — skip warm-up canary run (useful for rapid iteration; default: run warmup)
 - `--scenario-set <name>` — run named scenario set from `scenario-sets.json`
@@ -70,9 +71,12 @@ pnpm --filter @ghx-dev/benchmark run report:gate
 - `--seed-if-missing` — auto-seed fixtures if manifest not found (requires GitHub auth)
 - `--provider <id>` — override provider (e.g., `openai`)
 - `--model <id>` — override model (e.g., `gpt-5.3-codex`)
-- `--output-jsonl <path>` — write raw results to specified JSONL file
+- `--output-jsonl <path>` — write raw results to specified JSONL file (**must be absolute path** — pnpm shifts cwd, relative paths cause ENOENT)
 
-**Fixture CLI flags** (`pnpm --filter @ghx-dev/benchmark run fixtures --`):
+**Benchmark gotchas:**
+- Port conflict: OpenCode server defaults to port 3000; set `BENCH_OPENCODE_PORT=<port>` to use a different port if 3000 is in use
+
+**Fixture CLI flags** (`pnpm --filter @ghx-dev/benchmark run bench:fixture --`):
 
 - `seed` / `status` / `cleanup` — fixture lifecycle commands
 - `--repo <owner/name>` — target repo (default: `aryeko/ghx-bench-fixtures`, env: `BENCH_FIXTURE_REPO`)
@@ -107,7 +111,9 @@ User/Agent → CLI (packages/core/src/cli/) → executeTask() [core/routing/engi
 
 ### Benchmark Flow
 
-`packages/benchmark/src/cli/benchmark.ts` → scenario selection from `packages/benchmark/scenario-sets.json` → isolated OpenCode sessions → envelope/tool/attempt extraction (`src/extract/`) → assertion validation → `results/*.jsonl` → `reports/latest-summary.{json,md}`.
+`packages/benchmark/src/cli/index.ts` → scenario selection from `packages/benchmark/scenario-sets.json` → isolated OpenCode sessions → assertion validation → `results/*.jsonl` → `reports/latest-summary.{json,md}`.
+
+**Inspecting opencode sessions:** `sqlite3 ~/.local/share/opencode/opencode.db "SELECT data FROM part WHERE session_id='ses_...' ORDER BY time_created;"` — `data` is a JSON column; key `type` values: `tool` (`.state.input.command`), `step-finish` (`.tokens`, `.reason`), `reasoning`, `text`. Sum tokens across all `step-finish` parts for full session totals.
 
 ## Code Style
 

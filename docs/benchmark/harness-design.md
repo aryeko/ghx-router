@@ -3,19 +3,18 @@
 ## Flow
 
 1. load and validate scenarios
-2. render benchmark prompt
-3. run assistant session
-4. extract envelope JSON from assistant output
-5. validate envelope + scenario assertions
-6. collect tool/api/attempt metrics
-7. write JSONL rows and aggregate reports
+2. run assistant session via `OpencodeSessionProvider`
+3. extract prompt response from session messages
+4. validate assertions (checkpoints) against GitHub state
+5. collect tool/api metrics from session parts
+6. write JSONL rows and aggregate reports
 
 ## Extractors
 
-- `extractFirstJsonObject` - pulls first balanced JSON object
-- `validateEnvelope` - validates required envelope and data constraints
-- `aggregateToolCounts` - derives tool/api counts from session parts
-- `extractAttemptMetrics` - reads `meta.attempts` for retry and route context
+- `extractPromptResponseFromPromptResult` — parses the prompt response shape from the SDK result
+- `coercePromptResponse` — normalises the prompt response into a canonical `{ assistant, parts }` shape
+- `aggregateToolCounts` — derives `toolCalls` and `apiCalls` counts from session message parts
+- `extractTimingBreakdown` — builds per-step timing from session message parts
 
 ## Security Posture
 
@@ -24,5 +23,7 @@
 
 Source:
 
-- `packages/benchmark/src/runner/suite-runner.ts`
-- `packages/benchmark/src/extract/`
+- `packages/benchmark/src/provider/opencode/extraction.ts` — prompt response extraction and tool count aggregation
+- `packages/benchmark/src/runner/suite.ts` — suite orchestration (modes, repetitions, JSONL output)
+- `packages/benchmark/src/runner/scenario-runner.ts` — per-scenario iteration (session, prompt, assertions)
+- `packages/benchmark/src/report/` — summary report generation

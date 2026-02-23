@@ -1,0 +1,38 @@
+{
+  "type": "workflow",
+  "id": "pr-review-comment-wf-001",
+  "name": "Request changes on PR with inline bug comments",
+  "prompt": "Review PR #{{prNumber}} in {{owner}}/{{name}}. View the PR details, read the diff, and submit a REQUEST_CHANGES review. For each of the 3 bugs you find in the diff, leave a separate inline comment on the exact line pointing out what's wrong.",
+  "expected_capabilities": ["pr.view", "pr.diff.view", "pr.reviews.submit"],
+  "timeout_ms": 180000,
+  "allowed_retries": 1,
+  "fixture": {
+    "repo": "aryeko/ghx-bench-fixtures",
+    "bindings": {
+      "input.owner": "repo.owner",
+      "input.name": "repo.name",
+      "input.prNumber": "resources.pr_with_bugs.number"
+    },
+    "requires": ["pr_with_bugs"],
+    "reseed_per_iteration": true
+  },
+  "assertions": {
+    "expected_outcome": "success",
+    "checkpoints": [
+      {
+        "name": "review_submitted",
+        "verification_task": "pr.reviews.list",
+        "verification_input": {},
+        "condition": "non_empty"
+      },
+      {
+        "name": "inline_comments_submitted",
+        "verification_task": "pr.threads.list",
+        "verification_input": { "unresolvedOnly": false },
+        "condition": "count_gte",
+        "expected_value": 3
+      }
+    ]
+  },
+  "tags": ["workflow", "pr", "review"]
+}

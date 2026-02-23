@@ -27,6 +27,16 @@ describe("capabilities CLI commands", () => {
     expect(output).toMatch(/repo\.view\s+-.+\[owner, name\]/)
   })
 
+  it("shows optional inputs with ? suffix in text output", async () => {
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true)
+
+    await capabilitiesListCommand(["--domain", "pr"])
+
+    const output = stdout.mock.calls.map((call) => String(call[0])).join("")
+    // pr.reviews.submit has optional body and comments fields
+    expect(output).toMatch(/pr\.reviews\.submit\s+-.+body\?/)
+  })
+
   it("lists capabilities in JSON with --json", async () => {
     const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true)
 
@@ -53,6 +63,32 @@ describe("capabilities CLI commands", () => {
     expect(repoView.required_inputs).toEqual(expect.arrayContaining(["owner", "name"]))
   })
 
+  it("includes optional_inputs array in JSON output", async () => {
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true)
+
+    await capabilitiesListCommand(["--domain", "pr", "--json"])
+
+    const joined = stdout.mock.calls.map((call) => String(call[0])).join("")
+    const parsed = JSON.parse(joined)
+    const reviewSubmit = parsed.find(
+      (item: { capability_id: string }) => item.capability_id === "pr.reviews.submit",
+    )
+    expect(reviewSubmit).toBeDefined()
+    expect(reviewSubmit.optional_inputs).toEqual(expect.arrayContaining(["body", "comments"]))
+  })
+
+  it("explains a capability with optional_inputs in JSON output", async () => {
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true)
+
+    await capabilitiesExplainCommand(["pr.reviews.submit", "--json"])
+
+    const joined = stdout.mock.calls.map((call) => String(call[0])).join("")
+    const parsed = JSON.parse(joined)
+    expect(parsed.optional_inputs).toBeDefined()
+    expect(parsed.optional_inputs).toHaveProperty("body")
+    expect(parsed.optional_inputs).toHaveProperty("comments")
+  })
+
   it("filters by domain with --domain flag", async () => {
     const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true)
 
@@ -76,6 +112,39 @@ describe("capabilities CLI commands", () => {
     for (const item of parsed) {
       expect(item.capability_id).toMatch(/^repo\./)
     }
+  })
+
+  it("includes optional_inputs_detail in JSON output", async () => {
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true)
+
+    await capabilitiesListCommand(["--domain", "pr", "--json"])
+
+    const joined = stdout.mock.calls.map((call) => String(call[0])).join("")
+    const parsed = JSON.parse(joined)
+    const reviewSubmit = parsed.find(
+      (item: { capability_id: string }) => item.capability_id === "pr.reviews.submit",
+    )
+    expect(reviewSubmit).toBeDefined()
+    expect(reviewSubmit.optional_inputs_detail).toBeDefined()
+    expect(reviewSubmit.optional_inputs_detail).toHaveProperty("comments")
+    const comments = reviewSubmit.optional_inputs_detail.comments as {
+      type: string
+      items: { properties: Record<string, unknown> }
+    }
+    expect(comments.type).toBe("array")
+    expect(comments.items.properties).toHaveProperty("startLine")
+    expect(comments.items.properties).toHaveProperty("startSide")
+  })
+
+  it("shows array item hints in text output for pr.reviews.submit", async () => {
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true)
+
+    await capabilitiesListCommand(["--domain", "pr"])
+
+    const output = stdout.mock.calls.map((call) => String(call[0])).join("")
+    expect(output).toMatch(
+      /pr\.reviews\.submit\s+-.+comments\?\[path, body, line, side\?, startLine\?, startSide\?\]/,
+    )
   })
 
   it("returns error for unknown domain", async () => {

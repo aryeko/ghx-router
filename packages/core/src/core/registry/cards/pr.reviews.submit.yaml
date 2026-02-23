@@ -11,7 +11,10 @@ input_schema:
     event:
       type: string
       enum: [APPROVE, COMMENT, REQUEST_CHANGES]
-    body: { type: string, minLength: 1 }
+    body:
+      type: string
+      minLength: 1
+      description: "Required when event is COMMENT or REQUEST_CHANGES. Optional for APPROVE."
     comments:
       type: array
       items:
@@ -21,7 +24,18 @@ input_schema:
           path: { type: string, minLength: 1 }
           body: { type: string, minLength: 1 }
           line: { type: integer, minimum: 1 }
-          side: { type: string, enum: [LEFT, RIGHT] }
+          side:
+            type: string
+            enum: [LEFT, RIGHT]
+            description: "Diff side of the comment line (LEFT=base, RIGHT=head). Returned as diffSide in pr.threads.list output."
+          startLine:
+            type: integer
+            minimum: 1
+            description: "First line of a multi-line comment range. Omit for single-line comments."
+          startSide:
+            type: string
+            enum: [LEFT, RIGHT]
+            description: "Diff side of startLine (LEFT=base, RIGHT=head). Required if startLine is set."
         additionalProperties: false
   additionalProperties: false
 output_schema:

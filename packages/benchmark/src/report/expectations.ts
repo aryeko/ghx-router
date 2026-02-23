@@ -1,9 +1,9 @@
 import { access, readFile } from "node:fs/promises"
 
 import { z } from "zod"
-import type { GateProfile, GateV2ThresholdMap } from "../domain/types.js"
+import type { GateProfile, GateThresholdMap } from "../domain/types.js"
 
-const gateV2ThresholdSchema = z.object({
+const gateThresholdSchema = z.object({
   minTokensActiveReductionPct: z.number(),
   minLatencyReductionPct: z.number(),
   minToolCallReductionPct: z.number(),
@@ -22,8 +22,8 @@ const expectationsSchema = z.object({
   expectations: z.record(
     z.string(),
     z.object({
-      verify_pr: gateV2ThresholdSchema,
-      verify_release: gateV2ThresholdSchema,
+      verify_pr: gateThresholdSchema,
+      verify_release: gateThresholdSchema,
     }),
   ),
 })
@@ -47,7 +47,7 @@ export async function expectationsConfigExists(path: string): Promise<boolean> {
 export function resolveGateThresholdsForModel(
   config: ModelExpectationsConfig,
   model: string,
-): GateV2ThresholdMap {
+): GateThresholdMap {
   const thresholdSet = config.expectations[model]
   if (!thresholdSet) {
     const known = Object.keys(config.expectations).sort().join(", ")

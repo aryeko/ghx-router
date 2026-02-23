@@ -1,0 +1,10 @@
+query IssueMilestoneLookupByNumber($owner: String!, $name: String!, $issueNumber: Int!, $milestoneNumber: Int!) {
+  repository(owner: $owner, name: $name) {
+    issue(number: $issueNumber) {
+      id
+    }
+    milestone(number: $milestoneNumber) {
+      id
+    }
+  }
+}

@@ -104,7 +104,7 @@ export function assertIssueCreateInput(input: IssueCreateInput): void {
 }
 
 export function assertIssueUpdateInput(input: IssueUpdateInput): void {
-  assertNonEmptyString(input.issueId, "Issue id")
+  assertIssueInput({ owner: input.owner, name: input.name, issueNumber: input.issueNumber })
   if (input.title === undefined && input.body === undefined) {
     throw new Error("Issue update requires at least one field")
   }
@@ -117,21 +117,21 @@ export function assertIssueUpdateInput(input: IssueUpdateInput): void {
 }
 
 export function assertIssueMutationInput(input: IssueMutationInput): void {
-  assertNonEmptyString(input.issueId, "Issue id")
+  assertIssueInput({ owner: input.owner, name: input.name, issueNumber: input.issueNumber })
 }
 
 export function assertIssueLabelsUpdateInput(input: IssueLabelsUpdateInput): void {
-  assertIssueMutationInput({ issueId: input.issueId })
+  assertIssueInput({ owner: input.owner, name: input.name, issueNumber: input.issueNumber })
   assertStringArray(input.labels, "Labels")
 }
 
 export function assertIssueLabelsAddInput(input: IssueLabelsAddInput): void {
-  assertIssueMutationInput({ issueId: input.issueId })
+  assertIssueInput({ owner: input.owner, name: input.name, issueNumber: input.issueNumber })
   assertStringArray(input.labels, "Labels")
 }
 
 export function assertIssueAssigneesUpdateInput(input: IssueAssigneesUpdateInput): void {
-  assertIssueMutationInput({ issueId: input.issueId })
+  assertIssueInput({ owner: input.owner, name: input.name, issueNumber: input.issueNumber })
   assertStringArray(input.assignees, "Assignees")
 }
 
@@ -146,14 +146,14 @@ export function assertIssueAssigneesRemoveInput(input: IssueAssigneesRemoveInput
 }
 
 export function assertIssueMilestoneSetInput(input: IssueMilestoneSetInput): void {
-  assertIssueMutationInput({ issueId: input.issueId })
+  assertIssueInput({ owner: input.owner, name: input.name, issueNumber: input.issueNumber })
   if (!Number.isInteger(input.milestoneNumber) || input.milestoneNumber <= 0) {
     throw new Error("Milestone number must be a positive integer")
   }
 }
 
 export function assertIssueCommentCreateInput(input: IssueCommentCreateInput): void {
-  assertIssueMutationInput({ issueId: input.issueId })
+  assertIssueInput({ owner: input.owner, name: input.name, issueNumber: input.issueNumber })
   assertNonEmptyString(input.body, "Issue comment body")
 }
 
@@ -166,16 +166,16 @@ export function assertIssueRelationsGetInput(input: IssueRelationsGetInput): voi
 }
 
 export function assertIssueParentSetInput(input: IssueParentSetInput): void {
-  assertIssueMutationInput({ issueId: input.issueId })
+  assertNonEmptyString(input.issueId, "Issue id")
   assertNonEmptyString(input.parentIssueId, "Parent issue id")
 }
 
 export function assertIssueParentRemoveInput(input: IssueParentRemoveInput): void {
-  assertIssueMutationInput({ issueId: input.issueId })
+  assertNonEmptyString(input.issueId, "Issue id")
 }
 
 export function assertIssueBlockedByInput(input: IssueBlockedByInput): void {
-  assertIssueMutationInput({ issueId: input.issueId })
+  assertNonEmptyString(input.issueId, "Issue id")
   assertNonEmptyString(input.blockedByIssueId, "Blocked-by issue id")
 }
 

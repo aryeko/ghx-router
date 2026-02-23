@@ -3,9 +3,11 @@ version: "1.0.0"
 description: Set issue milestone number or clear with null.
 input_schema:
   type: object
-  required: [issueId, milestoneNumber]
+  required: [owner, name, issueNumber, milestoneNumber]
   properties:
-    issueId: { type: string, minLength: 1 }
+    owner: { type: string, minLength: 1 }
+    name: { type: string, minLength: 1 }
+    issueNumber: { type: integer, minimum: 1 }
     milestoneNumber: { type: integer, minimum: 1 }
   additionalProperties: false
 output_schema:
@@ -24,12 +26,17 @@ graphql:
   documentPath: src/gql/operations/issue-milestone-set.graphql
   resolution:
     lookup:
-      operationName: IssueMilestoneLookup
-      documentPath: src/gql/operations/issue-milestone-lookup.graphql
+      operationName: IssueMilestoneLookupByNumber
+      documentPath: src/gql/operations/issue-milestone-lookup-by-number.graphql
       vars:
-        issueId: issueId
+        owner: owner
+        name: name
+        issueNumber: issueNumber
         milestoneNumber: milestoneNumber
     inject:
+      - target: issueId
+        source: scalar
+        path: repository.issue.id
       - target: milestoneId
         source: scalar
-        path: node.repository.milestone.id
+        path: repository.milestone.id

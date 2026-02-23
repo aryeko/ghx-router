@@ -304,6 +304,8 @@ export async function runSubmitPrReview(
         body: comment.body,
         line: comment.line,
         ...(comment.side ? { side: comment.side } : {}),
+        ...(comment.startLine ? { startLine: comment.startLine } : {}),
+        ...(comment.startSide ? { startSide: comment.startSide } : {}),
       }))
     : []
 

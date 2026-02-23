@@ -29,9 +29,7 @@
     "changeset:publish": "changeset publish",
     "changeset:status": "changeset status",
     "changeset:version": "changeset version && pnpm --filter @ghx-dev/core run plugin:sync",
-    "benchmark": "nx run-many -t benchmark",
-    "benchmark:verify:pr": "nx run-many -t verify:pr",
-    "benchmark:verify:release": "nx run-many -t verify:release",
+    "benchmark": "nx run-many -t bench",
     "ghx:gql:verify": "nx run-many -t gql:verify",
     "dep-graph": "nx graph",
     "cache:clean": "nx reset"

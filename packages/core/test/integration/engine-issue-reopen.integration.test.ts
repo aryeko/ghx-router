@@ -4,7 +4,7 @@ import { createGithubClient } from "@core/gql/github-client.js"
 import { describe, expect, it } from "vitest"
 
 describe("executeTask issue.reopen", () => {
-  it("returns validation error envelope for missing issueId", async () => {
+  it("returns validation error envelope for missing owner", async () => {
     const githubClient = createGithubClient({
       async execute<TData>(): Promise<TData> {
         return {} as TData

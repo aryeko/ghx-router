@@ -1,5 +1,27 @@
-import { buildBatchMutation, buildBatchQuery } from "@core/gql/batch.js"
+import { buildBatchMutation, buildBatchQuery, extractRootFieldName } from "@core/gql/batch.js"
 import { describe, expect, it } from "vitest"
+
+describe("extractRootFieldName", () => {
+  it("returns the first field name from a standard query document", () => {
+    const query = `query IssueLabelsLookupByNumber($owner: String!, $name: String!, $number: Int!) {
+  repository(owner: $owner, name: $name) {
+    issue(number: $number) { id }
+  }
+}`
+    expect(extractRootFieldName(query)).toBe("repository")
+  })
+
+  it("handles leading whitespace before the root field", () => {
+    const query = `query Foo {
+    node(id: "x") { id }
+}`
+    expect(extractRootFieldName(query)).toBe("node")
+  })
+
+  it("returns null when the query has no opening brace", () => {
+    expect(extractRootFieldName("not a valid query")).toBeNull()
+  })
+})
 
 describe("buildBatchQuery", () => {
   it("wraps single query with alias", () => {

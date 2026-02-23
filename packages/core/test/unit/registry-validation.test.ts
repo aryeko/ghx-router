@@ -50,8 +50,8 @@ describe("card resolution blocks", () => {
     expect(card).toBeDefined()
     if (!card) return
     expect(card.graphql?.resolution).toBeDefined()
-    expect(card.graphql?.resolution?.lookup.operationName).toBe("IssueLabelsLookup")
-    expect(card.graphql?.resolution?.inject[0]?.source).toBe("map_array")
+    expect(card.graphql?.resolution?.lookup.operationName).toBe("IssueLabelsLookupByNumber")
+    expect(card.graphql?.resolution?.inject[1]?.source).toBe("map_array")
   })
 
   it("issue.milestone.set has scalar resolution", async () => {

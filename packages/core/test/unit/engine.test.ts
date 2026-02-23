@@ -583,6 +583,9 @@ describe("executeTasks — mixed resolution chain", () => {
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchQuery: buildBatchQueryMock,
       buildBatchMutation: buildBatchMutationMock,
+      // Real GitHub returns the root field value directly under the alias key (no wrapper).
+      // extractRootFieldName returns "repository" so the engine re-wraps it correctly.
+      extractRootFieldName: vi.fn().mockReturnValue("repository"),
     }))
     vi.doMock("@core/gql/resolve.js", () => ({
       applyInject: vi.fn().mockReturnValue({ labelIds: ["L1"] }),
@@ -598,9 +601,10 @@ describe("executeTasks — mixed resolution chain", () => {
 
     const { executeTasks } = await import("@core/core/routing/engine.js")
 
-    // Phase 1 uses query (lookup), Phase 2 uses queryRaw (mutation)
+    // Phase 1 uses query (lookup), Phase 2 uses queryRaw (mutation).
+    // Real GitHub returns the root field value directly under the alias — no "repository" wrapper.
     const queryMock = vi.fn().mockResolvedValueOnce({
-      step1: { repository: { labels: { nodes: [{ id: "L1", name: "bug" }] } } },
+      step1: { labels: { nodes: [{ id: "L1", name: "bug" }] } },
     })
     const queryRawMock = vi.fn().mockResolvedValueOnce({
       data: {
@@ -1087,5 +1091,106 @@ describe("executeTasks — partial error handling", () => {
     expect(result.status).toBe("success")
     expect(result.results[0]?.ok).toBe(true)
     expect(result.results[1]?.ok).toBe(true)
+  })
+})
+
+describe("executeTasks — Phase 1 alias un-wrap regression", () => {
+  it("re-wraps de-aliased lookup result so applyInject scalar path traversal succeeds", async () => {
+    vi.resetModules()
+    vi.doMock("@core/core/execute/execute.js", () => ({
+      execute: (...args: unknown[]) => executeMock(...args),
+    }))
+    vi.doMock("@core/core/registry/index.js", () => ({
+      getOperationCard: (...args: unknown[]) => getOperationCardMock(...args),
+    }))
+
+    const cardNoResolution = {
+      ...baseCard,
+      graphql: {
+        operationName: "IssueClose",
+        documentPath: "src/gql/operations/issue-close.graphql",
+      },
+    }
+    const cardWithScalarResolution = {
+      ...baseCard,
+      graphql: {
+        operationName: "IssueLabelAdd",
+        documentPath: "src/gql/operations/issue-label-add.graphql",
+        resolution: {
+          lookup: {
+            operationName: "IssueLookup",
+            documentPath: "src/gql/operations/issue-lookup.graphql",
+            vars: { issueNumber: "issueNumber", owner: "owner", name: "name" },
+          },
+          inject: [
+            {
+              target: "labelableId",
+              source: "scalar" as const,
+              path: "repository.issue.id",
+            },
+          ],
+        },
+      },
+    }
+
+    getOperationCardMock
+      .mockReturnValueOnce(cardNoResolution)
+      .mockReturnValueOnce(cardWithScalarResolution)
+
+    vi.doMock("@core/gql/document-registry.js", () => ({
+      getLookupDocument: vi
+        .fn()
+        .mockReturnValue(
+          `query IssueLookup($issueNumber: Int!, $owner: String!, $name: String!) { repository(owner: $owner, name: $name) { issue(number: $issueNumber) { id } } }`,
+        ),
+      getMutationDocument: vi
+        .fn()
+        .mockImplementation((op: string) =>
+          op === "IssueClose"
+            ? `mutation IssueClose($issueId: ID!) { closeIssue(input: {issueId: $issueId}) { issue { id } } }`
+            : `mutation IssueLabelAdd($labelableId: ID!) { addLabelsToLabelable(input: {labelableId: $labelableId}) { labelable { id } } }`,
+        ),
+    }))
+
+    // Restore real batch and resolve implementations — vi.doMock factories from earlier tests
+    // in this file may still be registered, so explicitly restore the real modules here.
+    vi.doMock("@core/gql/batch.js", async () => {
+      return await vi.importActual("@core/gql/batch.js")
+    })
+    vi.doMock("@core/gql/resolve.js", async () => {
+      return await vi.importActual("@core/gql/resolve.js")
+    })
+
+    const { executeTasks } = await import("@core/core/routing/engine.js")
+
+    // Real GitHub response: root field value is returned directly under the alias key,
+    // with no "repository" wrapper. The engine must re-wrap it before applyInject runs.
+    const queryMock = vi.fn().mockResolvedValueOnce({
+      step1: { issue: { id: "I_XYZ" } },
+    })
+    const queryRawMock = vi.fn().mockResolvedValueOnce({
+      data: {
+        step0: { closeIssue: { issue: { id: "I_1" } } },
+        step1: { addLabelsToLabelable: { labelable: { id: "I_XYZ" } } },
+      },
+      errors: undefined,
+    })
+
+    const result = await executeTasks(
+      [
+        { task: "issue.close", input: { issueId: "I_1" } },
+        {
+          task: "issue.labels.set",
+          input: { issueNumber: 42, owner: "acme", name: "repo", labelableId: "placeholder" },
+        },
+      ],
+      { githubClient: createGithubClient({ query: queryMock, queryRaw: queryRawMock }) },
+    )
+
+    expect(queryMock).toHaveBeenCalledTimes(1)
+    expect(queryRawMock).toHaveBeenCalledTimes(1)
+    expect(result.status).toBe("success")
+    expect(result.results[0]).toMatchObject({ task: "issue.close", ok: true })
+    expect(result.results[1]).toMatchObject({ task: "issue.labels.set", ok: true })
   })
 })

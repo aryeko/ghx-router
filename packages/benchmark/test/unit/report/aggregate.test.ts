@@ -1,0 +1,207 @@
+import type { BenchmarkRow } from "@bench/domain/types.js"
+import { buildSummary } from "@bench/report/aggregate.js"
+import { toMarkdown } from "@bench/report/formatter.js"
+import { describe, expect, it } from "vitest"
+import { makeRow } from "../../helpers/report-fixtures.js"
+
+function row(overrides: Partial<BenchmarkRow>): BenchmarkRow {
+  return makeRow({
+    scenario_id: "repo-view-001",
+    cost: 0,
+    model: { provider_id: "openai", model_id: "gpt-5.3-codex", mode: null },
+    git: { repo: "aryeko/ghx", commit: "abc" },
+    ...overrides,
+  })
+}
+
+describe("buildSummary", () => {
+  it("computes gate pass when ghx beats baseline", () => {
+    const rows: BenchmarkRow[] = [
+      row({
+        mode: "agent_direct",
+        latency_ms_wall: 100,
+        latency_ms_agent: 70,
+        tokens: { input: 0, output: 0, reasoning: 0, cache_read: 0, cache_write: 0, total: 100 },
+        tool_calls: 10,
+        cost: 0.1,
+        success: true,
+        output_valid: true,
+      }),
+      row({
+        mode: "ghx",
+        latency_ms_wall: 70,
+        latency_ms_agent: 49,
+        tokens: { input: 0, output: 0, reasoning: 0, cache_read: 0, cache_write: 0, total: 70 },
+        tool_calls: 6,
+        cost: 0.08,
+        success: true,
+        output_valid: true,
+      }),
+    ]
+
+    const summary = buildSummary(rows)
+
+    expect(summary.delta).not.toBeNull()
+    expect(summary.gate.passed).toBe(true)
+    expect(
+      summary.gate.checks.find((check) => check.name === "efficiency_tokens_active_reduction")
+        ?.passed,
+    ).toBe(true)
+  })
+
+  it("computes gate fail when reliability regresses", () => {
+    const rows: BenchmarkRow[] = [
+      row({
+        mode: "agent_direct",
+        latency_ms_wall: 100,
+        latency_ms_agent: 70,
+        tokens: { input: 0, output: 0, reasoning: 0, cache_read: 0, cache_write: 0, total: 100 },
+        tool_calls: 10,
+        success: true,
+        output_valid: true,
+      }),
+      row({
+        mode: "ghx",
+        latency_ms_wall: 70,
+        latency_ms_agent: 49,
+        tokens: { input: 0, output: 0, reasoning: 0, cache_read: 0, cache_write: 0, total: 70 },
+        tool_calls: 6,
+        success: true,
+        output_valid: true,
+      }),
+      row({
+        mode: "ghx",
+        scenario_id: "repo-view-001",
+        success: false,
+        output_valid: false,
+        latency_ms_wall: 60000,
+        latency_ms_agent: 42000,
+        error: {
+          type: "runner_error",
+          message: "Timed out waiting for assistant message in session.messages",
+        },
+      }),
+    ]
+
+    const summary = buildSummary(rows)
+
+    expect(summary.gate.passed).toBe(false)
+  })
+
+  it("handles missing comparison mode and renders markdown", () => {
+    const summary = buildSummary([row({ mode: "mcp", latency_ms_wall: 120, tool_calls: 2 })])
+
+    expect(summary.delta).toBeNull()
+    const markdown = toMarkdown(summary)
+    expect(markdown).toContain("Insufficient data")
+  })
+
+  it("supports verify_release profile with stricter sample requirements", () => {
+    const summary = buildSummary(
+      [
+        row({
+          mode: "agent_direct",
+          scenario_id: "s1",
+          latency_ms_wall: 100,
+          latency_ms_agent: 70,
+          tool_calls: 5,
+          tokens: { input: 0, output: 0, reasoning: 0, cache_read: 0, cache_write: 0, total: 100 },
+        }),
+        row({
+          mode: "ghx",
+          scenario_id: "s1",
+          latency_ms_wall: 70,
+          latency_ms_agent: 49,
+          tool_calls: 3,
+          tokens: { input: 0, output: 0, reasoning: 0, cache_read: 0, cache_write: 0, total: 70 },
+        }),
+      ],
+      "verify_release",
+    )
+
+    expect(summary.gate.profile).toBe("verify_release")
+  })
+
+  it("summarizes profiling timing when timing_breakdown is present", () => {
+    const summary = buildSummary([
+      row({
+        mode: "agent_direct",
+        timing_breakdown: {
+          assistant_total_ms: 6000,
+          assistant_pre_reasoning_ms: 2500,
+          assistant_reasoning_ms: 2000,
+          assistant_between_reasoning_and_tool_ms: 200,
+          assistant_post_tool_ms: 100,
+          tool_total_ms: 700,
+          tool_bash_ms: 650,
+          tool_structured_output_ms: 2,
+          observed_assistant_turns: 2,
+        },
+      }),
+      row({
+        mode: "ghx",
+        timing_breakdown: {
+          assistant_total_ms: 9000,
+          assistant_pre_reasoning_ms: 4000,
+          assistant_reasoning_ms: 2800,
+          assistant_between_reasoning_and_tool_ms: 300,
+          assistant_post_tool_ms: 100,
+          tool_total_ms: 1600,
+          tool_bash_ms: 1500,
+          tool_structured_output_ms: 1,
+          observed_assistant_turns: 2,
+        },
+      }),
+    ])
+
+    expect(summary.profiling.agent_direct?.medianToolBashMs).toBe(650)
+    expect(summary.profiling.ghx?.medianAssistantReasoningMs).toBe(2800)
+
+    const markdown = toMarkdown(summary)
+    expect(markdown).toContain("## Profiling Snapshot")
+  })
+
+  it("uses provided timestamp instead of current time", () => {
+    const rows = [row({ mode: "agent_direct" })]
+    const summary = buildSummary(rows, "verify_pr", undefined, "2026-01-01T00:00:00.000Z")
+    expect(summary.generatedAt).toBe("2026-01-01T00:00:00.000Z")
+  })
+
+  it("handles partial timing_breakdown with undefined fields defaulting to 0", () => {
+    // Only tool_bash_ms defined — all other ?? 0 fallbacks are triggered
+    const rows = [
+      row({
+        mode: "agent_direct",
+        timing_breakdown: {
+          tool_bash_ms: 500,
+        } as unknown as import("@bench/domain/types.js").BenchmarkTimingBreakdown,
+      }),
+    ]
+    const summary = buildSummary(rows)
+    expect(summary.profiling.agent_direct?.medianToolBashMs).toBe(500)
+    expect(summary.profiling.agent_direct?.medianAssistantTotalMs).toBe(0)
+    expect(summary.profiling.agent_direct?.medianAssistantReasoningMs).toBe(0)
+  })
+
+  it("computes median for even-length arrays", () => {
+    const rows = [
+      row({ mode: "agent_direct", latency_ms_wall: 100, latency_ms_agent: 100 }),
+      row({ mode: "agent_direct", latency_ms_wall: 200, latency_ms_agent: 200 }),
+      row({ mode: "agent_direct", latency_ms_wall: 300, latency_ms_agent: 300 }),
+      row({ mode: "agent_direct", latency_ms_wall: 400, latency_ms_agent: 400 }),
+    ]
+    const summary = buildSummary(rows)
+    expect(summary.modes.agent_direct?.medianLatencyMs).toBe(250)
+  })
+
+  it("produces valid markdown table structure", () => {
+    const rows = [
+      row({ mode: "agent_direct", latency_ms_wall: 100, tool_calls: 5 }),
+      row({ mode: "ghx", latency_ms_wall: 80, tool_calls: 3 }),
+    ]
+    const summary = buildSummary(rows)
+    const md = toMarkdown(summary)
+    expect(md).toContain("| Mode |")
+    expect(md.split("\n").filter((line) => line.startsWith("|")).length).toBeGreaterThan(5)
+  })
+})

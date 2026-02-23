@@ -23,7 +23,7 @@ import { validateInput } from "@core/core/registry/schema-validator.js"
 import type { OperationCard } from "@core/core/registry/types.js"
 import { routePreferenceOrder } from "@core/core/routing/policy.js"
 import type { RouteReasonCode } from "@core/core/routing/reason-codes.js"
-import { buildBatchMutation, buildBatchQuery } from "@core/gql/batch.js"
+import { buildBatchMutation, buildBatchQuery, extractRootFieldName } from "@core/gql/batch.js"
 import { getLookupDocument, getMutationDocument } from "@core/gql/document-registry.js"
 import type { GithubClient } from "@core/gql/github-client.js"
 import { applyInject, buildMutationVars } from "@core/gql/resolve.js"
@@ -383,8 +383,12 @@ export async function executeTasks(
       )
       const rawResult = await deps.githubClient.query(document, variables)
       // Un-alias results: BatchChain result has keys like "step0", "step2", etc.
-      for (const { alias, stepIndex } of lookupInputs) {
-        const result = (rawResult as Record<string, unknown>)[alias]
+      // GitHub returns the root field value directly under the alias key — no extra wrapper.
+      // Re-wrap it so applyInject path traversal (e.g. "repository.issue.id") works correctly.
+      for (const { alias, query, stepIndex } of lookupInputs) {
+        const rawValue = (rawResult as Record<string, unknown>)[alias]
+        const rootFieldName = extractRootFieldName(query)
+        const result = rootFieldName !== null ? { [rootFieldName]: rawValue } : rawValue
         lookupResults[stepIndex] = result
 
         // Populate resolution cache (skip undefined to avoid polluting cache)
