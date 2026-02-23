@@ -260,6 +260,14 @@ export async function execute(options: ExecuteOptions): Promise<ResultEnvelope> 
 
       lastError = result.error
       firstError ??= result.error
+      if (result.error?.retryable) {
+        logger.debug("route.attempt_failed", {
+          capability_id: options.card.capability_id,
+          route,
+          attempt,
+          error_code: result.error.code,
+        })
+      }
       if (!result.error?.retryable) {
         if (result.error?.code !== errorCodes.AdapterUnsupported) {
           if (options.trace) {
