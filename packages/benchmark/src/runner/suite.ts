@@ -140,10 +140,6 @@ export async function runSuite(config: {
 
       for (const scenario of scenarios) {
         for (let iteration = 1; iteration <= repetitions; iteration += 1) {
-          if (manifest !== null && iteration > 1) {
-            resetScenarioFixtures(scenario, manifest, reviewerToken)
-          }
-
           onProgress({
             type: "scenario_started",
             scenarioId: scenario.id,
@@ -163,6 +159,10 @@ export async function runSuite(config: {
           })
 
           await appendFile(outputJsonlPath, `${JSON.stringify(result)}\n`, "utf8")
+
+          if (manifest !== null) {
+            await resetScenarioFixtures(scenario, manifest, reviewerToken)
+          }
 
           totalCompleted += 1
           if (result.success) {
