@@ -1,5 +1,5 @@
 import { runGhJson, sleep, tryRunGh, tryRunGhJson } from "./gh-client.js"
-import { parseArrayResponse } from "./gh-utils.js"
+import { parseArrayResponse, parseRepo } from "./gh-utils.js"
 import {
   parseCheckRunIdFromJob,
   parseWorkflowRunCreatedAtMs,
@@ -299,7 +299,7 @@ export async function reseedWorkflowRun(
 }
 
 export function resetWorkflowRun(repo: string, _resourceId: number, _token: string): void {
-  const { owner, name } = parseRepoForReset(repo)
+  const { owner, name } = parseRepo(repo)
   const listResult = tryRunGhJson<unknown>([
     "run",
     "list",
@@ -324,13 +324,4 @@ export function resetWorkflowRun(repo: string, _resourceId: number, _token: stri
     tryRunGh(["api", `repos/${owner}/${name}/actions/runs/${id}`, "--method", "DELETE"])
   }
 }
-
-function parseRepoForReset(repo: string): { owner: string; name: string } {
-  const parts = repo.split("/")
-  if (parts.length !== 2 || !parts[0] || !parts[1]) {
-    throw new Error(`invalid repo format: "${repo}"; expected owner/name`)
-  }
-  return { owner: parts[0], name: parts[1] }
-}
-
 export type { WorkflowRunRef }
