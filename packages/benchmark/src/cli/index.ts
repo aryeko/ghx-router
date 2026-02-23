@@ -29,6 +29,11 @@ async function main(): Promise<void> {
       await main(process.argv.slice(3))
       break
     }
+    case "report:iter": {
+      const { main } = await import("./report-iter-command.js")
+      await main(process.argv.slice(3))
+      break
+    }
     case "check": {
       const { main } = await import("./check-command.js")
       await main()
