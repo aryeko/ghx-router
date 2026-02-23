@@ -1,6 +1,7 @@
 import type { RouteSource } from "../contracts/envelope.js"
 import type { ErrorCode } from "../errors/codes.js"
 import { errorCodes } from "../errors/codes.js"
+import { logger } from "../telemetry/log.js"
 
 export type PreflightInput = {
   route: RouteSource
@@ -20,48 +21,36 @@ export type PreflightResult =
     }
 
 export function preflightCheck(input: PreflightInput): PreflightResult {
-  if (input.route === "rest") {
+  function fail(code: ErrorCode, message: string): Extract<PreflightResult, { ok: false }> {
+    logger.debug("preflight.failed", { route: input.route, code, message })
     return {
       ok: false,
-      code: errorCodes.AdapterUnsupported,
-      message: "REST route is planned but not implemented in v1",
+      code,
+      message,
       retryable: false,
       details: { route: input.route },
     }
+  }
+
+  if (input.route === "rest") {
+    return fail(errorCodes.AdapterUnsupported, "REST route is planned but not implemented in v1")
   }
 
   if (input.route === "cli" && input.ghCliAvailable === false) {
-    return {
-      ok: false,
-      code: errorCodes.AdapterUnsupported,
-      message: "GitHub CLI is required for cli route",
-      retryable: false,
-      details: { route: input.route },
-    }
+    return fail(errorCodes.AdapterUnsupported, "GitHub CLI is required for cli route")
   }
 
   if (input.route === "cli" && input.ghAuthenticated === false) {
-    return {
-      ok: false,
-      code: errorCodes.Auth,
-      message: "GitHub CLI authentication is required for cli route",
-      retryable: false,
-      details: { route: input.route },
-    }
+    return fail(errorCodes.Auth, "GitHub CLI authentication is required for cli route")
   }
 
   if (input.route === "graphql") {
     const token = input.githubToken?.trim()
     if (!token) {
-      return {
-        ok: false,
-        code: errorCodes.Auth,
-        message: "GitHub token is required for graphql route",
-        retryable: false,
-        details: { route: input.route },
-      }
+      return fail(errorCodes.Auth, "GitHub token is required for graphql route")
     }
   }
 
+  logger.debug("preflight.ok", { route: input.route })
   return { ok: true }
 }

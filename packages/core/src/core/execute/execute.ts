@@ -4,6 +4,7 @@ import { errorCodes } from "../errors/codes.js"
 import { normalizeError } from "../execution/normalizer.js"
 import { validateInput, validateOutput } from "../registry/schema-validator.js"
 import type { OperationCard } from "../registry/types.js"
+import { logger } from "../telemetry/log.js"
 import { logMetric } from "../telemetry/logger.js"
 
 type PreflightResult =
@@ -145,10 +146,19 @@ export async function execute(options: ExecuteOptions): Promise<ResultEnvelope> 
       capability_id: options.card.capability_id,
       route,
     })
+    logger.debug("route.plan", {
+      capability_id: options.card.capability_id,
+      route,
+    })
 
     const preflight = await options.preflight(route)
     if (!preflight.ok) {
       logMetric("route.preflight_skipped", 1, {
+        capability_id: options.card.capability_id,
+        route,
+        error_code: preflight.code,
+      })
+      logger.warn("route.preflight_skipped", {
         capability_id: options.card.capability_id,
         route,
         error_code: preflight.code,
@@ -170,6 +180,10 @@ export async function execute(options: ExecuteOptions): Promise<ResultEnvelope> 
         capability_id: options.card.capability_id,
         route,
       })
+      logger.warn("route.missing_handler", {
+        capability_id: options.card.capability_id,
+        route,
+      })
 
       const handlerError = {
         code: errorCodes.AdapterUnsupported,
@@ -178,7 +192,11 @@ export async function execute(options: ExecuteOptions): Promise<ResultEnvelope> 
         details: { route },
       }
 
-      attempts.push({ route, status: "skipped", error_code: errorCodes.AdapterUnsupported })
+      attempts.push({
+        route,
+        status: "skipped",
+        error_code: errorCodes.AdapterUnsupported,
+      })
       lastError = handlerError
       firstError ??= handlerError
       continue
@@ -190,6 +208,12 @@ export async function execute(options: ExecuteOptions): Promise<ResultEnvelope> 
         capability_id: options.card.capability_id,
         route,
         ok: result.ok,
+      })
+      logger.debug("route.attempt", {
+        capability_id: options.card.capability_id,
+        route,
+        ok: result.ok,
+        attempt,
       })
       const attemptRecord: {
         route: RouteSource

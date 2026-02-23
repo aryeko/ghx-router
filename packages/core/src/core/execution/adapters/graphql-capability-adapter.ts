@@ -3,6 +3,7 @@ import { errorCodes } from "@core/core/errors/codes.js"
 import { mapErrorToCode } from "@core/core/errors/map-error.js"
 import { isRetryableErrorCode } from "@core/core/errors/retryability.js"
 import { normalizeError, normalizeResult } from "@core/core/execution/normalizer.js"
+import { logger } from "@core/core/telemetry/log.js"
 import { getGraphqlHandler } from "@core/gql/capability-registry.js"
 import type { GithubClient } from "@core/gql/github-client.js"
 
@@ -11,10 +12,11 @@ export async function runGraphqlCapability(
   capabilityId: string,
   params: Record<string, unknown>,
 ): Promise<ResultEnvelope> {
+  logger.debug("graphql.start", { capability_id: capabilityId })
   try {
     const handler = getGraphqlHandler(capabilityId)
     if (!handler) {
-      return normalizeError(
+      const result = normalizeError(
         {
           code: errorCodes.AdapterUnsupported,
           message: `Unsupported GraphQL capability: ${capabilityId}`,
@@ -23,9 +25,22 @@ export async function runGraphqlCapability(
         "graphql",
         { capabilityId, reason: "CAPABILITY_LIMIT" },
       )
+      logger.debug("graphql.complete", {
+        capability_id: capabilityId,
+        ok: result.ok,
+      })
+      return result
     }
     const data = await handler(client, params)
-    return normalizeResult(data, "graphql", { capabilityId, reason: "CARD_PREFERRED" })
+    const result = normalizeResult(data, "graphql", {
+      capabilityId,
+      reason: "CARD_PREFERRED",
+    })
+    logger.debug("graphql.complete", {
+      capability_id: capabilityId,
+      ok: result.ok,
+    })
+    return result
   } catch (error: unknown) {
     const code = mapErrorToCode(error)
     const reason = code === errorCodes.AdapterUnsupported ? "CAPABILITY_LIMIT" : "CARD_PREFERRED"
