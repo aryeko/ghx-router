@@ -1,15 +1,15 @@
-import { runGhJson, sleep, tryRunGh, tryRunGhJson } from "./gh-client.js"
-import { parseArrayResponse } from "./gh-utils.js"
+import { runGhJson, sleep, tryRunGh, tryRunGhJson } from "./gh-client.js";
+import { parseArrayResponse } from "./gh-utils.js";
 import {
   parseCheckRunIdFromJob,
   parseWorkflowRunCreatedAtMs,
   parseWorkflowRunIdFromLink,
-} from "./workflow-parse-utils.js"
+} from "./workflow-parse-utils.js";
 
 const FAILED_RERUN_WORKFLOW_FILE =
-  process.env.BENCH_FIXTURE_FAILED_RERUN_WORKFLOW ?? "bench-rerun-failed.yml"
-const FAILED_RERUN_POLL_INTERVAL_MS = 2000
-const FAILED_RERUN_TIMEOUT_MS = 90_000
+  process.env.BENCH_FIXTURE_FAILED_RERUN_WORKFLOW ?? "bench-rerun-failed.yml";
+const FAILED_RERUN_POLL_INTERVAL_MS = 2000;
+const FAILED_RERUN_TIMEOUT_MS = 10_000;
 
 export function findDispatchedFailedRunId(
   repo: string,
@@ -29,87 +29,106 @@ export function findDispatchedFailedRunId(
     "20",
     "--json",
     "databaseId,displayTitle,createdAt",
-  ])
+  ]);
 
   const runs = parseArrayResponse(listResult)
     .filter(
-      (entry): entry is Record<string, unknown> => typeof entry === "object" && entry !== null,
+      (entry): entry is Record<string, unknown> =>
+        typeof entry === "object" && entry !== null,
     )
-    .sort((left, right) => parseWorkflowRunCreatedAtMs(right) - parseWorkflowRunCreatedAtMs(left))
+    .sort(
+      (left, right) =>
+        parseWorkflowRunCreatedAtMs(right) - parseWorkflowRunCreatedAtMs(left),
+    );
 
   const tagged = runs.find((entry) => {
-    const title = typeof entry.displayTitle === "string" ? entry.displayTitle : ""
-    return title.includes(seedId)
-  })
+    const title =
+      typeof entry.displayTitle === "string" ? entry.displayTitle : "";
+    return title.includes(seedId);
+  });
 
-  if (tagged && Number.isInteger(Number(tagged.databaseId)) && Number(tagged.databaseId) > 0) {
-    return Number(tagged.databaseId)
+  if (
+    tagged &&
+    Number.isInteger(Number(tagged.databaseId)) &&
+    Number(tagged.databaseId) > 0
+  ) {
+    return Number(tagged.databaseId);
   }
 
   const nearDispatch = runs.find((entry) => {
-    const createdAtMs = parseWorkflowRunCreatedAtMs(entry)
-    return createdAtMs >= dispatchedAtMs - 10_000
-  })
+    const createdAtMs = parseWorkflowRunCreatedAtMs(entry);
+    return createdAtMs >= dispatchedAtMs - 10_000;
+  });
 
   if (
     nearDispatch &&
     Number.isInteger(Number(nearDispatch.databaseId)) &&
     Number(nearDispatch.databaseId) > 0
   ) {
-    return Number(nearDispatch.databaseId)
+    return Number(nearDispatch.databaseId);
   }
 
-  return null
+  return null;
 }
 
 function readWorkflowRunJobRefs(
   repo: string,
   runId: number,
 ): { job_id: number | null; check_run_id: number | null } {
-  const jobsResult = runGhJson(["run", "view", String(runId), "--repo", repo, "--json", "jobs"])
+  const jobsResult = runGhJson([
+    "run",
+    "view",
+    String(runId),
+    "--repo",
+    repo,
+    "--json",
+    "jobs",
+  ]);
   const jobs = Array.isArray((jobsResult as { jobs?: unknown[] }).jobs)
     ? (jobsResult as { jobs: unknown[] }).jobs
-    : []
+    : [];
   const failedJob = jobs.find((entry) => {
     if (typeof entry !== "object" || entry === null) {
-      return false
+      return false;
     }
 
-    const conclusion = String((entry as Record<string, unknown>).conclusion ?? "").toLowerCase()
-    return conclusion === "failure"
-  })
-  const selectedJob = failedJob ?? jobs[0]
+    const conclusion = String(
+      (entry as Record<string, unknown>).conclusion ?? "",
+    ).toLowerCase();
+    return conclusion === "failure";
+  });
+  const selectedJob = failedJob ?? jobs[0];
   if (typeof selectedJob !== "object" || selectedJob === null) {
     return {
       job_id: null,
       check_run_id: null,
-    }
+    };
   }
 
-  const selectedJobRecord = selectedJob as Record<string, unknown>
+  const selectedJobRecord = selectedJob as Record<string, unknown>;
   const jobId =
     typeof selectedJobRecord.databaseId === "number" &&
     Number.isInteger(selectedJobRecord.databaseId)
       ? Number(selectedJobRecord.databaseId)
-      : null
+      : null;
 
   return {
     job_id: jobId,
     check_run_id: parseCheckRunIdFromJob(selectedJobRecord),
-  }
+  };
 }
 
 type WorkflowRunRef = {
-  id: number
-  job_id: number | null
-  check_run_id: number | null
-}
+  id: number;
+  job_id: number | null;
+  check_run_id: number | null;
+};
 
 export async function ensureFailedRerunWorkflowRun(
   repo: string,
   seedId: string,
 ): Promise<WorkflowRunRef | null> {
-  const dispatchedAtMs = Date.now()
+  const dispatchedAtMs = Date.now();
   const dispatchOutput = tryRunGh([
     "workflow",
     "run",
@@ -118,18 +137,18 @@ export async function ensureFailedRerunWorkflowRun(
     repo,
     "-f",
     `seed_id=${seedId}`,
-  ])
+  ]);
 
   if (dispatchOutput === null) {
-    return null
+    return null;
   }
 
-  const deadline = dispatchedAtMs + FAILED_RERUN_TIMEOUT_MS
+  const deadline = dispatchedAtMs + FAILED_RERUN_TIMEOUT_MS;
   while (Date.now() < deadline) {
-    const runId = findDispatchedFailedRunId(repo, seedId, dispatchedAtMs)
+    const runId = findDispatchedFailedRunId(repo, seedId, dispatchedAtMs);
     if (runId === null) {
-      await sleep(FAILED_RERUN_POLL_INTERVAL_MS)
-      continue
+      await sleep(FAILED_RERUN_POLL_INTERVAL_MS);
+      continue;
     }
 
     const runResult = tryRunGhJson([
@@ -140,17 +159,21 @@ export async function ensureFailedRerunWorkflowRun(
       repo,
       "--json",
       "status,conclusion",
-    ])
+    ]);
     if (typeof runResult !== "object" || runResult === null) {
-      await sleep(FAILED_RERUN_POLL_INTERVAL_MS)
-      continue
+      await sleep(FAILED_RERUN_POLL_INTERVAL_MS);
+      continue;
     }
 
-    const status = String((runResult as Record<string, unknown>).status ?? "").toLowerCase()
-    const conclusion = String((runResult as Record<string, unknown>).conclusion ?? "").toLowerCase()
+    const status = String(
+      (runResult as Record<string, unknown>).status ?? "",
+    ).toLowerCase();
+    const conclusion = String(
+      (runResult as Record<string, unknown>).conclusion ?? "",
+    ).toLowerCase();
     if (status !== "completed") {
-      await sleep(FAILED_RERUN_POLL_INTERVAL_MS)
-      continue
+      await sleep(FAILED_RERUN_POLL_INTERVAL_MS);
+      continue;
     }
 
     if (conclusion !== "failure") {
@@ -158,23 +181,26 @@ export async function ensureFailedRerunWorkflowRun(
         `expected failed rerun fixture workflow to conclude with failure; got conclusion=${
           conclusion || "unknown"
         }`,
-      )
+      );
     }
 
-    const refs = readWorkflowRunJobRefs(repo, runId)
+    const refs = readWorkflowRunJobRefs(repo, runId);
     return {
       id: runId,
       job_id: refs.job_id,
       check_run_id: refs.check_run_id,
-    }
+    };
   }
 
   throw new Error(
     `timed out waiting for failed rerun fixture workflow (${FAILED_RERUN_WORKFLOW_FILE})`,
-  )
+  );
 }
 
-export function findLatestWorkflowRun(repo: string, prNumber: number): WorkflowRunRef | null {
+export function findLatestWorkflowRun(
+  repo: string,
+  prNumber: number,
+): WorkflowRunRef | null {
   const prChecksResult = tryRunGhJson([
     "pr",
     "checks",
@@ -183,20 +209,23 @@ export function findLatestWorkflowRun(repo: string, prNumber: number): WorkflowR
     repo,
     "--json",
     "state,link",
-  ])
-  const checks = parseArrayResponse(prChecksResult)
+  ]);
+  const checks = parseArrayResponse(prChecksResult);
   const checkEntries = checks.filter(
-    (entry): entry is Record<string, unknown> => typeof entry === "object" && entry !== null,
-  )
+    (entry): entry is Record<string, unknown> =>
+      typeof entry === "object" && entry !== null,
+  );
   const failedCheck = checkEntries.find(
     (entry) => String(entry.state ?? "").toUpperCase() === "FAILURE",
-  )
-  const firstCheck = checkEntries[0]
+  );
+  const firstCheck = checkEntries[0];
   const linkedRunId = [failedCheck, firstCheck]
     .map((entry) =>
-      typeof entry?.link === "string" ? parseWorkflowRunIdFromLink(entry.link) : null,
+      typeof entry?.link === "string"
+        ? parseWorkflowRunIdFromLink(entry.link)
+        : null,
     )
-    .find((id): id is number => id !== null)
+    .find((id): id is number => id !== null);
 
   if (linkedRunId !== undefined) {
     const jobsResult = runGhJson([
@@ -207,30 +236,33 @@ export function findLatestWorkflowRun(repo: string, prNumber: number): WorkflowR
       repo,
       "--json",
       "jobs",
-    ])
+    ]);
     const jobs = Array.isArray((jobsResult as { jobs?: unknown[] }).jobs)
       ? (jobsResult as { jobs: unknown[] }).jobs
-      : []
-    const firstJob = jobs[0]
+      : [];
+    const firstJob = jobs[0];
     const refs =
       typeof firstJob === "object" && firstJob !== null
         ? {
             job_id:
-              typeof (firstJob as Record<string, unknown>).databaseId === "number"
+              typeof (firstJob as Record<string, unknown>).databaseId ===
+              "number"
                 ? Number((firstJob as Record<string, unknown>).databaseId)
                 : null,
-            check_run_id: parseCheckRunIdFromJob(firstJob as Record<string, unknown>),
+            check_run_id: parseCheckRunIdFromJob(
+              firstJob as Record<string, unknown>,
+            ),
           }
         : {
             job_id: null,
             check_run_id: null,
-          }
+          };
 
     return {
       id: linkedRunId,
       job_id: refs.job_id,
       check_run_id: refs.check_run_id,
-    }
+    };
   }
 
   const runListArgsCandidates: string[][] = [
@@ -248,45 +280,102 @@ export function findLatestWorkflowRun(repo: string, prNumber: number): WorkflowR
       "--json",
       "databaseId",
     ],
-    ["run", "list", "--repo", repo, "--workflow", "ci.yml", "--limit", "1", "--json", "databaseId"],
-  ]
+    [
+      "run",
+      "list",
+      "--repo",
+      repo,
+      "--workflow",
+      "ci.yml",
+      "--limit",
+      "1",
+      "--json",
+      "databaseId",
+    ],
+  ];
 
-  let runId: number | null = null
+  let runId: number | null = null;
   for (const args of runListArgsCandidates) {
-    const runResult = tryRunGhJson(args)
+    const runResult = tryRunGhJson(args);
     const runs = Array.isArray(runResult)
       ? runResult
       : Array.isArray((runResult as { [k: string]: unknown } | null)?.items)
         ? ((runResult as { items: unknown[] }).items ?? [])
-        : []
-    const first = runs[0]
+        : [];
+    const first = runs[0];
     if (!first || typeof first !== "object") {
-      continue
+      continue;
     }
 
-    const candidateRunId = Number((first as Record<string, unknown>).databaseId)
+    const candidateRunId = Number(
+      (first as Record<string, unknown>).databaseId,
+    );
     if (Number.isInteger(candidateRunId) && candidateRunId > 0) {
-      runId = candidateRunId
-      break
+      runId = candidateRunId;
+      break;
     }
   }
 
   if (runId === null) {
-    return null
+    return null;
   }
 
-  const runIdNumber = Number(runId)
+  const runIdNumber = Number(runId);
   if (!Number.isInteger(runIdNumber) || runIdNumber <= 0) {
-    return null
+    return null;
   }
 
-  const refs = readWorkflowRunJobRefs(repo, runIdNumber)
+  const refs = readWorkflowRunJobRefs(repo, runIdNumber);
 
   return {
     id: runIdNumber,
     job_id: refs.job_id,
     check_run_id: refs.check_run_id,
+  };
+}
+
+export function resetWorkflowRun(
+  repo: string,
+  _resourceId: number,
+  _token: string,
+): void {
+  const { owner, name } = parseRepoForReset(repo);
+  const listResult = tryRunGhJson<unknown>([
+    "run",
+    "list",
+    "--repo",
+    repo,
+    "--workflow",
+    FAILED_RERUN_WORKFLOW_FILE,
+    "--json",
+    "databaseId",
+    "--limit",
+    "50",
+  ]);
+  const runs = Array.isArray(listResult) ? listResult : [];
+  for (const run of runs) {
+    if (typeof run !== "object" || run === null) {
+      continue;
+    }
+    const id = (run as Record<string, unknown>).databaseId;
+    if (typeof id !== "number" || !Number.isInteger(id) || id <= 0) {
+      continue;
+    }
+    tryRunGh([
+      "api",
+      `repos/${owner}/${name}/actions/runs/${id}`,
+      "--method",
+      "DELETE",
+    ]);
   }
 }
 
-export type { WorkflowRunRef }
+function parseRepoForReset(repo: string): { owner: string; name: string } {
+  const parts = repo.split("/");
+  if (parts.length !== 2 || !parts[0] || !parts[1]) {
+    throw new Error(`invalid repo format: "${repo}"; expected owner/name`);
+  }
+  return { owner: parts[0], name: parts[1] };
+}
+
+export type { WorkflowRunRef };

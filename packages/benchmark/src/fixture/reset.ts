@@ -1,12 +1,19 @@
 import type { FixtureManifest, Scenario } from "../domain/types.js"
 import { resetMixedPrThreads } from "./seed-pr-mixed-threads.js"
 import { resetPrReviewThreads } from "./seed-pr-reviews.js"
+import { resetWorkflowRun } from "./seed-workflow.js"
 
-type ResetFn = (repo: string, prNumber: number, token: string) => void
+type ResetFn = (repo: string, resourceId: number, token: string) => void
 
-const RESET_REGISTRY: Record<string, ResetFn> = {
-  pr_with_mixed_threads: resetMixedPrThreads,
-  pr_with_reviews: resetPrReviewThreads,
+type ResetEntry = {
+  fn: ResetFn
+  requiresToken: boolean
+}
+
+const RESET_REGISTRY: Record<string, ResetEntry> = {
+  pr_with_mixed_threads: { fn: resetMixedPrThreads, requiresToken: true },
+  pr_with_reviews: { fn: resetPrReviewThreads, requiresToken: true },
+  workflow_run: { fn: resetWorkflowRun, requiresToken: false },
 }
 
 export function resetScenarioFixtures(
@@ -18,18 +25,18 @@ export function resetScenarioFixtures(
     return
   }
 
-  if (!reviewerToken) {
-    console.warn(
-      `[benchmark] warn: reseed_per_iteration=true for scenario '${scenario.id}' but no reviewer token — skipping reset`,
-    )
-    return
-  }
-
   const requires = scenario.fixture.requires ?? []
 
   for (const resource of requires) {
-    const resetFn = RESET_REGISTRY[resource]
-    if (!resetFn) {
+    const entry = RESET_REGISTRY[resource]
+    if (!entry) {
+      continue
+    }
+
+    if (entry.requiresToken && !reviewerToken) {
+      console.warn(
+        `[benchmark] warn: reseed_per_iteration=true for '${resource}' in scenario '${scenario.id}' but no reviewer token — skipping reset`,
+      )
       continue
     }
 
@@ -41,16 +48,19 @@ export function resetScenarioFixtures(
       continue
     }
 
-    const prNumber = (raw as Record<string, unknown>)["number"]
-    if (typeof prNumber !== "number" || prNumber === 0) {
+    const rawRecord = raw as Record<string, unknown>
+    const resourceId =
+      typeof rawRecord["number"] === "number" ? rawRecord["number"] : rawRecord["id"]
+    const numId = typeof resourceId === "number" && resourceId !== 0 ? resourceId : null
+    if (numId === null) {
       console.warn(
-        `[benchmark] warn: fixture resource '${resource}' has no valid .number for scenario '${scenario.id}' — skipping reset`,
+        `[benchmark] warn: fixture resource '${resource}' has no valid id for scenario '${scenario.id}' — skipping reset`,
       )
       continue
     }
 
     try {
-      resetFn(manifest.repo.full_name, prNumber, reviewerToken)
+      entry.fn(manifest.repo.full_name, numId, reviewerToken ?? "")
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       console.warn(

@@ -11,7 +11,7 @@ input_schema:
   additionalProperties: false
 output_schema:
   type: object
-  required: [id, workflowName, status, conclusion, headBranch, headSha, event, createdAt, updatedAt, startedAt, url, jobs]
+  required: [id, workflowName, status, conclusion, headBranch, headSha, event, createdAt, updatedAt, startedAt, url, runAttempt, jobs]
   properties:
     id: { type: integer, minimum: 0 }
     workflowName: { type: [string, "null"] }
@@ -24,6 +24,7 @@ output_schema:
     updatedAt: { type: [string, "null"] }
     startedAt: { type: [string, "null"] }
     url: { type: [string, "null"] }
+    runAttempt: { type: integer, minimum: 1 }
     jobs:
       type: array
       items:
@@ -44,4 +45,4 @@ routing:
   fallbacks: []
 cli:
   command: run view
-  jsonFields: [databaseId,workflowName,status,conclusion,headBranch,headSha,url,event,createdAt,updatedAt,startedAt,jobs]
+  jsonFields: [databaseId,workflowName,status,conclusion,headBranch,headSha,url,event,createdAt,updatedAt,startedAt,runAttempt,jobs]
