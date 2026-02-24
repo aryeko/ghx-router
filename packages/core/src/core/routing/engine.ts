@@ -378,6 +378,10 @@ export async function executeTasks(
   // A step with no graphql config cannot participate in the GQL batch phases below,
   // so it is dispatched immediately via executeTask (CLI adapter path).
   // Pre-flight above already confirmed card.cli is present for these steps.
+  //
+  // Invariant: after pre-flight, cards has exactly one entry per request in order —
+  // the early return above guarantees preflightErrorByIndex is empty, so every request
+  // produced a card. Indexing cards[i] is safe for any valid request index i.
   const cliStepPromises = new Map<number, Promise<ResultEnvelope>>()
   for (let i = 0; i < requests.length; i += 1) {
     const card = cards[i]
@@ -631,6 +635,8 @@ export async function executeTasks(
       if (outcome.status === "fulfilled") {
         cliResultsByIndex.set(i, outcome.value)
       } else {
+        // Defensive: executeTask returns ResultEnvelope rather than throwing, so this
+        // branch only fires if executeTask has an unexpected internal error.
         const msg =
           outcome.reason instanceof Error ? outcome.reason.message : String(outcome.reason)
         const req = requests[i]

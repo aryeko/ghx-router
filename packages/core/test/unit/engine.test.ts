@@ -1509,4 +1509,32 @@ describe("executeTasks — CLI chain support", () => {
     expect(result.meta.route_used).toBe("cli")
     expect(result.results[0]).toMatchObject({ ok: true, data: { id: "cli-single" } })
   })
+
+  it("handles executeTask throwing unexpectedly (rejected promise) for a CLI step", async () => {
+    // Use two requests to exercise the multi-step code path where cliStepPromises
+    // is collected via Promise.allSettled — the single-step fast path does not
+    // go through that branch.
+    const cliCard = {
+      ...baseCard,
+      routing: { preferred: "cli" as const, fallbacks: [] as const },
+      graphql: undefined,
+      cli: { command: "gh issue list" },
+    }
+    getOperationCardMock.mockReturnValue(cliCard)
+    executeMock.mockRejectedValue(new Error("unexpected internal failure"))
+
+    const { executeTasks } = await import("@core/core/routing/engine.js")
+
+    const result = await executeTasks(
+      [
+        { task: "issue.list", input: { owner: "acme", name: "modkit" } },
+        { task: "issue.list", input: { owner: "acme", name: "modkit" } },
+      ],
+      { githubClient: createGithubClient() },
+    )
+
+    expect(result.status).toBe("failed")
+    expect(result.results[0]).toMatchObject({ ok: false })
+    expect(result.results[0]?.error?.message).toBe("unexpected internal failure")
+  })
 })
