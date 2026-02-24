@@ -1279,8 +1279,7 @@ describe("executeTasks — CLI chain support", () => {
     getOperationCardMock.mockReset()
   })
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function setupMixedChainMocks(cliCard: any, gqlCard: any): void {
+  function setupMixedChainMocks(cliCard: unknown, gqlCard: unknown): void {
     vi.resetModules()
     vi.doMock("@core/core/execute/execute.js", () => ({
       execute: (...args: unknown[]) => executeMock(...args),
@@ -1290,9 +1289,9 @@ describe("executeTasks — CLI chain support", () => {
     }))
     // pre-flight: step 0 → cliCard, step 1 → gqlCard; executeTask re-loads card for CLI step → cliCard
     getOperationCardMock
-      .mockReturnValueOnce(cliCard)
-      .mockReturnValueOnce(gqlCard)
-      .mockReturnValue(cliCard)
+      .mockReturnValueOnce(cliCard as OperationCard)
+      .mockReturnValueOnce(gqlCard as OperationCard)
+      .mockReturnValue(cliCard as OperationCard)
   }
 
   it("executes all steps via executeTask when all cards are CLI-only", async () => {
