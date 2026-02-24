@@ -35,16 +35,33 @@ import type {
   IssueUpdateInput,
   IssueViewData,
   IssueViewInput,
+  PrAssigneesAddInput,
+  PrAssigneesData,
+  PrAssigneesRemoveInput,
+  PrBranchUpdateData,
+  PrBranchUpdateInput,
+  PrChecksListData,
+  PrChecksListInput,
   PrCommentsListData,
   PrCommentsListInput,
+  PrCreateData,
+  PrCreateInput,
   PrDiffListFilesData,
   PrDiffListFilesInput,
   PrListData,
   PrListInput,
+  PrMergeData,
+  PrMergeInput,
   PrMergeStatusData,
   PrMergeStatusInput,
   ProjectV2FieldsListData,
   ProjectV2FieldsListInput,
+  ProjectV2ItemAddData,
+  ProjectV2ItemAddInput,
+  ProjectV2ItemFieldUpdateData,
+  ProjectV2ItemFieldUpdateInput,
+  ProjectV2ItemRemoveData,
+  ProjectV2ItemRemoveInput,
   ProjectV2ItemsListData,
   ProjectV2ItemsListInput,
   ProjectV2OrgViewData,
@@ -55,6 +72,10 @@ import type {
   PrReviewSubmitInput,
   PrReviewsListData,
   PrReviewsListInput,
+  PrReviewsRequestData,
+  PrReviewsRequestInput,
+  PrUpdateData,
+  PrUpdateInput,
   PrViewData,
   PrViewInput,
   ReleaseListData,
@@ -113,6 +134,19 @@ export interface GithubClient extends GraphqlClient {
   fetchProjectV2UserView(input: ProjectV2UserViewInput): Promise<ProjectV2UserViewData>
   fetchProjectV2FieldsList(input: ProjectV2FieldsListInput): Promise<ProjectV2FieldsListData>
   fetchProjectV2ItemsList(input: ProjectV2ItemsListInput): Promise<ProjectV2ItemsListData>
+  createPr(input: PrCreateInput): Promise<PrCreateData>
+  updatePr(input: PrUpdateInput): Promise<PrUpdateData>
+  mergePr(input: PrMergeInput): Promise<PrMergeData>
+  updatePrBranch(input: PrBranchUpdateInput): Promise<PrBranchUpdateData>
+  addPrAssignees(input: PrAssigneesAddInput): Promise<PrAssigneesData>
+  removePrAssignees(input: PrAssigneesRemoveInput): Promise<PrAssigneesData>
+  requestPrReviews(input: PrReviewsRequestInput): Promise<PrReviewsRequestData>
+  fetchPrChecksList(input: PrChecksListInput): Promise<PrChecksListData>
+  addProjectV2Item(input: ProjectV2ItemAddInput): Promise<ProjectV2ItemAddData>
+  removeProjectV2Item(input: ProjectV2ItemRemoveInput): Promise<ProjectV2ItemRemoveData>
+  updateProjectV2ItemField(
+    input: ProjectV2ItemFieldUpdateInput,
+  ): Promise<ProjectV2ItemFieldUpdateData>
 }
 
 export function createGithubClientFromToken(
@@ -215,5 +249,20 @@ export function createGithubClient(transport: GraphqlTransport): GithubClient {
       (await loadProject()).runProjectV2FieldsList(transport, input),
     fetchProjectV2ItemsList: async (input) =>
       (await loadProject()).runProjectV2ItemsList(transport, input),
+    createPr: async (input) => (await loadPrMutations()).runPrCreate(transport, input),
+    updatePr: async (input) => (await loadPrMutations()).runPrUpdate(transport, input),
+    mergePr: async (input) => (await loadPrMutations()).runPrMerge(transport, input),
+    updatePrBranch: async (input) => (await loadPrMutations()).runPrBranchUpdate(transport, input),
+    addPrAssignees: async (input) => (await loadPrMutations()).runPrAssigneesAdd(transport, input),
+    removePrAssignees: async (input) =>
+      (await loadPrMutations()).runPrAssigneesRemove(transport, input),
+    requestPrReviews: async (input) =>
+      (await loadPrMutations()).runPrReviewsRequest(transport, input),
+    fetchPrChecksList: async (input) => (await loadPrQueries()).runPrChecksList(transport, input),
+    addProjectV2Item: async (input) => (await loadProject()).runProjectV2ItemAdd(transport, input),
+    removeProjectV2Item: async (input) =>
+      (await loadProject()).runProjectV2ItemRemove(transport, input),
+    updateProjectV2ItemField: async (input) =>
+      (await loadProject()).runProjectV2ItemFieldUpdate(transport, input),
   }
 }

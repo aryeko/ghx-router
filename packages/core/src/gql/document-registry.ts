@@ -24,11 +24,22 @@ import { IssueParentRemoveDocument } from "./operations/issue-parent-remove.gene
 import { IssueParentSetDocument } from "./operations/issue-parent-set.generated.js"
 import { IssueReopenDocument } from "./operations/issue-reopen.generated.js"
 import { IssueUpdateDocument } from "./operations/issue-update.generated.js"
+import { PrAssigneesAddDocument } from "./operations/pr-assignees-add.generated.js"
+import { PrAssigneesRemoveDocument } from "./operations/pr-assignees-remove.generated.js"
+import { PrBranchUpdateDocument } from "./operations/pr-branch-update.generated.js"
 import { PrCommentReplyDocument } from "./operations/pr-comment-reply.generated.js"
 import { PrCommentResolveDocument } from "./operations/pr-comment-resolve.generated.js"
 import { PrCommentUnresolveDocument } from "./operations/pr-comment-unresolve.generated.js"
+import { PrCreateDocument } from "./operations/pr-create.generated.js"
+import { PrMergeDocument } from "./operations/pr-merge.generated.js"
 import { PrNodeIdDocument } from "./operations/pr-node-id.generated.js"
 import { PrReviewSubmitDocument } from "./operations/pr-review-submit.generated.js"
+import { PrReviewsRequestDocument } from "./operations/pr-reviews-request.generated.js"
+import { PrUpdateDocument } from "./operations/pr-update.generated.js"
+import { AddProjectV2ItemDocument } from "./operations/project-v2-item-add.generated.js"
+import { UpdateProjectV2ItemFieldDocument } from "./operations/project-v2-item-field-update.generated.js"
+import { RemoveProjectV2ItemDocument } from "./operations/project-v2-item-remove.generated.js"
+import { UserNodeIdDocument } from "./operations/user-node-id.generated.js"
 
 // Resolution lookup queries (Phase 1)
 const LOOKUP_DOCUMENTS: Record<string, string> = {
@@ -42,6 +53,7 @@ const LOOKUP_DOCUMENTS: Record<string, string> = {
   IssueNodeIdLookup: IssueNodeIdLookupDocument,
   IssueParentLookup: IssueParentLookupDocument,
   PrNodeId: PrNodeIdDocument,
+  UserNodeId: UserNodeIdDocument,
 }
 
 // Mutation documents for chaining (Phase 2)
@@ -63,10 +75,20 @@ const MUTATION_DOCUMENTS: Record<string, string> = {
   IssueParentSet: IssueParentSetDocument,
   IssueReopen: IssueReopenDocument,
   IssueUpdate: IssueUpdateDocument,
+  PrAssigneesAdd: PrAssigneesAddDocument,
+  PrAssigneesRemove: PrAssigneesRemoveDocument,
+  PrBranchUpdate: PrBranchUpdateDocument,
   PrCommentReply: PrCommentReplyDocument,
   PrCommentResolve: PrCommentResolveDocument,
   PrCommentUnresolve: PrCommentUnresolveDocument,
+  PrCreate: PrCreateDocument,
+  PrMerge: PrMergeDocument,
   PrReviewSubmit: PrReviewSubmitDocument,
+  PrReviewsRequest: PrReviewsRequestDocument,
+  PrUpdate: PrUpdateDocument,
+  AddProjectV2Item: AddProjectV2ItemDocument,
+  RemoveProjectV2Item: RemoveProjectV2ItemDocument,
+  UpdateProjectV2ItemField: UpdateProjectV2ItemFieldDocument,
 }
 
 export function getLookupDocument(operationName: string): string {

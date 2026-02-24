@@ -1,0 +1,17 @@
+mutation PrReviewsRequest($pullRequestId: ID!, $userIds: [ID!]!) {
+  requestReviews(input: { pullRequestId: $pullRequestId, userIds: $userIds }) {
+    pullRequest {
+      id
+      number
+      reviewRequests(first: 10) {
+        nodes {
+          requestedReviewer {
+            ... on User {
+              login
+            }
+          }
+        }
+      }
+    }
+  }
+}

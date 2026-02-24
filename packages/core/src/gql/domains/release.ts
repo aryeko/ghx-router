@@ -1,4 +1,4 @@
-import { assertReleaseViewInput, assertRepoListInput } from "../assertions.js"
+import { assertReleaseViewInput, assertRepoAndPaginationInput } from "../assertions.js"
 import type { ReleaseListQuery } from "../operations/release-list.generated.js"
 import { getSdk as getReleaseListSdk } from "../operations/release-list.generated.js"
 import type { ReleaseViewQuery } from "../operations/release-view.generated.js"
@@ -27,7 +27,7 @@ type ReleaseNode = {
 
 function mapReleaseNode(r: ReleaseNode): ReleaseItemData {
   return {
-    id: r.databaseId ?? 0,
+    id: r.databaseId ?? null,
     tagName: r.tagName,
     name: r.name ?? null,
     isDraft: r.isDraft,
@@ -56,12 +56,15 @@ export async function runReleaseList(
   transport: GraphqlTransport,
   input: ReleaseListInput,
 ): Promise<ReleaseListData> {
-  assertRepoListInput(input)
+  assertRepoAndPaginationInput(input)
   const sdk = getReleaseListSdk(createGraphqlRequestClient(transport))
   const result: ReleaseListQuery = await sdk.ReleaseList(input)
-  const conn = result.repository?.releases
+  if (!result.repository) {
+    throw new Error(`Repository ${input.owner}/${input.name} not found`)
+  }
+  const conn = result.repository.releases
   return {
-    items: (conn?.nodes ?? []).map((n) => mapReleaseNode(n as ReleaseNode)),
+    items: (conn?.nodes ?? []).flatMap((n) => (n ? [mapReleaseNode(n)] : [])),
     pageInfo: {
       hasNextPage: conn?.pageInfo.hasNextPage ?? false,
       endCursor: conn?.pageInfo.endCursor ?? null,

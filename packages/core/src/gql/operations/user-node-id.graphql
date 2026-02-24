@@ -1,0 +1,5 @@
+query UserNodeId($login: String!) {
+  user(login: $login) {
+    id
+  }
+}

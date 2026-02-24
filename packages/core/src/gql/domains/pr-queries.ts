@@ -4,6 +4,7 @@ import {
   assertPrListInput,
   assertPrReviewsListInput,
 } from "../assertions.js"
+import { getSdk as getPrChecksListSdk } from "../operations/pr-checks-list.generated.js"
 import type { PrDiffListFilesQuery } from "../operations/pr-diff-list-files.generated.js"
 import { getSdk as getPrDiffListFilesSdk } from "../operations/pr-diff-list-files.generated.js"
 import type { PrListQuery } from "../operations/pr-list.generated.js"
@@ -16,6 +17,9 @@ import { getSdk as getPrViewSdk } from "../operations/pr-view.generated.js"
 import type { GraphqlTransport } from "../transport.js"
 import { createGraphqlRequestClient } from "../transport.js"
 import type {
+  PrCheckRunData,
+  PrChecksListData,
+  PrChecksListInput,
   PrDiffListFilesData,
   PrDiffListFilesInput,
   PrListData,
@@ -177,5 +181,50 @@ export async function runPrMergeStatus(
     reviewDecision: pr.reviewDecision ?? null,
     isDraft: pr.isDraft,
     state: pr.state,
+  }
+}
+
+export async function runPrChecksList(
+  transport: GraphqlTransport,
+  input: PrChecksListInput,
+): Promise<PrChecksListData> {
+  assertPrInput({ owner: input.owner, name: input.name, prNumber: input.prNumber })
+
+  const result = await getPrChecksListSdk(createGraphqlRequestClient(transport)).PrChecksList({
+    owner: input.owner,
+    name: input.name,
+    prNumber: input.prNumber,
+  })
+
+  const pullRequest = result.repository?.pullRequest
+  if (!pullRequest) {
+    throw new Error("Pull request not found")
+  }
+
+  const checkRuns: PrCheckRunData[] = []
+
+  const commitNodes = pullRequest.commits.nodes ?? []
+  for (const commitNode of commitNodes) {
+    if (!commitNode) continue
+    const suiteNodes = commitNode.commit.checkSuites?.nodes ?? []
+    for (const suite of suiteNodes) {
+      if (!suite) continue
+      const runNodes = suite.checkRuns?.nodes ?? []
+      for (const run of runNodes) {
+        if (!run) continue
+        checkRuns.push({
+          id: run.id,
+          name: run.name,
+          status: run.status != null ? String(run.status) : null,
+          conclusion: run.conclusion != null ? String(run.conclusion) : null,
+          url: run.detailsUrl != null ? String(run.detailsUrl) : null,
+        })
+      }
+    }
+  }
+
+  return {
+    items: checkRuns,
+    pageInfo: { hasNextPage: false, endCursor: null },
   }
 }

@@ -279,7 +279,11 @@ export function assertReplyToReviewThreadInput(input: ReplyToReviewThreadInput):
   }
 }
 
-export function assertRepoListInput(input: { owner: string; name: string; first: number }): void {
+export function assertRepoAndPaginationInput(input: {
+  owner: string
+  name: string
+  first: number
+}): void {
   if (input.owner.trim().length === 0 || input.name.trim().length === 0) {
     throw new Error("Repository owner and name are required")
   }
@@ -297,12 +301,19 @@ export function assertReleaseViewInput(input: ReleaseViewInput): void {
   }
 }
 
-export function assertProjectInput(input: { owner: string; projectNumber: number }): void {
+export function assertProjectInput(input: {
+  owner: string
+  projectNumber: number
+  first?: number
+}): void {
   if (input.owner.trim().length === 0) {
     throw new Error("Project owner is required")
   }
   if (!Number.isInteger(input.projectNumber) || input.projectNumber <= 0) {
     throw new Error("Project number must be a positive integer")
+  }
+  if (input.first !== undefined && (input.first < 1 || input.first > 100)) {
+    throw new Error("`first` must be between 1 and 100")
   }
 }
 

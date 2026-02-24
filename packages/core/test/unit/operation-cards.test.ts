@@ -99,7 +99,7 @@ describe("operation cards registry", () => {
     expect(workflowRunRerunFailed?.routing.preferred).toBe("cli")
   })
 
-  it("marks Projects v2 query caps as graphql-preferred and mutation caps as CLI-preferred", () => {
+  it("marks Projects v2 query caps as graphql-preferred and mutation caps as graphql-preferred with cli fallback", () => {
     const projectOrg = getOperationCard("project_v2.org.view")
     const projectUser = getOperationCard("project_v2.user.view")
     const projectFields = getOperationCard("project_v2.fields.list")
@@ -112,16 +112,16 @@ describe("operation cards registry", () => {
     expect(projectUser?.routing.preferred).toBe("graphql")
     expect(projectFields?.routing.preferred).toBe("graphql")
     expect(projectItems?.routing.preferred).toBe("graphql")
-    expect(projectItemAddIssue?.routing.preferred).toBe("cli")
-    expect(projectItemFieldUpdate?.routing.preferred).toBe("cli")
+    expect(projectItemAddIssue?.routing.preferred).toBe("graphql")
+    expect(projectItemFieldUpdate?.routing.preferred).toBe("graphql")
     expect(issueTypes?.routing.preferred).toBe("graphql")
 
     expect(projectOrg?.routing.fallbacks).toEqual(["cli"])
     expect(projectUser?.routing.fallbacks).toEqual(["cli"])
     expect(projectFields?.routing.fallbacks).toEqual(["cli"])
     expect(projectItems?.routing.fallbacks).toEqual(["cli"])
-    expect(projectItemAddIssue?.routing.fallbacks).toEqual([])
-    expect(projectItemFieldUpdate?.routing.fallbacks).toEqual([])
+    expect(projectItemAddIssue?.routing.fallbacks).toEqual(["cli"])
+    expect(projectItemFieldUpdate?.routing.fallbacks).toEqual(["cli"])
     expect(issueTypes?.routing.fallbacks).toEqual(["cli"])
   })
 
@@ -222,13 +222,11 @@ describe("operation cards registry", () => {
     expect(result.ok).toBe(false)
   })
 
-  it("documents mutating PR capabilities as CLI-preferred operations", () => {
+  it("documents mutating PR capabilities as graphql-preferred operations with cli fallback", () => {
     const mutatingCapabilities = [
       "pr.merge",
       "pr.create",
       "pr.update",
-      "pr.checks.rerun.failed",
-      "pr.checks.rerun.all",
       "pr.reviews.request",
       "pr.assignees.add",
       "pr.assignees.remove",
@@ -236,6 +234,19 @@ describe("operation cards registry", () => {
     ]
 
     for (const capabilityId of mutatingCapabilities) {
+      const card = getOperationCard(capabilityId)
+
+      expect(card).toBeDefined()
+      expect(card?.routing.preferred).toBe("graphql")
+      expect(card?.routing.fallbacks).toEqual(["cli"])
+      expect(card?.cli?.command).toMatch(/^pr |^run /)
+    }
+  })
+
+  it("documents CLI-only PR check rerun capabilities as CLI-preferred", () => {
+    const cliOnlyCapabilities = ["pr.checks.rerun.failed", "pr.checks.rerun.all"]
+
+    for (const capabilityId of cliOnlyCapabilities) {
       const card = getOperationCard(capabilityId)
 
       expect(card).toBeDefined()

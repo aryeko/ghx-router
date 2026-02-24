@@ -23,7 +23,7 @@ output_schema:
     draft: { type: boolean }
   additionalProperties: false
 routing:
-  preferred: cli
-  fallbacks: []
+  preferred: graphql
+  fallbacks: [cli]
 cli:
   command: pr edit

@@ -1,29 +1,52 @@
+import type { GraphQLClient } from "graphql-request"
 import {
   asRecord,
   assertPrCommentsListInput,
   assertReplyToReviewThreadInput,
   assertReviewThreadInput,
 } from "../assertions.js"
+import { getSdk as getIssueCreateRepositoryIdSdk } from "../operations/issue-create-repository-id.generated.js"
+import { getSdk as getPrAssigneesAddSdk } from "../operations/pr-assignees-add.generated.js"
+import { getSdk as getPrAssigneesRemoveSdk } from "../operations/pr-assignees-remove.generated.js"
+import { getSdk as getPrBranchUpdateSdk } from "../operations/pr-branch-update.generated.js"
 import { getSdk as getPrCommentReplySdk } from "../operations/pr-comment-reply.generated.js"
 import { getSdk as getPrCommentResolveSdk } from "../operations/pr-comment-resolve.generated.js"
 import { getSdk as getPrCommentUnresolveSdk } from "../operations/pr-comment-unresolve.generated.js"
 import { getSdk as getPrCommentsListSdk } from "../operations/pr-comments-list.generated.js"
+import { getSdk as getPrCreateSdk } from "../operations/pr-create.generated.js"
+import { getSdk as getPrMergeSdk } from "../operations/pr-merge.generated.js"
 import { getSdk as getPrNodeIdSdk } from "../operations/pr-node-id.generated.js"
 import {
   getSdk as getPrReviewSubmitSdk,
   type PrReviewSubmitMutationVariables,
 } from "../operations/pr-review-submit.generated.js"
+import { getSdk as getPrReviewsRequestSdk } from "../operations/pr-reviews-request.generated.js"
+import { getSdk as getPrUpdateSdk } from "../operations/pr-update.generated.js"
 import { getSdk as getReviewThreadStateSdk } from "../operations/review-thread-state.generated.js"
+import { getSdk as getUserNodeIdSdk } from "../operations/user-node-id.generated.js"
 import type { GraphqlTransport } from "../transport.js"
 import { createGraphqlRequestClient } from "../transport.js"
 import type {
   DraftComment,
+  PrAssigneesAddInput,
+  PrAssigneesData,
+  PrAssigneesRemoveInput,
+  PrBranchUpdateData,
+  PrBranchUpdateInput,
   PrCommentsListData,
   PrCommentsListInput,
+  PrCreateData,
+  PrCreateInput,
+  PrMergeData,
+  PrMergeInput,
   PrReviewSubmitData,
   PrReviewSubmitInput,
+  PrReviewsRequestData,
+  PrReviewsRequestInput,
   PrReviewThreadCommentData,
   PrReviewThreadData,
+  PrUpdateData,
+  PrUpdateInput,
   ReplyToReviewThreadData,
   ReplyToReviewThreadInput,
   ReviewThreadMutationData,
@@ -31,6 +54,18 @@ import type {
 } from "../types.js"
 
 const MAX_PR_REVIEW_THREAD_SCAN_PAGES = 5
+
+async function fetchPrNodeId(
+  client: GraphQLClient,
+  owner: string,
+  name: string,
+  prNumber: number,
+): Promise<string> {
+  const result = await getPrNodeIdSdk(client).PrNodeId({ owner, name, prNumber })
+  const id = result.repository?.pullRequest?.id
+  if (!id) throw new Error(`Pull request #${prNumber} not found in ${owner}/${name}`)
+  return id
+}
 
 function normalizePrReviewThreadComment(comment: unknown): PrReviewThreadCommentData | null {
   const commentRecord = asRecord(comment)
@@ -326,5 +361,240 @@ export async function runSubmitPrReview(
     state: typeof review.state === "string" ? review.state : "",
     url: typeof review.url === "string" ? review.url : "",
     body: typeof review.body === "string" ? review.body : null,
+  }
+}
+
+export async function runPrCreate(
+  transport: GraphqlTransport,
+  input: PrCreateInput,
+): Promise<PrCreateData> {
+  const client = createGraphqlRequestClient(transport)
+
+  const repoResult = await getIssueCreateRepositoryIdSdk(client).IssueCreateRepositoryId({
+    owner: input.owner,
+    name: input.name,
+  })
+
+  const repositoryId = repoResult.repository?.id
+  if (!repositoryId) {
+    throw new Error(`Repository ${input.owner}/${input.name} not found`)
+  }
+
+  const result = await getPrCreateSdk(client).PrCreate({
+    repositoryId,
+    baseRefName: input.baseRefName,
+    headRefName: input.headRefName,
+    title: input.title,
+    ...(input.body !== undefined ? { body: input.body } : {}),
+    ...(input.draft !== undefined ? { draft: input.draft } : {}),
+  })
+
+  const pr = result.createPullRequest?.pullRequest
+  if (!pr) {
+    throw new Error("Failed to create pull request")
+  }
+
+  return {
+    id: pr.id,
+    number: pr.number,
+    title: pr.title,
+    state: String(pr.state),
+    url: String(pr.url),
+    isDraft: pr.isDraft,
+  }
+}
+
+export async function runPrUpdate(
+  transport: GraphqlTransport,
+  input: PrUpdateInput,
+): Promise<PrUpdateData> {
+  const client = createGraphqlRequestClient(transport)
+  const pullRequestId = await fetchPrNodeId(client, input.owner, input.name, input.prNumber)
+
+  const result = await getPrUpdateSdk(client).PrUpdate({
+    pullRequestId,
+    ...(input.title !== undefined ? { title: input.title } : {}),
+    ...(input.body !== undefined ? { body: input.body } : {}),
+  })
+
+  const pr = result.updatePullRequest?.pullRequest
+  if (!pr) {
+    throw new Error("Failed to update pull request")
+  }
+
+  return {
+    id: pr.id,
+    number: pr.number,
+    title: pr.title,
+    state: String(pr.state),
+    url: String(pr.url),
+    isDraft: pr.isDraft,
+  }
+}
+
+export async function runPrMerge(
+  transport: GraphqlTransport,
+  input: PrMergeInput,
+): Promise<PrMergeData> {
+  const client = createGraphqlRequestClient(transport)
+  const pullRequestId = await fetchPrNodeId(client, input.owner, input.name, input.prNumber)
+
+  const result = await getPrMergeSdk(client).PrMerge({
+    pullRequestId,
+    ...(input.mergeMethod !== undefined
+      ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        { mergeMethod: input.mergeMethod as any }
+      : {}),
+  })
+
+  const pr = result.mergePullRequest?.pullRequest
+  if (!pr) {
+    throw new Error("Failed to merge pull request")
+  }
+
+  return {
+    id: pr.id,
+    number: pr.number,
+    state: String(pr.state),
+    merged: pr.merged,
+    mergedAt: pr.mergedAt != null ? String(pr.mergedAt) : null,
+  }
+}
+
+export async function runPrBranchUpdate(
+  transport: GraphqlTransport,
+  input: PrBranchUpdateInput,
+): Promise<PrBranchUpdateData> {
+  const client = createGraphqlRequestClient(transport)
+  const pullRequestId = await fetchPrNodeId(client, input.owner, input.name, input.prNumber)
+
+  const result = await getPrBranchUpdateSdk(client).PrBranchUpdate({
+    pullRequestId,
+    ...(input.updateMethod !== undefined
+      ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        { updateMethod: input.updateMethod as any }
+      : {}),
+  })
+
+  const pr = result.updatePullRequestBranch?.pullRequest
+  if (!pr) {
+    throw new Error("Failed to update pull request branch")
+  }
+
+  return {
+    id: pr.id,
+    updated: true,
+  }
+}
+
+export async function runPrAssigneesAdd(
+  transport: GraphqlTransport,
+  input: PrAssigneesAddInput,
+): Promise<PrAssigneesData> {
+  const client = createGraphqlRequestClient(transport)
+  const pullRequestId = await fetchPrNodeId(client, input.owner, input.name, input.prNumber)
+
+  const userIdResults = await Promise.all(
+    input.logins.map((login) => getUserNodeIdSdk(client).UserNodeId({ login })),
+  )
+
+  const userIds = userIdResults.flatMap((r) => (r.user?.id ? [r.user.id] : []))
+
+  const result = await getPrAssigneesAddSdk(client).PrAssigneesAdd({
+    assignableId: pullRequestId,
+    assigneeIds: userIds,
+  })
+
+  const assignable = result.addAssigneesToAssignable?.assignable
+  const prAssignable =
+    assignable?.__typename === "PullRequest"
+      ? (assignable as {
+          id: string
+          assignees: { nodes?: Array<{ login: string } | null> | null }
+        })
+      : null
+
+  if (!prAssignable) {
+    throw new Error("Failed to add assignees to pull request")
+  }
+
+  return {
+    id: prAssignable.id,
+    assignees: (prAssignable.assignees.nodes ?? []).flatMap((n) => (n ? [n.login] : [])),
+  }
+}
+
+export async function runPrAssigneesRemove(
+  transport: GraphqlTransport,
+  input: PrAssigneesRemoveInput,
+): Promise<PrAssigneesData> {
+  const client = createGraphqlRequestClient(transport)
+  const pullRequestId = await fetchPrNodeId(client, input.owner, input.name, input.prNumber)
+
+  const userIdResults = await Promise.all(
+    input.logins.map((login) => getUserNodeIdSdk(client).UserNodeId({ login })),
+  )
+
+  const userIds = userIdResults.flatMap((r) => (r.user?.id ? [r.user.id] : []))
+
+  const result = await getPrAssigneesRemoveSdk(client).PrAssigneesRemove({
+    assignableId: pullRequestId,
+    assigneeIds: userIds,
+  })
+
+  const assignable = result.removeAssigneesFromAssignable?.assignable
+  const prAssignable =
+    assignable?.__typename === "PullRequest"
+      ? (assignable as {
+          id: string
+          assignees: { nodes?: Array<{ login: string } | null> | null }
+        })
+      : null
+
+  if (!prAssignable) {
+    throw new Error("Failed to remove assignees from pull request")
+  }
+
+  return {
+    id: prAssignable.id,
+    assignees: (prAssignable.assignees.nodes ?? []).flatMap((n) => (n ? [n.login] : [])),
+  }
+}
+
+export async function runPrReviewsRequest(
+  transport: GraphqlTransport,
+  input: PrReviewsRequestInput,
+): Promise<PrReviewsRequestData> {
+  const client = createGraphqlRequestClient(transport)
+  const pullRequestId = await fetchPrNodeId(client, input.owner, input.name, input.prNumber)
+
+  const userIdResults = await Promise.all(
+    input.reviewerLogins.map((login) => getUserNodeIdSdk(client).UserNodeId({ login })),
+  )
+
+  const reviewerUserIds = userIdResults.flatMap((r) => (r.user?.id ? [r.user.id] : []))
+
+  const result = await getPrReviewsRequestSdk(client).PrReviewsRequest({
+    pullRequestId,
+    userIds: reviewerUserIds,
+  })
+
+  const pr = result.requestReviews?.pullRequest
+  if (!pr) {
+    throw new Error("Failed to request pull request reviews")
+  }
+
+  const reviewRequests = (pr.reviewRequests?.nodes ?? []).flatMap((node) => {
+    if (!node) return []
+    const reviewer = node.requestedReviewer
+    if (reviewer?.__typename === "User" && "login" in reviewer) {
+      return [reviewer.login]
+    }
+    return []
+  })
+
+  return {
+    id: pr.id,
+    requestedReviewers: reviewRequests,
   }
 }

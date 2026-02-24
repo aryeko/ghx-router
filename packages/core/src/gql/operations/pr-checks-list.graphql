@@ -1,0 +1,27 @@
+query PrChecksList($owner: String!, $name: String!, $prNumber: Int!) {
+  repository(owner: $owner, name: $name) {
+    pullRequest(number: $prNumber) {
+      commits(last: 1) {
+        nodes {
+          commit {
+            checkSuites(first: 10) {
+              nodes {
+                checkRuns(first: 50) {
+                  nodes {
+                    id
+                    name
+                    status
+                    conclusion
+                    startedAt
+                    completedAt
+                    detailsUrl
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -146,13 +146,13 @@ describe("capabilityRegistry", () => {
       },
       {
         task: "pr.create",
-        defaultRoute: "cli",
-        fallbackRoutes: [],
+        defaultRoute: "graphql",
+        fallbackRoutes: ["cli"],
       },
       {
         task: "pr.update",
-        defaultRoute: "cli",
-        fallbackRoutes: [],
+        defaultRoute: "graphql",
+        fallbackRoutes: ["cli"],
       },
       {
         task: "pr.threads.list",
@@ -181,8 +181,8 @@ describe("capabilityRegistry", () => {
       },
       {
         task: "pr.reviews.request",
-        defaultRoute: "cli",
-        fallbackRoutes: [],
+        defaultRoute: "graphql",
+        fallbackRoutes: ["cli"],
       },
       {
         task: "pr.reviews.submit",
@@ -202,7 +202,7 @@ describe("capabilityRegistry", () => {
       {
         task: "pr.checks.list",
         defaultRoute: "cli",
-        fallbackRoutes: [],
+        fallbackRoutes: ["graphql"],
       },
       {
         task: "pr.checks.rerun.failed",
@@ -221,23 +221,23 @@ describe("capabilityRegistry", () => {
       },
       {
         task: "pr.merge",
-        defaultRoute: "cli",
-        fallbackRoutes: [],
+        defaultRoute: "graphql",
+        fallbackRoutes: ["cli"],
       },
       {
         task: "pr.assignees.add",
-        defaultRoute: "cli",
-        fallbackRoutes: [],
+        defaultRoute: "graphql",
+        fallbackRoutes: ["cli"],
       },
       {
         task: "pr.assignees.remove",
-        defaultRoute: "cli",
-        fallbackRoutes: [],
+        defaultRoute: "graphql",
+        fallbackRoutes: ["cli"],
       },
       {
         task: "pr.branch.update",
-        defaultRoute: "cli",
-        fallbackRoutes: [],
+        defaultRoute: "graphql",
+        fallbackRoutes: ["cli"],
       },
       {
         task: "workflow.list",
@@ -271,18 +271,18 @@ describe("capabilityRegistry", () => {
       },
       {
         task: "project_v2.items.issue.add",
-        defaultRoute: "cli",
-        fallbackRoutes: [],
+        defaultRoute: "graphql",
+        fallbackRoutes: ["cli"],
       },
       {
         task: "project_v2.items.issue.remove",
-        defaultRoute: "cli",
-        fallbackRoutes: [],
+        defaultRoute: "graphql",
+        fallbackRoutes: ["cli"],
       },
       {
         task: "project_v2.items.field.update",
-        defaultRoute: "cli",
-        fallbackRoutes: [],
+        defaultRoute: "graphql",
+        fallbackRoutes: ["cli"],
       },
       {
         task: "release.list",

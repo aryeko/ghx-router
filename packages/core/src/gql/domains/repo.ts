@@ -1,4 +1,4 @@
-import { assertRepoInput, assertRepoListInput } from "../assertions.js"
+import { assertRepoAndPaginationInput, assertRepoInput } from "../assertions.js"
 import type { RepoIssueTypesListQuery } from "../operations/repo-issue-types-list.generated.js"
 import { getSdk as getRepoIssueTypesListSdk } from "../operations/repo-issue-types-list.generated.js"
 import type { RepoLabelsListQuery } from "../operations/repo-labels-list.generated.js"
@@ -43,9 +43,12 @@ export async function runRepoLabelsList(
   transport: GraphqlTransport,
   input: RepoLabelsListInput,
 ): Promise<RepoLabelsListData> {
-  assertRepoListInput(input)
+  assertRepoAndPaginationInput(input)
   const sdk = getRepoLabelsListSdk(createGraphqlRequestClient(transport))
   const result: RepoLabelsListQuery = await sdk.RepoLabelsList(input)
+  if (!result.repository) {
+    throw new Error(`Repository ${input.owner}/${input.name} not found`)
+  }
   const conn = result.repository?.labels
   return {
     items: (conn?.nodes ?? []).map((n) => ({
@@ -66,9 +69,12 @@ export async function runRepoIssueTypesList(
   transport: GraphqlTransport,
   input: RepoIssueTypesListInput,
 ): Promise<RepoIssueTypesListData> {
-  assertRepoListInput(input)
+  assertRepoAndPaginationInput(input)
   const sdk = getRepoIssueTypesListSdk(createGraphqlRequestClient(transport))
   const result: RepoIssueTypesListQuery = await sdk.RepoIssueTypesList(input)
+  if (!result.repository) {
+    throw new Error(`Repository ${input.owner}/${input.name} not found`)
+  }
   const conn = result.repository?.issueTypes
   return {
     items: (conn?.nodes ?? []).map((n) => ({

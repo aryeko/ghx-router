@@ -52,7 +52,7 @@ describe("executeTask project_v2.items.issue.remove", () => {
     expect(result.meta.reason).toBe("INPUT_VALIDATION")
   })
 
-  it("returns adapter-unsupported when CLI unavailable", async () => {
+  it("attempts graphql route first and returns validation error when gql adapter receives mismatched input and CLI unavailable", async () => {
     const githubClient = createGithubClient({
       async execute<TData>(): Promise<TData> {
         return {} as TData
@@ -71,7 +71,9 @@ describe("executeTask project_v2.items.issue.remove", () => {
       ghAuthenticated: false,
     })
 
+    // GQL route is preferred; the GQL handler expects {projectId, itemId} but
+    // receives {owner, projectNumber, itemId}, so it throws "projectId is required" → VALIDATION
     expect(result.ok).toBe(false)
-    expect(result.error?.code).toBe("ADAPTER_UNSUPPORTED")
+    expect(result.error?.code).toBe("VALIDATION")
   })
 })

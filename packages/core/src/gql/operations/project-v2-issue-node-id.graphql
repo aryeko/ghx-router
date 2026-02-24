@@ -1,0 +1,7 @@
+query ProjectV2IssueNodeId($url: URI!) {
+  resource(url: $url) {
+    ... on Issue {
+      id
+    }
+  }
+}

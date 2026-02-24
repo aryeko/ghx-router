@@ -1,0 +1,28 @@
+query ProjectV2ItemsListUser($owner: String!, $projectNumber: Int!, $first: Int!, $after: String) {
+  user(login: $owner) {
+    projectV2(number: $projectNumber) {
+      items(first: $first, after: $after) {
+        nodes {
+          id
+          type
+          content {
+            ... on Issue {
+              number
+              title
+            }
+            ... on PullRequest {
+              number
+              title
+            }
+            ... on DraftIssue {
+              title
+            }
+          }
+        }
+        pageInfo {
+          ...PageInfoFields
+        }
+      }
+    }
+  }
+}

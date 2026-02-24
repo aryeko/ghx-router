@@ -1,0 +1,11 @@
+mutation PrMerge($pullRequestId: ID!, $mergeMethod: PullRequestMergeMethod) {
+  mergePullRequest(input: { pullRequestId: $pullRequestId, mergeMethod: $mergeMethod }) {
+    pullRequest {
+      id
+      number
+      state
+      merged
+      mergedAt
+    }
+  }
+}

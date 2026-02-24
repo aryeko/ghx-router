@@ -452,7 +452,7 @@ export type RepoIssueTypesListData = {
 
 export type ReleaseViewInput = ReleaseViewQueryVariables
 export type ReleaseViewData = {
-  id: number
+  id: number | null
   tagName: string | null
   name: string | null
   isDraft: boolean
@@ -504,4 +504,148 @@ export type ProjectV2ItemData = {
 export type ProjectV2ItemsListData = {
   items: ProjectV2ItemData[]
   pageInfo: { hasNextPage: boolean; endCursor: string | null }
+}
+
+// PR mutations
+export type PrCreateInput = {
+  owner: string
+  name: string
+  baseRefName: string
+  headRefName: string
+  title: string
+  body?: string
+  draft?: boolean
+}
+
+export type PrCreateData = {
+  id: string
+  number: number
+  title: string
+  state: string
+  url: string
+  isDraft: boolean
+}
+
+export type PrUpdateInput = {
+  owner: string
+  name: string
+  prNumber: number
+  title?: string
+  body?: string
+  // note: no draft field — not in UpdatePullRequestInput
+}
+
+export type PrUpdateData = {
+  id: string
+  number: number
+  title: string
+  state: string
+  url: string
+  isDraft: boolean
+}
+
+export type PrMergeInput = {
+  owner: string
+  name: string
+  prNumber: number
+  mergeMethod?: string // MERGE | SQUASH | REBASE
+}
+
+export type PrMergeData = {
+  id: string
+  number: number
+  state: string
+  merged: boolean
+  mergedAt: string | null
+}
+
+export type PrBranchUpdateInput = {
+  owner: string
+  name: string
+  prNumber: number
+  updateMethod?: string // MERGE | REBASE
+}
+
+export type PrBranchUpdateData = {
+  id: string
+  updated: boolean
+}
+
+export type PrAssigneesInput = {
+  owner: string
+  name: string
+  prNumber: number
+  logins: string[]
+}
+export type PrAssigneesAddInput = PrAssigneesInput
+export type PrAssigneesRemoveInput = PrAssigneesInput
+
+export type PrAssigneesData = {
+  id: string
+  assignees: string[]
+}
+
+export type PrReviewsRequestInput = {
+  owner: string
+  name: string
+  prNumber: number
+  reviewerLogins: string[]
+}
+
+export type PrReviewsRequestData = {
+  id: string
+  requestedReviewers: string[]
+}
+
+// PR checks
+export type PrChecksListInput = {
+  owner: string
+  name: string
+  prNumber: number
+  first: number
+  after?: string | null
+}
+
+export type PrCheckRunData = {
+  id: string
+  name: string
+  status: string | null
+  conclusion: string | null
+  url: string | null
+}
+
+export type PrChecksListData = {
+  items: PrCheckRunData[]
+  pageInfo: { hasNextPage: boolean; endCursor: string | null }
+}
+
+// Project V2 mutations
+export type ProjectV2ItemAddInput = {
+  projectId: string
+  contentId: string
+}
+
+export type ProjectV2ItemAddData = {
+  itemId: string
+  itemType: string | null
+}
+
+export type ProjectV2ItemRemoveInput = {
+  projectId: string
+  itemId: string
+}
+
+export type ProjectV2ItemRemoveData = {
+  deletedItemId: string
+}
+
+export type ProjectV2ItemFieldUpdateInput = {
+  projectId: string
+  itemId: string
+  fieldId: string
+  value: Record<string, unknown>
+}
+
+export type ProjectV2ItemFieldUpdateData = {
+  itemId: string
 }

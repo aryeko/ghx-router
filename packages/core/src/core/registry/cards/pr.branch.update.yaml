@@ -17,7 +17,7 @@ output_schema:
     updated: { type: boolean }
   additionalProperties: false
 routing:
-  preferred: cli
-  fallbacks: []
+  preferred: graphql
+  fallbacks: [cli]
 cli:
   command: pr update-branch

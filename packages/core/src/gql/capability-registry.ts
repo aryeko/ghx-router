@@ -18,16 +18,26 @@ import type {
   IssueRelationsGetInput,
   IssueUpdateInput,
   IssueViewInput,
+  PrAssigneesAddInput,
+  PrAssigneesRemoveInput,
+  PrBranchUpdateInput,
   PrCommentsListInput,
+  PrCreateInput,
   PrDiffListFilesInput,
   PrListInput,
+  PrMergeInput,
   PrMergeStatusInput,
   ProjectV2FieldsListInput,
+  ProjectV2ItemAddInput,
+  ProjectV2ItemFieldUpdateInput,
+  ProjectV2ItemRemoveInput,
   ProjectV2ItemsListInput,
   ProjectV2OrgViewInput,
   ProjectV2UserViewInput,
   PrReviewSubmitInput,
   PrReviewsListInput,
+  PrReviewsRequestInput,
+  PrUpdateInput,
   PrViewInput,
   ReleaseListInput,
   ReleaseViewInput,
@@ -280,8 +290,11 @@ const handlers = new Map<string, GraphqlHandler>([
     "repo.issue_types.list",
     (c, p) => c.fetchRepoIssueTypesList(withDefaultFirst(p) as RepoIssueTypesListInput),
   ],
+  // Release
   ["release.view", (c, p) => c.fetchReleaseView(p as ReleaseViewInput)],
   ["release.list", (c, p) => c.fetchReleaseList(withDefaultFirst(p) as ReleaseListInput)],
+
+  // Project V2
   ["project_v2.org.view", (c, p) => c.fetchProjectV2OrgView(p as ProjectV2OrgViewInput)],
   ["project_v2.user.view", (c, p) => c.fetchProjectV2UserView(p as ProjectV2UserViewInput)],
   [
@@ -291,6 +304,23 @@ const handlers = new Map<string, GraphqlHandler>([
   [
     "project_v2.items.list",
     (c, p) => c.fetchProjectV2ItemsList(withDefaultFirst(p) as ProjectV2ItemsListInput),
+  ],
+
+  // PR mutations (Phase 2)
+  ["pr.create", (c, p) => c.createPr(p as PrCreateInput)],
+  ["pr.update", (c, p) => c.updatePr(p as PrUpdateInput)],
+  ["pr.merge", (c, p) => c.mergePr(p as PrMergeInput)],
+  ["pr.branch.update", (c, p) => c.updatePrBranch(p as PrBranchUpdateInput)],
+  ["pr.assignees.add", (c, p) => c.addPrAssignees(p as PrAssigneesAddInput)],
+  ["pr.assignees.remove", (c, p) => c.removePrAssignees(p as PrAssigneesRemoveInput)],
+  ["pr.reviews.request", (c, p) => c.requestPrReviews(p as PrReviewsRequestInput)],
+
+  // Project V2 mutations (Phase 2)
+  ["project_v2.items.issue.add", (c, p) => c.addProjectV2Item(p as ProjectV2ItemAddInput)],
+  ["project_v2.items.issue.remove", (c, p) => c.removeProjectV2Item(p as ProjectV2ItemRemoveInput)],
+  [
+    "project_v2.items.field.update",
+    (c, p) => c.updateProjectV2ItemField(p as ProjectV2ItemFieldUpdateInput),
   ],
 ])
 
