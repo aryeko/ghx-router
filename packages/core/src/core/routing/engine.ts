@@ -489,7 +489,19 @@ export async function executeTasks(
         }
       }
     } catch (err) {
-      // Phase 1 failure: mark all steps as failed
+      // Phase 1 failure: mark all steps as failed.
+      // Drain any in-flight CLI promises before returning to prevent unhandled rejections.
+      if (cliStepPromises.size > 0) {
+        const drained = await Promise.allSettled(Array.from(cliStepPromises.values()))
+        for (const outcome of drained) {
+          if (outcome.status === "rejected") {
+            logger.warn("cli.step_drained_on_phase1_failure", {
+              reason:
+                outcome.reason instanceof Error ? outcome.reason.message : String(outcome.reason),
+            })
+          }
+        }
+      }
       const errorMsg = err instanceof Error ? err.message : String(err)
       const code = mapErrorToCode(err)
       logger.error("resolution.lookup_failed", {
@@ -643,7 +655,7 @@ export async function executeTasks(
         cliResultsByIndex.set(i, {
           ok: false,
           error: { code: errorCodes.Unknown, message: msg, retryable: false },
-          meta: { capability_id: req?.task ?? "unknown" },
+          meta: { capability_id: req?.task ?? "unknown", route_used: "cli" },
         })
       }
     }
