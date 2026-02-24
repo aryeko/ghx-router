@@ -96,7 +96,7 @@
     "@graphql-codegen/typescript": "^5.0.7",
     "@graphql-codegen/typescript-graphql-request": "^6.3.0",
     "@graphql-codegen/typescript-operations": "^5.0.7",
-    "@opencode-ai/sdk": "^1.2.6",
+    "@opencode-ai/sdk": "^1.2.10",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
