@@ -4,7 +4,6 @@ import { resolveWorkflowFixtureBindings } from "../fixture/manifest.js"
 import type { SessionProvider } from "../provider/types.js"
 import { evaluateCheckpoints } from "./checkpoint.js"
 import type { IterLogContext } from "./iter-log-context.js"
-import { applyEnvPatch, restoreEnvPatch } from "./iter-log-context.js"
 import { modeInstructions } from "./mode-instructions.js"
 import { withRetry } from "./retry.js"
 import { exportSession } from "./session-export.js"
@@ -32,14 +31,8 @@ export async function runScenarioIteration(config: {
     iterLogContext = null,
   } = config
 
-  let envRestore: ReturnType<typeof applyEnvPatch> | null = null
-
   if (iterLogContext !== null) {
     await mkdir(iterLogContext.iterDir, { recursive: true })
-    envRestore = applyEnvPatch({
-      GHX_LOG_DIR: iterLogContext.iterDir,
-      GHX_LOG_LEVEL: process.env.BENCH_GHX_LOG_LEVEL ?? "info",
-    })
   }
 
   const scenarioStartedAt = Date.now()
@@ -175,9 +168,6 @@ export async function runScenarioIteration(config: {
       },
     }
   } finally {
-    if (envRestore !== null) {
-      restoreEnvPatch(envRestore)
-    }
     if (iterLogContext !== null && sessionId !== null) {
       try {
         const exportResult = await exportSession({ sessionId, destDir: iterLogContext.iterDir })

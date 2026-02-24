@@ -1,9 +1,7 @@
 import * as path from "node:path"
 import {
-  applyEnvPatch,
   buildBenchRunTs,
   buildIterDir,
-  restoreEnvPatch,
   sanitizeBenchRunTs,
 } from "@bench/runner/iter-log-context.js"
 import { describe, expect, it } from "vitest"
@@ -72,77 +70,5 @@ describe("buildIterDir", () => {
     const parent = path.join("/logs", "2026-02-23", "2026-02-23T14-30-00-000Z", "ghx", "s1")
     expect(iter1).toBe(path.join(parent, "iter-1"))
     expect(iter2).toBe(path.join(parent, "iter-2"))
-  })
-})
-
-describe("applyEnvPatch / restoreEnvPatch", () => {
-  it("sets env vars and returns previous values", () => {
-    const prevDir = process.env.GHX_LOG_DIR
-    const prevLevel = process.env.GHX_LOG_LEVEL
-
-    process.env.GHX_LOG_DIR = "/old/dir"
-    process.env.GHX_LOG_LEVEL = "warn"
-
-    const restore = applyEnvPatch({ GHX_LOG_DIR: "/new/dir", GHX_LOG_LEVEL: "debug" })
-
-    expect(process.env.GHX_LOG_DIR).toBe("/new/dir")
-    expect(process.env.GHX_LOG_LEVEL).toBe("debug")
-    expect(restore.GHX_LOG_DIR).toBe("/old/dir")
-    expect(restore.GHX_LOG_LEVEL).toBe("warn")
-
-    // cleanup
-    process.env.GHX_LOG_DIR = prevDir
-    process.env.GHX_LOG_LEVEL = prevLevel
-  })
-
-  it("captures undefined when env vars were not set", () => {
-    const prevDir = process.env.GHX_LOG_DIR
-    const prevLevel = process.env.GHX_LOG_LEVEL
-    delete process.env.GHX_LOG_DIR
-    delete process.env.GHX_LOG_LEVEL
-
-    const restore = applyEnvPatch({ GHX_LOG_DIR: "/dir", GHX_LOG_LEVEL: "info" })
-
-    expect(restore.GHX_LOG_DIR).toBeUndefined()
-    expect(restore.GHX_LOG_LEVEL).toBeUndefined()
-
-    // cleanup
-    process.env.GHX_LOG_DIR = prevDir
-    process.env.GHX_LOG_LEVEL = prevLevel
-  })
-
-  it("restores previous env vars", () => {
-    const prevDir = process.env.GHX_LOG_DIR
-    const prevLevel = process.env.GHX_LOG_LEVEL
-
-    process.env.GHX_LOG_DIR = "/original"
-    process.env.GHX_LOG_LEVEL = "error"
-
-    const restore = applyEnvPatch({ GHX_LOG_DIR: "/tmp/iter", GHX_LOG_LEVEL: "info" })
-    restoreEnvPatch(restore)
-
-    expect(process.env.GHX_LOG_DIR).toBe("/original")
-    expect(process.env.GHX_LOG_LEVEL).toBe("error")
-
-    // cleanup
-    process.env.GHX_LOG_DIR = prevDir
-    process.env.GHX_LOG_LEVEL = prevLevel
-  })
-
-  it("deletes env vars when restoring to undefined", () => {
-    const prevDir = process.env.GHX_LOG_DIR
-    const prevLevel = process.env.GHX_LOG_LEVEL
-    delete process.env.GHX_LOG_DIR
-    delete process.env.GHX_LOG_LEVEL
-
-    const restore = applyEnvPatch({ GHX_LOG_DIR: "/dir", GHX_LOG_LEVEL: "info" })
-    restoreEnvPatch(restore)
-
-    expect(process.env.GHX_LOG_DIR).toBeUndefined()
-    expect(process.env.GHX_LOG_LEVEL).toBeUndefined()
-
-    // cleanup
-    process.env.GHX_LOG_DIR = prevDir
-    process.env.GHX_LOG_LEVEL = prevLevel
   })
 })

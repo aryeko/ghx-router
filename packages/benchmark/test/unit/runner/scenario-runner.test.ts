@@ -20,15 +20,6 @@ vi.mock("node:fs/promises", async (importOriginal) => {
   return { ...actual, mkdir: vi.fn().mockResolvedValue(undefined) }
 })
 
-vi.mock("@bench/runner/iter-log-context.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@bench/runner/iter-log-context.js")>()
-  return {
-    ...actual,
-    applyEnvPatch: vi.fn(() => ({ GHX_LOG_DIR: undefined, GHX_LOG_LEVEL: undefined })),
-    restoreEnvPatch: vi.fn(),
-  }
-})
-
 vi.mock("@bench/runner/session-export.js", () => ({
   exportSession: vi.fn().mockResolvedValue({ ok: true }),
 }))
@@ -264,11 +255,10 @@ describe("runScenarioIteration", () => {
     expect(resolveWorkflowFixtureBindings).not.toHaveBeenCalled()
   })
 
-  it("creates iterDir and applies env patch when iterLogContext is provided", async () => {
+  it("creates iterDir when iterLogContext is provided", async () => {
     const { evaluateCheckpoints } = await import("@bench/runner/checkpoint.js")
     const { modeInstructions } = await import("@bench/runner/mode-instructions.js")
     const { mkdir } = await import("node:fs/promises")
-    const { applyEnvPatch } = await import("@bench/runner/iter-log-context.js")
 
     vi.mocked(evaluateCheckpoints).mockResolvedValue({
       allPassed: true,
@@ -293,9 +283,6 @@ describe("runScenarioIteration", () => {
     })
 
     expect(vi.mocked(mkdir)).toHaveBeenCalledWith(iterLogContext.iterDir, { recursive: true })
-    expect(vi.mocked(applyEnvPatch)).toHaveBeenCalledWith(
-      expect.objectContaining({ GHX_LOG_DIR: iterLogContext.iterDir }),
-    )
   })
 
   it("calls exportSession with sessionId and iterDir in finally block", async () => {
@@ -364,11 +351,10 @@ describe("runScenarioIteration", () => {
     warnSpy.mockRestore()
   })
 
-  it("skips mkdir, applyEnvPatch, and exportSession when iterLogContext is null", async () => {
+  it("skips mkdir and exportSession when iterLogContext is null", async () => {
     const { evaluateCheckpoints } = await import("@bench/runner/checkpoint.js")
     const { modeInstructions } = await import("@bench/runner/mode-instructions.js")
     const { mkdir } = await import("node:fs/promises")
-    const { applyEnvPatch } = await import("@bench/runner/iter-log-context.js")
     const { exportSession } = await import("@bench/runner/session-export.js")
 
     vi.mocked(evaluateCheckpoints).mockResolvedValue({
@@ -393,7 +379,6 @@ describe("runScenarioIteration", () => {
     })
 
     expect(vi.mocked(mkdir)).not.toHaveBeenCalled()
-    expect(vi.mocked(applyEnvPatch)).not.toHaveBeenCalled()
     expect(vi.mocked(exportSession)).not.toHaveBeenCalled()
   })
 
