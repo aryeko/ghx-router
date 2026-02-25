@@ -39,9 +39,10 @@ export const operationCardSchema = {
     },
     graphql: {
       type: "object",
-      required: ["operationName", "documentPath"],
+      required: ["operationName", "operationType", "documentPath"],
       properties: {
         operationName: { type: "string", minLength: 1 },
+        operationType: { enum: ["query", "mutation"] },
         documentPath: { type: "string", minLength: 1 },
         variables: { type: "object" },
         limits: {

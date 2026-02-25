@@ -19,4 +19,5 @@ routing:
   fallbacks: []
 graphql:
   operationName: PrCommentUnresolve
+  operationType: mutation
   documentPath: src/gql/operations/pr-comment-unresolve.graphql

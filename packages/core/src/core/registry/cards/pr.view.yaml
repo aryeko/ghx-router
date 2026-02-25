@@ -28,6 +28,7 @@ routing:
     - Prefer GraphQL for structured fetch; CLI fallback if gh auth unavailable.
 graphql:
   operationName: PrView
+  operationType: query
   documentPath: src/gql/operations/pr-view.graphql
 cli:
   command: pr view

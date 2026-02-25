@@ -23,6 +23,7 @@ routing:
   fallbacks: []
 graphql:
   operationName: IssueMilestoneSet
+  operationType: mutation
   documentPath: src/gql/operations/issue-milestone-set.graphql
   resolution:
     lookup:

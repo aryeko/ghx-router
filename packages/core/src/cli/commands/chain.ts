@@ -1,4 +1,4 @@
-import { executeTasks } from "@core/core/routing/engine.js"
+import { executeTasks } from "@core/core/routing/engine/index.js"
 import { createResolutionCache } from "@core/core/routing/resolution-cache.js"
 import { createGithubClient } from "@core/gql/github-client.js"
 import type { GraphqlError, GraphqlRawResult } from "@core/gql/transport.js"

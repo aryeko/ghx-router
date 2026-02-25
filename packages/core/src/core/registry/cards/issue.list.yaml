@@ -42,6 +42,7 @@ routing:
     - Prefer CLI for low-latency structured fetches when gh authentication is available.
 graphql:
   operationName: IssueList
+  operationType: query
   documentPath: src/gql/operations/issue-list.graphql
 cli:
   command: issue list

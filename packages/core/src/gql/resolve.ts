@@ -87,7 +87,7 @@ export function applyInject(
   return { [spec.target]: resolved }
 }
 
-export function buildMutationVars(
+export function buildOperationVars(
   mutationDoc: string,
   input: Record<string, unknown>,
   resolved: Record<string, unknown>,

@@ -28,7 +28,7 @@ describe("executeTask engine wiring", () => {
       },
     )
 
-    const { executeTask } = await import("@core/core/routing/engine.js")
+    const { executeTask } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTask(
       {
@@ -75,7 +75,7 @@ describe("executeTask engine wiring", () => {
       },
     )
 
-    const { executeTask } = await import("@core/core/routing/engine.js")
+    const { executeTask } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTask(
       {
@@ -107,7 +107,7 @@ describe("executeTask engine wiring", () => {
       },
     )
 
-    const { executeTask } = await import("@core/core/routing/engine.js")
+    const { executeTask } = await import("@core/core/routing/engine/index.js")
     const result = await executeTask(
       {
         task: "repo.view",
@@ -140,7 +140,7 @@ describe("executeTask engine wiring", () => {
       },
     )
 
-    const { executeTask } = await import("@core/core/routing/engine.js")
+    const { executeTask } = await import("@core/core/routing/engine/index.js")
     const result = await executeTask(
       {
         task: "repo.view",
@@ -194,7 +194,7 @@ describe("executeTask engine wiring", () => {
         })
         .mockReturnValue(0)
 
-      const { executeTask } = await import("@core/core/routing/engine.js")
+      const { executeTask } = await import("@core/core/routing/engine/index.js")
 
       // First call: .then throws → .catch fires (lines 105-106) → probe rejects → executeTask rejects
       await expect(
@@ -239,7 +239,7 @@ describe("executeTasks chaining", () => {
   it("1-item chain delegates to executeTask path", async () => {
     executeMock.mockResolvedValue({ ok: true, data: { id: "test" } })
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       [{ task: "repo.view", input: { owner: "acme", name: "modkit" } }],
@@ -261,7 +261,7 @@ describe("executeTasks chaining", () => {
   it("pre-flight rejects whole chain if card not found", async () => {
     getOperationCardMock.mockReturnValue(null)
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       [
@@ -290,7 +290,7 @@ describe("executeTasks chaining", () => {
     }
     getOperationCardMock.mockReturnValue(cardWithoutAnyRoute)
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       [
@@ -314,7 +314,7 @@ describe("executeTasks chaining", () => {
       graphql: { operationName: "IssueClose", documentPath: "x" },
     })
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       [
@@ -359,7 +359,7 @@ describe("executeTasks chaining", () => {
       .mockReturnValueOnce(cardNoResolution)
       .mockReturnValueOnce(cardWithResolution)
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       // step 1 is missing "name" from input
@@ -391,7 +391,7 @@ describe("executeTask — preflight branches", () => {
       },
     )
 
-    const { executeTask } = await import("@core/core/routing/engine.js")
+    const { executeTask } = await import("@core/core/routing/engine/index.js")
 
     await executeTask(
       { task: "repo.view", input: { owner: "acme", name: "modkit" } },
@@ -419,7 +419,7 @@ describe("executeTask — preflight branches", () => {
       },
     )
 
-    const { executeTask } = await import("@core/core/routing/engine.js")
+    const { executeTask } = await import("@core/core/routing/engine/index.js")
 
     await executeTask(
       { task: "repo.view", input: { owner: "acme", name: "modkit" } },
@@ -442,7 +442,7 @@ describe("executeTask — preflight branches", () => {
       },
     )
 
-    const { executeTask } = await import("@core/core/routing/engine.js")
+    const { executeTask } = await import("@core/core/routing/engine/index.js")
 
     await executeTask(
       { task: "repo.view", input: { owner: "acme", name: "modkit" } },
@@ -467,7 +467,7 @@ describe("executeTask — preflight branches", () => {
       },
     )
 
-    const { executeTask } = await import("@core/core/routing/engine.js")
+    const { executeTask } = await import("@core/core/routing/engine/index.js")
 
     await executeTask(
       { task: "repo.view", input: { owner: "acme", name: "modkit" } },
@@ -491,7 +491,7 @@ describe("executeTask — preflight branches", () => {
       },
     )
 
-    const { executeTask } = await import("@core/core/routing/engine.js")
+    const { executeTask } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTask(
       { task: "repo.view", input: { owner: "acme", name: "modkit" } },
@@ -510,7 +510,7 @@ describe("executeTask — preflight branches", () => {
   it("uses custom reason code when provided in deps", async () => {
     getOperationCardMock.mockReturnValue(null)
 
-    const { executeTask } = await import("@core/core/routing/engine.js")
+    const { executeTask } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTask(
       { task: "unknown.task", input: {} },
@@ -540,7 +540,7 @@ describe("executeTasks — 1-item chain error paths", () => {
       meta: { route_used: "graphql" },
     })
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       [{ task: "repo.view", input: { owner: "acme", name: "modkit" } }],
@@ -563,7 +563,7 @@ describe("executeTasks — 1-item chain error paths", () => {
       meta: { route_used: "cli" },
     })
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       [{ task: "repo.view", input: { owner: "acme", name: "modkit" } }],
@@ -579,7 +579,7 @@ describe("executeTasks — 1-item chain error paths", () => {
   it("1-item chain with undefined element returns failed status (dead-code guard)", async () => {
     // This exercises the defensive `if (req === undefined)` guard at lines 246-261
     // which TypeScript needs even though it can never fire with well-typed callers.
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       // Cast to bypass TypeScript's type check

@@ -26,6 +26,7 @@ routing:
   fallbacks: []
 graphql:
   operationName: IssueAssigneesUpdate
+  operationType: mutation
   documentPath: src/gql/operations/issue-assignees-update.graphql
   resolution:
     lookup:

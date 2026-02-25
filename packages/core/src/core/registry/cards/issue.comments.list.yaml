@@ -43,6 +43,7 @@ routing:
     - CLI fallback uses gh api graphql with bounded cursor pagination for comments.
 graphql:
   operationName: IssueCommentsList
+  operationType: query
   documentPath: src/gql/operations/issue-comments-list.graphql
 cli:
   command: api graphql

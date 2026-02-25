@@ -28,6 +28,7 @@ routing:
   fallbacks: [cli]
 graphql:
   operationName: ReleaseView
+  operationType: query
   documentPath: src/gql/operations/release-view.graphql
 cli:
   command: api

@@ -38,6 +38,7 @@ routing:
   fallbacks: [cli]
 graphql:
   operationName: RepoIssueTypesList
+  operationType: query
   documentPath: src/gql/operations/repo-issue-types-list.graphql
 cli:
   command: api graphql

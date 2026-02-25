@@ -39,6 +39,7 @@ routing:
   fallbacks: [cli]
 graphql:
   operationName: RepoLabelsList
+  operationType: query
   documentPath: src/gql/operations/repo-labels-list.graphql
 cli:
   command: label list

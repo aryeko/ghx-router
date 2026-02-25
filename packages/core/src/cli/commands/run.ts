@@ -1,5 +1,5 @@
 import type { TaskRequest } from "../../core/contracts/task.js"
-import { executeTask } from "../../core/routing/engine.js"
+import { executeTask } from "../../core/routing/engine/index.js"
 import { createGithubClient } from "../../gql/github-client.js"
 
 const GITHUB_GRAPHQL_ENDPOINT = "https://api.github.com/graphql"

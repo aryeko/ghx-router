@@ -22,7 +22,7 @@ export {
   listCapabilities,
 } from "./core/registry/list-capabilities.js"
 export type { OperationCard } from "./core/registry/types.js"
-export { executeTask, executeTasks } from "./core/routing/engine.js"
+export { executeTask, executeTasks } from "./core/routing/engine/index.js"
 export type { RouteReasonCode } from "./core/routing/reason-codes.js"
 export type { ResolutionCache, ResolutionCacheOptions } from "./core/routing/resolution-cache.js"
 export { buildCacheKey, createResolutionCache } from "./core/routing/resolution-cache.js"
