@@ -284,13 +284,25 @@ describe("assertProjectInput", () => {
 
   it("throws when first is 0", () => {
     expect(() => assertProjectInput({ ...base, first: 0 })).toThrow(
-      "`first` must be between 1 and 100",
+      "`first` must be an integer between 1 and 100",
     )
   })
 
   it("throws when first is greater than 100", () => {
     expect(() => assertProjectInput({ ...base, first: 101 })).toThrow(
-      "`first` must be between 1 and 100",
+      "`first` must be an integer between 1 and 100",
+    )
+  })
+
+  it("throws when first is a non-integer", () => {
+    expect(() => assertProjectInput({ ...base, first: 1.5 })).toThrow(
+      "`first` must be an integer between 1 and 100",
+    )
+  })
+
+  it("throws when first is NaN", () => {
+    expect(() => assertProjectInput({ ...base, first: Number.NaN })).toThrow(
+      "`first` must be an integer between 1 and 100",
     )
   })
 

@@ -553,6 +553,7 @@ export type PrMergeInput = {
 export type PrMergeData = {
   prNumber: number
   method: string
+  isMethodAssumed: boolean
   queued: boolean
   deleteBranch: boolean
 }

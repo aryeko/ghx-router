@@ -219,6 +219,7 @@ describe("runPrMerge", () => {
 
     expect(result.prNumber).toBe(42)
     expect(result.method).toBe("merge")
+    expect(result.isMethodAssumed).toBe(true)
     expect(result.queued).toBe(false)
     expect(result.deleteBranch).toBe(false)
   })
@@ -246,6 +247,7 @@ describe("runPrMerge", () => {
     })
 
     expect(result.method).toBe("squash")
+    expect(result.isMethodAssumed).toBe(false)
     expect(result.deleteBranch).toBe(false)
   })
 

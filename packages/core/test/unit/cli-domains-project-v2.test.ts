@@ -936,14 +936,14 @@ describe("project-v2 domain handlers", () => {
     })
 
     describe("project_v2.items.issue.remove", () => {
-      it("returns success with itemId and removed: true", async () => {
+      it("returns success with deletedItemId", async () => {
         const result = await h("project_v2.items.issue.remove")(
           mockRunner(0, ""),
           { owner: "myorg", projectNumber: 123, itemId: "PVTI_abc123" },
           undefined,
         )
         expect(result.ok).toBe(true)
-        expect(result.data).toMatchObject({ itemId: "PVTI_abc123", removed: true })
+        expect(result.data).toMatchObject({ deletedItemId: "PVTI_abc123" })
         expect(result.meta.capability_id).toBe("project_v2.items.issue.remove")
         expect(result.meta.route_used).toBe("cli")
       })

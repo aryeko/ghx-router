@@ -135,10 +135,12 @@ export async function runProjectV2FieldsList(
   // Tries org lookup first; falls back to user lookup if the owner is not an org.
   // This costs an extra network round-trip when the owner is a user account.
 
+  const first = input.first ?? 100
+
   const orgResult = await getProjectV2FieldsListOrgSdk(client).ProjectV2FieldsListOrg({
     owner: input.owner,
     projectNumber: input.projectNumber,
-    first: input.first,
+    first,
     ...(input.after !== undefined ? { after: input.after } : {}),
   })
 
@@ -148,7 +150,7 @@ export async function runProjectV2FieldsList(
     const userResult = await getProjectV2FieldsListUserSdk(client).ProjectV2FieldsListUser({
       owner: input.owner,
       projectNumber: input.projectNumber,
-      first: input.first,
+      first,
       ...(input.after !== undefined ? { after: input.after } : {}),
     })
     conn = userResult.user?.projectV2?.fields

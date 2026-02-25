@@ -36,6 +36,11 @@ export type ProjectV2FieldsListOrgQuery = {
               id: string
               name: string
               dataType: Types.ProjectV2FieldType
+              options: Array<{
+                __typename?: "ProjectV2SingleSelectFieldOption"
+                id: string
+                name: string
+              }>
             }
           | null
         > | null
@@ -46,25 +51,25 @@ export type ProjectV2FieldsListOrgQuery = {
 }
 
 export const ProjectV2FieldsListOrgDocument = `
-    query ProjectV2FieldsListOrg($owner: String!, $projectNumber: Int!, $first: Int!, $after: String) {
+    fragment ProjectV2CommonFields on ProjectV2FieldCommon {
+  id
+  name
+  dataType
+}
+
+query ProjectV2FieldsListOrg($owner: String!, $projectNumber: Int!, $first: Int!, $after: String) {
   organization(login: $owner) {
     projectV2(number: $projectNumber) {
       fields(first: $first, after: $after) {
         nodes {
-          ... on ProjectV2Field {
-            id
-            name
-            dataType
-          }
-          ... on ProjectV2IterationField {
-            id
-            name
-            dataType
+          ... on ProjectV2FieldCommon {
+            ...ProjectV2CommonFields
           }
           ... on ProjectV2SingleSelectField {
-            id
-            name
-            dataType
+            options {
+              id
+              name
+            }
           }
         }
         pageInfo {

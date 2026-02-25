@@ -156,6 +156,28 @@ describe("runRepoIssueTypesList", () => {
     expect(result.pageInfo.endCursor).toBeNull()
   })
 
+  it("keeps color as null when issue type color is null", async () => {
+    const execute = vi.fn().mockResolvedValue({
+      repository: {
+        issueTypes: {
+          nodes: [
+            {
+              id: "issuetype-2",
+              name: "Task",
+              color: null,
+              isEnabled: true,
+            },
+          ],
+          pageInfo: { hasNextPage: false, endCursor: null },
+        },
+      },
+    })
+    const transport: GraphqlTransport = { execute }
+
+    const result = await runRepoIssueTypesList(transport, baseInput)
+    expect(result.items[0]?.color).toBeNull()
+  })
+
   it("returns pageInfo with cursor when more pages exist", async () => {
     const execute = vi.fn().mockResolvedValue({
       repository: {

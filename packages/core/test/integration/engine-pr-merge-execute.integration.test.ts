@@ -9,6 +9,7 @@ describe("executeTask pr.merge", () => {
       mergePr: async () => ({
         prNumber: 232,
         method: "merge",
+        isMethodAssumed: true,
         queued: false,
         deleteBranch: false,
       }),

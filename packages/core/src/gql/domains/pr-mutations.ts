@@ -478,7 +478,10 @@ export async function runPrMerge(
     prNumber: input.prNumber,
     // method echoes the input mergeMethod rather than reading from the GQL response,
     // since GitHub's mergePullRequest mutation does not return the merge method used.
+    // isMethodAssumed is true when the caller did not specify a merge method; the
+    // returned value of "merge" is an assumption, not confirmed by GitHub.
     method: input.mergeMethod?.toLowerCase() ?? "merge",
+    isMethodAssumed: input.mergeMethod === undefined,
     // Note: GitHub GraphQL API does not expose merge queue state; queued is always false
     queued: false,
     deleteBranch: input.deleteBranch ?? false,
@@ -621,6 +624,7 @@ export async function runPrReviewsRequest(
   const result = await getPrReviewsRequestSdk(client).PrReviewsRequest({
     pullRequestId,
     userIds: reviewerUserIds,
+    reviewRequestsFirst: Math.max(reviewerUserIds.length, 1),
   })
 
   const pr = result.requestReviews?.pullRequest

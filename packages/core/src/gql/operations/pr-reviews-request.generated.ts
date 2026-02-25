@@ -5,6 +5,7 @@ type GraphQLClientRequestHeaders = RequestOptions["requestHeaders"]
 export type PrReviewsRequestMutationVariables = Types.Exact<{
   pullRequestId: Types.Scalars["ID"]["input"]
   userIds: Array<Types.Scalars["ID"]["input"]> | Types.Scalars["ID"]["input"]
+  reviewRequestsFirst: Types.Scalars["Int"]["input"]
 }>
 
 export type PrReviewsRequestMutation = {
@@ -22,7 +23,7 @@ export type PrReviewsRequestMutation = {
           requestedReviewer?:
             | { __typename?: "Bot" }
             | { __typename?: "Mannequin" }
-            | { __typename?: "Team" }
+            | { __typename?: "Team"; slug: string }
             | { __typename?: "User"; login: string }
             | null
         } | null> | null
@@ -32,16 +33,19 @@ export type PrReviewsRequestMutation = {
 }
 
 export const PrReviewsRequestDocument = `
-    mutation PrReviewsRequest($pullRequestId: ID!, $userIds: [ID!]!) {
+    mutation PrReviewsRequest($pullRequestId: ID!, $userIds: [ID!]!, $reviewRequestsFirst: Int!) {
   requestReviews(input: {pullRequestId: $pullRequestId, userIds: $userIds}) {
     pullRequest {
       id
       number
-      reviewRequests(first: 10) {
+      reviewRequests(first: $reviewRequestsFirst) {
         nodes {
           requestedReviewer {
             ... on User {
               login
+            }
+            ... on Team {
+              slug
             }
           }
         }

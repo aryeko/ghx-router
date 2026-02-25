@@ -3,20 +3,14 @@ query ProjectV2FieldsListUser($owner: String!, $projectNumber: Int!, $first: Int
     projectV2(number: $projectNumber) {
       fields(first: $first, after: $after) {
         nodes {
-          ... on ProjectV2Field {
-            id
-            name
-            dataType
-          }
-          ... on ProjectV2IterationField {
-            id
-            name
-            dataType
+          ... on ProjectV2FieldCommon {
+            ...ProjectV2CommonFields
           }
           ... on ProjectV2SingleSelectField {
-            id
-            name
-            dataType
+            options {
+              id
+              name
+            }
           }
         }
         pageInfo {

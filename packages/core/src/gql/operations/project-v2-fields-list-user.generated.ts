@@ -36,6 +36,11 @@ export type ProjectV2FieldsListUserQuery = {
               id: string
               name: string
               dataType: Types.ProjectV2FieldType
+              options: Array<{
+                __typename?: "ProjectV2SingleSelectFieldOption"
+                id: string
+                name: string
+              }>
             }
           | null
         > | null
@@ -51,20 +56,14 @@ export const ProjectV2FieldsListUserDocument = `
     projectV2(number: $projectNumber) {
       fields(first: $first, after: $after) {
         nodes {
-          ... on ProjectV2Field {
-            id
-            name
-            dataType
-          }
-          ... on ProjectV2IterationField {
-            id
-            name
-            dataType
+          ... on ProjectV2FieldCommon {
+            ...ProjectV2CommonFields
           }
           ... on ProjectV2SingleSelectField {
-            id
-            name
-            dataType
+            options {
+              id
+              name
+            }
           }
         }
         pageInfo {

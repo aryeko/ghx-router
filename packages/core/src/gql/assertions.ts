@@ -324,8 +324,11 @@ export function assertProjectInput(input: {
   if (!Number.isInteger(input.projectNumber) || input.projectNumber <= 0) {
     throw new Error("Project number must be a positive integer")
   }
-  if (input.first !== undefined && (input.first < 1 || input.first > 100)) {
-    throw new Error("`first` must be between 1 and 100")
+  if (
+    input.first !== undefined &&
+    (!Number.isInteger(input.first) || input.first < 1 || input.first > 100)
+  ) {
+    throw new Error("`first` must be an integer between 1 and 100")
   }
 }
 

@@ -80,7 +80,7 @@ export async function runRepoIssueTypesList(
     items: (conn?.nodes ?? []).map((n) => ({
       id: n?.id ?? null,
       name: n?.name ?? null,
-      color: n ? String(n.color) : null,
+      color: n?.color != null ? String(n.color) : null,
       isEnabled: n?.isEnabled ?? null,
     })),
     pageInfo: {

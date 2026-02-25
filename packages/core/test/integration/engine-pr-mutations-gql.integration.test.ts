@@ -88,6 +88,7 @@ describe("PR mutation GQL routing", () => {
         mergePr: async () => ({
           prNumber: 42,
           method: "merge",
+          isMethodAssumed: true,
           queued: false,
           deleteBranch: false,
         }),

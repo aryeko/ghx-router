@@ -493,7 +493,7 @@ const handleProjectV2ItemsIssueRemove: CliHandler = async (runner, params, _card
       )
     }
 
-    const normalized = { itemId, removed: true }
+    const normalized = { deletedItemId: itemId }
 
     return normalizeResult(normalized, "cli", {
       capabilityId: "project_v2.items.issue.remove",

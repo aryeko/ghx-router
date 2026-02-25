@@ -184,7 +184,7 @@ describe("runProjectV2FieldsList", () => {
     expect(result.pageInfo.endCursor).toBe("cursor-ghi")
   })
 
-  it("filters null nodes from fields list", async () => {
+  it("maps null nodes as null-id entries in fields list", async () => {
     const execute = vi.fn().mockResolvedValue({
       organization: {
         projectV2: {

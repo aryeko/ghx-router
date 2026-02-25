@@ -339,7 +339,12 @@ const handlers = new Map<string, GraphqlHandler>([
         rebase: "REBASE",
       }
       const normalizedMethod = (raw.method ?? "merge").toLowerCase()
-      const mergeMethod = methodMap[normalizedMethod] ?? "MERGE"
+      const mergeMethod = methodMap[normalizedMethod]
+      if (!mergeMethod) {
+        throw new Error(
+          `Unsupported merge method "${raw.method}" for pr.merge. Expected one of: merge, squash, rebase.`,
+        )
+      }
       return c.mergePr({ owner: raw.owner, name: raw.name, prNumber: raw.prNumber, mergeMethod })
     },
   ],
