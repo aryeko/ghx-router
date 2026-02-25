@@ -15,14 +15,9 @@ export type CompactChainResult = {
 
 export function compactRunResult(envelope: ResultEnvelope): CompactRunResult {
   if (envelope.ok) {
-    const result: { ok: true; data: unknown; pagination?: ResultEnvelope["meta"]["pagination"] } = {
-      ok: true,
-      data: envelope.data,
-    }
-    if (envelope.meta.pagination !== undefined) {
-      result.pagination = envelope.meta.pagination
-    }
-    return result
+    return envelope.meta.pagination !== undefined
+      ? { ok: true, data: envelope.data, pagination: envelope.meta.pagination }
+      : { ok: true, data: envelope.data }
   }
   const err = envelope.error
   return {

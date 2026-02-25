@@ -354,7 +354,7 @@ describe("runCommand", () => {
         "--verbose",
       ])
 
-      expect(stdout).toHaveBeenCalledWith(`${JSON.stringify(fullEnvelope)}\n`)
+      expect(stdout).toHaveBeenCalledWith(`${JSON.stringify(fullEnvelope, null, 2)}\n`)
     })
 
     it("compact success output has {ok:true, data} shape", async () => {

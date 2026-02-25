@@ -1,4 +1,4 @@
-import { compactRunResult } from "../../cli/formatters/compact.js"
+import { compactRunResult } from "@core/cli/formatters/compact.js"
 import type { TaskRequest } from "../../core/contracts/task.js"
 import { executeTask } from "../../core/routing/engine.js"
 import { createGithubClient } from "../../gql/github-client.js"
@@ -160,6 +160,6 @@ export async function runCommand(argv: string[] = []): Promise<number> {
   })
 
   const output = verbose ? result : compactRunResult(result)
-  process.stdout.write(`${JSON.stringify(output)}\n`)
+  process.stdout.write(`${JSON.stringify(output, null, verbose ? 2 : undefined)}\n`)
   return 0
 }

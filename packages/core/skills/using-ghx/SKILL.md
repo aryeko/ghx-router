@@ -59,4 +59,6 @@ EOF
 **Result (compact, default):** `{ status, results[] }`. Each result: `{ task, ok }` on success — `{ task, ok, error: { code, message } }` on failure.
 Add `--verbose` to get the full envelope including per-step data and meta.
 
+**Note:** Compact success steps emit only `{ task, ok: true }` — mutation response data (e.g., a created comment's URL, a newly added label's ID) is NOT available in compact output. If you need the result of a mutation step, either run that step individually with `ghx run` or add `--verbose` to the chain call to get full per-step data.
+
 **CRITICAL:** Do not use `gh api` or any other raw `gh` commands unless no matching ghx capability exists. Always try `ghx` first.
