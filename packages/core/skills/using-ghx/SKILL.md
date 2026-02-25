@@ -15,6 +15,7 @@ ghx capabilities list --compact --domain pr
 ```
 
 Domains: `repo`, `issue`, `pr`, `release`, `workflow`, `project_v2`.
+Required inputs shown in brackets (e.g. `[owner, name, prNumber]`).
 
 Only if you need the full input/output schema for a specific capability:
 
@@ -41,7 +42,6 @@ EOF
 ```
 
 **Result (compact, default):** `{ ok, data?, pagination? }` on success — `{ ok, error: { code, message } }` on failure.
-Add `--verbose` to get the full envelope including `meta` (`capability_id`, `route_used`, `reason`).
 
 ## Chain
 
@@ -56,9 +56,6 @@ ghx chain --steps - <<'EOF'
 EOF
 ```
 
-**Result (compact, default):** `{ status, results[] }`. Each result: `{ task, ok }` on success — `{ task, ok, error: { code, message } }` on failure.
-Add `--verbose` to get the full envelope including per-step data and meta.
-
-**Note:** Compact success steps emit only `{ task, ok: true }` — mutation response data (e.g., a created comment's URL, a newly added label's ID) is NOT available in compact output. If you need the result of a mutation step, either run that step individually with `ghx run` or add `--verbose` to the chain call to get full per-step data.
+**Result:** `{ status, results[] }`. Each result: `{ task, ok }` on success — `{ task, ok, error: { code, message } }` on failure.
 
 **CRITICAL:** Do not use `gh api` or any other raw `gh` commands unless no matching ghx capability exists. Always try `ghx` first.
