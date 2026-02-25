@@ -160,4 +160,64 @@ describe("gql capability registry", () => {
       expect(mergePr).toHaveBeenCalledWith(expect.objectContaining({ mergeMethod: "MERGE" }))
     })
   })
+
+  describe("requireNonEmptyString via pr.threads handlers", () => {
+    function makeThreadClient() {
+      return {
+        replyToReviewThread: vi.fn().mockResolvedValue({}),
+        resolveReviewThread: vi.fn().mockResolvedValue({}),
+        unresolveReviewThread: vi.fn().mockResolvedValue({}),
+      } as unknown as Parameters<NonNullable<ReturnType<typeof getGraphqlHandler>>>[0]
+    }
+
+    it("pr.threads.reply throws when threadId is missing", () => {
+      const handler = getGraphqlHandler("pr.threads.reply")
+      expect(handler).toBeDefined()
+      if (!handler) throw new Error("missing pr.threads.reply handler")
+
+      expect(() => handler(makeThreadClient(), { threadId: "", body: "ok" })).toThrow(
+        "Missing or invalid threadId for pr.threads.reply",
+      )
+    })
+
+    it("pr.threads.reply throws when body is missing", () => {
+      const handler = getGraphqlHandler("pr.threads.reply")
+      expect(handler).toBeDefined()
+      if (!handler) throw new Error("missing pr.threads.reply handler")
+
+      expect(() => handler(makeThreadClient(), { threadId: "thread-1", body: "" })).toThrow(
+        "Missing or invalid body for pr.threads.reply",
+      )
+    })
+
+    it("pr.threads.reply throws when threadId is non-string", () => {
+      const handler = getGraphqlHandler("pr.threads.reply")
+      expect(handler).toBeDefined()
+      if (!handler) throw new Error("missing pr.threads.reply handler")
+
+      expect(() => handler(makeThreadClient(), { threadId: 42, body: "ok" })).toThrow(
+        "Missing or invalid threadId for pr.threads.reply",
+      )
+    })
+
+    it("pr.threads.resolve throws when threadId is empty", () => {
+      const handler = getGraphqlHandler("pr.threads.resolve")
+      expect(handler).toBeDefined()
+      if (!handler) throw new Error("missing pr.threads.resolve handler")
+
+      expect(() => handler(makeThreadClient(), { threadId: "" })).toThrow(
+        "Missing or invalid threadId for pr.threads.resolve",
+      )
+    })
+
+    it("pr.threads.unresolve throws when threadId is empty", () => {
+      const handler = getGraphqlHandler("pr.threads.unresolve")
+      expect(handler).toBeDefined()
+      if (!handler) throw new Error("missing pr.threads.unresolve handler")
+
+      expect(() => handler(makeThreadClient(), { threadId: "" })).toThrow(
+        "Missing or invalid threadId for pr.threads.unresolve",
+      )
+    })
+  })
 })

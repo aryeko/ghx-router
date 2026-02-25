@@ -223,3 +223,56 @@ describe("runReleaseList", () => {
     expect(result.items[1]?.id).toBeNull()
   })
 })
+
+describe("mapReleaseNode String() conversion branches", () => {
+  it("converts non-string url via String()", async () => {
+    const node = {
+      databaseId: 1,
+      tagName: "v1.0.0",
+      name: "Release",
+      isDraft: false,
+      isPrerelease: false,
+      url: { toString: () => "https://example.com/releases/v1.0.0" },
+      createdAt: "2025-01-01T00:00:00Z",
+      publishedAt: null,
+      tagCommit: null,
+    }
+    const execute = vi.fn().mockResolvedValue({ repository: { release: node } })
+    const transport: GraphqlTransport = { execute }
+
+    const result = await runReleaseView(transport, baseViewInput)
+
+    expect(typeof result.url).toBe("string")
+  })
+
+  it("converts non-string tagCommit.oid via String()", async () => {
+    const node = makeReleaseNode({ tagCommit: { oid: 12345 } })
+    const execute = vi.fn().mockResolvedValue({ repository: { release: node } })
+    const transport: GraphqlTransport = { execute }
+
+    const result = await runReleaseView(transport, baseViewInput)
+
+    expect(result.targetCommitish).toBe("12345")
+  })
+
+  it("converts non-string createdAt via String()", async () => {
+    const node = makeReleaseNode({ createdAt: 1735689600000 })
+    const execute = vi.fn().mockResolvedValue({ repository: { release: node } })
+    const transport: GraphqlTransport = { execute }
+
+    const result = await runReleaseView(transport, baseViewInput)
+
+    expect(typeof result.createdAt).toBe("string")
+    expect(result.createdAt).toBe("1735689600000")
+  })
+
+  it("converts non-string publishedAt via String()", async () => {
+    const node = makeReleaseNode({ publishedAt: 1735689600000 })
+    const execute = vi.fn().mockResolvedValue({ repository: { release: node } })
+    const transport: GraphqlTransport = { execute }
+
+    const result = await runReleaseView(transport, baseViewInput)
+
+    expect(result.publishedAt).toBe("1735689600000")
+  })
+})

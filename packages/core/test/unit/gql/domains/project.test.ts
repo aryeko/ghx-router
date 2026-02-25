@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest"
 import {
   runProjectV2FieldsList,
+  runProjectV2ItemAdd,
   runProjectV2ItemsList,
   runProjectV2OrgView,
   runProjectV2UserView,
@@ -387,5 +388,121 @@ describe("runProjectV2ItemsList", () => {
     expect(result.items[0]?.contentType).toBeNull()
     expect(result.items[0]?.contentNumber).toBeNull()
     expect(result.items[0]?.contentTitle).toBeNull()
+  })
+})
+
+describe("runProjectV2OrgView — null field mapping", () => {
+  it("maps id as null when project.id is null", async () => {
+    const execute = vi.fn().mockResolvedValue({
+      organization: {
+        projectV2: {
+          id: null,
+          title: "T",
+          shortDescription: null,
+          public: true,
+          closed: false,
+          url: "u",
+        },
+      },
+    })
+    const transport: GraphqlTransport = { execute }
+
+    const result = await runProjectV2OrgView(transport, orgViewInput)
+
+    expect(result.id).toBeNull()
+  })
+
+  it("maps title as null when project.title is null", async () => {
+    const execute = vi.fn().mockResolvedValue({
+      organization: {
+        projectV2: {
+          id: "p1",
+          title: null,
+          shortDescription: null,
+          public: true,
+          closed: false,
+          url: "u",
+        },
+      },
+    })
+    const transport: GraphqlTransport = { execute }
+
+    const result = await runProjectV2OrgView(transport, orgViewInput)
+
+    expect(result.title).toBeNull()
+  })
+
+  it("converts url via String() when url is not a string", async () => {
+    const execute = vi.fn().mockResolvedValue({
+      organization: {
+        projectV2: {
+          id: "p1",
+          title: "T",
+          shortDescription: null,
+          public: true,
+          closed: false,
+          url: { href: "https://example.com" },
+        },
+      },
+    })
+    const transport: GraphqlTransport = { execute }
+
+    const result = await runProjectV2OrgView(transport, orgViewInput)
+
+    expect(typeof result.url).toBe("string")
+  })
+})
+
+describe("runProjectV2UserView — null field mapping", () => {
+  it("maps id as null when project.id is null", async () => {
+    const execute = vi.fn().mockResolvedValue({
+      user: {
+        projectV2: {
+          id: null,
+          title: "T",
+          shortDescription: null,
+          public: true,
+          closed: false,
+          url: "u",
+        },
+      },
+    })
+    const transport: GraphqlTransport = { execute }
+
+    const result = await runProjectV2UserView(transport, userViewInput)
+
+    expect(result.id).toBeNull()
+  })
+})
+
+describe("resolveIssueNodeId via runProjectV2ItemAdd", () => {
+  const addInput = {
+    owner: "acme",
+    projectNumber: 1,
+    issueUrl: "https://github.com/acme/repo/issues/99",
+  }
+
+  it("throws when resource __typename is not Issue", async () => {
+    const execute = vi
+      .fn()
+      .mockResolvedValueOnce({ organization: { projectV2: { id: "PVT_proj1" } } })
+      .mockResolvedValueOnce({ resource: { __typename: "PullRequest", id: "PR_abc" } })
+    const transport: GraphqlTransport = { execute }
+
+    await expect(runProjectV2ItemAdd(transport, addInput)).rejects.toThrow(
+      `Issue not found at URL "${addInput.issueUrl}"`,
+    )
+  })
+
+  it("throws when resource has no id field", async () => {
+    const execute = vi
+      .fn()
+      .mockResolvedValueOnce({ organization: { projectV2: { id: "PVT_proj1" } } })
+      .mockResolvedValueOnce({ resource: { __typename: "Issue" } })
+    const transport: GraphqlTransport = { execute }
+
+    await expect(runProjectV2ItemAdd(transport, addInput)).rejects.toThrow(
+      `Issue not found at URL "${addInput.issueUrl}"`,
+    )
   })
 })

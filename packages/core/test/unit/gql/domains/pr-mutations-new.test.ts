@@ -7,6 +7,9 @@ import {
   runPrMerge,
   runPrReviewsRequest,
   runPrUpdate,
+  runResolveReviewThread,
+  runSubmitPrReview,
+  runUnresolveReviewThread,
 } from "../../../../src/gql/domains/pr-mutations.js"
 import type { GraphqlTransport } from "../../../../src/gql/transport.js"
 
@@ -572,5 +575,223 @@ describe("runPrReviewsRequest", () => {
     const result = await runPrReviewsRequest(transport, reviewsRequestInput)
 
     expect(result.reviewers).toEqual(["charlie"])
+  })
+})
+
+// --- runResolveReviewThread ---
+
+describe("runResolveReviewThread", () => {
+  it("throws when thread is null in mutation result", async () => {
+    const execute = vi.fn().mockResolvedValue({ resolveReviewThread: { thread: null } })
+    const transport: GraphqlTransport = { execute }
+
+    await expect(runResolveReviewThread(transport, { threadId: "thread-1" })).rejects.toThrow(
+      "Review thread mutation failed",
+    )
+  })
+
+  it("throws when thread id is not a string", async () => {
+    const execute = vi
+      .fn()
+      .mockResolvedValue({ resolveReviewThread: { thread: { id: 123, isResolved: true } } })
+    const transport: GraphqlTransport = { execute }
+
+    await expect(runResolveReviewThread(transport, { threadId: "thread-1" })).rejects.toThrow(
+      "Review thread mutation failed",
+    )
+  })
+
+  it("returns thread data on success", async () => {
+    const execute = vi.fn().mockResolvedValue({
+      resolveReviewThread: { thread: { id: "thread-1", isResolved: true } },
+    })
+    const transport: GraphqlTransport = { execute }
+
+    const result = await runResolveReviewThread(transport, { threadId: "thread-1" })
+
+    expect(result.id).toBe("thread-1")
+    expect(result.isResolved).toBe(true)
+  })
+
+  it("throws when assertReviewThreadInput fails on empty threadId", async () => {
+    const execute = vi.fn()
+    const transport: GraphqlTransport = { execute }
+
+    await expect(runResolveReviewThread(transport, { threadId: "" })).rejects.toThrow(
+      "Review thread id is required",
+    )
+    expect(execute).not.toHaveBeenCalled()
+  })
+})
+
+// --- runUnresolveReviewThread ---
+
+describe("runUnresolveReviewThread", () => {
+  it("throws when thread is null in mutation result", async () => {
+    const execute = vi.fn().mockResolvedValue({ unresolveReviewThread: { thread: null } })
+    const transport: GraphqlTransport = { execute }
+
+    await expect(runUnresolveReviewThread(transport, { threadId: "thread-1" })).rejects.toThrow(
+      "Review thread mutation failed",
+    )
+  })
+
+  it("returns thread data on success", async () => {
+    const execute = vi.fn().mockResolvedValue({
+      unresolveReviewThread: { thread: { id: "thread-1", isResolved: false } },
+    })
+    const transport: GraphqlTransport = { execute }
+
+    const result = await runUnresolveReviewThread(transport, { threadId: "thread-1" })
+
+    expect(result.id).toBe("thread-1")
+    expect(result.isResolved).toBe(false)
+  })
+
+  it("throws when mutation result has missing thread", async () => {
+    const execute = vi.fn().mockResolvedValue({ unresolveReviewThread: null })
+    const transport: GraphqlTransport = { execute }
+
+    await expect(runUnresolveReviewThread(transport, { threadId: "thread-1" })).rejects.toThrow(
+      "Review thread mutation failed",
+    )
+  })
+})
+
+// --- runSubmitPrReview ---
+
+describe("runSubmitPrReview", () => {
+  const baseInput = {
+    owner: "acme",
+    name: "repo",
+    prNumber: 42,
+    event: "COMMENT",
+  }
+
+  it("throws when owner is empty (assertPrReviewSubmitInput)", async () => {
+    const execute = vi.fn()
+    const transport: GraphqlTransport = { execute }
+
+    await expect(runSubmitPrReview(transport, { ...baseInput, owner: "" })).rejects.toThrow(
+      "Repository owner and name are required",
+    )
+    expect(execute).not.toHaveBeenCalled()
+  })
+
+  it("throws when prNumber is 0 (assertPrReviewSubmitInput)", async () => {
+    const execute = vi.fn()
+    const transport: GraphqlTransport = { execute }
+
+    await expect(runSubmitPrReview(transport, { ...baseInput, prNumber: 0 })).rejects.toThrow(
+      "PR number must be a positive integer",
+    )
+    expect(execute).not.toHaveBeenCalled()
+  })
+
+  it("throws when event is missing (assertPrReviewSubmitInput)", async () => {
+    const execute = vi.fn()
+    const transport: GraphqlTransport = { execute }
+
+    await expect(runSubmitPrReview(transport, { ...baseInput, event: "" })).rejects.toThrow(
+      "Review event is required",
+    )
+    expect(execute).not.toHaveBeenCalled()
+  })
+
+  it("throws when pr node id not found", async () => {
+    const execute = vi.fn().mockResolvedValue({ repository: { pullRequest: null } })
+    const transport: GraphqlTransport = { execute }
+
+    await expect(runSubmitPrReview(transport, baseInput)).rejects.toThrow(
+      "Failed to retrieve pull request ID",
+    )
+  })
+
+  it("throws when review response has no id", async () => {
+    const execute = vi
+      .fn()
+      .mockResolvedValueOnce({ repository: { pullRequest: { id: "PR_kwDOA123" } } })
+      .mockResolvedValueOnce({ addPullRequestReview: { pullRequestReview: null } })
+    const transport: GraphqlTransport = { execute }
+
+    await expect(runSubmitPrReview(transport, baseInput)).rejects.toThrow(
+      "Failed to parse pull request review response",
+    )
+  })
+
+  it("returns review data on success without comments", async () => {
+    const execute = vi
+      .fn()
+      .mockResolvedValueOnce({ repository: { pullRequest: { id: "PR_kwDOA123" } } })
+      .mockResolvedValueOnce({
+        addPullRequestReview: {
+          pullRequestReview: { id: "PRR_abc", state: "COMMENTED", body: "looks good" },
+        },
+      })
+    const transport: GraphqlTransport = { execute }
+
+    const result = await runSubmitPrReview(transport, baseInput)
+
+    expect(result.id).toBe("PRR_abc")
+    expect(result.state).toBe("COMMENTED")
+  })
+
+  it("passes optional comment fields (side, startLine, startSide) when provided", async () => {
+    const execute = vi
+      .fn()
+      .mockResolvedValueOnce({ repository: { pullRequest: { id: "PR_kwDOA123" } } })
+      .mockResolvedValueOnce({
+        addPullRequestReview: {
+          pullRequestReview: { id: "PRR_abc", state: "COMMENTED", body: "" },
+        },
+      })
+    const transport: GraphqlTransport = { execute }
+
+    await runSubmitPrReview(transport, {
+      ...baseInput,
+      comments: [
+        {
+          path: "src/index.ts",
+          body: "nit",
+          line: 10,
+          side: "RIGHT",
+          startLine: 8,
+          startSide: "RIGHT",
+        },
+      ],
+    })
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const [, vars] = execute.mock.calls[1]!
+    expect((vars as Record<string, unknown>).threads).toMatchObject([
+      expect.objectContaining({ side: "RIGHT", startLine: 8, startSide: "RIGHT" }),
+    ])
+  })
+
+  it("omits optional comment fields when not provided", async () => {
+    const execute = vi
+      .fn()
+      .mockResolvedValueOnce({ repository: { pullRequest: { id: "PR_kwDOA123" } } })
+      .mockResolvedValueOnce({
+        addPullRequestReview: {
+          pullRequestReview: { id: "PRR_abc", state: "COMMENTED", body: "" },
+        },
+      })
+    const transport: GraphqlTransport = { execute }
+
+    await runSubmitPrReview(transport, {
+      ...baseInput,
+      comments: [{ path: "src/index.ts", body: "nit", line: 10 }],
+    })
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const [, vars] = execute.mock.calls[1]!
+    const thread = ((vars as Record<string, unknown>).threads as unknown[])[0] as Record<
+      string,
+      unknown
+    >
+    expect(thread).not.toHaveProperty("side")
+    expect(thread).not.toHaveProperty("startLine")
+    expect(thread).not.toHaveProperty("startSide")
   })
 })
