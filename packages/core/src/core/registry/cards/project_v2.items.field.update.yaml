@@ -17,10 +17,9 @@ input_schema:
   additionalProperties: false
 output_schema:
   type: object
-  required: [itemId, updated]
+  required: [itemId]
   properties:
     itemId: { type: [string, "null"] }
-    updated: { type: boolean }
   additionalProperties: false
 routing:
   preferred: graphql

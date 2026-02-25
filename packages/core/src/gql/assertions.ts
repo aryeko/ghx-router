@@ -366,10 +366,10 @@ export function assertPrBranchUpdateInput(input: PrBranchUpdateInput): void {
 
 export function assertPrAssigneesInput(input: PrAssigneesAddInput | PrAssigneesRemoveInput): void {
   assertPrInput({ owner: input.owner, name: input.name, prNumber: input.prNumber })
-  assertStringArray(input.logins, "Logins")
+  assertStringArray(input.assignees, "Assignees")
 }
 
 export function assertPrReviewsRequestInput(input: PrReviewsRequestInput): void {
   assertPrInput({ owner: input.owner, name: input.name, prNumber: input.prNumber })
-  assertStringArray(input.reviewerLogins, "Reviewer logins")
+  assertStringArray(input.reviewers, "Reviewers")
 }

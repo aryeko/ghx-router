@@ -463,6 +463,7 @@ export async function runPrMerge(
   return {
     prNumber: input.prNumber,
     method: input.mergeMethod?.toLowerCase() ?? "merge",
+    // Note: GitHub GraphQL API does not expose merge queue state; queued is always false
     queued: false,
     deleteBranch: input.deleteBranch ?? false,
   }
@@ -488,6 +489,8 @@ export async function runPrBranchUpdate(
     throw new Error("Failed to update pull request branch")
   }
 
+  // updated: true is a success indicator — if no error was thrown, the branch update succeeded.
+  // This is not a delta-detection flag; GitHub does not return whether the branch was already up to date.
   return {
     prNumber: input.prNumber,
     updated: true,
@@ -503,12 +506,12 @@ export async function runPrAssigneesAdd(
   const pullRequestId = await fetchPrNodeId(client, input.owner, input.name, input.prNumber)
 
   const userIdResults = await Promise.all(
-    input.logins.map((login) => getUserNodeIdSdk(client).UserNodeId({ login })),
+    input.assignees.map((login) => getUserNodeIdSdk(client).UserNodeId({ login })),
   )
 
-  const unresolvedLogins = input.logins.filter((_, i) => !userIdResults[i]?.user?.id)
+  const unresolvedLogins = input.assignees.filter((_, i) => !userIdResults[i]?.user?.id)
   if (unresolvedLogins.length > 0) {
-    throw new Error(`Could not resolve logins: ${unresolvedLogins.join(", ")}`)
+    throw new Error(`Could not resolve assignees: ${unresolvedLogins.join(", ")}`)
   }
 
   const userIds = userIdResults.flatMap((r) => (r.user?.id ? [r.user.id] : []))
@@ -546,12 +549,12 @@ export async function runPrAssigneesRemove(
   const pullRequestId = await fetchPrNodeId(client, input.owner, input.name, input.prNumber)
 
   const userIdResults = await Promise.all(
-    input.logins.map((login) => getUserNodeIdSdk(client).UserNodeId({ login })),
+    input.assignees.map((login) => getUserNodeIdSdk(client).UserNodeId({ login })),
   )
 
-  const unresolvedLogins = input.logins.filter((_, i) => !userIdResults[i]?.user?.id)
+  const unresolvedLogins = input.assignees.filter((_, i) => !userIdResults[i]?.user?.id)
   if (unresolvedLogins.length > 0) {
-    throw new Error(`Could not resolve logins: ${unresolvedLogins.join(", ")}`)
+    throw new Error(`Could not resolve assignees: ${unresolvedLogins.join(", ")}`)
   }
 
   const userIds = userIdResults.flatMap((r) => (r.user?.id ? [r.user.id] : []))
@@ -589,14 +592,12 @@ export async function runPrReviewsRequest(
   const pullRequestId = await fetchPrNodeId(client, input.owner, input.name, input.prNumber)
 
   const userIdResults = await Promise.all(
-    input.reviewerLogins.map((login) => getUserNodeIdSdk(client).UserNodeId({ login })),
+    input.reviewers.map((login) => getUserNodeIdSdk(client).UserNodeId({ login })),
   )
 
-  const unresolvedReviewerLogins = input.reviewerLogins.filter(
-    (_, i) => !userIdResults[i]?.user?.id,
-  )
+  const unresolvedReviewerLogins = input.reviewers.filter((_, i) => !userIdResults[i]?.user?.id)
   if (unresolvedReviewerLogins.length > 0) {
-    throw new Error(`Could not resolve logins: ${unresolvedReviewerLogins.join(", ")}`)
+    throw new Error(`Could not resolve assignees: ${unresolvedReviewerLogins.join(", ")}`)
   }
 
   const reviewerUserIds = userIdResults.flatMap((r) => (r.user?.id ? [r.user.id] : []))

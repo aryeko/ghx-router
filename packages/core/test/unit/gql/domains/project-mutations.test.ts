@@ -20,7 +20,7 @@ describe("runProjectV2ItemAdd", () => {
     const transport: GraphqlTransport = { execute }
 
     await expect(runProjectV2ItemAdd(transport, { ...addInput, owner: "" })).rejects.toThrow(
-      "owner is required",
+      "Project owner is required",
     )
   })
 
@@ -29,7 +29,7 @@ describe("runProjectV2ItemAdd", () => {
     const transport: GraphqlTransport = { execute }
 
     await expect(runProjectV2ItemAdd(transport, { ...addInput, projectNumber: 0 })).rejects.toThrow(
-      "projectNumber must be a positive integer",
+      "Project number must be a positive integer",
     )
   })
 
@@ -147,7 +147,7 @@ describe("runProjectV2ItemRemove", () => {
     const transport: GraphqlTransport = { execute }
 
     await expect(runProjectV2ItemRemove(transport, { ...removeInput, owner: "" })).rejects.toThrow(
-      "owner is required",
+      "Project owner is required",
     )
   })
 
@@ -157,7 +157,7 @@ describe("runProjectV2ItemRemove", () => {
 
     await expect(
       runProjectV2ItemRemove(transport, { ...removeInput, projectNumber: 0 }),
-    ).rejects.toThrow("projectNumber must be a positive integer")
+    ).rejects.toThrow("Project number must be a positive integer")
   })
 
   it("throws when itemId is empty", async () => {

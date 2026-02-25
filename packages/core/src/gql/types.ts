@@ -573,7 +573,7 @@ export type PrAssigneesInput = {
   owner: string
   name: string
   prNumber: number
-  logins: string[]
+  assignees: string[]
 }
 export type PrAssigneesAddInput = PrAssigneesInput
 export type PrAssigneesRemoveInput = PrAssigneesInput
@@ -592,7 +592,7 @@ export type PrReviewsRequestInput = {
   owner: string
   name: string
   prNumber: number
-  reviewerLogins: string[]
+  reviewers: string[]
 }
 
 export type PrReviewsRequestData = {

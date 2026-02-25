@@ -11,10 +11,10 @@ input_schema:
   additionalProperties: false
 output_schema:
   type: object
-  required: [itemId, added]
+  required: [itemId, itemType]
   properties:
     itemId: { type: [string, "null"] }
-    added: { type: boolean }
+    itemType: { type: string }
   additionalProperties: false
 routing:
   preferred: graphql

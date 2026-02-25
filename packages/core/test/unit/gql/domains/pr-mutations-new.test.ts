@@ -292,7 +292,7 @@ describe("runPrAssigneesAdd", () => {
   const assigneesInput = {
     ...baseInput,
     prNumber: 42,
-    logins: ["alice", "bob"],
+    assignees: ["alice", "bob"],
   }
 
   it("throws when pr node id not found", async () => {
@@ -331,7 +331,7 @@ describe("runPrAssigneesAdd", () => {
     const transport: GraphqlTransport = { execute }
 
     await expect(runPrAssigneesAdd(transport, assigneesInput)).rejects.toThrow(
-      "Could not resolve logins: bob",
+      "Could not resolve assignees: bob",
     )
   })
 
@@ -378,7 +378,7 @@ describe("runPrAssigneesAdd", () => {
       })
     const transport: GraphqlTransport = { execute }
 
-    const result = await runPrAssigneesAdd(transport, { ...assigneesInput, logins: ["alice"] })
+    const result = await runPrAssigneesAdd(transport, { ...assigneesInput, assignees: ["alice"] })
 
     expect(result.added).toEqual(["alice"])
   })
@@ -390,7 +390,7 @@ describe("runPrAssigneesRemove", () => {
   const assigneesInput = {
     ...baseInput,
     prNumber: 42,
-    logins: ["alice"],
+    assignees: ["alice"],
   }
 
   it("throws when pr node id not found", async () => {
@@ -427,7 +427,7 @@ describe("runPrAssigneesRemove", () => {
     const transport: GraphqlTransport = { execute }
 
     await expect(runPrAssigneesRemove(transport, assigneesInput)).rejects.toThrow(
-      "Could not resolve logins: alice",
+      "Could not resolve assignees: alice",
     )
   })
 
@@ -462,7 +462,7 @@ describe("runPrReviewsRequest", () => {
   const reviewsRequestInput = {
     ...baseInput,
     prNumber: 42,
-    reviewerLogins: ["charlie"],
+    reviewers: ["charlie"],
   }
 
   it("throws when pr node id not found", async () => {
@@ -495,7 +495,7 @@ describe("runPrReviewsRequest", () => {
     const transport: GraphqlTransport = { execute }
 
     await expect(runPrReviewsRequest(transport, reviewsRequestInput)).rejects.toThrow(
-      "Could not resolve logins: charlie",
+      "Could not resolve assignees: charlie",
     )
   })
 

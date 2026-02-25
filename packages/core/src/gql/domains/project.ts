@@ -12,6 +12,7 @@ import { getSdk as getProjectV2ItemsListUserSdk } from "../operations/project-v2
 import { getSdk as getProjectV2OrgIdSdk } from "../operations/project-v2-org-id.generated.js"
 import type { ProjectV2OrgViewQuery } from "../operations/project-v2-org-view.generated.js"
 import { getSdk as getProjectV2OrgViewSdk } from "../operations/project-v2-org-view.generated.js"
+import { getSdk as getProjectV2UserIdSdk } from "../operations/project-v2-user-id.generated.js"
 import type { ProjectV2UserViewQuery } from "../operations/project-v2-user-view.generated.js"
 import { getSdk as getProjectV2UserViewSdk } from "../operations/project-v2-user-view.generated.js"
 import type { GraphqlTransport } from "../transport.js"
@@ -48,9 +49,9 @@ async function resolveProjectId(
     return orgResult.organization.projectV2.id
   }
 
-  const userResult = await getProjectV2UserViewSdk(client).ProjectV2UserView({
-    user: owner,
-    projectNumber,
+  const userResult = await getProjectV2UserIdSdk(client).ProjectV2UserId({
+    login: owner,
+    number: projectNumber,
   })
   if (userResult.user?.projectV2?.id) {
     return userResult.user.projectV2.id
@@ -232,12 +233,7 @@ export async function runProjectV2ItemAdd(
   transport: GraphqlTransport,
   input: ProjectV2ItemAddInput,
 ): Promise<ProjectV2ItemAddData> {
-  if (!input.owner || input.owner.trim().length === 0) {
-    throw new Error("owner is required")
-  }
-  if (!Number.isInteger(input.projectNumber) || input.projectNumber <= 0) {
-    throw new Error("projectNumber must be a positive integer")
-  }
+  assertProjectInput(input)
   if (!input.issueUrl || input.issueUrl.trim().length === 0) {
     throw new Error("issueUrl is required")
   }
@@ -266,12 +262,7 @@ export async function runProjectV2ItemRemove(
   transport: GraphqlTransport,
   input: ProjectV2ItemRemoveInput,
 ): Promise<ProjectV2ItemRemoveData> {
-  if (!input.owner || input.owner.trim().length === 0) {
-    throw new Error("owner is required")
-  }
-  if (!Number.isInteger(input.projectNumber) || input.projectNumber <= 0) {
-    throw new Error("projectNumber must be a positive integer")
-  }
+  assertProjectInput(input)
   if (!input.itemId || input.itemId.trim().length === 0) {
     throw new Error("itemId is required")
   }

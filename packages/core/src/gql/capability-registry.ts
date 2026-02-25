@@ -18,6 +18,8 @@ import type {
   IssueRelationsGetInput,
   IssueUpdateInput,
   IssueViewInput,
+  PrAssigneesAddInput,
+  PrAssigneesRemoveInput,
   PrBranchUpdateInput,
   PrCommentsListInput,
   PrDiffListFilesInput,
@@ -32,6 +34,7 @@ import type {
   ProjectV2UserViewInput,
   PrReviewSubmitInput,
   PrReviewsListInput,
+  PrReviewsRequestInput,
   PrUpdateInput,
   PrViewInput,
   ReleaseListInput,
@@ -310,7 +313,7 @@ const handlers = new Map<string, GraphqlHandler>([
         name: string
         title: string
         head: string
-        base?: string
+        base: string
         body?: string
         draft?: boolean
       }
@@ -319,7 +322,7 @@ const handlers = new Map<string, GraphqlHandler>([
         name: raw.name,
         title: raw.title,
         headRefName: raw.head,
-        baseRefName: raw.base ?? "main",
+        baseRefName: raw.base,
         ...(raw.body !== undefined ? { body: raw.body } : {}),
         ...(raw.draft !== undefined ? { draft: raw.draft } : {}),
       })
@@ -335,7 +338,8 @@ const handlers = new Map<string, GraphqlHandler>([
         squash: "SQUASH",
         rebase: "REBASE",
       }
-      const mergeMethod = methodMap[raw.method ?? "merge"] ?? "MERGE"
+      const normalizedMethod = (raw.method ?? "merge").toLowerCase()
+      const mergeMethod = methodMap[normalizedMethod] ?? "MERGE"
       return c.mergePr({ owner: raw.owner, name: raw.name, prNumber: raw.prNumber, mergeMethod })
     },
   ],
@@ -343,37 +347,19 @@ const handlers = new Map<string, GraphqlHandler>([
   [
     "pr.assignees.add",
     (c, p) => {
-      const raw = p as { owner: string; name: string; prNumber: number; assignees: string[] }
-      return c.addPrAssignees({
-        owner: raw.owner,
-        name: raw.name,
-        prNumber: raw.prNumber,
-        logins: raw.assignees,
-      })
+      return c.addPrAssignees(p as PrAssigneesAddInput)
     },
   ],
   [
     "pr.assignees.remove",
     (c, p) => {
-      const raw = p as { owner: string; name: string; prNumber: number; assignees: string[] }
-      return c.removePrAssignees({
-        owner: raw.owner,
-        name: raw.name,
-        prNumber: raw.prNumber,
-        logins: raw.assignees,
-      })
+      return c.removePrAssignees(p as PrAssigneesRemoveInput)
     },
   ],
   [
     "pr.reviews.request",
     (c, p) => {
-      const raw = p as { owner: string; name: string; prNumber: number; reviewers: string[] }
-      return c.requestPrReviews({
-        owner: raw.owner,
-        name: raw.name,
-        prNumber: raw.prNumber,
-        reviewerLogins: raw.reviewers,
-      })
+      return c.requestPrReviews(p as PrReviewsRequestInput)
     },
   ],
 

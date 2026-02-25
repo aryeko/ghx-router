@@ -70,4 +70,94 @@ describe("gql capability registry", () => {
       ),
     ).toThrow("addIssueLabels operation not available")
   })
+
+  describe("pr.merge method normalization", () => {
+    function makeMergeClient(mergePr: ReturnType<typeof vi.fn>) {
+      return {
+        fetchRepoView: vi.fn(),
+        fetchIssueView: vi.fn(),
+        fetchIssueList: vi.fn(),
+        fetchIssueCommentsList: vi.fn(),
+        fetchPrView: vi.fn(),
+        fetchPrList: vi.fn(),
+        fetchPrReviewsList: vi.fn(),
+        fetchPrDiffListFiles: vi.fn(),
+        fetchPrMergeStatus: vi.fn(),
+        fetchPrCommentsList: vi.fn(),
+        replyToReviewThread: vi.fn(),
+        resolveReviewThread: vi.fn(),
+        unresolveReviewThread: vi.fn(),
+        mergePr,
+      } as unknown as Parameters<NonNullable<ReturnType<typeof getGraphqlHandler>>>[0]
+    }
+
+    it('maps lowercase "merge" → "MERGE"', () => {
+      const handler = getGraphqlHandler("pr.merge")
+      expect(handler).toBeDefined()
+      if (!handler) throw new Error("missing pr.merge handler")
+      const mergePr = vi.fn().mockResolvedValue({})
+      handler(makeMergeClient(mergePr), {
+        owner: "o",
+        name: "r",
+        prNumber: 1,
+        method: "merge",
+      })
+      expect(mergePr).toHaveBeenCalledWith(expect.objectContaining({ mergeMethod: "MERGE" }))
+    })
+
+    it('maps lowercase "squash" → "SQUASH"', () => {
+      const handler = getGraphqlHandler("pr.merge")
+      expect(handler).toBeDefined()
+      if (!handler) throw new Error("missing pr.merge handler")
+      const mergePr = vi.fn().mockResolvedValue({})
+      handler(makeMergeClient(mergePr), {
+        owner: "o",
+        name: "r",
+        prNumber: 1,
+        method: "squash",
+      })
+      expect(mergePr).toHaveBeenCalledWith(expect.objectContaining({ mergeMethod: "SQUASH" }))
+    })
+
+    it('maps lowercase "rebase" → "REBASE"', () => {
+      const handler = getGraphqlHandler("pr.merge")
+      expect(handler).toBeDefined()
+      if (!handler) throw new Error("missing pr.merge handler")
+      const mergePr = vi.fn().mockResolvedValue({})
+      handler(makeMergeClient(mergePr), {
+        owner: "o",
+        name: "r",
+        prNumber: 1,
+        method: "rebase",
+      })
+      expect(mergePr).toHaveBeenCalledWith(expect.objectContaining({ mergeMethod: "REBASE" }))
+    })
+
+    it('maps uppercase "SQUASH" → "SQUASH" (case-insensitive normalization)', () => {
+      const handler = getGraphqlHandler("pr.merge")
+      expect(handler).toBeDefined()
+      if (!handler) throw new Error("missing pr.merge handler")
+      const mergePr = vi.fn().mockResolvedValue({})
+      handler(makeMergeClient(mergePr), {
+        owner: "o",
+        name: "r",
+        prNumber: 1,
+        method: "SQUASH",
+      })
+      expect(mergePr).toHaveBeenCalledWith(expect.objectContaining({ mergeMethod: "SQUASH" }))
+    })
+
+    it('defaults to "MERGE" when method is undefined', () => {
+      const handler = getGraphqlHandler("pr.merge")
+      expect(handler).toBeDefined()
+      if (!handler) throw new Error("missing pr.merge handler")
+      const mergePr = vi.fn().mockResolvedValue({})
+      handler(makeMergeClient(mergePr), {
+        owner: "o",
+        name: "r",
+        prNumber: 1,
+      })
+      expect(mergePr).toHaveBeenCalledWith(expect.objectContaining({ mergeMethod: "MERGE" }))
+    })
+  })
 })
