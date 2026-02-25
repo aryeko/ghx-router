@@ -53,6 +53,61 @@ describe("buildBatchQuery", () => {
     expect(result.variables).toEqual({ a_id: "1", b_id: "2" })
   })
 
+  it("preserves fragment definitions appended to query document", () => {
+    const queryWithFragment = `query PrView($owner: String!, $name: String!, $prNumber: Int!) {
+  repository(owner: $owner, name: $name) {
+    pullRequest(number: $prNumber) {
+      ...PrCoreFields
+      body
+    }
+  }
+}
+fragment PrCoreFields on PullRequest {
+  id
+  number
+  title
+  state
+  url
+}`
+    const result = buildBatchQuery([
+      {
+        alias: "step0",
+        query: queryWithFragment,
+        variables: { owner: "o", name: "n", prNumber: 1 },
+      },
+    ])
+    expect(result.document).toContain("...PrCoreFields")
+    expect(result.document).toContain("fragment PrCoreFields on PullRequest")
+  })
+
+  it("deduplicates shared fragment definitions across queries", () => {
+    const queryWithFragment = `query PrView($owner: String!, $name: String!, $prNumber: Int!) {
+  repository(owner: $owner, name: $name) {
+    pullRequest(number: $prNumber) {
+      ...PrCoreFields
+    }
+  }
+}
+fragment PrCoreFields on PullRequest {
+  id
+  number
+}`
+    const result = buildBatchQuery([
+      {
+        alias: "a",
+        query: queryWithFragment,
+        variables: { owner: "o", name: "n", prNumber: 1 },
+      },
+      {
+        alias: "b",
+        query: queryWithFragment,
+        variables: { owner: "o", name: "n", prNumber: 2 },
+      },
+    ])
+    const count = (result.document.match(/fragment PrCoreFields/g) ?? []).length
+    expect(count).toBe(1)
+  })
+
   it("throws on empty array", () => {
     expect(() => buildBatchQuery([])).toThrow()
   })
@@ -79,8 +134,16 @@ describe("buildBatchMutation", () => {
   it("merges two mutations", () => {
     const m = `mutation UpdateIssue($issueId: ID!, $title: String!) { updateIssue(input: {id: $issueId, title: $title}) { issue { id } } }`
     const result = buildBatchMutation([
-      { alias: "a", mutation: m, variables: { issueId: "I_1", title: "Title 1" } },
-      { alias: "b", mutation: m, variables: { issueId: "I_2", title: "Title 2" } },
+      {
+        alias: "a",
+        mutation: m,
+        variables: { issueId: "I_1", title: "Title 1" },
+      },
+      {
+        alias: "b",
+        mutation: m,
+        variables: { issueId: "I_2", title: "Title 2" },
+      },
     ])
     expect(result.document).toContain("$a_issueId: ID!")
     expect(result.document).toContain("$b_title: String!")
@@ -106,7 +169,11 @@ fragment IssueCoreFields on Issue {
   title
 }`
     const result = buildBatchMutation([
-      { alias: "step0", mutation: mutWithFragment, variables: { repositoryId: "R_1", title: "T" } },
+      {
+        alias: "step0",
+        mutation: mutWithFragment,
+        variables: { repositoryId: "R_1", title: "T" },
+      },
     ])
     expect(result.document).toContain("...IssueCoreFields")
     expect(result.document).toContain("fragment IssueCoreFields on Issue")
@@ -123,8 +190,16 @@ fragment IssueCoreFields on Issue {
   number
 }`
     const result = buildBatchMutation([
-      { alias: "a", mutation: mutWithFragment, variables: { repositoryId: "R_1", title: "A" } },
-      { alias: "b", mutation: mutWithFragment, variables: { repositoryId: "R_2", title: "B" } },
+      {
+        alias: "a",
+        mutation: mutWithFragment,
+        variables: { repositoryId: "R_1", title: "A" },
+      },
+      {
+        alias: "b",
+        mutation: mutWithFragment,
+        variables: { repositoryId: "R_2", title: "B" },
+      },
     ])
     const count = (result.document.match(/fragment IssueCoreFields/g) ?? []).length
     expect(count).toBe(1)
