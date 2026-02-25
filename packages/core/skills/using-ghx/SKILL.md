@@ -55,6 +55,6 @@ ghx chain --steps - <<'EOF'
 EOF
 ```
 
-**Result:** `{ status, results[] }`. Each result: `{ task, ok }` on success — `{ task, ok, error: { code, message } }` on failure.
+**Result:** `{ status, results[] }`. Each result: `{ task, ok, data? }` on success — `{ task, ok, error: { code, message } }` on failure.
 
 **CRITICAL:** Do not use `gh api` or any other raw `gh` commands unless no matching ghx capability exists. Always try `ghx` first.
