@@ -69,4 +69,33 @@ describe("executeTask pr.merge", () => {
     expect(result.error?.code).toBe("VALIDATION")
     expect(result.meta.reason).toBe("INPUT_VALIDATION")
   })
+
+  it("falls back to CLI when deleteBranch is present", async () => {
+    const githubClient = {
+      mergePr: async (): Promise<never> => {
+        throw new Error("mergePr should not be called when deleteBranch is in input")
+      },
+    } as unknown as GithubClient
+
+    const request: TaskRequest = {
+      task: "pr.merge",
+      input: {
+        owner: "go-modkit",
+        name: "modkit",
+        prNumber: 232,
+        deleteBranch: true,
+      },
+    }
+
+    const result = await executeTask(request, {
+      githubClient,
+      githubToken: "test-token",
+      ghCliAvailable: false,
+      ghAuthenticated: false,
+    })
+
+    // GQL route throws AdapterUnsupported for deleteBranch → CLI unavailable → final error
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).not.toBe("VALIDATION")
+  })
 })

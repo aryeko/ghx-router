@@ -504,6 +504,9 @@ export async function runPrBranchUpdate(
 }
 
 async function resolveUserNodeIds(client: GraphQLClient, logins: string[]): Promise<string[]> {
+  // N+1 pattern: each login requires a separate UserNodeId query.
+  // GitHub's GraphQL API does not support bulk user-to-node-ID resolution.
+  // Acceptable for typical 1-3 user operations; revisit if bulk use cases emerge.
   const results = await Promise.all(
     logins.map((login) => getUserNodeIdSdk(client).UserNodeId({ login })),
   )

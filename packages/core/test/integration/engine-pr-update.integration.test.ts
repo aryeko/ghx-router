@@ -89,4 +89,28 @@ describe("executeTask pr.update", () => {
     expect(result.error?.code).toBe("VALIDATION")
     expect(result.meta.reason).toBe("INPUT_VALIDATION")
   })
+
+  it("falls back to CLI when draft field is present", async () => {
+    const githubClient = {
+      updatePr: async (): Promise<never> => {
+        throw new Error("updatePr should not be called when draft is in input")
+      },
+    } as unknown as GithubClient
+
+    const request: TaskRequest = {
+      task: "pr.update",
+      input: { owner: "owner", name: "repo", prNumber: 1, title: "New title", draft: true },
+    }
+
+    const result = await executeTask(request, {
+      githubClient,
+      githubToken: "test-token",
+      ghCliAvailable: false,
+      ghAuthenticated: false,
+    })
+
+    // GQL route throws AdapterUnsupported for draft → CLI unavailable → final error
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).not.toBe("VALIDATION")
+  })
 })
