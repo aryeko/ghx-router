@@ -18,13 +18,29 @@ import type {
   IssueRelationsGetInput,
   IssueUpdateInput,
   IssueViewInput,
+  PrAssigneesAddInput,
+  PrAssigneesRemoveInput,
+  PrBranchUpdateInput,
   PrCommentsListInput,
   PrDiffListFilesInput,
   PrListInput,
   PrMergeStatusInput,
+  ProjectV2FieldsListInput,
+  ProjectV2ItemAddInput,
+  ProjectV2ItemFieldUpdateInput,
+  ProjectV2ItemRemoveInput,
+  ProjectV2ItemsListInput,
+  ProjectV2OrgViewInput,
+  ProjectV2UserViewInput,
   PrReviewSubmitInput,
   PrReviewsListInput,
+  PrReviewsRequestInput,
+  PrUpdateInput,
   PrViewInput,
+  ReleaseListInput,
+  ReleaseViewInput,
+  RepoIssueTypesListInput,
+  RepoLabelsListInput,
   RepoViewInput,
 } from "./types.js"
 
@@ -266,6 +282,97 @@ const handlers = new Map<string, GraphqlHandler>([
       }
       return c.submitPrReview(p as PrReviewSubmitInput)
     },
+  ],
+  ["repo.labels.list", (c, p) => c.fetchRepoLabelsList(withDefaultFirst(p) as RepoLabelsListInput)],
+  [
+    "repo.issue_types.list",
+    (c, p) => c.fetchRepoIssueTypesList(withDefaultFirst(p) as RepoIssueTypesListInput),
+  ],
+  // Release
+  ["release.view", (c, p) => c.fetchReleaseView(p as ReleaseViewInput)],
+  ["release.list", (c, p) => c.fetchReleaseList(withDefaultFirst(p) as ReleaseListInput)],
+
+  // Project V2
+  ["project_v2.org.view", (c, p) => c.fetchProjectV2OrgView(p as ProjectV2OrgViewInput)],
+  ["project_v2.user.view", (c, p) => c.fetchProjectV2UserView(p as ProjectV2UserViewInput)],
+  [
+    "project_v2.fields.list",
+    (c, p) => c.fetchProjectV2FieldsList(withDefaultFirst(p) as ProjectV2FieldsListInput),
+  ],
+  [
+    "project_v2.items.list",
+    (c, p) => c.fetchProjectV2ItemsList(withDefaultFirst(p) as ProjectV2ItemsListInput),
+  ],
+
+  // PR mutations (Phase 2)
+  [
+    "pr.create",
+    (c, p) => {
+      const raw = p as {
+        owner: string
+        name: string
+        title: string
+        head: string
+        base: string
+        body?: string
+        draft?: boolean
+      }
+      return c.createPr({
+        owner: raw.owner,
+        name: raw.name,
+        title: raw.title,
+        headRefName: raw.head,
+        baseRefName: raw.base,
+        ...(raw.body !== undefined ? { body: raw.body } : {}),
+        ...(raw.draft !== undefined ? { draft: raw.draft } : {}),
+      })
+    },
+  ],
+  ["pr.update", (c, p) => c.updatePr(p as PrUpdateInput)],
+  [
+    "pr.merge",
+    (c, p) => {
+      const raw = p as {
+        owner: string
+        name: string
+        prNumber: number
+        method?: string
+        deleteBranch?: boolean
+      }
+      const methodMap: Record<string, string> = {
+        merge: "MERGE",
+        squash: "SQUASH",
+        rebase: "REBASE",
+      }
+      if (raw.method !== undefined && typeof raw.method !== "string") {
+        throw new Error(`method must be a string for pr.merge, got ${typeof raw.method}`)
+      }
+      const mergeMethod = raw.method !== undefined ? methodMap[raw.method.toLowerCase()] : undefined
+      if (raw.method !== undefined && !mergeMethod) {
+        throw new Error(
+          `Unsupported merge method "${raw.method}" for pr.merge. Expected one of: merge, squash, rebase.`,
+        )
+      }
+      return c.mergePr({
+        owner: raw.owner,
+        name: raw.name,
+        prNumber: raw.prNumber,
+        ...(mergeMethod !== undefined ? { mergeMethod } : {}),
+        ...(raw.deleteBranch !== undefined ? { deleteBranch: raw.deleteBranch } : {}),
+      })
+    },
+  ],
+  ["pr.branch.update", (c, p) => c.updatePrBranch(p as PrBranchUpdateInput)],
+  ["pr.assignees.add", (c, p) => c.addPrAssignees(p as PrAssigneesAddInput)],
+  ["pr.assignees.remove", (c, p) => c.removePrAssignees(p as PrAssigneesRemoveInput)],
+  ["pr.reviews.request", (c, p) => c.requestPrReviews(p as PrReviewsRequestInput)],
+
+  // Project V2 mutations (Phase 2)
+  ["project_v2.items.issue.add", (c, p) => c.addProjectV2Item(p as ProjectV2ItemAddInput)],
+  ["project_v2.items.issue.remove", (c, p) => c.removeProjectV2Item(p as ProjectV2ItemRemoveInput)],
+  [
+    "project_v2.items.field.update",
+    (c, p) => c.updateProjectV2ItemField(p as ProjectV2ItemFieldUpdateInput),
   ],
 ])
 

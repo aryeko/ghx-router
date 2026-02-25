@@ -313,12 +313,14 @@ export async function executeTasks(
         throw new Error(`Input validation failed: ${details}`)
       }
 
-      if (!card.graphql) {
-        throw new Error(`capability '${req.task}' has no GraphQL route and cannot be chained`)
+      if (!card.graphql && !card.cli) {
+        throw new Error(
+          `capability '${req.task}' has no supported route (graphql or cli) and cannot be chained`,
+        )
       }
 
-      // Validate that all resolution lookup vars are present in input
-      if (card.graphql.resolution) {
+      // Validate that all resolution lookup vars are present in input (GQL-only)
+      if (card.graphql?.resolution) {
         const { lookup } = card.graphql.resolution
         for (const [, inputField] of Object.entries(lookup.vars)) {
           if (req.input[inputField] === undefined) {
@@ -344,6 +346,11 @@ export async function executeTasks(
   }
 
   if (preflightErrorByIndex.size > 0) {
+    // Use "cli" only if every successfully-validated step would have gone through the CLI
+    // adapter (i.e. no GQL cards passed pre-flight). Fall back to "graphql" when all steps
+    // failed validation (cards is empty) because we cannot determine intent.
+    const anyGqlCard = cards.some((c) => !!c.graphql)
+    const preflightRouteUsed: RouteSource = !anyGqlCard && cards.length > 0 ? "cli" : "graphql"
     return {
       status: "failed",
       results: requests.map(
@@ -359,11 +366,31 @@ export async function executeTasks(
           },
       ),
       meta: {
-        route_used: "graphql",
+        route_used: preflightRouteUsed,
         total: requests.length,
         succeeded: 0,
         failed: requests.length,
       },
+    }
+  }
+
+  // Kick off CLI-only steps concurrently alongside the GQL batch.
+  // A step with no graphql config cannot participate in the GQL batch phases below,
+  // so it is dispatched immediately via executeTask (CLI adapter path).
+  // Pre-flight above already confirmed card.cli is present for these steps.
+  //
+  // Invariant: after pre-flight, cards has exactly one entry per request in order —
+  // the early return above guarantees preflightErrorByIndex is empty, so every request
+  // produced a card. Indexing cards[i] is safe for any valid request index i.
+  const cliStepPromises = new Map<number, Promise<ResultEnvelope>>()
+  for (let i = 0; i < requests.length; i += 1) {
+    const card = cards[i]
+    const req = requests[i]
+    if (card === undefined || req === undefined) {
+      throw new Error(`invariant violated: missing card or request at index ${i}`)
+    }
+    if (!card.graphql) {
+      cliStepPromises.set(i, executeTask({ task: req.task, input: req.input }, deps))
     }
   }
 
@@ -464,7 +491,39 @@ export async function executeTasks(
         }
       }
     } catch (err) {
-      // Phase 1 failure: mark all steps as failed
+      // Phase 1 failure: GQL-dependent steps all fail. CLI steps that completed
+      // concurrently may have succeeded — preserve their results for partial status.
+      const cliPhase1Results = new Map<number, ResultEnvelope>()
+      if (cliStepPromises.size > 0) {
+        const cliEntries = Array.from(cliStepPromises.entries())
+        const settled = await Promise.allSettled(cliEntries.map(([, p]) => p))
+        for (let j = 0; j < cliEntries.length; j += 1) {
+          const entry = cliEntries[j]
+          const outcome = settled[j]
+          if (entry === undefined || outcome === undefined) {
+            throw new Error(`invariant violated: missing entry or outcome at drain index ${j}`)
+          }
+          const [i] = entry
+          if (outcome.status === "fulfilled") {
+            cliPhase1Results.set(i, outcome.value)
+          } else {
+            logger.warn("cli.step_drained_on_phase1_failure", {
+              reason:
+                outcome.reason instanceof Error ? outcome.reason.message : String(outcome.reason),
+            })
+            const req = requests[i]
+            cliPhase1Results.set(i, {
+              ok: false,
+              error: {
+                code: errorCodes.Unknown,
+                message: String(outcome.reason),
+                retryable: false,
+              },
+              meta: { capability_id: req?.task ?? "unknown", route_used: "cli" },
+            })
+          }
+        }
+      }
       const errorMsg = err instanceof Error ? err.message : String(err)
       const code = mapErrorToCode(err)
       logger.error("resolution.lookup_failed", {
@@ -472,22 +531,46 @@ export async function executeTasks(
         error_code: code,
         message: errorMsg,
       })
+      const phase1Error = {
+        code,
+        message: `Phase 1 (resolution) failed: ${errorMsg}`,
+        retryable: isRetryableCode(code),
+      }
+      const phase1Results: ChainStepResult[] = requests.map((req, i) => {
+        const cliResult = cliPhase1Results.get(i)
+        if (cliResult !== undefined) {
+          return cliResult.ok
+            ? { task: req.task, ok: true, data: cliResult.data }
+            : {
+                task: req.task,
+                ok: false,
+                error:
+                  cliResult.error ??
+                  ({
+                    code: errorCodes.Unknown,
+                    message: "CLI step failed",
+                    retryable: false,
+                  } as const),
+              }
+        }
+        return { task: req.task, ok: false, error: phase1Error }
+      })
+      const phase1Succeeded = phase1Results.filter((r) => r.ok).length
+      const phase1Status: ChainStatus =
+        phase1Succeeded === phase1Results.length
+          ? "success"
+          : phase1Succeeded === 0
+            ? "failed"
+            : "partial"
       return {
-        status: "failed",
-        results: requests.map((req) => ({
-          task: req.task,
-          ok: false,
-          error: {
-            code,
-            message: `Phase 1 (resolution) failed: ${errorMsg}`,
-            retryable: isRetryableCode(code),
-          },
-        })),
+        status: phase1Status,
+        results: phase1Results,
         meta: {
+          // Phase 1 only runs when GQL resolution steps exist → always "graphql"
           route_used: "graphql",
           total: requests.length,
-          succeeded: 0,
-          failed: requests.length,
+          succeeded: phase1Succeeded,
+          failed: requests.length - phase1Succeeded,
         },
       }
     }
@@ -506,18 +589,15 @@ export async function executeTasks(
     const card = cards[i]
     const req = requests[i]
     if (card === undefined || req === undefined) continue
+    if (!card.graphql) continue // CLI-only steps are handled separately
 
     try {
       logger.debug("resolution.inject", { step: i, capability_id: req.task })
       const resolved: Record<string, unknown> = {}
-      if (card.graphql?.resolution && lookupResults[i] !== undefined) {
+      if (card.graphql.resolution && lookupResults[i] !== undefined) {
         for (const spec of card.graphql.resolution.inject) {
           Object.assign(resolved, applyInject(spec, lookupResults[i], req.input))
         }
-      }
-
-      if (card.graphql === undefined) {
-        throw new Error("card.graphql is unexpectedly undefined")
       }
 
       const mutDoc = getMutationDocument(card.graphql.operationName)
@@ -598,10 +678,57 @@ export async function executeTasks(
     }
   }
 
+  // Await CLI step results concurrently. Promise.allSettled prevents any single
+  // rejection from propagating as an unhandled rejection — each failure is captured
+  // as an error envelope instead.
+  const cliResultsByIndex = new Map<number, ResultEnvelope>()
+  if (cliStepPromises.size > 0) {
+    const cliEntries = Array.from(cliStepPromises.entries())
+    const settled = await Promise.allSettled(cliEntries.map(([, p]) => p))
+    for (let j = 0; j < cliEntries.length; j += 1) {
+      const entry = cliEntries[j]
+      const outcome = settled[j]
+      if (entry === undefined || outcome === undefined) {
+        throw new Error(`invariant violated: missing entry or outcome at CLI collect index ${j}`)
+      }
+      const [i] = entry
+      if (outcome.status === "fulfilled") {
+        cliResultsByIndex.set(i, outcome.value)
+      } else {
+        // Defensive: executeTask returns ResultEnvelope rather than throwing, so this
+        // branch only fires if executeTask has an unexpected internal error.
+        const msg =
+          outcome.reason instanceof Error ? outcome.reason.message : String(outcome.reason)
+        const req = requests[i]
+        cliResultsByIndex.set(i, {
+          ok: false,
+          error: { code: errorCodes.Unknown, message: msg, retryable: false },
+          meta: { capability_id: req?.task ?? "unknown", route_used: "cli" },
+        })
+      }
+    }
+  }
+
   // Assemble results
   const results: ChainStepResult[] = requests.map((req, stepIndex) => {
     const preResult = stepPreResults[stepIndex]
     if (preResult !== undefined) return preResult
+
+    // CLI-only step
+    const cliResult = cliResultsByIndex.get(stepIndex)
+    if (cliResult !== undefined) {
+      return cliResult.ok
+        ? { task: req.task, ok: true, data: cliResult.data }
+        : {
+            task: req.task,
+            ok: false,
+            error: cliResult.error ?? {
+              code: errorCodes.Unknown,
+              message: "CLI step failed",
+              retryable: false,
+            },
+          }
+    }
 
     const mutInput = mutationInputs.find((m) => m.stepIndex === stepIndex)
     if (mutInput === undefined) {
@@ -669,11 +796,15 @@ export async function executeTasks(
     duration_ms: Date.now() - batchStart,
   })
 
+  // "cli" only when every step was CLI-only. Mixed chains report "graphql" because
+  // GraphQL is the primary coordination mechanism even when some steps used the CLI adapter.
+  const routeUsed: RouteSource = cliStepPromises.size === requests.length ? "cli" : "graphql"
+
   return {
     status,
     results,
     meta: {
-      route_used: "graphql",
+      route_used: routeUsed,
       total: results.length,
       succeeded,
       failed: results.length - succeeded,

@@ -20,6 +20,12 @@ export type PullRequestReviewEvent = string
 export type MergeableState = string
 export type MergeStateStatus = string
 export type PullRequestReviewDecision = string
+export type ProjectV2FieldType = string
+export type ProjectV2ItemType = string
+export type IssueTypeColor = string
+export type PullRequestMergeMethod = string
+export type PullRequestBranchUpdateMethod = string
+export type ProjectV2FieldValue = Record<string, unknown>
 
 export type DraftPullRequestReviewThread = {
   body: Scalars["String"]["input"]

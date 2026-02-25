@@ -1,0 +1,8 @@
+mutation PrBranchUpdate($pullRequestId: ID!, $updateMethod: PullRequestBranchUpdateMethod) {
+  updatePullRequestBranch(input: { pullRequestId: $pullRequestId, updateMethod: $updateMethod }) {
+    pullRequest {
+      id
+      number
+    }
+  }
+}

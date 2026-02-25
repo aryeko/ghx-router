@@ -1,0 +1,17 @@
+query ReleaseView($owner: String!, $name: String!, $tagName: String!) {
+  repository(owner: $owner, name: $name) {
+    release(tagName: $tagName) {
+      databaseId
+      tagName
+      name
+      isDraft
+      isPrerelease
+      url
+      tagCommit {
+        oid
+      }
+      createdAt
+      publishedAt
+    }
+  }
+}

@@ -1,4 +1,5 @@
 import type {
+  DraftComment,
   IssueAssigneesAddInput,
   IssueAssigneesRemoveInput,
   IssueAssigneesUpdateInput,
@@ -17,11 +18,22 @@ import type {
   IssueRelationsGetInput,
   IssueUpdateInput,
   IssueViewInput,
+  PrAssigneesAddInput,
+  PrAssigneesRemoveInput,
+  PrBranchUpdateInput,
   PrCommentsListInput,
+  PrCreateInput,
   PrDiffListFilesInput,
   PrListInput,
+  PrMergeInput,
+  ProjectV2OrgViewInput,
+  ProjectV2UserViewInput,
+  PrReviewSubmitInput,
   PrReviewsListInput,
+  PrReviewsRequestInput,
+  PrUpdateInput,
   PrViewInput,
+  ReleaseViewInput,
   ReplyToReviewThreadInput,
   RepoViewInput,
   ReviewThreadMutationInput,
@@ -87,10 +99,15 @@ export function assertOptionalString(value: unknown, fieldName: string): string 
 }
 
 export function assertStringArray(value: unknown, fieldName: string): string[] {
-  if (
-    !Array.isArray(value) ||
-    value.some((entry) => typeof entry !== "string" || entry.trim().length === 0)
-  ) {
+  if (!Array.isArray(value)) {
+    throw new Error(`${fieldName} must be an array of non-empty strings`)
+  }
+
+  if (value.length === 0) {
+    throw new Error(`${fieldName} must not be empty`)
+  }
+
+  if (value.some((entry) => typeof entry !== "string" || entry.trim().length === 0)) {
     throw new Error(`${fieldName} must be an array of non-empty strings`)
   }
 
@@ -273,5 +290,156 @@ export function assertReplyToReviewThreadInput(input: ReplyToReviewThreadInput):
   assertReviewThreadInput(input)
   if (typeof input.body !== "string" || input.body.trim().length === 0) {
     throw new Error("Reply body is required")
+  }
+}
+
+export function assertRepoAndPaginationInput(input: {
+  owner: string
+  name: string
+  first: number
+}): void {
+  if (input.owner.trim().length === 0 || input.name.trim().length === 0) {
+    throw new Error("Repository owner and name are required")
+  }
+  if (!Number.isInteger(input.first) || input.first <= 0 || input.first > 100) {
+    throw new Error("List page size must be a positive integer between 1 and 100")
+  }
+}
+
+export function assertReleaseViewInput(input: ReleaseViewInput): void {
+  if (input.owner.trim().length === 0 || input.name.trim().length === 0) {
+    throw new Error("Repository owner and name are required")
+  }
+  if (typeof input.tagName !== "string" || input.tagName.trim().length === 0) {
+    throw new Error("Release tag name is required")
+  }
+}
+
+export function assertProjectInput(input: {
+  owner: string
+  projectNumber: number
+  first?: number
+}): void {
+  assertNonEmptyString(input.owner, "Project owner")
+  if (!Number.isInteger(input.projectNumber) || input.projectNumber <= 0) {
+    throw new Error("Project number must be a positive integer")
+  }
+  if (
+    input.first !== undefined &&
+    (!Number.isInteger(input.first) || input.first < 1 || input.first > 100)
+  ) {
+    throw new Error("`first` must be an integer between 1 and 100")
+  }
+}
+
+export function assertProjectOrgInput(input: ProjectV2OrgViewInput): void {
+  if (input.org.trim().length === 0) {
+    throw new Error("Organization name is required")
+  }
+  if (!Number.isInteger(input.projectNumber) || input.projectNumber <= 0) {
+    throw new Error("Project number must be a positive integer")
+  }
+}
+
+export function assertProjectUserInput(input: ProjectV2UserViewInput): void {
+  if (input.user.trim().length === 0) {
+    throw new Error("User login is required")
+  }
+  if (!Number.isInteger(input.projectNumber) || input.projectNumber <= 0) {
+    throw new Error("Project number must be a positive integer")
+  }
+}
+
+export function assertPrCreateInput(input: PrCreateInput): void {
+  assertRepoInput({ owner: input.owner, name: input.name })
+  assertNonEmptyString(input.title, "PR title")
+  assertNonEmptyString(input.headRefName, "Head branch name")
+  assertNonEmptyString(input.baseRefName, "Base branch name")
+  assertOptionalString(input.body, "PR body")
+  if (input.draft !== undefined && typeof input.draft !== "boolean") {
+    throw new Error("draft must be a boolean")
+  }
+}
+
+export function assertPrUpdateInput(input: PrUpdateInput): void {
+  assertPrInput({ owner: input.owner, name: input.name, prNumber: input.prNumber })
+  if (input.title === undefined && input.body === undefined && input.draft === undefined) {
+    throw new Error("At least one of title, body, or draft must be provided")
+  }
+  assertOptionalString(input.title, "PR title")
+  assertOptionalString(input.body, "PR body")
+  if (input.draft !== undefined && typeof input.draft !== "boolean") {
+    throw new Error("draft must be a boolean")
+  }
+}
+
+const VALID_MERGE_METHODS = new Set(["MERGE", "SQUASH", "REBASE"])
+const VALID_BRANCH_UPDATE_METHODS = new Set(["MERGE", "REBASE"])
+
+export function assertPrMergeInput(input: PrMergeInput): void {
+  assertPrInput({ owner: input.owner, name: input.name, prNumber: input.prNumber })
+  if (input.mergeMethod !== undefined && !VALID_MERGE_METHODS.has(input.mergeMethod)) {
+    throw new Error(
+      `mergeMethod "${input.mergeMethod}" is invalid. Expected one of: MERGE, SQUASH, REBASE`,
+    )
+  }
+  if (input.deleteBranch !== undefined && typeof input.deleteBranch !== "boolean") {
+    throw new Error("deleteBranch must be a boolean")
+  }
+}
+
+export function assertPrBranchUpdateInput(input: PrBranchUpdateInput): void {
+  assertPrInput({ owner: input.owner, name: input.name, prNumber: input.prNumber })
+  if (input.updateMethod !== undefined && !VALID_BRANCH_UPDATE_METHODS.has(input.updateMethod)) {
+    throw new Error(
+      `updateMethod "${input.updateMethod}" is invalid. Expected one of: MERGE, REBASE`,
+    )
+  }
+}
+
+export function assertPrAssigneesInput(input: PrAssigneesAddInput | PrAssigneesRemoveInput): void {
+  assertPrInput({ owner: input.owner, name: input.name, prNumber: input.prNumber })
+  assertStringArray(input.assignees, "Assignees")
+}
+
+export function assertPrReviewsRequestInput(input: PrReviewsRequestInput): void {
+  assertPrInput({ owner: input.owner, name: input.name, prNumber: input.prNumber })
+  assertStringArray(input.reviewers, "Reviewers")
+}
+
+const VALID_REVIEW_EVENTS = new Set(["APPROVE", "COMMENT", "REQUEST_CHANGES"])
+
+function assertDraftComment(comment: unknown, index: number): void {
+  if (typeof comment !== "object" || comment === null) {
+    throw new Error(`comments[${index}] must be an object`)
+  }
+  const c = comment as DraftComment
+  assertNonEmptyString(c.path, `comments[${index}].path`)
+  assertNonEmptyString(c.body, `comments[${index}].body`)
+  if (!Number.isInteger(c.line) || c.line <= 0) {
+    throw new Error(`comments[${index}].line must be a positive integer`)
+  }
+}
+
+export function assertPrReviewSubmitInput(input: PrReviewSubmitInput): void {
+  assertNonEmptyString(input.owner, "Repository owner")
+  assertNonEmptyString(input.name, "Repository name")
+  if (!Number.isInteger(input.prNumber) || input.prNumber <= 0) {
+    throw new Error("PR number must be a positive integer")
+  }
+  if (!input.event || typeof input.event !== "string") {
+    throw new Error("Review event is required")
+  }
+  if (!VALID_REVIEW_EVENTS.has(input.event)) {
+    throw new Error(
+      `event "${input.event}" is invalid. Expected one of: APPROVE, COMMENT, REQUEST_CHANGES`,
+    )
+  }
+  assertOptionalString(input.body, "Review body")
+  if (input.comments !== undefined) {
+    if (!Array.isArray(input.comments)) {
+      throw new Error("comments must be an array")
+    }
+    input.comments.forEach((c, i) => assertDraftComment(c, i))
   }
 }

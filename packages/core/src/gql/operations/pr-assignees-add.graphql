@@ -1,0 +1,14 @@
+mutation PrAssigneesAdd($assignableId: ID!, $assigneeIds: [ID!]!) {
+  addAssigneesToAssignable(input: { assignableId: $assignableId, assigneeIds: $assigneeIds }) {
+    assignable {
+      ... on PullRequest {
+        id
+        assignees(first: 50) {
+          nodes {
+            login
+          }
+        }
+      }
+    }
+  }
+}

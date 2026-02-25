@@ -35,21 +35,57 @@ import type {
   IssueUpdateInput,
   IssueViewData,
   IssueViewInput,
+  PrAssigneesAddData,
+  PrAssigneesAddInput,
+  PrAssigneesRemoveData,
+  PrAssigneesRemoveInput,
+  PrBranchUpdateData,
+  PrBranchUpdateInput,
   PrCommentsListData,
   PrCommentsListInput,
+  PrCreateData,
+  PrCreateInput,
   PrDiffListFilesData,
   PrDiffListFilesInput,
   PrListData,
   PrListInput,
+  PrMergeData,
+  PrMergeInput,
   PrMergeStatusData,
   PrMergeStatusInput,
+  ProjectV2FieldsListData,
+  ProjectV2FieldsListInput,
+  ProjectV2ItemAddData,
+  ProjectV2ItemAddInput,
+  ProjectV2ItemFieldUpdateData,
+  ProjectV2ItemFieldUpdateInput,
+  ProjectV2ItemRemoveData,
+  ProjectV2ItemRemoveInput,
+  ProjectV2ItemsListData,
+  ProjectV2ItemsListInput,
+  ProjectV2OrgViewData,
+  ProjectV2OrgViewInput,
+  ProjectV2UserViewData,
+  ProjectV2UserViewInput,
   PrReviewSubmitData,
   PrReviewSubmitInput,
   PrReviewsListData,
   PrReviewsListInput,
+  PrReviewsRequestData,
+  PrReviewsRequestInput,
+  PrUpdateData,
+  PrUpdateInput,
   PrViewData,
   PrViewInput,
+  ReleaseListData,
+  ReleaseListInput,
+  ReleaseViewData,
+  ReleaseViewInput,
   ReplyToReviewThreadInput,
+  RepoIssueTypesListData,
+  RepoIssueTypesListInput,
+  RepoLabelsListData,
+  RepoLabelsListInput,
   RepoViewData,
   RepoViewInput,
   ReviewThreadMutationData,
@@ -89,6 +125,26 @@ export interface GithubClient extends GraphqlClient {
   resolveReviewThread(input: ReviewThreadMutationInput): Promise<ReviewThreadMutationData>
   unresolveReviewThread(input: ReviewThreadMutationInput): Promise<ReviewThreadMutationData>
   submitPrReview(input: PrReviewSubmitInput): Promise<PrReviewSubmitData>
+  fetchRepoLabelsList(input: RepoLabelsListInput): Promise<RepoLabelsListData>
+  fetchRepoIssueTypesList(input: RepoIssueTypesListInput): Promise<RepoIssueTypesListData>
+  fetchReleaseView(input: ReleaseViewInput): Promise<ReleaseViewData>
+  fetchReleaseList(input: ReleaseListInput): Promise<ReleaseListData>
+  fetchProjectV2OrgView(input: ProjectV2OrgViewInput): Promise<ProjectV2OrgViewData>
+  fetchProjectV2UserView(input: ProjectV2UserViewInput): Promise<ProjectV2UserViewData>
+  fetchProjectV2FieldsList(input: ProjectV2FieldsListInput): Promise<ProjectV2FieldsListData>
+  fetchProjectV2ItemsList(input: ProjectV2ItemsListInput): Promise<ProjectV2ItemsListData>
+  createPr(input: PrCreateInput): Promise<PrCreateData>
+  updatePr(input: PrUpdateInput): Promise<PrUpdateData>
+  mergePr(input: PrMergeInput): Promise<PrMergeData>
+  updatePrBranch(input: PrBranchUpdateInput): Promise<PrBranchUpdateData>
+  addPrAssignees(input: PrAssigneesAddInput): Promise<PrAssigneesAddData>
+  removePrAssignees(input: PrAssigneesRemoveInput): Promise<PrAssigneesRemoveData>
+  requestPrReviews(input: PrReviewsRequestInput): Promise<PrReviewsRequestData>
+  addProjectV2Item(input: ProjectV2ItemAddInput): Promise<ProjectV2ItemAddData>
+  removeProjectV2Item(input: ProjectV2ItemRemoveInput): Promise<ProjectV2ItemRemoveData>
+  updateProjectV2ItemField(
+    input: ProjectV2ItemFieldUpdateInput,
+  ): Promise<ProjectV2ItemFieldUpdateData>
 }
 
 export function createGithubClientFromToken(
@@ -112,6 +168,8 @@ export function createGithubClient(transport: GraphqlTransport): GithubClient {
   let issueMutations: typeof import("./domains/issue-mutations.js") | undefined
   let prQueries: typeof import("./domains/pr-queries.js") | undefined
   let prMutations: typeof import("./domains/pr-mutations.js") | undefined
+  let release: typeof import("./domains/release.js") | undefined
+  let project: typeof import("./domains/project.js") | undefined
 
   const loadRepo = async () => (repo ??= await import("./domains/repo.js"))
   const loadIssueQueries = async () => (issueQueries ??= await import("./domains/issue-queries.js"))
@@ -119,6 +177,8 @@ export function createGithubClient(transport: GraphqlTransport): GithubClient {
     (issueMutations ??= await import("./domains/issue-mutations.js"))
   const loadPrQueries = async () => (prQueries ??= await import("./domains/pr-queries.js"))
   const loadPrMutations = async () => (prMutations ??= await import("./domains/pr-mutations.js"))
+  const loadRelease = async () => (release ??= await import("./domains/release.js"))
+  const loadProject = async () => (project ??= await import("./domains/project.js"))
 
   return {
     query: (query, variables) => graphqlClient.query(query, variables),
@@ -174,5 +234,32 @@ export function createGithubClient(transport: GraphqlTransport): GithubClient {
     unresolveReviewThread: async (input) =>
       (await loadPrMutations()).runUnresolveReviewThread(transport, input),
     submitPrReview: async (input) => (await loadPrMutations()).runSubmitPrReview(transport, input),
+    fetchRepoLabelsList: async (input) => (await loadRepo()).runRepoLabelsList(transport, input),
+    fetchRepoIssueTypesList: async (input) =>
+      (await loadRepo()).runRepoIssueTypesList(transport, input),
+    fetchReleaseView: async (input) => (await loadRelease()).runReleaseView(transport, input),
+    fetchReleaseList: async (input) => (await loadRelease()).runReleaseList(transport, input),
+    fetchProjectV2OrgView: async (input) =>
+      (await loadProject()).runProjectV2OrgView(transport, input),
+    fetchProjectV2UserView: async (input) =>
+      (await loadProject()).runProjectV2UserView(transport, input),
+    fetchProjectV2FieldsList: async (input) =>
+      (await loadProject()).runProjectV2FieldsList(transport, input),
+    fetchProjectV2ItemsList: async (input) =>
+      (await loadProject()).runProjectV2ItemsList(transport, input),
+    createPr: async (input) => (await loadPrMutations()).runPrCreate(transport, input),
+    updatePr: async (input) => (await loadPrMutations()).runPrUpdate(transport, input),
+    mergePr: async (input) => (await loadPrMutations()).runPrMerge(transport, input),
+    updatePrBranch: async (input) => (await loadPrMutations()).runPrBranchUpdate(transport, input),
+    addPrAssignees: async (input) => (await loadPrMutations()).runPrAssigneesAdd(transport, input),
+    removePrAssignees: async (input) =>
+      (await loadPrMutations()).runPrAssigneesRemove(transport, input),
+    requestPrReviews: async (input) =>
+      (await loadPrMutations()).runPrReviewsRequest(transport, input),
+    addProjectV2Item: async (input) => (await loadProject()).runProjectV2ItemAdd(transport, input),
+    removeProjectV2Item: async (input) =>
+      (await loadProject()).runProjectV2ItemRemove(transport, input),
+    updateProjectV2ItemField: async (input) =>
+      (await loadProject()).runProjectV2ItemFieldUpdate(transport, input),
   }
 }

@@ -15,15 +15,20 @@ input_schema:
   additionalProperties: false
 output_schema:
   type: object
-  required: [prNumber, method, queued, deleteBranch]
+  required: [prNumber, method, isMethodAssumed, queued, deleteBranch]
   properties:
     prNumber: { type: integer, minimum: 1 }
     method: { type: string, enum: [merge, squash, rebase] }
+    isMethodAssumed: { type: boolean, description: "true when method was not specified by the caller and defaults to merge" }
     queued: { type: boolean }
     deleteBranch: { type: boolean }
   additionalProperties: false
 routing:
-  preferred: cli
-  fallbacks: []
+  preferred: graphql
+  fallbacks: [cli]
+graphql:
+  # GQL limitation: deleteBranch: true unsupported, triggers CLI fallback
+  operationName: PrMerge
+  documentPath: src/gql/operations/pr-merge.graphql
 cli:
   command: pr merge

@@ -462,6 +462,7 @@ describe("pr domain handlers", () => {
       expect(result.data).toMatchObject({
         prNumber: 123,
         method: "squash",
+        isMethodAssumed: false,
         queued: true,
         deleteBranch: true,
       })
@@ -1104,6 +1105,7 @@ describe("pr domain handlers – additional coverage", () => {
 
       expect(result.ok).toBe(true)
       expect((result.data as Record<string, unknown>).method).toBe("rebase")
+      expect((result.data as Record<string, unknown>).isMethodAssumed).toBe(false)
       expect(runSpy).toHaveBeenCalledWith(
         "gh",
         expect.arrayContaining(["--rebase"]),

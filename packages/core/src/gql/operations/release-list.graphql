@@ -1,0 +1,22 @@
+query ReleaseList($owner: String!, $name: String!, $first: Int!, $after: String) {
+  repository(owner: $owner, name: $name) {
+    releases(first: $first, after: $after, orderBy: { field: CREATED_AT, direction: DESC }) {
+      nodes {
+        databaseId
+        tagName
+        name
+        isDraft
+        isPrerelease
+        url
+        tagCommit {
+          oid
+        }
+        createdAt
+        publishedAt
+      }
+      pageInfo {
+        ...PageInfoFields
+      }
+    }
+  }
+}

@@ -1,0 +1,28 @@
+fragment ProjectV2CommonFields on ProjectV2FieldCommon {
+  id
+  name
+  dataType
+}
+
+query ProjectV2FieldsListOrg($owner: String!, $projectNumber: Int!, $first: Int!, $after: String) {
+  organization(login: $owner) {
+    projectV2(number: $projectNumber) {
+      fields(first: $first, after: $after) {
+        nodes {
+          ... on ProjectV2FieldCommon {
+            ...ProjectV2CommonFields
+          }
+          ... on ProjectV2SingleSelectField {
+            options {
+              id
+              name
+            }
+          }
+        }
+        pageInfo {
+          ...PageInfoFields
+        }
+      }
+    }
+  }
+}

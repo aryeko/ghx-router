@@ -540,6 +540,7 @@ const handlePrMerge: CliHandler = async (runner, params, card) => {
       {
         prNumber: Number(params.prNumber),
         method: method === "squash" || method === "rebase" ? method : "merge",
+        isMethodAssumed: params.method === undefined,
         queued: true,
         deleteBranch: params.deleteBranch === true,
       },

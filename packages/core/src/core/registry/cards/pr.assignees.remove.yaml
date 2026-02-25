@@ -23,7 +23,10 @@ output_schema:
       items: { type: string }
   additionalProperties: false
 routing:
-  preferred: cli
-  fallbacks: []
+  preferred: graphql
+  fallbacks: [cli]
+graphql:
+  operationName: PrAssigneesRemove
+  documentPath: src/gql/operations/pr-assignees-remove.graphql
 cli:
   command: pr edit

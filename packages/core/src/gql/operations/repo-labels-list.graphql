@@ -1,0 +1,16 @@
+query RepoLabelsList($owner: String!, $name: String!, $first: Int!, $after: String) {
+  repository(owner: $owner, name: $name) {
+    labels(first: $first, after: $after, orderBy: { field: CREATED_AT, direction: DESC }) {
+      nodes {
+        id
+        name
+        description
+        color
+        isDefault
+      }
+      pageInfo {
+        ...PageInfoFields
+      }
+    }
+  }
+}

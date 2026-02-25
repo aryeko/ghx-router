@@ -1,0 +1,12 @@
+query ProjectV2UserView($user: String!, $projectNumber: Int!) {
+  user(login: $user) {
+    projectV2(number: $projectNumber) {
+      id
+      title
+      shortDescription
+      public
+      closed
+      url
+    }
+  }
+}

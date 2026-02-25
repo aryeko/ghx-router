@@ -1,15 +1,31 @@
 import type { TaskRequest } from "@core/core/contracts/task.js"
 import { executeTask } from "@core/core/routing/engine.js"
-import { createGithubClient } from "@core/gql/github-client.js"
+import type { GithubClient } from "@core/gql/github-client.js"
 import { describe, expect, it } from "vitest"
 
 describe("executeTask repo.labels.list", () => {
-  it("returns cli envelope for repo.labels.list", async () => {
-    const githubClient = createGithubClient({
-      async execute<TData>(): Promise<TData> {
-        return {} as TData
-      },
-    })
+  it("returns graphql envelope for repo.labels.list", async () => {
+    const githubClient = {
+      fetchRepoLabelsList: async () => ({
+        items: [
+          {
+            id: "label-1",
+            name: "bug",
+            description: "Bug report",
+            color: "FF0000",
+            isDefault: false,
+          },
+          {
+            id: "label-2",
+            name: "feature",
+            description: "Feature request",
+            color: "00FF00",
+            isDefault: false,
+          },
+        ],
+        pageInfo: { hasNextPage: false, endCursor: null },
+      }),
+    } as unknown as GithubClient
 
     const request: TaskRequest = {
       task: "repo.labels.list",
@@ -21,43 +37,24 @@ describe("executeTask repo.labels.list", () => {
 
     const result = await executeTask(request, {
       githubClient,
-      ghCliAvailable: true,
-      ghAuthenticated: true,
-      cliRunner: {
-        run: async () => ({
-          stdout: JSON.stringify([
-            {
-              name: "bug",
-              color: "FF0000",
-              description: "Bug report",
-            },
-            {
-              name: "feature",
-              color: "00FF00",
-              description: "Feature request",
-            },
-          ]),
-          stderr: "",
-          exitCode: 0,
-        }),
-      },
+      githubToken: "test-token",
     })
 
     expect(result.ok).toBe(true)
-    expect(result.meta.route_used).toBe("cli")
-    expect(result.data).toEqual(
-      expect.objectContaining({
-        items: expect.any(Array),
-      }),
-    )
+    expect(result.meta.route_used).toBe("graphql")
+    expect(result.data).toMatchObject({
+      items: expect.any(Array),
+      pageInfo: { hasNextPage: expect.any(Boolean) },
+    })
   })
 
   it("returns validation error envelope for missing name", async () => {
-    const githubClient = createGithubClient({
-      async execute<TData>(): Promise<TData> {
-        return {} as TData
-      },
-    })
+    const githubClient = {
+      fetchRepoLabelsList: async () => ({
+        items: [],
+        pageInfo: { hasNextPage: false, endCursor: null },
+      }),
+    } as unknown as GithubClient
 
     const request: TaskRequest = {
       task: "repo.labels.list",

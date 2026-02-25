@@ -4,9 +4,10 @@ import { createGithubClient } from "@core/gql/github-client.js"
 import { describe, expect, it } from "vitest"
 
 describe("executeTask project_v2.items.field.update", () => {
-  it("returns adapter unsupported when CLI unavailable", async () => {
+  it("attempts graphql route first and returns error when graphql transport fails and CLI unavailable", async () => {
     const githubClient = createGithubClient({
       async execute<TData>(): Promise<TData> {
+        // Return empty response — GQL adapter will fail with "Failed to update project item field"
         return {} as TData
       },
     })
@@ -28,7 +29,8 @@ describe("executeTask project_v2.items.field.update", () => {
       ghAuthenticated: false,
     })
 
+    // GQL route is preferred; mock returns empty so GQL fails with UNKNOWN
     expect(result.ok).toBe(false)
-    expect(result.error?.code).toBe("ADAPTER_UNSUPPORTED")
+    expect(result.error?.code).toBe("UNKNOWN")
   })
 })

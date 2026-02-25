@@ -15,7 +15,7 @@ describe("runSubmitPrReview", () => {
         prNumber: 1,
         event: "COMMENT",
       }),
-    ).rejects.toThrow("Repository owner and name are required")
+    ).rejects.toThrow("Repository owner is required")
 
     await expect(
       runSubmitPrReview(transport, {
@@ -188,5 +188,85 @@ describe("runPrCommentsList", () => {
     })
     expect(result.scan.pagesScanned).toBe(1)
     expect(result.scan.sourceItemsScanned).toBe(1)
+  })
+
+  it("excludes outdated threads when includeOutdated is false regardless of unresolvedOnly", async () => {
+    const execute = vi.fn().mockResolvedValue({
+      repository: {
+        pullRequest: {
+          reviewThreads: {
+            nodes: [
+              {
+                id: "T_outdated",
+                path: "src/index.ts",
+                line: 10,
+                startLine: null,
+                diffSide: "RIGHT",
+                subjectType: "LINE",
+                isResolved: false,
+                isOutdated: true,
+                viewerCanReply: true,
+                viewerCanResolve: true,
+                viewerCanUnresolve: false,
+                resolvedBy: null,
+                comments: {
+                  nodes: [
+                    {
+                      id: "C_outdated",
+                      author: { login: "octocat" },
+                      body: "outdated comment",
+                      createdAt: "2026-02-19T00:00:00Z",
+                      url: "https://example.com/comment/outdated",
+                    },
+                  ],
+                },
+              },
+              {
+                id: "T_current",
+                path: "src/index.ts",
+                line: 20,
+                startLine: null,
+                diffSide: "RIGHT",
+                subjectType: "LINE",
+                isResolved: false,
+                isOutdated: false,
+                viewerCanReply: true,
+                viewerCanResolve: true,
+                viewerCanUnresolve: false,
+                resolvedBy: null,
+                comments: {
+                  nodes: [
+                    {
+                      id: "C_current",
+                      author: { login: "octocat" },
+                      body: "current comment",
+                      createdAt: "2026-02-20T00:00:00Z",
+                      url: "https://example.com/comment/current",
+                    },
+                  ],
+                },
+              },
+            ],
+            pageInfo: {
+              hasNextPage: false,
+              endCursor: null,
+            },
+          },
+        },
+      },
+    })
+    const transport: GraphqlTransport = { execute }
+
+    const result = await runPrCommentsList(transport, {
+      owner: "owner",
+      name: "repo",
+      prNumber: 1,
+      first: 10,
+      unresolvedOnly: false,
+      includeOutdated: false,
+    })
+
+    expect(result.items).toHaveLength(1)
+    expect(result.items[0]?.id).toBe("T_current")
   })
 })

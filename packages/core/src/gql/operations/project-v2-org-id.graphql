@@ -1,0 +1,7 @@
+query ProjectV2OrgId($org: String!, $projectNumber: Int!) {
+  organization(login: $org) {
+    projectV2(number: $projectNumber) {
+      id
+    }
+  }
+}

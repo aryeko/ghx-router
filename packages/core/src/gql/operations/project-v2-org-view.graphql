@@ -1,0 +1,12 @@
+query ProjectV2OrgView($org: String!, $projectNumber: Int!) {
+  organization(login: $org) {
+    projectV2(number: $projectNumber) {
+      id
+      title
+      shortDescription
+      public
+      closed
+      url
+    }
+  }
+}

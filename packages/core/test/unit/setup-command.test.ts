@@ -73,7 +73,7 @@ describe("setupCommand", () => {
     const skillPath = join(tempRoot, ".agents", "skills", "ghx", "SKILL.md")
     const content = readFileSync(skillPath, "utf8")
     expect(content).toContain("Use `ghx` for ALL GitHub operations.")
-    expect(content).toContain("ghx capabilities list --domain pr")
+    expect(content).toContain("ghx capabilities list --compact --domain pr")
     expect(content).toContain("ghx run <capability_id> --input - <<'EOF'")
     expect(content).not.toContain("GHX_SKIP_GH_PREFLIGHT=1")
     expect(stdout.mock.calls.map((call) => String(call[0])).join("")).toContain("Setup complete")

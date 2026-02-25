@@ -1,6 +1,6 @@
 {
   "name": "@ghx-dev/benchmark",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Internal benchmark harness for comparing ghx against agent_direct runs.",
   "private": true,
   "author": "Arye Kogan",
@@ -38,7 +38,7 @@
   },
   "dependencies": {
     "@ghx-dev/core": "workspace:*",
-    "@opencode-ai/sdk": "^1.2.6",
+    "@opencode-ai/sdk": "^1.2.10",
     "zod": "^4.3.6"
   },
   "devDependencies": {

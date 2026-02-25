@@ -8,6 +8,7 @@ input_schema:
     owner: { type: string, minLength: 1 }
     projectNumber: { type: integer, minimum: 1 }
     first: { type: integer, minimum: 1 }
+    after: { type: [string, "null"] }
   additionalProperties: false
 output_schema:
   type: object
@@ -33,7 +34,11 @@ output_schema:
       additionalProperties: false
   additionalProperties: false
 routing:
-  preferred: cli
-  fallbacks: []
+  preferred: graphql
+  fallbacks: [cli]
+graphql:
+  # GQL limitation: user fallback handled in domain handler
+  operationName: ProjectV2ItemsListOrg
+  documentPath: src/gql/operations/project-v2-items-list-org.graphql
 cli:
   command: project item-list

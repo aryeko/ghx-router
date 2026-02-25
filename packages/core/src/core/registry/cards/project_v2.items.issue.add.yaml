@@ -11,13 +11,16 @@ input_schema:
   additionalProperties: false
 output_schema:
   type: object
-  required: [itemId, added]
+  required: [itemId, itemType]
   properties:
-    itemId: { type: [string, "null"] }
-    added: { type: boolean }
+    itemId: { type: string }
+    itemType: { type: [string, "null"] }
   additionalProperties: false
 routing:
-  preferred: cli
-  fallbacks: []
+  preferred: graphql
+  fallbacks: [cli]
+graphql:
+  operationName: AddProjectV2Item
+  documentPath: src/gql/operations/project-v2-item-add.graphql
 cli:
   command: project item-add

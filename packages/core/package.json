@@ -1,6 +1,6 @@
 {
   "name": "@ghx-dev/core",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "GitHub execution router for AI agents with deterministic routing and normalized output.",
   "author": "Arye Kogan",
   "license": "MIT",
@@ -90,13 +90,13 @@
     "js-yaml": "^4.1.0"
   },
   "devDependencies": {
-    "@graphql-codegen/cli": "^6.1.1",
+    "@graphql-codegen/cli": "^6.1.2",
     "@graphql-codegen/near-operation-file-preset": "^4.0.0",
-    "@graphql-codegen/schema-ast": "^4.1.0",
-    "@graphql-codegen/typescript": "^5.0.7",
+    "@graphql-codegen/schema-ast": "^5.0.0",
+    "@graphql-codegen/typescript": "^5.0.8",
     "@graphql-codegen/typescript-graphql-request": "^6.3.0",
-    "@graphql-codegen/typescript-operations": "^5.0.7",
-    "@opencode-ai/sdk": "^1.2.6",
+    "@graphql-codegen/typescript-operations": "^5.0.8",
+    "@opencode-ai/sdk": "^1.2.10",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",

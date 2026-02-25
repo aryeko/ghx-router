@@ -8,6 +8,7 @@ input_schema:
     owner: { type: string, minLength: 1 }
     name: { type: string, minLength: 1 }
     first: { type: integer, minimum: 1 }
+    after: { type: [string, "null"] }
   additionalProperties: false
 output_schema:
   type: object
@@ -19,7 +20,7 @@ output_schema:
         type: object
         required: [id, tagName, name, isDraft, isPrerelease, url, targetCommitish, createdAt, publishedAt]
         properties:
-          id: { type: integer, minimum: 0 }
+          id: { type: ["integer", "null"], minimum: 0 }
           tagName: { type: [string, "null"] }
           name: { type: [string, "null"] }
           isDraft: { type: boolean }
@@ -38,7 +39,10 @@ output_schema:
       additionalProperties: false
   additionalProperties: false
 routing:
-  preferred: cli
-  fallbacks: []
+  preferred: graphql
+  fallbacks: [cli]
+graphql:
+  operationName: ReleaseList
+  documentPath: src/gql/operations/release-list.graphql
 cli:
   command: api

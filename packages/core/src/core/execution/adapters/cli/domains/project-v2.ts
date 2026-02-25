@@ -346,7 +346,7 @@ const handleProjectV2ItemAddIssue: CliHandler = async (runner, params, _card) =>
         ? (data as Record<string, unknown>)
         : {}
 
-    const normalized = { itemId: typeof root.id === "string" ? root.id : null, added: true }
+    const normalized = { itemId: typeof root.id === "string" ? root.id : null, itemType: null }
 
     return normalizeResult(normalized, "cli", {
       capabilityId: "project_v2.items.issue.add",
@@ -444,7 +444,7 @@ const handleProjectV2ItemFieldUpdate: CliHandler = async (runner, params, _card)
       )
     }
 
-    const normalized = { itemId, updated: true }
+    const normalized = { itemId }
 
     return normalizeResult(normalized, "cli", {
       capabilityId: "project_v2.items.field.update",
@@ -493,7 +493,7 @@ const handleProjectV2ItemsIssueRemove: CliHandler = async (runner, params, _card
       )
     }
 
-    const normalized = { itemId, removed: true }
+    const normalized = { deletedItemId: itemId }
 
     return normalizeResult(normalized, "cli", {
       capabilityId: "project_v2.items.issue.remove",

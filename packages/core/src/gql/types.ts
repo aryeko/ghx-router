@@ -6,6 +6,14 @@ import type { PrListQueryVariables } from "./operations/pr-list.generated.js"
 import type { PrReviewSubmitMutationVariables } from "./operations/pr-review-submit.generated.js"
 import type { PrReviewsListQueryVariables } from "./operations/pr-reviews-list.generated.js"
 import type { PrViewQueryVariables } from "./operations/pr-view.generated.js"
+import type { ProjectV2FieldsListQueryVariables } from "./operations/project-v2-fields-list.generated.js"
+import type { ProjectV2ItemsListQueryVariables } from "./operations/project-v2-items-list.generated.js"
+import type { ProjectV2OrgViewQueryVariables } from "./operations/project-v2-org-view.generated.js"
+import type { ProjectV2UserViewQueryVariables } from "./operations/project-v2-user-view.generated.js"
+import type { ReleaseListQueryVariables } from "./operations/release-list.generated.js"
+import type { ReleaseViewQueryVariables } from "./operations/release-view.generated.js"
+import type { RepoIssueTypesListQueryVariables } from "./operations/repo-issue-types-list.generated.js"
+import type { RepoLabelsListQueryVariables } from "./operations/repo-labels-list.generated.js"
 import type { RepoViewQueryVariables } from "./operations/repo-view.generated.js"
 
 export type RepoViewInput = RepoViewQueryVariables
@@ -415,4 +423,220 @@ export type PrReviewSubmitData = {
   state: string
   url: string
   body: string | null
+}
+
+export type RepoLabelsListInput = RepoLabelsListQueryVariables
+export type RepoLabelItemData = {
+  id: string | null
+  name: string | null
+  description: string | null
+  color: string | null
+  isDefault: boolean | null
+}
+export type RepoLabelsListData = {
+  items: RepoLabelItemData[]
+  pageInfo: { hasNextPage: boolean; endCursor: string | null }
+}
+
+export type RepoIssueTypesListInput = RepoIssueTypesListQueryVariables
+export type RepoIssueTypeItemData = {
+  id: string | null
+  name: string | null
+  color: string | null
+  isEnabled: boolean | null
+}
+export type RepoIssueTypesListData = {
+  items: RepoIssueTypeItemData[]
+  pageInfo: { hasNextPage: boolean; endCursor: string | null }
+}
+
+export type ReleaseViewInput = ReleaseViewQueryVariables
+export type ReleaseViewData = {
+  id: number | null
+  tagName: string
+  name: string | null
+  isDraft: boolean
+  isPrerelease: boolean
+  url: string | null
+  targetCommitish: string | null
+  createdAt: string | null
+  publishedAt: string | null
+}
+
+export type ReleaseListInput = ReleaseListQueryVariables
+export type ReleaseItemData = ReleaseViewData
+export type ReleaseListData = {
+  items: ReleaseItemData[]
+  pageInfo: { hasNextPage: boolean; endCursor: string | null }
+}
+
+export type ProjectV2OrgViewInput = ProjectV2OrgViewQueryVariables
+export type ProjectV2OrgViewData = {
+  id: string | null
+  title: string | null
+  shortDescription: string | null
+  public: boolean | null
+  closed: boolean | null
+  url: string | null
+}
+
+export type ProjectV2UserViewInput = ProjectV2UserViewQueryVariables
+export type ProjectV2UserViewData = ProjectV2OrgViewData
+
+export type ProjectV2FieldsListInput = ProjectV2FieldsListQueryVariables
+export type ProjectV2FieldItemData = {
+  id: string | null
+  name: string | null
+  dataType: string | null
+  options?: Array<{ id: string; name: string }> | null
+}
+export type ProjectV2FieldsListData = {
+  items: ProjectV2FieldItemData[]
+  pageInfo: { hasNextPage: boolean; endCursor: string | null }
+}
+
+export type ProjectV2ItemsListInput = ProjectV2ItemsListQueryVariables
+export type ProjectV2ItemData = {
+  id: string | null
+  contentType: string | null
+  contentNumber: number | null
+  contentTitle: string | null
+}
+export type ProjectV2ItemsListData = {
+  items: ProjectV2ItemData[]
+  pageInfo: { hasNextPage: boolean; endCursor: string | null }
+}
+
+// PR mutations
+export type PrCreateInput = {
+  owner: string
+  name: string
+  baseRefName: string
+  headRefName: string
+  title: string
+  body?: string
+  draft?: boolean
+}
+
+export type PrCreateData = {
+  number: number
+  url: string
+  title: string
+  state: string
+  draft: boolean
+}
+
+export type PrUpdateInput = {
+  owner: string
+  name: string
+  prNumber: number
+  title?: string
+  body?: string
+  draft?: boolean // handled by CLI adapter only — not supported in UpdatePullRequestInput GQL mutation
+}
+
+export type PrUpdateData = {
+  number: number
+  url: string
+  title: string
+  state: string
+  draft: boolean
+}
+
+export type PrMergeInput = {
+  owner: string
+  name: string
+  prNumber: number
+  mergeMethod?: string // MERGE | SQUASH | REBASE
+  deleteBranch?: boolean
+}
+
+export type PrMergeData = {
+  prNumber: number
+  method: string
+  isMethodAssumed: boolean
+  queued: boolean
+  deleteBranch: boolean
+}
+
+export type PrBranchUpdateInput = {
+  owner: string
+  name: string
+  prNumber: number
+  updateMethod?: string // MERGE | REBASE
+}
+
+export type PrBranchUpdateData = {
+  prNumber: number
+  updated: boolean
+}
+
+export type PrAssigneesInput = {
+  owner: string
+  name: string
+  prNumber: number
+  assignees: string[]
+}
+export type PrAssigneesAddInput = PrAssigneesInput
+export type PrAssigneesRemoveInput = PrAssigneesInput
+
+export type PrAssigneesAddData = {
+  prNumber: number
+  added: string[]
+}
+
+export type PrAssigneesRemoveData = {
+  prNumber: number
+  removed: string[]
+}
+
+export type PrReviewsRequestInput = {
+  owner: string
+  name: string
+  prNumber: number
+  reviewers: string[]
+}
+
+export type PrReviewsRequestData = {
+  prNumber: number
+  reviewers: string[]
+  updated: boolean
+}
+
+// Project V2 mutations
+export type ProjectV2ItemAddInput = {
+  owner: string
+  projectNumber: number
+  issueUrl: string
+}
+
+export type ProjectV2ItemAddData = {
+  itemId: string
+  itemType: string | null
+}
+
+export type ProjectV2ItemRemoveInput = {
+  owner: string
+  projectNumber: number
+  itemId: string
+}
+
+export type ProjectV2ItemRemoveData = {
+  deletedItemId: string
+}
+
+export type ProjectV2ItemFieldUpdateInput = {
+  projectId: string
+  itemId: string
+  fieldId: string
+  valueText?: string
+  valueNumber?: number
+  valueDate?: string
+  valueSingleSelectOptionId?: string
+  valueIterationId?: string
+  clear?: boolean
+}
+
+export type ProjectV2ItemFieldUpdateData = {
+  itemId: string
 }

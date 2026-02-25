@@ -20,12 +20,14 @@ output_schema:
     prNumber: { type: integer, minimum: 1 }
     reviewers:
       type: array
-      minItems: 1
       items: { type: string, minLength: 1 }
     updated: { type: boolean }
   additionalProperties: false
 routing:
-  preferred: cli
-  fallbacks: []
+  preferred: graphql
+  fallbacks: [cli]
+graphql:
+  operationName: PrReviewsRequest
+  documentPath: src/gql/operations/pr-reviews-request.graphql
 cli:
   command: pr edit

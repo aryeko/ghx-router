@@ -17,13 +17,15 @@ input_schema:
   additionalProperties: false
 output_schema:
   type: object
-  required: [itemId, updated]
+  required: [itemId]
   properties:
-    itemId: { type: [string, "null"] }
-    updated: { type: boolean }
+    itemId: { type: string }
   additionalProperties: false
 routing:
-  preferred: cli
-  fallbacks: []
+  preferred: graphql
+  fallbacks: [cli]
+graphql:
+  operationName: UpdateProjectV2ItemField
+  documentPath: src/gql/operations/project-v2-item-field-update.graphql
 cli:
   command: project item-edit

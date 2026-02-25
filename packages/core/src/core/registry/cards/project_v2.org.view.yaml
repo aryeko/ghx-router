@@ -20,7 +20,10 @@ output_schema:
     url: { type: [string, "null"] }
   additionalProperties: false
 routing:
-  preferred: cli
-  fallbacks: []
+  preferred: graphql
+  fallbacks: [cli]
+graphql:
+  operationName: ProjectV2OrgView
+  documentPath: src/gql/operations/project-v2-org-view.graphql
 cli:
   command: project view

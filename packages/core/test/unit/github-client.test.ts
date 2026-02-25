@@ -385,7 +385,7 @@ describe("createGithubClient", () => {
       prNumber: 232,
       first: 10,
       unresolvedOnly: false,
-      includeOutdated: false,
+      includeOutdated: true,
     })
 
     expect(list.items).toHaveLength(1)
@@ -1991,5 +1991,133 @@ describe("createGithubClientFromToken", () => {
     } finally {
       globalThis.fetch = originalFetch
     }
+  })
+})
+
+describe("createGithubClient — release helpers", () => {
+  it("delegates fetchReleaseView to the release domain", async () => {
+    const execute = vi.fn().mockResolvedValue({
+      repository: {
+        release: {
+          databaseId: 10,
+          tagName: "v2.0.0",
+          name: "Release 2.0.0",
+          isDraft: false,
+          isPrerelease: false,
+          url: "https://github.com/acme/repo/releases/tag/v2.0.0",
+          createdAt: "2025-06-01T00:00:00Z",
+          publishedAt: "2025-06-01T12:00:00Z",
+          tagCommit: { oid: "deadbeef" },
+        },
+      },
+    })
+    const client = createGithubClient({ execute })
+
+    const result = await client.fetchReleaseView({ owner: "acme", name: "repo", tagName: "v2.0.0" })
+
+    expect(result.tagName).toBe("v2.0.0")
+    expect(result.id).toBe(10)
+    expect(result.targetCommitish).toBe("deadbeef")
+  })
+
+  it("delegates fetchReleaseList to the release domain", async () => {
+    const execute = vi.fn().mockResolvedValue({
+      repository: {
+        releases: {
+          nodes: [
+            {
+              databaseId: 5,
+              tagName: "v1.0.0",
+              name: "Release 1.0.0",
+              isDraft: false,
+              isPrerelease: false,
+              url: "https://github.com/acme/repo/releases/tag/v1.0.0",
+              createdAt: "2025-01-01T00:00:00Z",
+              publishedAt: null,
+              tagCommit: null,
+            },
+          ],
+          pageInfo: { hasNextPage: false, endCursor: null },
+        },
+      },
+    })
+    const client = createGithubClient({ execute })
+
+    const result = await client.fetchReleaseList({ owner: "acme", name: "repo", first: 10 })
+
+    expect(result.items).toHaveLength(1)
+    expect(result.items[0]?.tagName).toBe("v1.0.0")
+    expect(result.pageInfo.hasNextPage).toBe(false)
+  })
+})
+
+describe("createGithubClient — issue assignee add/remove helpers", () => {
+  function makeAssigneesExecute() {
+    return vi.fn().mockImplementation(async (query: string) => {
+      if (
+        query.includes("IssueAssigneesLookupByNumber") ||
+        query.includes("IssueAssigneesLookup")
+      ) {
+        return {
+          repository: {
+            issue: { id: "issue-abc" },
+            assignableUsers: {
+              nodes: [{ id: "user-alice", login: "alice" }],
+            },
+          },
+        }
+      }
+      if (query.includes("mutation IssueAssigneesAdd")) {
+        return {
+          addAssigneesToAssignable: {
+            assignable: {
+              id: "issue-abc",
+              assignees: { nodes: [{ login: "alice" }] },
+            },
+          },
+        }
+      }
+      if (query.includes("mutation IssueAssigneesRemove")) {
+        return {
+          removeAssigneesFromAssignable: {
+            assignable: {
+              id: "issue-abc",
+              assignees: { nodes: [] },
+            },
+          },
+        }
+      }
+      throw new Error(`unexpected query: ${query}`)
+    })
+  }
+
+  it("delegates addIssueAssignees to the issue-mutations domain", async () => {
+    const execute = makeAssigneesExecute()
+    const client = createGithubClient({ execute })
+
+    const result = await client.addIssueAssignees({
+      owner: "acme",
+      name: "repo",
+      issueNumber: 1,
+      assignees: ["alice"],
+    })
+
+    expect(result.id).toBe("issue-abc")
+    expect(result.assignees).toEqual(["alice"])
+  })
+
+  it("delegates removeIssueAssignees to the issue-mutations domain", async () => {
+    const execute = makeAssigneesExecute()
+    const client = createGithubClient({ execute })
+
+    const result = await client.removeIssueAssignees({
+      owner: "acme",
+      name: "repo",
+      issueNumber: 1,
+      assignees: ["alice"],
+    })
+
+    expect(result.id).toBe("issue-abc")
+    expect(result.assignees).toEqual([])
   })
 })
