@@ -8,7 +8,7 @@ through installation, your first capability execution, and agent setup.
 graph LR
   A["1. Install<br/>@ghx-dev/core"] --> B["2. Verify<br/>gh auth"]
   B --> C["3. Run First<br/>Capability"]
-  C --> D["4. Explore<br/>66 Operations"]
+  C --> D["4. Explore<br/>70 Operations"]
   D --> E["5. Setup for<br/>Agents"]
 
   style A fill:#4A90D9,color:#fff
@@ -70,7 +70,7 @@ gh auth login
 
 ## Step 3: List Available Capabilities
 
-See all 66 capabilities ghx provides:
+See all 70 capabilities ghx provides:
 
 ```bash
 npx ghx capabilities list
@@ -195,24 +195,36 @@ npx ghx run repo.view --input '{"owner":"aryeko","name":"ghx"}' \
 
 ### Chain Multiple Capabilities
 
-Example: Create an issue, then assign labels:
+Use `ghx chain` to batch multiple operations into a single tool call:
+
+```bash
+ghx chain --steps - <<'EOF'
+[
+  {"task":"issue.labels.remove","input":{"owner":"aryeko","name":"ghx","issueNumber":42,"labels":["triage"]}},
+  {"task":"issue.labels.add","input":{"owner":"aryeko","name":"ghx","issueNumber":42,"labels":["enhancement"]}},
+  {"task":"issue.comments.create","input":{"owner":"aryeko","name":"ghx","issueNumber":42,"body":"Triaged -- tracking as enhancement."}}
+]
+EOF
+```
+
+Or chain sequentially using bash variables:
 
 ```bash
 # Step 1: Create an issue
 result=$(npx ghx run issue.create --input '{
   "owner": "aryeko",
-  "repo": "ghx",
+  "name": "ghx",
   "title": "Improve docs",
   "body": "Add more examples"
 }')
 
 issue_number=$(echo "$result" | jq '.data.number')
 
-# Step 2: Update labels on the issue
+# Step 2: Set labels on the issue
 npx ghx run issue.labels.set --input "{
   \"owner\": \"aryeko\",
-  \"repo\": \"ghx\",
-  \"number\": $issue_number,
+  \"name\": \"ghx\",
+  \"issueNumber\": $issue_number,
   \"labels\": [\"docs\", \"enhancement\"]
 }"
 ```

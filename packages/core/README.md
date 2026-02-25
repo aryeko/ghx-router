@@ -14,16 +14,16 @@ Typed GitHub execution router for AI agents. Deterministic routing across CLI an
 
 ## Why ghx
 
-Agents instructed to "use `gh` CLI" for common PR and issue operations waste significant tokens on research, trial-and-error, and output parsing. Benchmarked across 27 runs on standard PR workflows:
+Agents instructed to "use `gh` CLI" for common PR and issue operations waste significant tokens on research, trial-and-error, and output parsing. Benchmarked across 40 runs on standard PR and issue workflows (MCP mode benchmark coming soon):
 
 | Metric | Improvement |
 |---|---|
-| Active tokens | **-37%** fewer tokens consumed |
-| Latency | **-32%** faster end-to-end |
-| Tool calls | **-33%** fewer tool invocations |
-| Success rate | **100%** (zero regressions) |
+| Tool calls | **-55%** (PR review), **-47%** (issue triage) |
+| Active tokens | **-88%** (PR review), **-41%** (thread resolution) |
+| Latency | **-57%** (PR review), **-26%** (thread resolution) |
+| Success rate | **100%** both modes |
 
-ghx eliminates the discovery phase: agents call typed capabilities, get validated results back in a stable envelope.
+Full report: [Codex 5.3 Benchmark](https://github.com/aryeko/ghx/blob/main/reports/codex-5.3-benchmark/README.md)
 
 ## Installation
 
@@ -84,6 +84,20 @@ Every capability returns a stable envelope:
 }
 ```
 
+## Chain: Batch Operations
+
+Batch multiple operations into a single tool call:
+
+```bash
+ghx chain --steps - <<'EOF'
+[
+  {"task":"issue.labels.remove","input":{"owner":"acme","name":"repo","issueNumber":42,"labels":["triage"]}},
+  {"task":"issue.labels.add","input":{"owner":"acme","name":"repo","issueNumber":42,"labels":["enhancement"]}},
+  {"task":"issue.comments.create","input":{"owner":"acme","name":"repo","issueNumber":42,"body":"Triaged."}}
+]
+EOF
+```
+
 ## Quick Start (Library API)
 
 ```ts
@@ -104,28 +118,21 @@ if (result.ok) {
 }
 ```
 
-Need a custom GraphQL transport? Use `createGithubClient(transport)` instead -- see the [advanced usage section](#custom-graphql-transport).
+Need a custom GraphQL transport? See [Custom GraphQL Transport](#custom-graphql-transport).
 
 ## Agent Onboarding
 
-Install ghx as a project skill for Claude Code:
+<details>
+<summary>Install ghx as a project skill for Claude Code</summary>
 
 ```bash
 npx @ghx-dev/core setup --scope project --yes
 npx @ghx-dev/core setup --scope project --verify
 ```
 
-### Setup Skill Source
+The canonical setup skill content is stored in `skills/using-ghx/SKILL.md` (package root). During build/publish it is copied to `dist/skills/using-ghx/SKILL.md`. `ghx setup` writes this content to `.agents/skills/ghx/SKILL.md` in user or project scope.
 
-The canonical setup skill content is stored in:
-
-- `skills/using-ghx/SKILL.md` (package root)
-
-During build/publish it is copied to:
-
-- `dist/skills/using-ghx/SKILL.md`
-
-`ghx setup` writes this content to `.agents/skills/ghx/SKILL.md` in user or project scope.
+</details>
 
 ## Agent Tools
 
@@ -152,25 +159,18 @@ console.log(explainCapability("repo.view"))
 const result = await tool.execute("repo.view", { owner: "aryeko", name: "ghx" })
 ```
 
-## 69 Capabilities
+## 70 Capabilities
 
-**Repository** -- `repo.view`, `repo.labels.list`, `repo.issue_types.list`
+| Domain | Count | Examples |
+|---|---|---|
+| Repository | 3 | `repo.view`, `repo.labels.list` |
+| Issues | 23 | create/update/close, labels, assignees, milestones, relations |
+| Pull Requests | 21 | diff, threads, reviews, checks, merge, branch update |
+| Workflows and CI | 11 | runs, jobs, logs, dispatch, rerun, cancel, artifacts |
+| Releases | 5 | view, list, create, update, publish |
+| Projects v2 | 7 | items, fields, add/remove issues |
 
-**Issues** -- `issue.view`, `issue.list`, `issue.comments.list`, `issue.create`, `issue.update`, `issue.close`, `issue.reopen`, `issue.delete`, `issue.labels.update`, `issue.assignees.update`, `issue.milestone.set`, `issue.comments.create`, `issue.linked_prs.list`, `issue.relations.get`, `issue.parent.set`, `issue.parent.remove`, `issue.blocked_by.add`, `issue.blocked_by.remove`
-
-**Pull Requests (read)** -- `pr.view`, `pr.list`, `pr.threads.list`, `pr.reviews.list`, `pr.diff.files`, `pr.checks.list`, `pr.merge.status`
-
-**Pull Requests (execute)** -- `pr.threads.reply`, `pr.threads.resolve`, `pr.threads.unresolve`, `pr.update`, `pr.reviews.submit`, `pr.reviews.request`, `pr.merge`, `pr.checks.rerun.failed`, `pr.checks.rerun.all`, `pr.branch.update`, `pr.assignees.add`, `pr.assignees.remove`
-
-**CI Diagnostics** -- `workflow.runs.list`, `workflow.job.logs.get`
-
-**Releases** -- `release.list`, `release.get`, `release.create_draft`, `release.update`, `release.publish_draft`
-
-**Workflow Controls** -- `workflow.list`, `workflow.get`, `workflow_dispatch.run`, `workflow_run.view`, `workflow_run.rerun_failed`, `workflow_run.rerun_all`, `workflow_run.cancel`, `workflow_run.artifacts.list`
-
-**Projects v2** -- `project_v2.org.get`, `project_v2.user.get`, `project_v2.fields.list`, `project_v2.items.list`, `project_v2.item.add_issue`, `project_v2.item.field.update`
-
-For exact input/output contracts, see the [operation card registry](https://github.com/aryeko/ghx/tree/main/packages/core/src/core/registry/cards).
+Full list: `ghx capabilities list` or [operation card registry](https://github.com/aryeko/ghx/tree/main/packages/core/src/core/registry/cards).
 
 ## Result Envelope
 
@@ -218,7 +218,8 @@ type ResultEnvelope<TData = unknown> = {
 - GitHub Cloud and GitHub Enterprise hosts (`GH_HOST` supported)
 - Route adapters: CLI and GraphQL
 
-## Public Exports
+<details>
+<summary>Public Exports</summary>
 
 Root (`@ghx-dev/core`):
 
@@ -233,7 +234,10 @@ Subpaths:
 
 - `@ghx-dev/core/cli` -- CLI entrypoint
 
-## Custom GraphQL Transport
+</details>
+
+<details>
+<summary>Custom GraphQL Transport</summary>
 
 For full control over the GraphQL layer, pass your own transport to `createGithubClient`:
 
@@ -262,6 +266,8 @@ const result = await executeTask(
   { githubClient, githubToken: process.env.GITHUB_TOKEN },
 )
 ```
+
+</details>
 
 ## Documentation
 

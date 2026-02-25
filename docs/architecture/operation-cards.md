@@ -69,7 +69,7 @@ Each operation card includes:
 
 ## Current Capability Surface
 
-`ghx` currently defines **66 capabilities** across these domains:
+`ghx` currently defines **70 capabilities** across these domains:
 
 | Domain | Count | Purpose |
 |--------|-------|---------|

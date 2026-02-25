@@ -81,7 +81,7 @@ Every capability returns:
 
 ## Current Scope
 
-66 capabilities across 7 domains:
+70 capabilities across 7 domains:
 
 - **Issues** (19): view, list, create, update, close, reopen, delete, comment, label, assign, milestone, link, parent, block, relation
 - **Pull Requests** (21): view, list, create, update, thread operations, review operations, diff, checks, merge, branch update
