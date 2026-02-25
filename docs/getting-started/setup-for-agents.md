@@ -1,7 +1,7 @@
 # Agent Setup Guide: Installing ghx for Coding Agents
 
 Make ghx discoverable to AI coding agents (Claude Code, Cursor, OpenCode, etc.) by installing a
-skill file. Then agents automatically know how to use 66 GitHub capabilities without manual
+skill file. Then agents automatically know how to use 70 GitHub capabilities without manual
 prompting.
 
 ## Why Agent Setup?
@@ -158,9 +158,9 @@ Agent: I see there's a ghx skill in this repository. Let me bootstrap ghx.
 Agent: $ gh auth status
 System: Logged in to github.com as octocat (...)
 Agent: $ ghx capabilities list
-System: Repository (3), Issues (18), Pull Requests (21), ...
+System: Repository (3), Issues (23), Pull Requests (21), ...
 Agent: Great! Now I can create an issue programmatically.
-Agent: $ ghx run issue.create --input '{"owner":"...","repo":"...","title":"..."}'
+Agent: $ ghx run issue.create --input '{"owner":"...","name":"...","title":"..."}'
 System: {"ok":true,"data":{...},...}
 Agent: Perfect, issue #42 created. Continuing with the workflow...
 ```
@@ -215,7 +215,7 @@ The installed `SKILL.md` includes:
 
 Execute typed GitHub capabilities with deterministic routing and stable result envelopes.
 
-66 capabilities across 7 domains: Issues, Pull Requests, Workflows, Releases, etc.
+70 capabilities across 6 domains: Issues, Pull Requests, Workflows, Releases, etc.
 
 - No wasted tokens on discovery
 - Schema-validated input/output
@@ -228,7 +228,7 @@ Instructions for verifying setup:
 
 ```bash
 gh auth status           # Verify gh CLI is authenticated
-ghx capabilities list    # Discover all 66 capabilities
+ghx capabilities list    # Discover all 70 capabilities
 ```
 
 ### Workflow Section
@@ -269,7 +269,7 @@ Neutral examples using public repositories:
 ghx run repo.view --input '{"owner":"aryeko","name":"ghx"}'
 
 # List issues on a public repository
-ghx run issue.list --input '{"owner":"aryeko","name":"ghx","states":["open"]}'
+ghx run issue.list --input '{"owner":"aryeko","name":"ghx","state":"open"}'
 ```
 
 ## Verification

@@ -7,7 +7,7 @@ A practical guide for executing benchmarks locally, interpreting results, and ga
 1. **opencode CLI** — benchmark harness uses opencode to run isolated assistant sessions:
    ```bash
    # Install opencode (check current version from project docs)
-   npm install -g @braneproject/opencode
+   curl -fsSL https://opencode.ai/install | bash
    ```
 
 2. **GitHub Token** — read/write access for fixture operations and API calls:
@@ -51,10 +51,12 @@ pnpm --filter @ghx-dev/benchmark run bench -- --scenario-set default
 
 ```bash
 # Lightweight PR verification (2 scenarios, 4 reps)
-pnpm run benchmark:verify:pr
+pnpm --filter @ghx-dev/benchmark run benchmark -- ghx 4 --scenario-set ci-verify-pr
+pnpm --filter @ghx-dev/benchmark run report:gate
 
 # Full release verification (5 scenarios, 4 reps)
-pnpm run benchmark:verify:release
+pnpm --filter @ghx-dev/benchmark run benchmark -- ghx 4 --scenario-set ci-verify-release
+pnpm --filter @ghx-dev/benchmark run report -- --gate --gate-profile verify_release
 ```
 
 ### Run Against Fixture Manifest
@@ -174,7 +176,8 @@ grep 'pr-view-001' packages/benchmark/results/*.jsonl | jq -s 'group_by(.mode) |
 pnpm run build
 
 # 2. Run quick verification
-pnpm run benchmark:verify:pr
+pnpm --filter @ghx-dev/benchmark run benchmark -- ghx 4 --scenario-set ci-verify-pr
+pnpm --filter @ghx-dev/benchmark run report:gate
 
 # 3. View gate status
 cat packages/benchmark/reports/latest-summary.md
@@ -191,7 +194,8 @@ pnpm --filter @ghx-dev/benchmark run bench:fixture -- \
   --out fixtures/latest.json --seed-id local
 
 # 2. Run full suite
-pnpm run benchmark:verify:release
+pnpm --filter @ghx-dev/benchmark run benchmark -- ghx 4 --scenario-set ci-verify-release
+pnpm --filter @ghx-dev/benchmark run report -- --gate --gate-profile verify_release
 
 # 3. Check gate
 pnpm --filter @ghx-dev/benchmark run report -- --gate --gate-profile verify_release
@@ -392,7 +396,8 @@ cat reports/my-comparison/iter-logs/2026-02-24/2026-02-24T10-00-00-000Z/ghx/pr-f
 ### PR Verification (`.github/workflows/ci-pr.yml`)
 
 ```bash
-pnpm run benchmark:verify:pr
+pnpm --filter @ghx-dev/benchmark run benchmark -- ghx 4 --scenario-set ci-verify-pr
+pnpm --filter @ghx-dev/benchmark run report:gate
 ```
 
 Runs 2 scenarios, 4 reps, gate profile `verify_pr`.
@@ -400,7 +405,8 @@ Runs 2 scenarios, 4 reps, gate profile `verify_pr`.
 ### Release Verification (`.github/workflows/ci-main.yml`)
 
 ```bash
-pnpm run benchmark:verify:release
+pnpm --filter @ghx-dev/benchmark run benchmark -- ghx 4 --scenario-set ci-verify-release
+pnpm --filter @ghx-dev/benchmark run report -- --gate --gate-profile verify_release
 ```
 
 Runs 5 scenarios, 4 reps, gate profile `verify_release`, before publish.
@@ -423,7 +429,7 @@ Both must exit with code 0 for CI to proceed.
 Install opencode CLI:
 
 ```bash
-npm install -g @braneproject/opencode
+curl -fsSL https://opencode.ai/install | bash
 ```
 
 ### "GITHUB_TOKEN not set"

@@ -14,7 +14,7 @@ const pkg = JSON.parse(await readFile(join(packageRoot, "package.json"), "utf8")
 const repoUrl = pkg.repository.url.replace(/^git\+/, "").replace(/\.git$/, "")
 
 const pluginDescription =
-  "GitHub execution router for AI agents — 66 capabilities with deterministic routing and normalized output"
+  "GitHub execution router for AI agents — 70 capabilities with deterministic routing and normalized output"
 const packageKeywords = Array.isArray(pkg.keywords)
   ? pkg.keywords.filter((value) => typeof value === "string")
   : []

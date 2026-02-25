@@ -29,7 +29,7 @@ Atomic scenarios use a **structured approach** ideal for unit-like capability te
 - Output validity verified via explicit schema assertions (required fields, data types, etc.)
 - Envelope assertions (tool-call counts, attempt traces, route used)
 - Typically short timeout (10-60 seconds)
-- Examples: `pr.view`, `issue.create`, `workflow.dispatch-run`
+- Examples: `pr.view`, `issue.create`, `workflow.dispatch`
 
 ### Workflow Scenarios
 
@@ -71,7 +71,7 @@ This avoids one noisy scenario dominating suite-level medians and improves compa
 
 Recommended verify sequence for PR validation:
 
-- quick path (repo root): `pnpm run benchmark:verify:pr`
+- quick path: run `ci-verify-pr` scenario set then `report:gate` (see commands below)
 
 1. `pnpm --filter @ghx-dev/core run build`
 2. `pnpm --filter @ghx-dev/benchmark run benchmark -- agent_direct 4 --scenario-set default`

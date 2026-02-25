@@ -91,7 +91,7 @@ ghx/
 | `core/registry/schema-utils.ts` | Schema helper utilities | JSON schema helpers |
 | `core/registry/operation-card-schema.ts` | Card schema definition | `operationCardSchema` |
 | `core/registry/ajv-instance.ts` | Shared AJV instance | `ajv` |
-| `core/registry/cards/*.yaml` | Capability definitions | 66 operation cards |
+| `core/registry/cards/*.yaml` | Capability definitions | 70 operation cards |
 
 ### Routing Engine (`core/routing`)
 
@@ -118,7 +118,7 @@ ghx/
 | `core/execution/adapters/cli/helpers.ts` | Shared CLI arg-building helpers | `buildRepoArg()`, `buildPaginationArgs()`, etc. |
 | `core/execution/adapters/cli/domains/repo.ts` | Repo-domain CLI handlers | `repo.view`, `repo.labels.list`, `repo.issue_types.list` |
 | `core/execution/adapters/cli/domains/issue.ts` | Issue-domain CLI handlers | `issue.view`, `issue.list`, `issue.comments.list` |
-| `core/execution/adapters/cli/domains/pr.ts` | PR-domain CLI handlers | `pr.*`, `check_run.annotations.list` capabilities |
+| `core/execution/adapters/cli/domains/pr.ts` | PR-domain CLI handlers | `pr.*` capabilities |
 | `core/execution/adapters/cli/domains/workflow.ts` | Workflow-domain CLI handlers | `workflow.*` capabilities |
 | `core/execution/adapters/cli/domains/project-v2.ts` | Project V2-domain CLI handlers | `project_v2.*` capabilities |
 | `core/execution/adapters/cli/domains/release.ts` | Release-domain CLI handlers | `release.*` capabilities |

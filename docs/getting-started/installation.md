@@ -81,7 +81,7 @@ gh auth status
 Expected output:
 
 ```text
-ghx version: 0.1.1
+ghx version: 0.2.0
 gh authenticated: yes
 ```
 

@@ -78,16 +78,15 @@ Check: **[Benchmark Documentation](benchmark/README.md)**
 
 ## Key Facts
 
-**66 Capabilities** organized by domain:
+**70 Capabilities** organized by domain:
 
 | Domain | Count | Examples |
 |--------|-------|----------|
-| Issues | 19 | Create, update, close, assign labels, manage relations |
+| Issues | 23 | Create, update, close, assign labels, manage relations |
 | Pull Requests | 21 | View, comment, approve, merge, rerun checks |
 | Workflows | 11 | List, dispatch, rerun, cancel, retrieve logs |
 | Releases | 5 | List, create, publish, update drafts |
-| Projects v2 | 6 | View, list items, update fields |
-| Check Runs | 1 | List annotations |
+| Projects v2 | 7 | View, list items, update fields |
 | Repositories | 3 | View, list labels, list issue types |
 
 **Three Execution Routes:**
@@ -123,16 +122,16 @@ Every capability returns:
 
 ```bash
 # List all capabilities
-npx ghx capabilities list
+npx @ghx-dev/core capabilities list
 
 # Explain a capability's input/output contract
-npx ghx capabilities explain repo.view
+npx @ghx-dev/core capabilities explain repo.view
 
 # Run a capability from the CLI
-npx ghx run repo.view --input '{"owner":"aryeko","name":"ghx"}'
+npx @ghx-dev/core run repo.view --input '{"owner":"aryeko","name":"ghx"}'
 
 # Install ghx skill for coding agents
-npx ghx setup --scope project --yes
+npx @ghx-dev/core setup --scope project --yes
 
 # Use in your Node.js code
 import { executeTask, createGithubClientFromToken } from "@ghx-dev/core"
@@ -158,14 +157,16 @@ This means agents can discover, understand, and execute GitHub operations withou
 
 ## Performance Impact
 
-Benchmarked across 27 runs of standard PR workflows:
+Benchmarked across 40 runs (4 scenarios, 5 iterations each) with Codex 5.3:
 
 | Metric | Improvement |
 |--------|-------------|
-| Token consumption | -37% fewer tokens |
-| Latency | -32% faster |
-| Tool invocations | -33% fewer calls |
-| Success rate | 100% (zero regressions) |
+| Tool calls | -55% (PR review), -47% (issue triage) |
+| Active tokens | -88% (PR review), -41% (thread resolution) |
+| Latency | -57% (PR review), -26% (thread resolution) |
+| Success rate | 100% both modes |
+
+Full report: [Codex 5.3 Benchmark](../reports/codex-5.3-benchmark/README.md)
 
 See [Benchmark Results](benchmark/README.md) for detailed methodology and findings.
 
@@ -179,4 +180,4 @@ See [Benchmark Results](benchmark/README.md) for detailed methodology and findin
 ---
 
 **Questions?** Open an issue on [GitHub](https://github.com/aryeko/ghx/issues) or check
-the [FAQ](contributing/README.md#faq) in the contributing guide.
+the [Contributing Guide](contributing/README.md).

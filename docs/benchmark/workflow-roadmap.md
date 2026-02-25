@@ -14,7 +14,7 @@ Workflow scenarios differ from atomic scenarios by:
 
 ### 1. Fix PR Review Comments (`pr-fix-review-comments-wf-001`)
 - **Description:** Read unresolved review comments on a PR and resolve each thread with an appropriate reply.
-- **Expected Capabilities:** `pr.view`, `pr.comments.list`, `pr.comment.reply`, `pr.comment.resolve`
+- **Expected Capabilities:** `pr.view`, `pr.threads.list`, `pr.comment.reply`, `pr.comment.resolve`
 - **Complexity:** Medium
 - **Fixture Requirements:** PR with existing review comments and threads
 - **Status:** ✅ Implemented
@@ -94,7 +94,7 @@ Workflow scenarios differ from atomic scenarios by:
 - `pr.view`
 - `pr.diff.list-files`
 - `pr.status-checks`
-- `pr.review.submit-approve` or `pr.review.submit-request-changes`
+- `pr.reviews.submit`
 
 **Complexity:** Medium-High
 
@@ -179,11 +179,10 @@ Workflow scenarios differ from atomic scenarios by:
 4. Retrieve and analyze job results
 
 **Expected Capabilities:**
-- `workflow.get`
-- `workflow.dispatch-run`
-- `workflow-run.get`
-
-- `workflow-job.logs.get` or similar
+- `workflow.view`
+- `workflow.dispatch`
+- `workflow.run.view`
+- `workflow.job.logs.view`
 
 **Complexity:** High
 
@@ -264,7 +263,7 @@ Example checkpoint structure:
 ```json
 {
   "name": "all_threads_resolved",
-  "verification_task": "pr.comments.list",
+  "verification_task": "pr.threads.list",
   "verification_input": { "state": "unresolved" },
   "condition": "empty",
   "expected_value": null

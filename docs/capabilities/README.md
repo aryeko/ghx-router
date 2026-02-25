@@ -109,22 +109,22 @@ graph TB
 
 ## Domain Documentation
 
-- [Issues](/docs/capabilities/issues.md) — Issue CRUD, comments, labels, assignees, milestones,
+- [Issues](./issues.md) — Issue CRUD, comments, labels, assignees, milestones,
   and relations (parent/children/blocking).
 
-- [Pull Requests](/docs/capabilities/pull-requests.md) — PR CRUD, comments, reviews, merge
+- [Pull Requests](./pull-requests.md) — PR CRUD, comments, reviews, merge
   execution, checks, and status signals.
 
-- [Releases](/docs/capabilities/releases.md) — Release lifecycle (create draft, update,
+- [Releases](./releases.md) — Release lifecycle (create draft, update,
   publish, list, get).
 
-- [Workflows](/docs/capabilities/workflows.md) — Workflow management, dispatch, runs, jobs,
+- [Workflows](./workflows.md) — Workflow management, dispatch, runs, jobs,
   logs, and artifacts.
 
-- [Repositories](/docs/capabilities/repositories.md) — Repository metadata, labels, and
+- [Repositories](./repositories.md) — Repository metadata, labels, and
   issue type configuration.
 
-- [Projects V2](/docs/capabilities/projects.md) — Project discovery, field management, item
+- [Projects V2](./projects.md) — Project discovery, field management, item
   tracking, and field updates.
 
 ## Usage

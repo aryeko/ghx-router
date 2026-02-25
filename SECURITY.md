@@ -4,6 +4,7 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
+| 0.2.x  | :white_check_mark: |
 | 0.1.x  | :white_check_mark: |
 
 ## Reporting a Vulnerability
@@ -12,7 +13,7 @@ If you discover a security vulnerability in ghx, please report it responsibly.
 
 **Preferred method:** Open a [GitHub Security Advisory](https://github.com/aryeko/ghx/security/advisories/new) (private by default).
 
-**Alternative:** Email the maintainer with details. Include:
+**Alternative:** If you cannot use GitHub Security Advisories, open a [GitHub issue](https://github.com/aryeko/ghx/issues) tagged `security`. Include:
 
 - Description of the vulnerability
 - Steps to reproduce

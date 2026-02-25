@@ -2,6 +2,10 @@
 
 The `ghx` benchmark harness measures the correctness, efficiency, and reliability of the routing engine compared to baseline execution modes. This hub guides you through benchmark concepts, execution, and scenario authoring.
 
+## Published Reports
+
+- [Codex 5.3 Benchmark: agent_direct vs ghx](../../reports/codex-5.3-benchmark/README.md) -- 40 runs, 4 scenarios, 100% success rate
+
 ## What the Benchmark Measures
 
 The benchmark compares three execution modes:
@@ -70,11 +74,12 @@ graph TD
 ### Run a Quick PR Verification
 
 ```bash
-# From repo root
-pnpm run benchmark:verify:pr
+# From repo root — run ci-verify-pr set (2 scenarios, 4 reps per mode) then gate
+pnpm --filter @ghx-dev/benchmark run benchmark -- ghx 4 --scenario-set ci-verify-pr
+pnpm --filter @ghx-dev/benchmark run report:gate
 ```
 
-This runs the lightweight `ci-verify-pr` scenario set (2 scenarios, 4 reps per mode) and reports gate status.
+This runs the lightweight `ci-verify-pr` scenario set and reports gate status.
 
 ### Run Full Benchmarks
 

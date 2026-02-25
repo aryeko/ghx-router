@@ -28,7 +28,7 @@ Create a new YAML file in `packages/core/src/core/registry/cards/` named after y
 
 Examples:
 - `issue.create.yaml`
-- `pr.review.submit.yaml`
+- `pr.reviews.submit.yaml`
 - `workflow.run.rerun.failed.yaml`
 
 ### YAML Card Structure

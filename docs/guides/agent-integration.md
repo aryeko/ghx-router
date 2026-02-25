@@ -23,13 +23,13 @@ npx @ghx-dev/core setup --scope project --verify
 
 Add ghx to your agent's tool/skill registry using the `@ghx-dev/core` exports.
 
-## The Three Agent Tools
+## The Four Agent Tools
 
-ghx provides three tools for agents:
+ghx provides four tools for agents:
 
 ### 1. `listCapabilities()`
 
-Discover all 66 capabilities available.
+Discover all 70 capabilities available.
 
 **Usage:**
 
