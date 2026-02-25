@@ -3,6 +3,7 @@ import type {
   ChainStatus,
   ChainStepResult,
   ResultEnvelope,
+  ResultError,
   RouteSource,
 } from "@core/core/contracts/envelope.js"
 import { errorCodes } from "@core/core/errors/codes.js"
@@ -10,7 +11,7 @@ import { mapErrorToCode } from "@core/core/errors/map-error.js"
 import { logger } from "@core/core/telemetry/log.js"
 import type { ClassifiedStep } from "./types.js"
 
-function isRetryableCode(code: string): boolean {
+export function isRetryableCode(code: string): boolean {
   return code === errorCodes.RateLimit || code === errorCodes.Network || code === errorCodes.Server
 }
 
@@ -144,5 +145,47 @@ export function assembleChainResult(input: AssembleInput): ChainResultEnvelope {
       succeeded,
       failed: results.length - succeeded,
     },
+  }
+}
+
+export function assembleResolutionFailure(
+  requests: Array<{ task: string; input: Record<string, unknown> }>,
+  steps: ClassifiedStep[],
+  phase1Error: ResultError,
+  cliResults: Map<number, ResultEnvelope>,
+): ChainResultEnvelope {
+  const cliStepCount = steps.filter((s) => s.route === "cli").length
+
+  const results: ChainStepResult[] = requests.map((req, i): ChainStepResult => {
+    if (req === undefined) {
+      throw new Error(`invariant violated: request at index ${i} is undefined`)
+    }
+    const cliResult = cliResults.get(i)
+    if (cliResult !== undefined) {
+      return cliResult.ok
+        ? { task: req.task, ok: true, data: cliResult.data }
+        : {
+            task: req.task,
+            ok: false,
+            error: cliResult.error ?? {
+              code: errorCodes.Unknown,
+              message: "CLI step failed",
+              retryable: false,
+            },
+          }
+    }
+    return { task: req.task, ok: false, error: phase1Error }
+  })
+
+  const succeeded = results.filter((r) => r.ok).length
+  const total = results.length
+  const status: ChainStatus =
+    succeeded === total ? "success" : succeeded === 0 ? "failed" : "partial"
+  const routeUsed: RouteSource = cliStepCount === requests.length ? "cli" : "graphql"
+
+  return {
+    status,
+    results,
+    meta: { route_used: routeUsed, total, succeeded, failed: total - succeeded },
   }
 }

@@ -13,10 +13,6 @@ export type ClassifiedStep = {
   request: { task: string; input: Record<string, unknown> }
 }
 
-export type ResolvedStep = ClassifiedStep & {
-  resolvedVars: Record<string, unknown>
-}
-
 export type ExecutionDeps = {
   githubClient: GithubClient
   githubToken?: string | null

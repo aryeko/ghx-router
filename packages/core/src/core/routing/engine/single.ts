@@ -1,5 +1,4 @@
-import type { ChainResultEnvelope, RouteSource } from "@core/core/contracts/envelope.js"
-import type { TaskRequest } from "@core/core/contracts/task.js"
+import type { ResultEnvelope, RouteSource } from "@core/core/contracts/envelope.js"
 import { errorCodes } from "@core/core/errors/codes.js"
 import { execute } from "@core/core/execute/execute.js"
 import {
@@ -18,33 +17,34 @@ import type { ExecutionDeps } from "./types.js"
 
 const DEFAULT_REASON: RouteReasonCode = "DEFAULT_POLICY"
 
-export async function executeFullRoute(
-  request: TaskRequest,
+export async function runSingleTask(
+  task: string,
+  input: Record<string, unknown>,
   deps: ExecutionDeps,
-): Promise<import("@core/core/contracts/envelope.js").ResultEnvelope> {
+): Promise<ResultEnvelope> {
   const reason = deps.reason ?? DEFAULT_REASON
-  const card = getOperationCard(request.task)
+  const card = getOperationCard(task)
   if (!card) {
-    logger.error("execute.unsupported_task", { task: request.task })
+    logger.error("execute.unsupported_task", { task })
     return normalizeError(
       {
         code: errorCodes.Validation,
-        message: `Unsupported task: ${request.task}`,
+        message: `Unsupported task: ${task}`,
         retryable: false,
       },
       routePreferenceOrder[0],
-      { capabilityId: request.task, reason },
+      { capabilityId: task, reason },
     )
   }
 
-  logger.debug("execute.start", { capability_id: request.task })
+  logger.debug("execute.start", { capability_id: task })
   const startMs = Date.now()
 
   const cliRunner = deps.cliRunner ?? defaultCliRunner
 
   const result = await execute({
     card,
-    params: request.input as Record<string, unknown>,
+    params: input,
     routingContext: {
       ghCliAvailable: deps.ghCliAvailable,
       ghAuthenticated: deps.ghAuthenticated,
@@ -98,36 +98,27 @@ export async function executeFullRoute(
     },
     routes: {
       graphql: async () => {
-        return runGraphqlCapability(
-          deps.githubClient,
-          request.task,
-          request.input as Record<string, unknown>,
-        )
+        return runGraphqlCapability(deps.githubClient, task, input)
       },
       cli: async () => {
-        return runCliCapability(
-          cliRunner,
-          request.task as CliCapabilityId,
-          request.input as Record<string, unknown>,
-          card,
-        )
+        return runCliCapability(cliRunner, task as CliCapabilityId, input, card)
       },
       rest: async () =>
         normalizeError(
           {
             code: errorCodes.AdapterUnsupported,
-            message: `Route 'rest' is not implemented for task '${request.task}'`,
+            message: `Route 'rest' is not implemented for task '${task}'`,
             retryable: false,
-            details: { route: "rest", task: request.task },
+            details: { route: "rest", task },
           },
           "rest",
-          { capabilityId: request.task, reason },
+          { capabilityId: task, reason },
         ),
     },
   })
 
   logger.info("execute.complete", {
-    capability_id: request.task,
+    capability_id: task,
     ok: result.ok,
     route_used: result.meta?.route_used ?? null,
     duration_ms: Date.now() - startMs,
@@ -135,47 +126,4 @@ export async function executeFullRoute(
   })
 
   return result
-}
-
-export async function executeSingle(
-  request: { task: string; input: Record<string, unknown> },
-  deps: ExecutionDeps,
-): Promise<ChainResultEnvelope> {
-  const batchStartMs = Date.now()
-  const result = await executeFullRoute({ task: request.task, input: request.input }, deps)
-
-  const step = result.ok
-    ? { task: request.task, ok: true as const, data: result.data }
-    : {
-        task: request.task,
-        ok: false as const,
-        error: result.error ?? {
-          code: errorCodes.Unknown,
-          message: "Unknown error",
-          retryable: false,
-        },
-      }
-
-  const succeeded = result.ok ? 1 : 0
-  const routeUsed = result.meta?.route_used ?? "graphql"
-
-  logger.info("execute_batch.complete", {
-    ok: result.ok,
-    status: result.ok ? "success" : "failed",
-    total: 1,
-    succeeded,
-    failed: 1 - succeeded,
-    duration_ms: Date.now() - batchStartMs,
-  })
-
-  return {
-    status: result.ok ? "success" : "failed",
-    results: [step],
-    meta: {
-      route_used: routeUsed,
-      total: 1,
-      succeeded,
-      failed: 1 - succeeded,
-    },
-  }
 }
