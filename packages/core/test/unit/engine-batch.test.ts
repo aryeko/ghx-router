@@ -30,6 +30,14 @@ function setupMixedChainMocks(cliCard: unknown, gqlCard: unknown): void {
     .mockReturnValue(cliCard as OperationCard)
 }
 
+function mockDocumentRegistry(doc: string): void {
+  const fn = vi.fn().mockReturnValue(doc)
+  vi.doMock("@core/gql/document-registry.js", () => ({
+    getMutationDocument: fn,
+    getDocument: fn,
+  }))
+}
+
 // ===========================================================================
 // Pure batch mutation chain
 // ===========================================================================
@@ -114,19 +122,9 @@ describe("executeTasks chaining — batch mutations", () => {
     }
     getOperationCardMock.mockReturnValue(cardWithGql)
 
-    vi.doMock("@core/gql/document-registry.js", () => ({
-      getLookupDocument: vi.fn(),
-      getMutationDocument: vi
-        .fn()
-        .mockReturnValue(
-          `mutation IssueCreate($repositoryId: ID!, $title: String!) { createIssue(input: {repositoryId: $repositoryId, title: $title}) { issue { id } } }`,
-        ),
-      getDocument: vi
-        .fn()
-        .mockReturnValue(
-          `mutation IssueCreate($repositoryId: ID!, $title: String!) { createIssue(input: {repositoryId: $repositoryId, title: $title}) { issue { id } } }`,
-        ),
-    }))
+    mockDocumentRegistry(
+      `mutation IssueCreate($repositoryId: ID!, $title: String!) { createIssue(input: {repositoryId: $repositoryId, title: $title}) { issue { id } } }`,
+    )
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchMutation: vi.fn().mockReturnValue({
         document: `mutation BatchComposite { step0: createIssue { issue { id } } }`,
@@ -426,19 +424,9 @@ describe("executeTasks — partial error handling", () => {
     }
     getOperationCardMock.mockReturnValue(cardWithGql)
 
-    vi.doMock("@core/gql/document-registry.js", () => ({
-      getLookupDocument: vi.fn(),
-      getMutationDocument: vi
-        .fn()
-        .mockReturnValue(
-          `mutation IssueCreate($repositoryId: ID!, $title: String!) { createIssue(input: {repositoryId: $repositoryId, title: $title}) { issue { id } } }`,
-        ),
-      getDocument: vi
-        .fn()
-        .mockReturnValue(
-          `mutation IssueCreate($repositoryId: ID!, $title: String!) { createIssue(input: {repositoryId: $repositoryId, title: $title}) { issue { id } } }`,
-        ),
-    }))
+    mockDocumentRegistry(
+      `mutation IssueCreate($repositoryId: ID!, $title: String!) { createIssue(input: {repositoryId: $repositoryId, title: $title}) { issue { id } } }`,
+    )
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchMutation: vi.fn().mockReturnValue({
         document: `mutation Batch { step0: createIssue { issue { id } } step1: createIssue { issue { id } } }`,
@@ -497,19 +485,9 @@ describe("executeTasks — partial error handling", () => {
     }
     getOperationCardMock.mockReturnValue(cardWithGql)
 
-    vi.doMock("@core/gql/document-registry.js", () => ({
-      getLookupDocument: vi.fn(),
-      getMutationDocument: vi
-        .fn()
-        .mockReturnValue(
-          `mutation IssueCreate($repositoryId: ID!, $title: String!) { createIssue(input: {repositoryId: $repositoryId, title: $title}) { issue { id } } }`,
-        ),
-      getDocument: vi
-        .fn()
-        .mockReturnValue(
-          `mutation IssueCreate($repositoryId: ID!, $title: String!) { createIssue(input: {repositoryId: $repositoryId, title: $title}) { issue { id } } }`,
-        ),
-    }))
+    mockDocumentRegistry(
+      `mutation IssueCreate($repositoryId: ID!, $title: String!) { createIssue(input: {repositoryId: $repositoryId, title: $title}) { issue { id } } }`,
+    )
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchMutation: vi.fn().mockReturnValue({
         document: `mutation Batch { step0: createIssue { issue { id } } step1: createIssue { issue { id } } }`,
@@ -558,19 +536,9 @@ describe("executeTasks — partial error handling", () => {
     }
     getOperationCardMock.mockReturnValue(cardWithGql)
 
-    vi.doMock("@core/gql/document-registry.js", () => ({
-      getLookupDocument: vi.fn(),
-      getMutationDocument: vi
-        .fn()
-        .mockReturnValue(
-          `mutation IssueCreate($repositoryId: ID!, $title: String!) { createIssue(input: {repositoryId: $repositoryId, title: $title}) { issue { id } } }`,
-        ),
-      getDocument: vi
-        .fn()
-        .mockReturnValue(
-          `mutation IssueCreate($repositoryId: ID!, $title: String!) { createIssue(input: {repositoryId: $repositoryId, title: $title}) { issue { id } } }`,
-        ),
-    }))
+    mockDocumentRegistry(
+      `mutation IssueCreate($repositoryId: ID!, $title: String!) { createIssue(input: {repositoryId: $repositoryId, title: $title}) { issue { id } } }`,
+    )
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchMutation: vi.fn().mockReturnValue({
         document: `mutation Batch { step0: createIssue { issue { id } } step1: createIssue { issue { id } } }`,
@@ -620,11 +588,7 @@ describe("executeTasks — partial error handling", () => {
     }
     getOperationCardMock.mockReturnValue(card)
 
-    vi.doMock("@core/gql/document-registry.js", () => ({
-      getLookupDocument: vi.fn(),
-      getMutationDocument: vi.fn().mockReturnValue("mutation IssueClose { closeIssue { id } }"),
-      getDocument: vi.fn().mockReturnValue("mutation IssueClose { closeIssue { id } }"),
-    }))
+    mockDocumentRegistry("mutation IssueClose { closeIssue { id } }")
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchMutation: vi.fn().mockReturnValue({
         document: "mutation { step0: closeIssue { id } step1: closeIssue { id } }",
@@ -670,11 +634,7 @@ describe("executeTasks — partial error handling", () => {
     }
     getOperationCardMock.mockReturnValue(card)
 
-    vi.doMock("@core/gql/document-registry.js", () => ({
-      getLookupDocument: vi.fn(),
-      getMutationDocument: vi.fn().mockReturnValue("mutation IssueClose { closeIssue { id } }"),
-      getDocument: vi.fn().mockReturnValue("mutation IssueClose { closeIssue { id } }"),
-    }))
+    mockDocumentRegistry("mutation IssueClose { closeIssue { id } }")
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchMutation: vi.fn().mockReturnValue({
         document: "mutation { step0: closeIssue { id } step1: closeIssue { id } }",
@@ -718,19 +678,9 @@ describe("executeTasks — partial error handling", () => {
     }
     getOperationCardMock.mockReturnValue(cardWithGql)
 
-    vi.doMock("@core/gql/document-registry.js", () => ({
-      getLookupDocument: vi.fn(),
-      getMutationDocument: vi
-        .fn()
-        .mockReturnValue(
-          `mutation IssueClose($issueId: ID!) { closeIssue(input: {issueId: $issueId}) { issue { id } } }`,
-        ),
-      getDocument: vi
-        .fn()
-        .mockReturnValue(
-          `mutation IssueClose($issueId: ID!) { closeIssue(input: {issueId: $issueId}) { issue { id } } }`,
-        ),
-    }))
+    mockDocumentRegistry(
+      `mutation IssueClose($issueId: ID!) { closeIssue(input: {issueId: $issueId}) { issue { id } } }`,
+    )
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchMutation: vi.fn().mockReturnValue({
         document: `mutation Batch { step0: closeIssue { issue { id } } step1: closeIssue { issue { id } } }`,
@@ -960,19 +910,9 @@ describe("executeTasks — CLI chain support", () => {
 
     executeMock.mockResolvedValue({ ok: true, data: { id: "cli-result" } })
 
-    vi.doMock("@core/gql/document-registry.js", () => ({
-      getLookupDocument: vi.fn(),
-      getMutationDocument: vi
-        .fn()
-        .mockReturnValue(
-          `mutation IssueClose($issueId: ID!) { closeIssue(input: {issueId: $issueId}) { issue { id } } }`,
-        ),
-      getDocument: vi
-        .fn()
-        .mockReturnValue(
-          `mutation IssueClose($issueId: ID!) { closeIssue(input: {issueId: $issueId}) { issue { id } } }`,
-        ),
-    }))
+    mockDocumentRegistry(
+      `mutation IssueClose($issueId: ID!) { closeIssue(input: {issueId: $issueId}) { issue { id } } }`,
+    )
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchMutation: vi.fn().mockReturnValue({
         document: `mutation Batch { step1: closeIssue { issue { id } } }`,
@@ -1028,19 +968,9 @@ describe("executeTasks — CLI chain support", () => {
       error: { code: "UNKNOWN", message: "cli failed", retryable: false },
     })
 
-    vi.doMock("@core/gql/document-registry.js", () => ({
-      getLookupDocument: vi.fn(),
-      getMutationDocument: vi
-        .fn()
-        .mockReturnValue(
-          `mutation IssueClose($issueId: ID!) { closeIssue(input: {issueId: $issueId}) { issue { id } } }`,
-        ),
-      getDocument: vi
-        .fn()
-        .mockReturnValue(
-          `mutation IssueClose($issueId: ID!) { closeIssue(input: {issueId: $issueId}) { issue { id } } }`,
-        ),
-    }))
+    mockDocumentRegistry(
+      `mutation IssueClose($issueId: ID!) { closeIssue(input: {issueId: $issueId}) { issue { id } } }`,
+    )
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchMutation: vi.fn().mockReturnValue({
         document: `mutation Batch { step1: closeIssue { issue { id } } }`,
@@ -1408,19 +1338,9 @@ describe("executeTasks — CLI chain support", () => {
       meta: { capability_id: "issue.list", route_used: "cli" },
     })
 
-    vi.doMock("@core/gql/document-registry.js", () => ({
-      getLookupDocument: vi.fn(),
-      getMutationDocument: vi
-        .fn()
-        .mockReturnValue(
-          `mutation IssueClose($issueId: ID!) { closeIssue(input: {issueId: $issueId}) { issue { id } } }`,
-        ),
-      getDocument: vi
-        .fn()
-        .mockReturnValue(
-          `mutation IssueClose($issueId: ID!) { closeIssue(input: {issueId: $issueId}) { issue { id } } }`,
-        ),
-    }))
+    mockDocumentRegistry(
+      `mutation IssueClose($issueId: ID!) { closeIssue(input: {issueId: $issueId}) { issue { id } } }`,
+    )
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchMutation: vi.fn().mockReturnValue({
         document: "mutation Batch { step1: closeIssue { issue { id } } }",
@@ -1645,11 +1565,7 @@ describe("executeTasks — Phase 2 null/missing data response", () => {
     }
     getOperationCardMock.mockReturnValue(card)
 
-    vi.doMock("@core/gql/document-registry.js", () => ({
-      getLookupDocument: vi.fn(),
-      getMutationDocument: vi.fn().mockReturnValue("mutation IssueClose { closeIssue { id } }"),
-      getDocument: vi.fn().mockReturnValue("mutation IssueClose { closeIssue { id } }"),
-    }))
+    mockDocumentRegistry("mutation IssueClose { closeIssue { id } }")
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchMutation: vi.fn().mockReturnValue({
         document: "mutation { step0: closeIssue { id } step1: closeIssue { id } }",
@@ -1792,11 +1708,7 @@ describe("executeTasks — Phase 2 buildOperationVars error", () => {
     }
     getOperationCardMock.mockReturnValue(card)
 
-    vi.doMock("@core/gql/document-registry.js", () => ({
-      getLookupDocument: vi.fn(),
-      getMutationDocument: vi.fn().mockReturnValue("mutation IssueClose { closeIssue { id } }"),
-      getDocument: vi.fn().mockReturnValue("mutation IssueClose { closeIssue { id } }"),
-    }))
+    mockDocumentRegistry("mutation IssueClose { closeIssue { id } }")
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchMutation: vi.fn().mockReturnValue({
         document: "mutation { step1: closeIssue { id } }",
@@ -1848,11 +1760,7 @@ describe("executeTasks — Phase 2 buildOperationVars error", () => {
     }
     getOperationCardMock.mockReturnValue(card)
 
-    vi.doMock("@core/gql/document-registry.js", () => ({
-      getLookupDocument: vi.fn(),
-      getMutationDocument: vi.fn().mockReturnValue("mutation IssueClose { closeIssue { id } }"),
-      getDocument: vi.fn().mockReturnValue("mutation IssueClose { closeIssue { id } }"),
-    }))
+    mockDocumentRegistry("mutation IssueClose { closeIssue { id } }")
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchMutation: vi.fn().mockReturnValue({
         document: "mutation { step1: closeIssue { id } }",
@@ -2069,11 +1977,7 @@ describe("executeTasks — non-Error thrown paths", () => {
     }
     getOperationCardMock.mockReturnValue(card)
 
-    vi.doMock("@core/gql/document-registry.js", () => ({
-      getLookupDocument: vi.fn(),
-      getMutationDocument: vi.fn().mockReturnValue("mutation IssueClose { closeIssue { id } }"),
-      getDocument: vi.fn().mockReturnValue("mutation IssueClose { closeIssue { id } }"),
-    }))
+    mockDocumentRegistry("mutation IssueClose { closeIssue { id } }")
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchMutation: vi.fn().mockReturnValue({
         document: "mutation { step0: closeIssue { id } step1: closeIssue { id } }",
@@ -2110,11 +2014,7 @@ describe("executeTasks — non-Error thrown paths", () => {
     }
     getOperationCardMock.mockReturnValue(card)
 
-    vi.doMock("@core/gql/document-registry.js", () => ({
-      getLookupDocument: vi.fn(),
-      getMutationDocument: vi.fn().mockReturnValue("mutation IssueClose { closeIssue { id } }"),
-      getDocument: vi.fn().mockReturnValue("mutation IssueClose { closeIssue { id } }"),
-    }))
+    mockDocumentRegistry("mutation IssueClose { closeIssue { id } }")
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchMutation: vi.fn().mockReturnValue({
         document: "mutation { step0: closeIssue { id } step1: closeIssue { id } }",

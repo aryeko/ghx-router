@@ -83,7 +83,6 @@ export async function executeBatch(
   return assembleChainResult({
     steps,
     requests,
-    stepPreResults: {},
     mutationRawResult,
     queryRawResult,
     stepErrors,

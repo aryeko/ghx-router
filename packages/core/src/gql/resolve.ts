@@ -88,12 +88,12 @@ export function applyInject(
 }
 
 export function buildOperationVars(
-  mutationDoc: string,
+  operationDoc: string,
   input: Record<string, unknown>,
   resolved: Record<string, unknown>,
 ): GraphqlVariables {
   // Extract variable names declared in the mutation header
-  const headerMatch = mutationDoc.match(/(?:query|mutation)\s+\w+\s*\(([^)]*)\)/)
+  const headerMatch = operationDoc.match(/(?:query|mutation)\s+\w+\s*\(([^)]*)\)/)
   const mutVarNames = new Set<string>()
   if (headerMatch?.[1]) {
     for (const match of headerMatch[1].matchAll(/\$(\w+)\s*:/g)) {

@@ -99,13 +99,15 @@ export async function runGqlExecutePhase(
             )
 
             if (rawResponse.errors?.length) {
+              let perStepErrorCount = 0
               for (const err of rawResponse.errors) {
                 const alias = err.path?.[0]
                 if (typeof alias === "string" && alias.startsWith("step")) {
                   stepErrors.set(alias, err.message)
+                  perStepErrorCount += 1
                 }
               }
-              if (stepErrors.size === 0) {
+              if (perStepErrorCount === 0) {
                 for (const { alias } of mutationInputs) {
                   stepErrors.set(alias, rawResponse.errors[0]?.message ?? "GraphQL batch error")
                 }
@@ -154,6 +156,9 @@ export async function runGqlExecutePhase(
         })()
       : Promise.resolve()
 
+  // Mutation and query aliases cannot collide: each step is classified as either a
+  // gql-mutation or a gql-query (never both), so mutationInputs and queryInputs hold
+  // disjoint sets of `step<index>` aliases. Concurrent writes to stepErrors are safe.
   await Promise.allSettled([mutationPromise, queryPromise])
 
   return {

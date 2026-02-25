@@ -18,8 +18,6 @@ export function isRetryableCode(code: string): boolean {
 export type AssembleInput = {
   steps: ClassifiedStep[]
   requests: Array<{ task: string; input: Record<string, unknown> }>
-  // Pre-computed error results for steps that failed before execution (e.g. inject failures)
-  stepPreResults: Record<number, ChainStepResult>
   // Raw mutation batch result keyed by alias (e.g. "step0", "step2")
   mutationRawResult: Record<string, unknown>
   // Raw query batch result keyed by alias
@@ -37,7 +35,6 @@ export function assembleChainResult(input: AssembleInput): ChainResultEnvelope {
   const {
     steps,
     requests,
-    stepPreResults,
     mutationRawResult,
     queryRawResult,
     stepErrors,
@@ -55,10 +52,6 @@ export function assembleChainResult(input: AssembleInput): ChainResultEnvelope {
     if (req === undefined) {
       throw new Error(`invariant violated: request at index ${stepIndex} is undefined`)
     }
-
-    // Use pre-computed error result if available
-    const preResult = stepPreResults[stepIndex]
-    if (preResult !== undefined) return preResult
 
     // CLI-only step
     const cliResult = cliResults.get(stepIndex)

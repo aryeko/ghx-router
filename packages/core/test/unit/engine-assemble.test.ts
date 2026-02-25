@@ -1,4 +1,4 @@
-import type { ChainStepResult, ResultEnvelope } from "@core/core/contracts/envelope.js"
+import type { ResultEnvelope } from "@core/core/contracts/envelope.js"
 import { errorCodes } from "@core/core/errors/codes.js"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -62,7 +62,6 @@ function baseAssembleInput(overrides: Partial<AssembleInput> = {}): AssembleInpu
   return {
     steps: [],
     requests: [],
-    stepPreResults: {},
     mutationRawResult: {},
     queryRawResult: {},
     stepErrors: new Map(),
@@ -266,29 +265,6 @@ describe("assembleChainResult", () => {
       ok: false,
       error: { code: errorCodes.Unknown, message: "CLI step failed", retryable: false },
     })
-  })
-
-  it("pre-computed stepPreResult takes priority over CLI and GQL results", () => {
-    const requests = [makeRequest("repo.view")]
-    const steps = [makeGqlQueryStep(0)]
-    const preResult: ChainStepResult = {
-      task: "repo.view",
-      ok: false,
-      error: { code: errorCodes.Validation, message: "invalid input", retryable: false },
-    }
-    const cliResults = new Map([[0, makeSuccessEnvelope({ should: "not be used" })]])
-    const input = baseAssembleInput({
-      steps,
-      requests,
-      stepPreResults: { 0: preResult },
-      queryRawResult: { step0: { should: "not be used" } },
-      cliResults,
-      cliStepCount: 0,
-    })
-
-    const result = assembleChainResult(input)
-
-    expect(result.results[0]).toBe(preResult)
   })
 
   it("missing alias in both raw results — error with 'missing result for alias stepN'", () => {
