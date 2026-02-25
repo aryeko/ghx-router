@@ -12,7 +12,7 @@ vi.mock("@core/core/routing/engine.js", () => ({
   executeTask: (...args: unknown[]) => executeTaskMock(...args),
 }))
 
-import { readStdin, runCommand } from "@core/cli/commands/run.js"
+import { parseRunFlags, readStdin, runCommand } from "@core/cli/commands/run.js"
 
 function mockStdin(content: string): void {
   const readable = new Readable({
@@ -35,7 +35,11 @@ describe("runCommand", () => {
       query: (query: string, variables?: unknown) =>
         transport.execute(query, variables as Record<string, unknown>),
     }))
-    executeTaskMock.mockResolvedValue({ ok: true })
+    executeTaskMock.mockResolvedValue({
+      ok: true,
+      data: null,
+      meta: { capability_id: "test.task", route_used: "graphql" },
+    })
     process.env.GITHUB_TOKEN = "token-123"
     process.env.GH_TOKEN = undefined
   })
@@ -93,7 +97,7 @@ describe("runCommand", () => {
     )
   })
 
-  it("executes task and prints JSON result", async () => {
+  it("executes task and prints compact JSON result by default", async () => {
     const fetchMock = vi.fn(async () => ({
       ok: true,
       status: 200,
@@ -103,7 +107,11 @@ describe("runCommand", () => {
 
     executeTaskMock.mockImplementation(async (_request, context) => {
       await context.githubClient.query("query { repository { id } }", { owner: "a", name: "b" })
-      return { ok: true, route: "graphql" }
+      return {
+        ok: true,
+        data: { id: "r1" },
+        meta: { capability_id: "repo.view", route_used: "graphql", reason: "CARD_PREFERRED" },
+      }
     })
 
     const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true)
@@ -112,7 +120,7 @@ describe("runCommand", () => {
     expect(code).toBe(0)
     expect(createGithubClientMock).toHaveBeenCalledTimes(1)
     expect(executeTaskMock).toHaveBeenCalledTimes(1)
-    expect(stdout).toHaveBeenCalledWith('{"ok":true,"route":"graphql"}\n')
+    expect(stdout).toHaveBeenCalledWith('{"ok":true,"data":{"id":"r1"}}\n')
   })
 
   it("defaults to skipping gh preflight in executeTask deps", async () => {
@@ -123,8 +131,13 @@ describe("runCommand", () => {
     }))
     vi.stubGlobal("fetch", fetchMock)
 
-    executeTaskMock.mockResolvedValue({ ok: true })
+    executeTaskMock.mockResolvedValue({
+      ok: true,
+      data: { id: "r1" },
+      meta: { capability_id: "repo.view", route_used: "graphql" },
+    })
 
+    vi.spyOn(process.stdout, "write").mockImplementation(() => true)
     await runCommand(["repo.view", "--input", '{"owner":"a","name":"b"}'])
 
     expect(executeTaskMock).toHaveBeenCalledTimes(1)
@@ -144,8 +157,13 @@ describe("runCommand", () => {
     }))
     vi.stubGlobal("fetch", fetchMock)
 
-    executeTaskMock.mockResolvedValue({ ok: true })
+    executeTaskMock.mockResolvedValue({
+      ok: true,
+      data: { id: "r1" },
+      meta: { capability_id: "repo.view", route_used: "graphql" },
+    })
 
+    vi.spyOn(process.stdout, "write").mockImplementation(() => true)
     await runCommand(["repo.view", "--input", '{"owner":"a","name":"b"}', "--check-gh-preflight"])
 
     expect(executeTaskMock).toHaveBeenCalledTimes(1)
@@ -165,8 +183,13 @@ describe("runCommand", () => {
     }))
     vi.stubGlobal("fetch", fetchMock)
 
-    executeTaskMock.mockResolvedValue({ ok: true })
+    executeTaskMock.mockResolvedValue({
+      ok: true,
+      data: { id: "r1" },
+      meta: { capability_id: "repo.view", route_used: "graphql" },
+    })
 
+    vi.spyOn(process.stdout, "write").mockImplementation(() => true)
     await runCommand(["repo.view", '--input={"owner":"a","name":"b"}'])
 
     expect(executeTaskMock).toHaveBeenCalledWith(
@@ -231,7 +254,11 @@ describe("runCommand", () => {
   describe("stdin input (--input -)", () => {
     it("reads JSON from stdin when --input - is passed", async () => {
       mockStdin('{"owner":"a","name":"b"}')
-      executeTaskMock.mockResolvedValue({ ok: true })
+      executeTaskMock.mockResolvedValue({
+        ok: true,
+        data: { id: "r1" },
+        meta: { capability_id: "repo.view", route_used: "graphql", reason: "CARD_PREFERRED" },
+      })
 
       const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true)
       const code = await runCommand(["repo.view", "--input", "-"])
@@ -244,7 +271,7 @@ describe("runCommand", () => {
         }),
         expect.any(Object),
       )
-      expect(stdout).toHaveBeenCalledWith('{"ok":true}\n')
+      expect(stdout).toHaveBeenCalledWith('{"ok":true,"data":{"id":"r1"}}\n')
     })
 
     it("throws for invalid JSON from stdin", async () => {
@@ -265,7 +292,11 @@ describe("runCommand", () => {
 
     it("respects --check-gh-preflight with stdin input", async () => {
       mockStdin('{"owner":"a","name":"b"}')
-      executeTaskMock.mockResolvedValue({ ok: true })
+      executeTaskMock.mockResolvedValue({
+        ok: true,
+        data: { id: "r1" },
+        meta: { capability_id: "repo.view", route_used: "graphql" },
+      })
 
       vi.spyOn(process.stdout, "write").mockImplementation(() => true)
       await runCommand(["repo.view", "--input", "-", "--check-gh-preflight"])
@@ -276,6 +307,94 @@ describe("runCommand", () => {
           skipGhPreflight: false,
         }),
       )
+    })
+  })
+
+  describe("--verbose flag and compact output", () => {
+    it("parses --verbose as true in parseRunFlags", () => {
+      const flags = parseRunFlags(["repo.view", "--input", "{}", "--verbose"])
+      expect(flags.verbose).toBe(true)
+    })
+
+    it("parses verbose as false when --verbose is not present", () => {
+      const flags = parseRunFlags(["repo.view", "--input", "{}"])
+      expect(flags.verbose).toBe(false)
+    })
+
+    it("default output is compact and does not include meta key", async () => {
+      executeTaskMock.mockResolvedValue({
+        ok: true,
+        data: { id: "I_1", number: 42 },
+        meta: { capability_id: "issue.view", route_used: "graphql", reason: "CARD_PREFERRED" },
+      })
+
+      const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true)
+      await runCommand(["issue.view", "--input", '{"owner":"a","repo":"b","number":42}'])
+
+      const written = String(stdout.mock.calls[0]?.[0] ?? "")
+      const parsed = JSON.parse(written)
+      expect(parsed).not.toHaveProperty("meta")
+      expect(parsed.ok).toBe(true)
+      expect(parsed.data).toEqual({ id: "I_1", number: 42 })
+    })
+
+    it("--verbose output passes through full result including meta", async () => {
+      const fullEnvelope = {
+        ok: true,
+        data: { id: "I_1", number: 42 },
+        meta: { capability_id: "issue.view", route_used: "graphql", reason: "CARD_PREFERRED" },
+      }
+      executeTaskMock.mockResolvedValue(fullEnvelope)
+
+      const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true)
+      await runCommand([
+        "issue.view",
+        "--input",
+        '{"owner":"a","repo":"b","number":42}',
+        "--verbose",
+      ])
+
+      expect(stdout).toHaveBeenCalledWith(`${JSON.stringify(fullEnvelope)}\n`)
+    })
+
+    it("compact success output has {ok:true, data} shape", async () => {
+      executeTaskMock.mockResolvedValue({
+        ok: true,
+        data: { id: "I_1", number: 42 },
+        meta: { capability_id: "issue.view", route_used: "graphql", reason: "CARD_PREFERRED" },
+      })
+
+      const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true)
+      await runCommand(["issue.view", "--input", '{"owner":"a","repo":"b","number":42}'])
+
+      const written = String(stdout.mock.calls[0]?.[0] ?? "")
+      const parsed = JSON.parse(written)
+      expect(parsed).toEqual({ ok: true, data: { id: "I_1", number: 42 } })
+    })
+
+    it("compact error output has {ok:false, error:{code,message}} shape without retryable", async () => {
+      executeTaskMock.mockResolvedValue({
+        ok: false,
+        error: {
+          code: "NOT_FOUND",
+          message: "Issue not found",
+          retryable: false,
+          details: { url: "https://api.github.com/..." },
+        },
+        meta: { capability_id: "issue.view", route_used: "graphql", reason: "CARD_PREFERRED" },
+      })
+
+      const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true)
+      await runCommand(["issue.view", "--input", '{"owner":"a","repo":"b","number":42}'])
+
+      const written = String(stdout.mock.calls[0]?.[0] ?? "")
+      const parsed = JSON.parse(written)
+      expect(parsed).toEqual({
+        ok: false,
+        error: { code: "NOT_FOUND", message: "Issue not found" },
+      })
+      expect(parsed.error).not.toHaveProperty("retryable")
+      expect(parsed.error).not.toHaveProperty("details")
     })
   })
 })

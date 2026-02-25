@@ -194,6 +194,161 @@ describe("chainCommand parsing", () => {
 
     expect(() => parseChainFlags(["--other-flag"])).toThrow("Missing --steps JSON")
   })
+
+  it("parseChainFlags sets verbose true when --verbose is present", async () => {
+    const { parseChainFlags } = await import("@core/cli/commands/chain.js")
+
+    const flags = parseChainFlags([
+      "--steps",
+      '[{"task":"issue.close","input":{"issueId":"I_1"}}]',
+      "--verbose",
+    ])
+    expect(flags.verbose).toBe(true)
+  })
+
+  it("parseChainFlags sets verbose false when --verbose is absent", async () => {
+    const { parseChainFlags } = await import("@core/cli/commands/chain.js")
+
+    const flags = parseChainFlags(["--steps", '[{"task":"issue.close","input":{"issueId":"I_1"}}]'])
+    expect(flags.verbose).toBe(false)
+  })
+
+  it("chainCommand default output is compact — no meta key", async () => {
+    executeTasksMock.mockResolvedValue({
+      status: "success",
+      results: [
+        { task: "issue.labels.remove", ok: true, data: { labelable: { id: "I_1" } } },
+        {
+          task: "issue.comments.create",
+          ok: true,
+          data: { commentEdge: { node: { url: "https://github.com/c/1" } } },
+        },
+      ],
+      meta: { route_used: "graphql", total: 2, succeeded: 2, failed: 0 },
+    })
+
+    const { chainCommand } = await import("@core/cli/commands/chain.js")
+
+    vi.stubEnv("GITHUB_TOKEN", "test-token")
+
+    let captured = ""
+    const stdoutSpy = vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
+      captured += chunk
+      return true
+    })
+
+    await chainCommand([
+      "--steps",
+      '[{"task":"issue.labels.remove","input":{"issueId":"I_1","labelId":"L_1"}},{"task":"issue.comments.create","input":{"issueId":"I_1","body":"done"}}]',
+    ])
+
+    stdoutSpy.mockRestore()
+
+    const parsed = JSON.parse(captured)
+    expect(parsed).not.toHaveProperty("meta")
+  })
+
+  it("chainCommand with --verbose outputs full envelope with meta key", async () => {
+    executeTasksMock.mockResolvedValue({
+      status: "success",
+      results: [
+        { task: "issue.labels.remove", ok: true, data: { labelable: { id: "I_1" } } },
+        {
+          task: "issue.comments.create",
+          ok: true,
+          data: { commentEdge: { node: { url: "https://github.com/c/1" } } },
+        },
+      ],
+      meta: { route_used: "graphql", total: 2, succeeded: 2, failed: 0 },
+    })
+
+    const { chainCommand } = await import("@core/cli/commands/chain.js")
+
+    vi.stubEnv("GITHUB_TOKEN", "test-token")
+
+    let captured = ""
+    const stdoutSpy = vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
+      captured += chunk
+      return true
+    })
+
+    await chainCommand([
+      "--steps",
+      '[{"task":"issue.labels.remove","input":{"issueId":"I_1","labelId":"L_1"}},{"task":"issue.comments.create","input":{"issueId":"I_1","body":"done"}}]',
+      "--verbose",
+    ])
+
+    stdoutSpy.mockRestore()
+
+    const parsed = JSON.parse(captured)
+    expect(parsed).toHaveProperty("meta")
+  })
+
+  it("chainCommand compact ok steps have shape { task, ok: true } — no data", async () => {
+    executeTasksMock.mockResolvedValue({
+      status: "success",
+      results: [{ task: "issue.labels.remove", ok: true, data: { labelable: { id: "I_1" } } }],
+      meta: { route_used: "graphql", total: 1, succeeded: 1, failed: 0 },
+    })
+
+    const { chainCommand } = await import("@core/cli/commands/chain.js")
+
+    vi.stubEnv("GITHUB_TOKEN", "test-token")
+
+    let captured = ""
+    const stdoutSpy = vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
+      captured += chunk
+      return true
+    })
+
+    await chainCommand([
+      "--steps",
+      '[{"task":"issue.labels.remove","input":{"issueId":"I_1","labelId":"L_1"}}]',
+    ])
+
+    stdoutSpy.mockRestore()
+
+    const parsed = JSON.parse(captured)
+    expect(parsed.results[0]).toEqual({ task: "issue.labels.remove", ok: true })
+    expect(parsed.results[0]).not.toHaveProperty("data")
+  })
+
+  it("chainCommand compact failed steps have shape { task, ok: false, error: { code, message } } — no retryable", async () => {
+    executeTasksMock.mockResolvedValue({
+      status: "failed",
+      results: [
+        {
+          task: "issue.close",
+          ok: false,
+          error: { code: "VALIDATION", message: "invalid input", retryable: false, details: "x" },
+        },
+      ],
+      meta: { route_used: "graphql", total: 1, succeeded: 0, failed: 1 },
+    })
+
+    const { chainCommand } = await import("@core/cli/commands/chain.js")
+
+    vi.stubEnv("GITHUB_TOKEN", "test-token")
+
+    let captured = ""
+    const stdoutSpy = vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
+      captured += chunk
+      return true
+    })
+
+    await chainCommand(["--steps", '[{"task":"issue.close","input":{"issueId":"I_1"}}]'])
+
+    stdoutSpy.mockRestore()
+
+    const parsed = JSON.parse(captured)
+    expect(parsed.results[0]).toEqual({
+      task: "issue.close",
+      ok: false,
+      error: { code: "VALIDATION", message: "invalid input" },
+    })
+    expect(parsed.results[0].error).not.toHaveProperty("retryable")
+    expect(parsed.results[0].error).not.toHaveProperty("details")
+  })
 })
 
 describe("chainCommand — executeRawGraphqlRequest path", () => {
