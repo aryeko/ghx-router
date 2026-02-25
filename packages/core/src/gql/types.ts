@@ -531,7 +531,7 @@ export type PrUpdateInput = {
   prNumber: number
   title?: string
   body?: string
-  // note: no draft field — not in UpdatePullRequestInput
+  draft?: boolean // handled by CLI adapter only — not supported in UpdatePullRequestInput GQL mutation
 }
 
 export type PrUpdateData = {

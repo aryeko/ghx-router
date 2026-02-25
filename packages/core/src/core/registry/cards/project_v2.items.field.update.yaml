@@ -24,5 +24,8 @@ output_schema:
 routing:
   preferred: graphql
   fallbacks: [cli]
+graphql:
+  operationName: UpdateProjectV2ItemField
+  documentPath: src/gql/operations/project-v2-item-field-update.graphql
 cli:
   command: project item-edit

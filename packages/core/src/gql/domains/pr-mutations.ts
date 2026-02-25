@@ -536,7 +536,7 @@ export async function runPrAssigneesAdd(
 
   return {
     prNumber: input.prNumber,
-    added: (prAssignable.assignees.nodes ?? []).flatMap((n) => (n ? [n.login] : [])),
+    added: input.assignees,
   }
 }
 
@@ -579,7 +579,7 @@ export async function runPrAssigneesRemove(
 
   return {
     prNumber: input.prNumber,
-    removed: (prAssignable.assignees.nodes ?? []).flatMap((n) => (n ? [n.login] : [])),
+    removed: input.assignees,
   }
 }
 
@@ -597,7 +597,7 @@ export async function runPrReviewsRequest(
 
   const unresolvedReviewerLogins = input.reviewers.filter((_, i) => !userIdResults[i]?.user?.id)
   if (unresolvedReviewerLogins.length > 0) {
-    throw new Error(`Could not resolve assignees: ${unresolvedReviewerLogins.join(", ")}`)
+    throw new Error(`Could not resolve reviewers: ${unresolvedReviewerLogins.join(", ")}`)
   }
 
   const reviewerUserIds = userIdResults.flatMap((r) => (r.user?.id ? [r.user.id] : []))

@@ -452,7 +452,7 @@ describe("runPrAssigneesRemove", () => {
     const result = await runPrAssigneesRemove(transport, assigneesInput)
 
     expect(result.prNumber).toBe(42)
-    expect(result.removed).toEqual(["bob"])
+    expect(result.removed).toEqual(["alice"])
   })
 })
 
@@ -495,7 +495,7 @@ describe("runPrReviewsRequest", () => {
     const transport: GraphqlTransport = { execute }
 
     await expect(runPrReviewsRequest(transport, reviewsRequestInput)).rejects.toThrow(
-      "Could not resolve assignees: charlie",
+      "Could not resolve reviewers: charlie",
     )
   })
 

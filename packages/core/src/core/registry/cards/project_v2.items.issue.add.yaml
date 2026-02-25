@@ -14,10 +14,13 @@ output_schema:
   required: [itemId, itemType]
   properties:
     itemId: { type: [string, "null"] }
-    itemType: { type: string }
+    itemType: { type: [string, "null"] }
   additionalProperties: false
 routing:
   preferred: graphql
   fallbacks: [cli]
+graphql:
+  operationName: AddProjectV2Item
+  documentPath: src/gql/operations/project-v2-item-add.graphql
 cli:
   command: project item-add

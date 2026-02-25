@@ -18,5 +18,8 @@ output_schema:
 routing:
   preferred: graphql
   fallbacks: [cli]
+graphql:
+  operationName: RemoveProjectV2Item
+  documentPath: src/gql/operations/project-v2-item-remove.graphql
 cli:
   command: project item-delete

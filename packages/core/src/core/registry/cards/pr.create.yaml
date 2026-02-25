@@ -3,7 +3,7 @@ version: "1.0.0"
 description: Create a pull request.
 input_schema:
   type: object
-  required: [owner, name, title, head]
+  required: [owner, name, title, head, base]
   properties:
     owner: { type: string, minLength: 1 }
     name: { type: string, minLength: 1 }
