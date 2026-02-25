@@ -17,6 +17,10 @@ query ProjectV2FieldsList($owner: String!, $projectNumber: Int!, $first: Int!, $
             id
             name
             dataType
+            options {
+              id
+              name
+            }
           }
         }
         pageInfo {
@@ -43,6 +47,10 @@ query ProjectV2FieldsList($owner: String!, $projectNumber: Int!, $first: Int!, $
             id
             name
             dataType
+            options {
+              id
+              name
+            }
           }
         }
         pageInfo {

@@ -71,7 +71,17 @@ async function resolveIssueNodeId(client: GraphQLClient, issueUrl: string): Prom
   throw new Error(`Issue not found at URL "${issueUrl}"`)
 }
 
-function buildFieldValue(input: ProjectV2ItemFieldUpdateInput): Types.ProjectV2FieldValue {
+export function buildFieldValue(input: ProjectV2ItemFieldUpdateInput): Types.ProjectV2FieldValue {
+  if (
+    input.clear === true &&
+    (input.valueText !== undefined ||
+      input.valueNumber !== undefined ||
+      input.valueDate !== undefined ||
+      input.valueSingleSelectOptionId !== undefined ||
+      input.valueIterationId !== undefined)
+  ) {
+    throw new Error("Cannot set clear and a value field simultaneously")
+  }
   if (input.clear) return {}
   if (input.valueText !== undefined) return { text: input.valueText }
   if (input.valueNumber !== undefined) return { number: input.valueNumber }
@@ -169,6 +179,10 @@ export async function runProjectV2FieldsList(
         id: n?.id ?? null,
         name: n?.name ?? null,
         dataType: n != null ? String(n.dataType) : null,
+        options:
+          n != null && "__typename" in n && n.__typename === "ProjectV2SingleSelectField"
+            ? (n as { options: Array<{ id: string; name: string }> }).options
+            : null,
       }),
     ),
     pageInfo: {

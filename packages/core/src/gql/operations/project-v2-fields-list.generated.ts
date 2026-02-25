@@ -36,6 +36,11 @@ export type ProjectV2FieldsListQuery = {
               id: string
               name: string
               dataType: Types.ProjectV2FieldType
+              options: Array<{
+                __typename?: "ProjectV2SingleSelectFieldOption"
+                id: string
+                name: string
+              }>
             }
           | null
         > | null
@@ -67,6 +72,11 @@ export type ProjectV2FieldsListQuery = {
               id: string
               name: string
               dataType: Types.ProjectV2FieldType
+              options: Array<{
+                __typename?: "ProjectV2SingleSelectFieldOption"
+                id: string
+                name: string
+              }>
             }
           | null
         > | null
@@ -96,6 +106,10 @@ export const ProjectV2FieldsListDocument = `
             id
             name
             dataType
+            options {
+              id
+              name
+            }
           }
         }
         pageInfo {
@@ -122,6 +136,10 @@ export const ProjectV2FieldsListDocument = `
             id
             name
             dataType
+            options {
+              id
+              name
+            }
           }
         }
         pageInfo {

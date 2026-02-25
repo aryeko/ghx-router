@@ -488,6 +488,7 @@ export type ProjectV2FieldItemData = {
   id: string | null
   name: string | null
   dataType: string | null
+  options?: Array<{ id: string; name: string }> | null
 }
 export type ProjectV2FieldsListData = {
   items: ProjectV2FieldItemData[]

@@ -23,6 +23,15 @@ output_schema:
           id: { type: [string, "null"] }
           name: { type: [string, "null"] }
           dataType: { type: [string, "null"] }
+          options:
+            type: [array, "null"]
+            items:
+              type: object
+              required: [id, name]
+              properties:
+                id: { type: string }
+                name: { type: string }
+              additionalProperties: false
         additionalProperties: false
     pageInfo:
       type: object

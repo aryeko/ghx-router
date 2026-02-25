@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
 import {
+  buildFieldValue,
   runProjectV2FieldsList,
   runProjectV2ItemAdd,
   runProjectV2ItemsList,
@@ -472,6 +473,129 @@ describe("runProjectV2UserView — null field mapping", () => {
     const result = await runProjectV2UserView(transport, userViewInput)
 
     expect(result.id).toBeNull()
+  })
+})
+
+describe("runProjectV2FieldsList — options mapping", () => {
+  it("includes options array for ProjectV2SingleSelectField nodes", async () => {
+    const execute = vi.fn().mockResolvedValue({
+      organization: {
+        projectV2: {
+          fields: {
+            nodes: [
+              {
+                __typename: "ProjectV2SingleSelectField",
+                id: "field-ss1",
+                name: "Status",
+                dataType: "SINGLE_SELECT",
+                options: [
+                  { id: "opt-1", name: "Todo" },
+                  { id: "opt-2", name: "In Progress" },
+                  { id: "opt-3", name: "Done" },
+                ],
+              },
+            ],
+            pageInfo: { hasNextPage: false, endCursor: null },
+          },
+        },
+      },
+    })
+    const transport: GraphqlTransport = { execute }
+
+    const result = await runProjectV2FieldsList(transport, fieldsListInput)
+
+    expect(result.items).toHaveLength(1)
+    expect(result.items[0]?.options).toEqual([
+      { id: "opt-1", name: "Todo" },
+      { id: "opt-2", name: "In Progress" },
+      { id: "opt-3", name: "Done" },
+    ])
+  })
+
+  it("sets options to null for non-SingleSelectField nodes", async () => {
+    const execute = vi.fn().mockResolvedValue({
+      organization: {
+        projectV2: {
+          fields: {
+            nodes: [
+              { __typename: "ProjectV2Field", id: "field-t1", name: "Title", dataType: "TEXT" },
+            ],
+            pageInfo: { hasNextPage: false, endCursor: null },
+          },
+        },
+      },
+    })
+    const transport: GraphqlTransport = { execute }
+
+    const result = await runProjectV2FieldsList(transport, fieldsListInput)
+
+    expect(result.items).toHaveLength(1)
+    expect(result.items[0]?.options).toBeNull()
+  })
+})
+
+describe("buildFieldValue", () => {
+  it("throws when clear is true and valueText is also set", () => {
+    expect(() =>
+      buildFieldValue({ projectId: "p", itemId: "i", fieldId: "f", clear: true, valueText: "foo" }),
+    ).toThrow("Cannot set clear and a value field simultaneously")
+  })
+
+  it("throws when clear is true and valueNumber is also set", () => {
+    expect(() =>
+      buildFieldValue({ projectId: "p", itemId: "i", fieldId: "f", clear: true, valueNumber: 42 }),
+    ).toThrow("Cannot set clear and a value field simultaneously")
+  })
+
+  it("throws when clear is true and valueDate is also set", () => {
+    expect(() =>
+      buildFieldValue({
+        projectId: "p",
+        itemId: "i",
+        fieldId: "f",
+        clear: true,
+        valueDate: "2025-01-01",
+      }),
+    ).toThrow("Cannot set clear and a value field simultaneously")
+  })
+
+  it("throws when clear is true and valueSingleSelectOptionId is also set", () => {
+    expect(() =>
+      buildFieldValue({
+        projectId: "p",
+        itemId: "i",
+        fieldId: "f",
+        clear: true,
+        valueSingleSelectOptionId: "opt-1",
+      }),
+    ).toThrow("Cannot set clear and a value field simultaneously")
+  })
+
+  it("throws when clear is true and valueIterationId is also set", () => {
+    expect(() =>
+      buildFieldValue({
+        projectId: "p",
+        itemId: "i",
+        fieldId: "f",
+        clear: true,
+        valueIterationId: "iter-1",
+      }),
+    ).toThrow("Cannot set clear and a value field simultaneously")
+  })
+
+  it("returns empty object when clear is true and no value fields are set", () => {
+    const result = buildFieldValue({ projectId: "p", itemId: "i", fieldId: "f", clear: true })
+    expect(result).toEqual({})
+  })
+
+  it("returns text value when valueText is set", () => {
+    const result = buildFieldValue({
+      projectId: "p",
+      itemId: "i",
+      fieldId: "f",
+      valueText: "hello",
+    })
+    expect(result).toEqual({ text: "hello" })
   })
 })
 

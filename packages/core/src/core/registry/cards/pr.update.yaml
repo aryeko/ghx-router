@@ -1,6 +1,6 @@
 capability_id: pr.update
 version: "1.0.0"
-description: Update pull request metadata (title, body, draft status via GraphQL with CLI fallback).
+description: Update pull request metadata (title, body, draft status).
 input_schema:
   type: object
   required: [owner, name, prNumber]

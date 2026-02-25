@@ -514,6 +514,17 @@ export async function runPrBranchUpdate(
   }
 }
 
+async function resolveUserNodeIds(client: GraphQLClient, logins: string[]): Promise<string[]> {
+  const results = await Promise.all(
+    logins.map((login) => getUserNodeIdSdk(client).UserNodeId({ login })),
+  )
+  const unresolved = logins.filter((_, i) => !results[i]?.user?.id)
+  if (unresolved.length > 0) {
+    throw new Error(`Could not resolve users: ${unresolved.join(", ")}`)
+  }
+  return results.flatMap((r) => (r.user?.id ? [r.user.id] : []))
+}
+
 export async function runPrAssigneesAdd(
   transport: GraphqlTransport,
   input: PrAssigneesAddInput,
@@ -522,16 +533,7 @@ export async function runPrAssigneesAdd(
   const client = createGraphqlRequestClient(transport)
   const pullRequestId = await fetchPrNodeId(client, input.owner, input.name, input.prNumber)
 
-  const userIdResults = await Promise.all(
-    input.assignees.map((login) => getUserNodeIdSdk(client).UserNodeId({ login })),
-  )
-
-  const unresolvedLogins = input.assignees.filter((_, i) => !userIdResults[i]?.user?.id)
-  if (unresolvedLogins.length > 0) {
-    throw new Error(`Could not resolve assignees: ${unresolvedLogins.join(", ")}`)
-  }
-
-  const userIds = userIdResults.flatMap((r) => (r.user?.id ? [r.user.id] : []))
+  const userIds = await resolveUserNodeIds(client, input.assignees)
 
   const result = await getPrAssigneesAddSdk(client).PrAssigneesAdd({
     assignableId: pullRequestId,
@@ -565,16 +567,7 @@ export async function runPrAssigneesRemove(
   const client = createGraphqlRequestClient(transport)
   const pullRequestId = await fetchPrNodeId(client, input.owner, input.name, input.prNumber)
 
-  const userIdResults = await Promise.all(
-    input.assignees.map((login) => getUserNodeIdSdk(client).UserNodeId({ login })),
-  )
-
-  const unresolvedLogins = input.assignees.filter((_, i) => !userIdResults[i]?.user?.id)
-  if (unresolvedLogins.length > 0) {
-    throw new Error(`Could not resolve assignees: ${unresolvedLogins.join(", ")}`)
-  }
-
-  const userIds = userIdResults.flatMap((r) => (r.user?.id ? [r.user.id] : []))
+  const userIds = await resolveUserNodeIds(client, input.assignees)
 
   const result = await getPrAssigneesRemoveSdk(client).PrAssigneesRemove({
     assignableId: pullRequestId,
@@ -608,16 +601,7 @@ export async function runPrReviewsRequest(
   const client = createGraphqlRequestClient(transport)
   const pullRequestId = await fetchPrNodeId(client, input.owner, input.name, input.prNumber)
 
-  const userIdResults = await Promise.all(
-    input.reviewers.map((login) => getUserNodeIdSdk(client).UserNodeId({ login })),
-  )
-
-  const unresolvedReviewerLogins = input.reviewers.filter((_, i) => !userIdResults[i]?.user?.id)
-  if (unresolvedReviewerLogins.length > 0) {
-    throw new Error(`Could not resolve reviewers: ${unresolvedReviewerLogins.join(", ")}`)
-  }
-
-  const reviewerUserIds = userIdResults.flatMap((r) => (r.user?.id ? [r.user.id] : []))
+  const reviewerUserIds = await resolveUserNodeIds(client, input.reviewers)
 
   const result = await getPrReviewsRequestSdk(client).PrReviewsRequest({
     pullRequestId,
