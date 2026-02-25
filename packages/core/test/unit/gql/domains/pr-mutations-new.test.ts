@@ -165,7 +165,7 @@ describe("runPrUpdate", () => {
     await expect(
       runPrUpdate(transport, { ...baseInput, prNumber: 42, draft: true }),
     ).rejects.toThrow(
-      "The 'draft' field is not supported by the GraphQL route. Provide 'title' or 'body' to use GQL, or configure a CLI fallback.",
+      "draft-only update operation not available via GraphQL route; provide 'title' or 'body' alongside draft, or use the CLI route",
     )
     expect(execute).not.toHaveBeenCalled()
   })
@@ -254,7 +254,7 @@ describe("runPrMerge", () => {
     const transport: GraphqlTransport = { execute }
 
     await expect(runPrMerge(transport, { ...mergeInput, deleteBranch: true })).rejects.toThrow(
-      "The 'deleteBranch' option is not supported by the GraphQL mergePullRequest mutation. Use the CLI route to delete the branch after merging.",
+      "deleteBranch operation not available via GraphQL mergePullRequest mutation; use the CLI route to delete the branch after merging",
     )
     expect(execute).not.toHaveBeenCalled()
   })

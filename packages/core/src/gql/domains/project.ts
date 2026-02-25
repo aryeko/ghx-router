@@ -100,7 +100,7 @@ export async function runProjectV2OrgView(
     shortDescription: project.shortDescription ?? null,
     public: project.public ?? null,
     closed: project.closed ?? null,
-    url: String(project.url),
+    url: project.url != null ? String(project.url) : null,
   }
 }
 
@@ -121,7 +121,7 @@ export async function runProjectV2UserView(
     shortDescription: project.shortDescription ?? null,
     public: project.public ?? null,
     closed: project.closed ?? null,
-    url: String(project.url),
+    url: project.url != null ? String(project.url) : null,
   }
 }
 

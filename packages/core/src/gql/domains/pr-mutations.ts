@@ -420,7 +420,7 @@ export async function runPrUpdate(
 
   if (input.draft !== undefined && input.title === undefined && input.body === undefined) {
     throw new Error(
-      "The 'draft' field is not supported by the GraphQL route. Provide 'title' or 'body' to use GQL, or configure a CLI fallback.",
+      "draft-only update operation not available via GraphQL route; provide 'title' or 'body' alongside draft, or use the CLI route",
     )
   }
 
@@ -455,7 +455,7 @@ export async function runPrMerge(
 
   if (input.deleteBranch === true) {
     throw new Error(
-      "The 'deleteBranch' option is not supported by the GraphQL mergePullRequest mutation. Use the CLI route to delete the branch after merging.",
+      "deleteBranch operation not available via GraphQL mergePullRequest mutation; use the CLI route to delete the branch after merging",
     )
   }
 

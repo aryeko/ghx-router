@@ -86,6 +86,48 @@ describe("document-registry – mutations", () => {
     expect(getMutationDocument("PrReviewSubmit")).toContain("mutation PrReviewSubmit")
   })
 
+  it("returns document for PrAssigneesAdd", () => {
+    expect(getMutationDocument("PrAssigneesAdd")).toContain("mutation PrAssigneesAdd")
+  })
+
+  it("returns document for PrAssigneesRemove", () => {
+    expect(getMutationDocument("PrAssigneesRemove")).toContain("mutation PrAssigneesRemove")
+  })
+
+  it("returns document for PrBranchUpdate", () => {
+    expect(getMutationDocument("PrBranchUpdate")).toContain("mutation PrBranchUpdate")
+  })
+
+  it("returns document for PrCreate", () => {
+    expect(getMutationDocument("PrCreate")).toContain("mutation PrCreate")
+  })
+
+  it("returns document for PrMerge", () => {
+    expect(getMutationDocument("PrMerge")).toContain("mutation PrMerge")
+  })
+
+  it("returns document for PrReviewsRequest", () => {
+    expect(getMutationDocument("PrReviewsRequest")).toContain("mutation PrReviewsRequest")
+  })
+
+  it("returns document for PrUpdate", () => {
+    expect(getMutationDocument("PrUpdate")).toContain("mutation PrUpdate")
+  })
+
+  it("returns document for AddProjectV2Item", () => {
+    expect(getMutationDocument("AddProjectV2Item")).toContain("mutation AddProjectV2Item")
+  })
+
+  it("returns document for RemoveProjectV2Item", () => {
+    expect(getMutationDocument("RemoveProjectV2Item")).toContain("mutation RemoveProjectV2Item")
+  })
+
+  it("returns document for UpdateProjectV2ItemField", () => {
+    expect(getMutationDocument("UpdateProjectV2ItemField")).toContain(
+      "mutation UpdateProjectV2ItemField",
+    )
+  })
+
   it("throws on unknown mutation", () => {
     expect(() => getMutationDocument("NonExistentMutation")).toThrow()
   })
@@ -130,6 +172,10 @@ describe("document-registry – lookups", () => {
 
   it("returns document for PrNodeId", () => {
     expect(getLookupDocument("PrNodeId")).toContain("query PrNodeId")
+  })
+
+  it("returns document for UserNodeId", () => {
+    expect(getLookupDocument("UserNodeId")).toContain("query UserNodeId")
   })
 
   it("throws on unknown lookup", () => {
