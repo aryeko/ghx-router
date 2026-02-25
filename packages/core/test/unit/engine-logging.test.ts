@@ -1,7 +1,6 @@
 import type { ResultEnvelope } from "@core/core/contracts/envelope.js"
-import type { OperationCard } from "@core/core/registry/types.js"
-import type { GithubClient } from "@core/gql/github-client.js"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { baseCard, createGithubClient } from "../helpers/engine-fixtures.js"
 
 const infoSpy = vi.fn()
 const debugSpy = vi.fn()
@@ -28,18 +27,6 @@ vi.mock("@core/core/registry/index.js", () => ({
   getOperationCard: (...args: unknown[]) => getOperationCardMock(...args),
 }))
 
-const baseCard: OperationCard = {
-  capability_id: "repo.view",
-  version: "1.0.0",
-  description: "Fetch repository",
-  input_schema: { type: "object" },
-  output_schema: { type: "object" },
-  routing: {
-    preferred: "graphql",
-    fallbacks: ["cli"],
-  },
-}
-
 function makeOkEnvelope(data: unknown = {}): ResultEnvelope {
   return {
     ok: true,
@@ -55,27 +42,6 @@ function makeErrorEnvelope(): ResultEnvelope {
     error: { code: "SERVER", message: "fail", retryable: false },
     meta: { capability_id: "repo.view", route_used: "graphql", reason: "CARD_PREFERRED" },
   }
-}
-
-function createGithubClient(): GithubClient {
-  return {
-    fetchRepoView: vi.fn(),
-    fetchIssueCommentsList: vi.fn(),
-    fetchIssueList: vi.fn(),
-    fetchIssueView: vi.fn(),
-    fetchPrList: vi.fn(),
-    fetchPrView: vi.fn(),
-    fetchPrCommentsList: vi.fn(),
-    fetchPrReviewsList: vi.fn(),
-    fetchPrDiffListFiles: vi.fn(),
-    fetchPrMergeStatus: vi.fn(),
-    replyToReviewThread: vi.fn(),
-    resolveReviewThread: vi.fn(),
-    unresolveReviewThread: vi.fn(),
-    submitPrReview: vi.fn(),
-    query: vi.fn(),
-    queryRaw: vi.fn().mockResolvedValue({ data: {}, errors: undefined }),
-  } as unknown as GithubClient
 }
 
 describe("executeTask logging", () => {
