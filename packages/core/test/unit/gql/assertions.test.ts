@@ -1,21 +1,49 @@
 import { describe, expect, it } from "vitest"
 import {
+  asRecord,
+  assertIssueAssigneesAddInput,
+  assertIssueAssigneesRemoveInput,
+  assertIssueAssigneesUpdateInput,
+  assertIssueBlockedByInput,
+  assertIssueCommentCreateInput,
   assertIssueCommentsListInput,
+  assertIssueCreateInput,
+  assertIssueInput,
+  assertIssueLabelsAddInput,
+  assertIssueLabelsUpdateInput,
+  assertIssueLinkedPrsListInput,
   assertIssueListInput,
   assertIssueMilestoneSetInput,
+  assertIssueMutationInput,
+  assertIssueParentRemoveInput,
+  assertIssueParentSetInput,
+  assertIssueRelationsGetInput,
   assertIssueUpdateInput,
   assertNonEmptyString,
   assertOptionalString,
+  assertPrAssigneesInput,
   assertPrBranchUpdateInput,
   assertPrCommentsListInput,
+  assertPrCreateInput,
+  assertPrDiffListFilesInput,
+  assertPrInput,
+  assertPrListInput,
   assertPrMergeInput,
   assertProjectInput,
+  assertProjectOrgInput,
+  assertProjectUserInput,
+  assertPrReviewSubmitInput,
+  assertPrReviewsListInput,
+  assertPrReviewsRequestInput,
   assertPrUpdateInput,
   assertReleaseViewInput,
   assertReplyToReviewThreadInput,
+  assertRepoAndPaginationInput,
+  assertRepoInput,
   assertReviewThreadInput,
   assertStringArray,
 } from "../../../src/gql/assertions.js"
+import type { DraftComment } from "../../../src/gql/types.js"
 
 // --- assertNonEmptyString ---
 
@@ -477,5 +505,680 @@ describe("assertPrBranchUpdateInput", () => {
     expect(() => assertPrBranchUpdateInput({ ...base, updateMethod: "cherry-pick" })).toThrow(
       'updateMethod "cherry-pick" is invalid',
     )
+  })
+})
+
+// --- assertRepoInput ---
+
+describe("assertRepoInput", () => {
+  it("does not throw for valid input", () => {
+    expect(() => assertRepoInput({ owner: "acme", name: "repo" })).not.toThrow()
+  })
+
+  it("throws when owner is empty", () => {
+    expect(() => assertRepoInput({ owner: "", name: "repo" })).toThrow(
+      "Repository owner and name are required",
+    )
+  })
+
+  it("throws when name is empty", () => {
+    expect(() => assertRepoInput({ owner: "acme", name: "" })).toThrow(
+      "Repository owner and name are required",
+    )
+  })
+})
+
+// --- assertIssueInput ---
+
+describe("assertIssueInput", () => {
+  it("does not throw for valid input", () => {
+    expect(() => assertIssueInput({ owner: "acme", name: "repo", issueNumber: 1 })).not.toThrow()
+  })
+
+  it("throws when owner is empty", () => {
+    expect(() => assertIssueInput({ owner: "", name: "repo", issueNumber: 1 })).toThrow(
+      "Repository owner and name are required",
+    )
+  })
+
+  it("throws when issueNumber is not a positive integer", () => {
+    expect(() => assertIssueInput({ owner: "acme", name: "repo", issueNumber: 0 })).toThrow(
+      "Issue number must be a positive integer",
+    )
+  })
+})
+
+// --- assertIssueCreateInput ---
+
+describe("assertIssueCreateInput", () => {
+  it("does not throw for valid input", () => {
+    expect(() =>
+      assertIssueCreateInput({ owner: "acme", name: "repo", title: "Bug" }),
+    ).not.toThrow()
+  })
+
+  it("throws when title is empty", () => {
+    expect(() => assertIssueCreateInput({ owner: "acme", name: "repo", title: "" })).toThrow(
+      "Issue title is required",
+    )
+  })
+})
+
+// --- assertIssueMutationInput ---
+
+describe("assertIssueMutationInput", () => {
+  it("does not throw for valid input", () => {
+    expect(() =>
+      assertIssueMutationInput({ owner: "acme", name: "repo", issueNumber: 1 }),
+    ).not.toThrow()
+  })
+
+  it("throws when issueNumber is invalid", () => {
+    expect(() =>
+      assertIssueMutationInput({ owner: "acme", name: "repo", issueNumber: -1 }),
+    ).toThrow("Issue number must be a positive integer")
+  })
+})
+
+// --- assertIssueLabelsUpdateInput / assertIssueLabelsAddInput ---
+
+describe("assertIssueLabelsUpdateInput", () => {
+  it("does not throw for valid input", () => {
+    expect(() =>
+      assertIssueLabelsUpdateInput({
+        owner: "acme",
+        name: "repo",
+        issueNumber: 1,
+        labels: ["bug"],
+      }),
+    ).not.toThrow()
+  })
+
+  it("throws when labels is empty", () => {
+    expect(() =>
+      assertIssueLabelsUpdateInput({
+        owner: "acme",
+        name: "repo",
+        issueNumber: 1,
+        labels: [],
+      }),
+    ).toThrow("Labels must not be empty")
+  })
+})
+
+describe("assertIssueLabelsAddInput", () => {
+  it("does not throw for valid input", () => {
+    expect(() =>
+      assertIssueLabelsAddInput({
+        owner: "acme",
+        name: "repo",
+        issueNumber: 1,
+        labels: ["bug"],
+      }),
+    ).not.toThrow()
+  })
+
+  it("throws when labels is not an array", () => {
+    expect(() =>
+      assertIssueLabelsAddInput({
+        owner: "acme",
+        name: "repo",
+        issueNumber: 1,
+        labels: "bug" as unknown as string[],
+      }),
+    ).toThrow("Labels must be an array of non-empty strings")
+  })
+})
+
+// --- assertIssueAssigneesUpdateInput / Add / Remove ---
+
+describe("assertIssueAssigneesUpdateInput", () => {
+  it("does not throw for valid input", () => {
+    expect(() =>
+      assertIssueAssigneesUpdateInput({
+        owner: "acme",
+        name: "repo",
+        issueNumber: 1,
+        assignees: ["user1"],
+      }),
+    ).not.toThrow()
+  })
+
+  it("throws when assignees is empty", () => {
+    expect(() =>
+      assertIssueAssigneesUpdateInput({
+        owner: "acme",
+        name: "repo",
+        issueNumber: 1,
+        assignees: [],
+      }),
+    ).toThrow("Assignees must not be empty")
+  })
+})
+
+describe("assertIssueAssigneesAddInput", () => {
+  it("does not throw for valid input", () => {
+    expect(() =>
+      assertIssueAssigneesAddInput({
+        owner: "acme",
+        name: "repo",
+        issueNumber: 1,
+        assignees: ["user1"],
+      }),
+    ).not.toThrow()
+  })
+
+  it("throws when assignees contains non-string", () => {
+    expect(() =>
+      assertIssueAssigneesAddInput({
+        owner: "acme",
+        name: "repo",
+        issueNumber: 1,
+        assignees: [42 as unknown as string],
+      }),
+    ).toThrow("Assignees must be an array of non-empty strings")
+  })
+})
+
+describe("assertIssueAssigneesRemoveInput", () => {
+  it("does not throw for valid input", () => {
+    expect(() =>
+      assertIssueAssigneesRemoveInput({
+        owner: "acme",
+        name: "repo",
+        issueNumber: 1,
+        assignees: ["user1"],
+      }),
+    ).not.toThrow()
+  })
+
+  it("throws when assignees is empty array", () => {
+    expect(() =>
+      assertIssueAssigneesRemoveInput({
+        owner: "acme",
+        name: "repo",
+        issueNumber: 1,
+        assignees: [],
+      }),
+    ).toThrow("Assignees must not be empty")
+  })
+})
+
+// --- assertIssueCommentCreateInput ---
+
+describe("assertIssueCommentCreateInput", () => {
+  it("does not throw for valid input", () => {
+    expect(() =>
+      assertIssueCommentCreateInput({
+        owner: "acme",
+        name: "repo",
+        issueNumber: 1,
+        body: "Hello",
+      }),
+    ).not.toThrow()
+  })
+
+  it("throws when body is empty", () => {
+    expect(() =>
+      assertIssueCommentCreateInput({
+        owner: "acme",
+        name: "repo",
+        issueNumber: 1,
+        body: "",
+      }),
+    ).toThrow("Issue comment body is required")
+  })
+})
+
+// --- assertIssueLinkedPrsListInput ---
+
+describe("assertIssueLinkedPrsListInput", () => {
+  it("does not throw for valid input", () => {
+    expect(() =>
+      assertIssueLinkedPrsListInput({ owner: "acme", name: "repo", issueNumber: 1 }),
+    ).not.toThrow()
+  })
+
+  it("throws when issueNumber is zero", () => {
+    expect(() =>
+      assertIssueLinkedPrsListInput({ owner: "acme", name: "repo", issueNumber: 0 }),
+    ).toThrow("Issue number must be a positive integer")
+  })
+})
+
+// --- assertIssueRelationsGetInput ---
+
+describe("assertIssueRelationsGetInput", () => {
+  it("does not throw for valid input", () => {
+    expect(() =>
+      assertIssueRelationsGetInput({ owner: "acme", name: "repo", issueNumber: 5 }),
+    ).not.toThrow()
+  })
+
+  it("throws when owner is empty", () => {
+    expect(() => assertIssueRelationsGetInput({ owner: "", name: "repo", issueNumber: 5 })).toThrow(
+      "Repository owner and name are required",
+    )
+  })
+})
+
+// --- assertIssueParentSetInput / assertIssueParentRemoveInput ---
+
+describe("assertIssueParentSetInput", () => {
+  it("does not throw for valid input", () => {
+    expect(() => assertIssueParentSetInput({ issueId: "I_1", parentIssueId: "I_2" })).not.toThrow()
+  })
+
+  it("throws when issueId is empty", () => {
+    expect(() => assertIssueParentSetInput({ issueId: "", parentIssueId: "I_2" })).toThrow(
+      "Issue id is required",
+    )
+  })
+
+  it("throws when parentIssueId is empty", () => {
+    expect(() => assertIssueParentSetInput({ issueId: "I_1", parentIssueId: "" })).toThrow(
+      "Parent issue id is required",
+    )
+  })
+})
+
+describe("assertIssueParentRemoveInput", () => {
+  it("does not throw for valid input", () => {
+    expect(() => assertIssueParentRemoveInput({ issueId: "I_1" })).not.toThrow()
+  })
+
+  it("throws when issueId is empty", () => {
+    expect(() => assertIssueParentRemoveInput({ issueId: "" })).toThrow("Issue id is required")
+  })
+})
+
+// --- assertIssueBlockedByInput ---
+
+describe("assertIssueBlockedByInput", () => {
+  it("does not throw for valid input", () => {
+    expect(() =>
+      assertIssueBlockedByInput({ issueId: "I_1", blockedByIssueId: "I_2" }),
+    ).not.toThrow()
+  })
+
+  it("throws when issueId is empty", () => {
+    expect(() => assertIssueBlockedByInput({ issueId: "", blockedByIssueId: "I_2" })).toThrow(
+      "Issue id is required",
+    )
+  })
+
+  it("throws when blockedByIssueId is empty", () => {
+    expect(() => assertIssueBlockedByInput({ issueId: "I_1", blockedByIssueId: "" })).toThrow(
+      "Blocked-by issue id is required",
+    )
+  })
+})
+
+// --- assertPrInput ---
+
+describe("assertPrInput", () => {
+  it("does not throw for valid input", () => {
+    expect(() => assertPrInput({ owner: "acme", name: "repo", prNumber: 1 })).not.toThrow()
+  })
+
+  it("throws when owner is empty", () => {
+    expect(() => assertPrInput({ owner: "", name: "repo", prNumber: 1 })).toThrow(
+      "Repository owner and name are required",
+    )
+  })
+
+  it("throws when prNumber is zero", () => {
+    expect(() => assertPrInput({ owner: "acme", name: "repo", prNumber: 0 })).toThrow(
+      "PR number must be a positive integer",
+    )
+  })
+})
+
+// --- assertPrListInput ---
+
+describe("assertPrListInput", () => {
+  it("does not throw for valid input", () => {
+    expect(() => assertPrListInput({ owner: "acme", name: "repo", first: 10 })).not.toThrow()
+  })
+
+  it("throws when first is zero", () => {
+    expect(() => assertPrListInput({ owner: "acme", name: "repo", first: 0 })).toThrow(
+      "List page size must be a positive integer",
+    )
+  })
+})
+
+// --- assertPrReviewsListInput ---
+
+describe("assertPrReviewsListInput", () => {
+  it("does not throw for valid input", () => {
+    expect(() =>
+      assertPrReviewsListInput({ owner: "acme", name: "repo", prNumber: 1, first: 10 }),
+    ).not.toThrow()
+  })
+
+  it("throws when owner is not a string", () => {
+    expect(() =>
+      assertPrReviewsListInput({
+        owner: 42 as unknown as string,
+        name: "repo",
+        prNumber: 1,
+        first: 10,
+      }),
+    ).toThrow("Repository owner and name are required")
+  })
+
+  it("throws when prNumber is invalid", () => {
+    expect(() =>
+      assertPrReviewsListInput({ owner: "acme", name: "repo", prNumber: -1, first: 10 }),
+    ).toThrow("PR number must be a positive integer")
+  })
+
+  it("throws when first is invalid", () => {
+    expect(() =>
+      assertPrReviewsListInput({ owner: "acme", name: "repo", prNumber: 1, first: 0 }),
+    ).toThrow("List page size must be a positive integer")
+  })
+})
+
+// --- assertPrDiffListFilesInput ---
+
+describe("assertPrDiffListFilesInput", () => {
+  it("does not throw for valid input", () => {
+    expect(() =>
+      assertPrDiffListFilesInput({ owner: "acme", name: "repo", prNumber: 1, first: 10 }),
+    ).not.toThrow()
+  })
+
+  it("throws when owner is not a string", () => {
+    expect(() =>
+      assertPrDiffListFilesInput({
+        owner: 42 as unknown as string,
+        name: "repo",
+        prNumber: 1,
+        first: 10,
+      }),
+    ).toThrow("Repository owner and name are required")
+  })
+
+  it("throws when prNumber is invalid", () => {
+    expect(() =>
+      assertPrDiffListFilesInput({ owner: "acme", name: "repo", prNumber: 0, first: 10 }),
+    ).toThrow("PR number must be a positive integer")
+  })
+
+  it("throws when first is invalid", () => {
+    expect(() =>
+      assertPrDiffListFilesInput({ owner: "acme", name: "repo", prNumber: 1, first: 0 }),
+    ).toThrow("List page size must be a positive integer")
+  })
+})
+
+// --- asRecord ---
+
+describe("asRecord", () => {
+  it("returns the record for a plain object", () => {
+    const obj = { a: 1 }
+    expect(asRecord(obj)).toBe(obj)
+  })
+
+  it("returns null for an array", () => {
+    expect(asRecord([1, 2])).toBeNull()
+  })
+
+  it("returns null for null", () => {
+    expect(asRecord(null)).toBeNull()
+  })
+
+  it("returns null for a string", () => {
+    expect(asRecord("hello")).toBeNull()
+  })
+
+  it("returns null for a number", () => {
+    expect(asRecord(42)).toBeNull()
+  })
+
+  it("returns null for undefined", () => {
+    expect(asRecord(undefined)).toBeNull()
+  })
+})
+
+// --- assertRepoAndPaginationInput ---
+
+describe("assertRepoAndPaginationInput", () => {
+  it("does not throw for valid input", () => {
+    expect(() =>
+      assertRepoAndPaginationInput({ owner: "acme", name: "repo", first: 10 }),
+    ).not.toThrow()
+  })
+
+  it("throws when owner is empty", () => {
+    expect(() => assertRepoAndPaginationInput({ owner: "", name: "repo", first: 10 })).toThrow(
+      "Repository owner and name are required",
+    )
+  })
+
+  it("throws when first is zero", () => {
+    expect(() => assertRepoAndPaginationInput({ owner: "acme", name: "repo", first: 0 })).toThrow(
+      "List page size must be a positive integer",
+    )
+  })
+})
+
+// --- assertProjectOrgInput ---
+
+describe("assertProjectOrgInput", () => {
+  it("does not throw for valid input", () => {
+    expect(() => assertProjectOrgInput({ org: "acme", projectNumber: 1 })).not.toThrow()
+  })
+
+  it("throws when org is empty", () => {
+    expect(() => assertProjectOrgInput({ org: "", projectNumber: 1 })).toThrow(
+      "Organization name is required",
+    )
+  })
+
+  it("throws when projectNumber is zero", () => {
+    expect(() => assertProjectOrgInput({ org: "acme", projectNumber: 0 })).toThrow(
+      "Project number must be a positive integer",
+    )
+  })
+})
+
+// --- assertProjectUserInput ---
+
+describe("assertProjectUserInput", () => {
+  it("does not throw for valid input", () => {
+    expect(() => assertProjectUserInput({ user: "octocat", projectNumber: 1 })).not.toThrow()
+  })
+
+  it("throws when user is empty", () => {
+    expect(() => assertProjectUserInput({ user: "", projectNumber: 1 })).toThrow(
+      "User login is required",
+    )
+  })
+
+  it("throws when projectNumber is zero", () => {
+    expect(() => assertProjectUserInput({ user: "octocat", projectNumber: 0 })).toThrow(
+      "Project number must be a positive integer",
+    )
+  })
+})
+
+// --- assertPrCreateInput ---
+
+describe("assertPrCreateInput", () => {
+  const valid = {
+    owner: "acme",
+    name: "repo",
+    title: "Fix bug",
+    headRefName: "feature",
+    baseRefName: "main",
+  }
+
+  it("does not throw for valid input", () => {
+    expect(() => assertPrCreateInput(valid)).not.toThrow()
+  })
+
+  it("throws when title is empty", () => {
+    expect(() => assertPrCreateInput({ ...valid, title: "" })).toThrow("PR title is required")
+  })
+
+  it("throws when headRefName is empty", () => {
+    expect(() => assertPrCreateInput({ ...valid, headRefName: "" })).toThrow(
+      "Head branch name is required",
+    )
+  })
+
+  it("throws when draft is a non-boolean", () => {
+    expect(() => assertPrCreateInput({ ...valid, draft: "yes" as unknown as boolean })).toThrow(
+      "draft must be a boolean",
+    )
+  })
+
+  it("does not throw when draft is a boolean", () => {
+    expect(() => assertPrCreateInput({ ...valid, draft: true })).not.toThrow()
+  })
+
+  it("throws when body is a non-string", () => {
+    expect(() => assertPrCreateInput({ ...valid, body: 123 as unknown as string })).toThrow(
+      "PR body must be a string",
+    )
+  })
+})
+
+// --- assertPrAssigneesInput ---
+
+describe("assertPrAssigneesInput", () => {
+  it("does not throw for valid input", () => {
+    expect(() =>
+      assertPrAssigneesInput({
+        owner: "acme",
+        name: "repo",
+        prNumber: 1,
+        assignees: ["user1"],
+      }),
+    ).not.toThrow()
+  })
+
+  it("throws when assignees is empty", () => {
+    expect(() =>
+      assertPrAssigneesInput({ owner: "acme", name: "repo", prNumber: 1, assignees: [] }),
+    ).toThrow("Assignees must not be empty")
+  })
+})
+
+// --- assertPrReviewsRequestInput ---
+
+describe("assertPrReviewsRequestInput", () => {
+  it("does not throw for valid input", () => {
+    expect(() =>
+      assertPrReviewsRequestInput({
+        owner: "acme",
+        name: "repo",
+        prNumber: 1,
+        reviewers: ["reviewer1"],
+      }),
+    ).not.toThrow()
+  })
+
+  it("throws when reviewers is empty", () => {
+    expect(() =>
+      assertPrReviewsRequestInput({
+        owner: "acme",
+        name: "repo",
+        prNumber: 1,
+        reviewers: [],
+      }),
+    ).toThrow("Reviewers must not be empty")
+  })
+})
+
+// --- assertPrReviewSubmitInput ---
+
+describe("assertPrReviewSubmitInput", () => {
+  const valid = { owner: "acme", name: "repo", prNumber: 1, event: "APPROVE" }
+
+  it("does not throw for valid APPROVE event", () => {
+    expect(() => assertPrReviewSubmitInput(valid)).not.toThrow()
+  })
+
+  it("does not throw for COMMENT event", () => {
+    expect(() => assertPrReviewSubmitInput({ ...valid, event: "COMMENT" })).not.toThrow()
+  })
+
+  it("does not throw for REQUEST_CHANGES event", () => {
+    expect(() => assertPrReviewSubmitInput({ ...valid, event: "REQUEST_CHANGES" })).not.toThrow()
+  })
+
+  it("throws for invalid event string", () => {
+    expect(() => assertPrReviewSubmitInput({ ...valid, event: "DISMISS" })).toThrow(
+      'event "DISMISS" is invalid. Expected one of: APPROVE, COMMENT, REQUEST_CHANGES',
+    )
+  })
+
+  it("throws when event is missing", () => {
+    expect(() =>
+      assertPrReviewSubmitInput({
+        owner: "acme",
+        name: "repo",
+        prNumber: 1,
+        event: "",
+      }),
+    ).toThrow("Review event is required")
+  })
+
+  it("throws when comments is not an array", () => {
+    expect(() =>
+      assertPrReviewSubmitInput({
+        ...valid,
+        comments: "not-array" as unknown as DraftComment[],
+      }),
+    ).toThrow("comments must be an array")
+  })
+
+  it("throws when a draft comment is missing path", () => {
+    expect(() =>
+      assertPrReviewSubmitInput({
+        ...valid,
+        comments: [{ body: "fix this", line: 10 } as unknown as DraftComment],
+      }),
+    ).toThrow("comments[0].path is required")
+  })
+
+  it("throws when a draft comment is missing body", () => {
+    expect(() =>
+      assertPrReviewSubmitInput({
+        ...valid,
+        comments: [{ path: "src/index.ts", line: 10 } as unknown as DraftComment],
+      }),
+    ).toThrow("comments[0].body is required")
+  })
+
+  it("throws when a draft comment has invalid line", () => {
+    expect(() =>
+      assertPrReviewSubmitInput({
+        ...valid,
+        comments: [{ path: "src/index.ts", body: "fix", line: 0 }],
+      }),
+    ).toThrow("comments[0].line must be a positive integer")
+  })
+
+  it("does not throw with valid comments", () => {
+    expect(() =>
+      assertPrReviewSubmitInput({
+        ...valid,
+        comments: [{ path: "src/index.ts", body: "fix this", line: 10 }],
+      }),
+    ).not.toThrow()
+  })
+
+  it("throws when a comment entry is null", () => {
+    expect(() =>
+      assertPrReviewSubmitInput({
+        ...valid,
+        comments: [null as unknown as DraftComment],
+      }),
+    ).toThrow("comments[0] must be an object")
   })
 })
