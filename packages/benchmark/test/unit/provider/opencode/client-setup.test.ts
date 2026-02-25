@@ -132,7 +132,7 @@ describe("client-setup", () => {
       expect(mocks.createOpencodeMock).toHaveBeenCalled()
       const config = mocks.createOpencodeMock.mock.calls[0]?.[0]
       expect(config.config.model).toBe("openai/gpt-4")
-      expect(config.config.instructions).toEqual(["Use GitHub CLI"])
+      expect(config.config.instructions).toEqual([])
       expect(config.config.plugin).toEqual([])
     })
 
@@ -161,7 +161,7 @@ describe("client-setup", () => {
           },
           config: {
             get: vi.fn().mockResolvedValue({
-              data: { instructions: ["Use GitHub CLI"], plugin: [] },
+              data: { instructions: [], plugin: [] },
             }),
           },
         },
@@ -335,7 +335,7 @@ describe("client-setup", () => {
           },
           config: {
             get: vi.fn().mockResolvedValue({
-              data: { instructions: ["Use GitHub CLI"], plugin: [] },
+              data: { instructions: [], plugin: [] },
             }),
           },
         },
