@@ -13,7 +13,7 @@ If you discover a security vulnerability in ghx, please report it responsibly.
 
 **Preferred method:** Open a [GitHub Security Advisory](https://github.com/aryeko/ghx/security/advisories/new) (private by default).
 
-**Alternative:** Email the maintainer with details. Include:
+**Alternative:** If you cannot use GitHub Security Advisories, email the maintainer at the address listed in the npm package metadata. Include:
 
 - Description of the vulnerability
 - Steps to reproduce

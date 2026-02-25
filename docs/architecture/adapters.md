@@ -8,7 +8,7 @@ Three adapters handle different GitHub interaction modes:
 
 | Adapter | Coverage | Route Name | Status | Purpose |
 |---------|----------|-----------|--------|---------|
-| **CLI Adapter** | 70 atomic | `cli` | Active | Execute via `gh` command-line tool |
+| **CLI Adapter** | Many | `cli` | Active | Execute via `gh` command-line tool |
 | **GraphQL Adapter** | ~28 atomic | `graphql` | Active | Execute via GitHub GraphQL API |
 | **REST Adapter** | None | `rest` | Stub | Planned for future expansion |
 
@@ -68,7 +68,7 @@ The CLI adapter executes capabilities through the GitHub command-line tool (`gh`
 
 ### Features
 
-- **Full atomic coverage**: All 70 capabilities have CLI routes defined where applicable
+- **Broad coverage**: Capabilities route to CLI or GraphQL based on their operation card configuration; many capabilities have CLI routes, while others are GraphQL-preferred or GraphQL-only
 - **Safe spawning**: Uses `spawn()` with `shell: false` — no shell interpretation
 - **Timeout enforcement**: Per-command timeout (default 30s)
 - **Output limits**: Bounded stdout/stderr size (default 10 MB)

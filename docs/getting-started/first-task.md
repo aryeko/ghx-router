@@ -29,7 +29,7 @@ npx ghx capabilities explain issue.create
 
 You'll see the contract:
 
-- **Input:** `owner`, `repo`, `title` (required); `body`, `labels`, `assignees` (optional)
+- **Input:** `owner`, `name`, `title` (required); `body` (optional)
 - **Output:** Issue object with `id`, `number`, `title`, `body`, `url`, etc.
 
 Now create an issue:
@@ -334,14 +334,14 @@ See what you can do with PRs:
 
 ```bash
 npx ghx capabilities explain pr.merge
-npx ghx capabilities explain pr.review.submit
+npx ghx capabilities explain pr.reviews.submit
 ```
 
 Or workflows:
 
 ```bash
-npx ghx capabilities explain workflow.dispatch.run
-npx ghx capabilities explain workflow.job.logs.get
+npx ghx capabilities explain workflow.dispatch
+npx ghx capabilities explain workflow.job.logs.view
 ```
 
 ### Chain Mutations Atomically
@@ -355,8 +355,8 @@ import { executeTasks, createGithubClientFromToken } from "@ghx-dev/core"
 
 const chain = await executeTasks(
   [
-    { task: "issue.labels.set", input: { issueId: "I_kwDOOx...", labels: ["docs"] } },
-    { task: "issue.assignees.set", input: { issueId: "I_kwDOOx...", assignees: ["YOUR_USERNAME"] } },
+    { task: "issue.labels.set", input: { owner: "acme", name: "repo", issueNumber: 42, labels: ["docs"] } },
+    { task: "issue.assignees.set", input: { owner: "acme", name: "repo", issueNumber: 42, assignees: ["YOUR_USERNAME"] } },
   ],
   { githubClient, githubToken: token },
 )
@@ -368,8 +368,8 @@ From the CLI:
 
 ```bash
 ghx chain --steps '[
-  {"task":"issue.labels.set","input":{"issueId":"I_kwDOOx...","labels":["docs"]}},
-  {"task":"issue.assignees.set","input":{"issueId":"I_kwDOOx...","assignees":["YOUR_USERNAME"]}}
+  {"task":"issue.labels.set","input":{"owner":"acme","name":"repo","issueNumber":42,"labels":["docs"]}},
+  {"task":"issue.assignees.set","input":{"owner":"acme","name":"repo","issueNumber":42,"assignees":["YOUR_USERNAME"]}}
 ]'
 ```
 
@@ -446,7 +446,7 @@ You're ready to:
 1. Build more complex workflows
 2. Integrate ghx into automation scripts
 3. Set up ghx for coding agents
-4. Explore the full 66-capability API
+4. Explore the full 70-capability API
 
 ## Next Resources
 

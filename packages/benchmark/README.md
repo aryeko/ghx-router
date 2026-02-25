@@ -18,10 +18,6 @@ This package is intentionally **private** and is not published to npm. It compar
 ## Common Commands
 
 ```bash
-# from repo root (recommended shortcuts)
-pnpm run benchmark:verify:pr
-pnpm run benchmark:verify:release
-
 # package-level commands
 pnpm --filter @ghx-dev/benchmark run benchmark -- agent_direct 1 --scenario pr-view-001
 

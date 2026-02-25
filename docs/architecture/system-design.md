@@ -1,4 +1,4 @@
-# System Design (v1)
+# System Design
 
 `ghx` moves GitHub execution policy into deterministic runtime behavior.
 

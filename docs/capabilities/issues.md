@@ -381,6 +381,41 @@ npx ghx run issue.labels.add --input '{
 
 ---
 
+#### `issue.labels.remove`
+
+**Description:** Remove labels from an issue without affecting other labels.
+
+**Input:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| owner | string | yes | Repository owner |
+| name | string | yes | Repository name |
+| issueNumber | integer | yes | Issue number (1+) |
+| labels | array | yes | Label names to remove (array of strings) |
+
+**Output:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| issueNumber | integer | Issue number |
+| labels | array | Remaining label names after removal |
+
+**Routes:** cli (preferred)
+
+**Example:**
+
+```bash
+npx ghx run issue.labels.remove --input '{
+  "owner": "octocat",
+  "name": "hello-world",
+  "issueNumber": 42,
+  "labels": ["wontfix"]
+}'
+```
+
+---
+
 ### Assignees
 
 #### `issue.assignees.set`
@@ -409,6 +444,76 @@ npx ghx run issue.labels.add --input '{
 npx ghx run issue.assignees.set --input '{
   "issueId": "I_kwDODhlyV4567890",
   "assignees": ["octocat", "hubot"]
+}'
+```
+
+---
+
+#### `issue.assignees.add`
+
+**Description:** Add assignees to an issue without removing existing assignees.
+
+**Input:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| owner | string | yes | Repository owner |
+| name | string | yes | Repository name |
+| issueNumber | integer | yes | Issue number (1+) |
+| assignees | array | yes | Usernames to add (array of strings, min 1) |
+
+**Output:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| issueNumber | integer | Issue number |
+| assignees | array | All assigned usernames after addition |
+
+**Routes:** cli (preferred)
+
+**Example:**
+
+```bash
+npx ghx run issue.assignees.add --input '{
+  "owner": "octocat",
+  "name": "hello-world",
+  "issueNumber": 42,
+  "assignees": ["alice", "bob"]
+}'
+```
+
+---
+
+#### `issue.assignees.remove`
+
+**Description:** Remove assignees from an issue.
+
+**Input:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| owner | string | yes | Repository owner |
+| name | string | yes | Repository name |
+| issueNumber | integer | yes | Issue number (1+) |
+| assignees | array | yes | Usernames to remove (array of strings, min 1) |
+
+**Output:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| issueNumber | integer | Issue number |
+| assignees | array | Remaining assigned usernames after removal |
+
+**Routes:** cli (preferred)
+
+**Example:**
+
+```bash
+npx ghx run issue.assignees.remove --input '{
+  "owner": "octocat",
+  "name": "hello-world",
+  "issueNumber": 42,
+  "assignees": ["alice"]
 }'
 ```
 
@@ -447,9 +552,42 @@ npx ghx run issue.milestone.set --input '{
 
 ---
 
+#### `issue.milestone.clear`
+
+**Description:** Clear the milestone from an issue.
+
+**Input:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| owner | string | yes | Repository owner |
+| name | string | yes | Repository name |
+| issueNumber | integer | yes | Issue number (1+) |
+
+**Output:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| issueNumber | integer | Issue number |
+| milestoneCleared | boolean | true |
+
+**Routes:** cli (preferred)
+
+**Example:**
+
+```bash
+npx ghx run issue.milestone.clear --input '{
+  "owner": "octocat",
+  "name": "hello-world",
+  "issueNumber": 42
+}'
+```
+
+---
+
 ### Relations
 
-#### `issue.relations.get`
+#### `issue.relations.view`
 
 **Description:** Get issue parent/children/blocking relations.
 
@@ -475,7 +613,7 @@ npx ghx run issue.milestone.set --input '{
 **Example:**
 
 ```bash
-npx ghx run issue.relations.get --input '{
+npx ghx run issue.relations.view --input '{
   "owner": "octocat",
   "name": "hello-world",
   "issueNumber": 42
@@ -484,7 +622,7 @@ npx ghx run issue.relations.get --input '{
 
 ---
 
-#### `issue.parent.set`
+#### `issue.relations.parent.set`
 
 **Description:** Set an issue parent relation.
 
@@ -507,7 +645,7 @@ npx ghx run issue.relations.get --input '{
 **Example:**
 
 ```bash
-npx ghx run issue.parent.set --input '{
+npx ghx run issue.relations.parent.set --input '{
   "issueId": "I_kwDODhlyV4567890",
   "parentIssueId": "I_kwDODhlyV4567800"
 }'
@@ -515,7 +653,7 @@ npx ghx run issue.parent.set --input '{
 
 ---
 
-#### `issue.parent.remove`
+#### `issue.relations.parent.remove`
 
 **Description:** Remove an issue parent relation.
 
@@ -537,14 +675,14 @@ npx ghx run issue.parent.set --input '{
 **Example:**
 
 ```bash
-npx ghx run issue.parent.remove --input '{
+npx ghx run issue.relations.parent.remove --input '{
   "issueId": "I_kwDODhlyV4567890"
 }'
 ```
 
 ---
 
-#### `issue.blocked_by.add`
+#### `issue.relations.blocked_by.add`
 
 **Description:** Add a blocked-by relation for an issue.
 
@@ -567,7 +705,7 @@ npx ghx run issue.parent.remove --input '{
 **Example:**
 
 ```bash
-npx ghx run issue.blocked_by.add --input '{
+npx ghx run issue.relations.blocked_by.add --input '{
   "issueId": "I_kwDODhlyV4567890",
   "blockedByIssueId": "I_kwDODhlyV4567800"
 }'
@@ -575,7 +713,7 @@ npx ghx run issue.blocked_by.add --input '{
 
 ---
 
-#### `issue.blocked_by.remove`
+#### `issue.relations.blocked_by.remove`
 
 **Description:** Remove a blocked-by relation for an issue.
 
@@ -599,7 +737,7 @@ npx ghx run issue.blocked_by.add --input '{
 **Example:**
 
 ```bash
-npx ghx run issue.blocked_by.remove --input '{
+npx ghx run issue.relations.blocked_by.remove --input '{
   "issueId": "I_kwDODhlyV4567890",
   "blockedByIssueId": "I_kwDODhlyV4567800"
 }'
@@ -607,7 +745,7 @@ npx ghx run issue.blocked_by.remove --input '{
 
 ---
 
-#### `issue.linked_prs.list`
+#### `issue.relations.prs.list`
 
 **Description:** List pull requests linked to an issue.
 
@@ -630,7 +768,7 @@ npx ghx run issue.blocked_by.remove --input '{
 **Example:**
 
 ```bash
-npx ghx run issue.linked_prs.list --input '{
+npx ghx run issue.relations.prs.list --input '{
   "owner": "octocat",
   "name": "hello-world",
   "issueNumber": 42

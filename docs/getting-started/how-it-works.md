@@ -34,9 +34,9 @@ graph TD
 
 This costs:
 
-- **-37% more tokens** on discovery and trial-and-error
-- **-32% slower** due to failed attempts
-- **-33% more tool invocations** per task
+- **55% more tool calls** on PR review tasks
+- **47% more tool calls** on issue triage tasks
+- **57% higher latency** on PR review tasks
 
 ## The ghx Solution
 
@@ -47,7 +47,7 @@ ghx eliminates discovery:
 graph TD
   A["Agent Needs to<br/>List PR Comments"]
   B["Read ghx skill or<br/>ghx capabilities explain"]
-  C["knows: pr.comments.list<br/>input shape, output shape"]
+  C["knows: pr.threads.list<br/>input shape, output shape"]
   D["Validates input<br/>against schema"]
   E["Calls ghx CLI<br/>or library API"]
   F["ghx picks best route<br/>CLI vs GraphQL vs REST"]
@@ -68,9 +68,9 @@ graph TD
 
 This is:
 
-- **+37% fewer tokens** — no discovery overhead
-- **+32% faster** — one attempt, no backtracking
-- **+33% fewer calls** — direct routing
+- **55% fewer tool calls** — no discovery overhead (PR review benchmark, Codex 5.3, 40 runs)
+- **57% lower latency** — one attempt, no backtracking (PR review benchmark)
+- **88% fewer active tokens** — direct routing (PR review benchmark)
 
 ## Three Core Concepts
 
@@ -78,7 +78,7 @@ This is:
 
 Every operation is defined by a **contract**: input schema → output schema
 
-Example: `pr.comments.list`
+Example: `pr.threads.list`
 
 ```yaml
 # What it does
@@ -87,10 +87,10 @@ description: "List comments on a pull request"
 # What it needs
 input:
   type: object
-  required: [owner, repo, pull_number]
+  required: [owner, name, pull_number]
   properties:
     owner: { type: string, description: "Repository owner" }
-    repo: { type: string, description: "Repository name" }
+    name: { type: string, description: "Repository name" }
     pull_number: { type: integer, description: "PR number" }
     first: { type: integer, description: "Limit results (default: 30)" }
 
@@ -152,9 +152,9 @@ Example routing decisions:
 | Capability | Route | Reason |
 |------------|-------|--------|
 | `repo.view` | CLI | Simple, single-object query; fast |
-| `pr.list` | GraphQL | Batching, filtering; schema-validated |
+| `pr.list` | CLI | Simple list with filtering; fast |
 | `issue.comments.create` | CLI | Direct API call; no batching needed |
-| `workflow_run.logs.get` | CLI | Text streaming; GraphQL limited |
+| `workflow.job.logs.view` | CLI | Text streaming; GraphQL limited |
 
 ### 3. Stable Result Envelope
 
@@ -309,7 +309,7 @@ ghx supports three execution routes because each is optimal for different scenar
 
 - `repo.view` — Simple fetch
 - `issue.create` — Single mutation
-- `workflow_job.logs.get` — Streaming text
+- `workflow.job.logs.view` — Streaming text
 
 ### GraphQL
 
@@ -412,14 +412,14 @@ With ghx, the agent:
 - Parses standard envelope (no variance)
 - Checks `retryable` flag (no guessing)
 
-**Total cost reduction: 37% fewer tokens, 32% faster execution.**
+**Total cost reduction: 88% fewer active tokens, 55% fewer tool calls, 57% lower latency (PR review benchmark, Codex 5.3, 40 runs). 100% success rate in both modes.**
 
 ## Comparing Approaches
 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#9C27B0', 'primaryTextColor': '#fff', 'primaryBorderColor': '#6A1B9A', 'lineColor': '#666', 'fontSize': '13px'}}}%%
 graph LR
-  A["Direct gh CLI"] -->|"⚠️ Agent wasted<br/>37% more tokens<br/>32% slower"| B["❌ Trial & Error"]
+  A["Direct gh CLI"] -->|"Agent wasted<br/>55% more tool calls<br/>57% slower"| B["Trial & Error"]
 
   C["ghx with Types"] -->|"✓ Schema validated<br/>Deterministic routing<br/>Stable envelope"| D["✓ One-shot Success"]
 

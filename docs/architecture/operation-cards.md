@@ -73,41 +73,36 @@ Each operation card includes:
 
 | Domain | Count | Purpose |
 |--------|-------|---------|
-| **Issues** | 19 | Create, read, update, close, link, label, milestone, assign issues |
+| **Issues** | 23 | Create, read, update, close, link, label, milestone, assign issues |
 | **Pull Requests** | 21 | Read PR metadata, lists, reviews, threads, checks, mergeability, mutations |
-| **Releases** | 5 | Query and draft releases, publish, update |
 | **Workflows** | 11 | Query workflow runs, jobs, logs, cancel, rerun; list workflows; dispatch |
+| **Releases** | 5 | Query and draft releases, publish, update |
 | **Repositories** | 3 | Repo metadata, label listing, issue type listing |
-| **Projects (v2)** | 6 | Query and mutate projects, fields, items |
-| **Check Runs** | 1 | List check run annotations |
+| **Projects v2** | 7 | Query and mutate projects, fields, items |
 
-### Issue Capabilities (19)
+### Issue Capabilities (23)
 
-`issue.view`, `issue.list`, `issue.create`, `issue.update`, `issue.close`, `issue.reopen`, `issue.delete`, `issue.comments.list`, `issue.comments.create`, `issue.labels.set`, `issue.labels.add`, `issue.assignees.set`, `issue.milestone.set`, `issue.linked_prs.list`, `issue.parent.set`, `issue.parent.remove`, `issue.blocked_by.add`, `issue.blocked_by.remove`, `issue.relations.get`
+`issue.assignees.add`, `issue.assignees.remove`, `issue.assignees.set`, `issue.close`, `issue.comments.create`, `issue.comments.list`, `issue.create`, `issue.delete`, `issue.labels.add`, `issue.labels.remove`, `issue.labels.set`, `issue.list`, `issue.milestone.clear`, `issue.milestone.set`, `issue.relations.blocked_by.add`, `issue.relations.blocked_by.remove`, `issue.relations.parent.remove`, `issue.relations.parent.set`, `issue.relations.prs.list`, `issue.relations.view`, `issue.reopen`, `issue.update`, `issue.view`
 
 ### Pull Request Capabilities (21)
 
-`pr.view`, `pr.list`, `pr.create`, `pr.update`, `pr.thread.list`, `pr.thread.reply`, `pr.thread.resolve`, `pr.thread.unresolve`, `pr.review.list`, `pr.review.submit`, `pr.review.request`, `pr.diff.files`, `pr.diff.view`, `pr.checks.list`, `pr.checks.failed`, `pr.checks.rerun_failed`, `pr.checks.rerun_all`, `pr.merge.status`, `pr.merge`, `pr.branch.update`, `pr.assignees.update`
-
-### Release Capabilities (5)
-
-`release.get`, `release.list`, `release.create_draft`, `release.publish_draft`, `release.update`
+`pr.assignees.add`, `pr.assignees.remove`, `pr.branch.update`, `pr.checks.list`, `pr.checks.rerun.all`, `pr.checks.rerun.failed`, `pr.create`, `pr.diff.files`, `pr.diff.view`, `pr.list`, `pr.merge`, `pr.merge.status`, `pr.reviews.list`, `pr.reviews.request`, `pr.reviews.submit`, `pr.threads.list`, `pr.threads.reply`, `pr.threads.resolve`, `pr.threads.unresolve`, `pr.update`, `pr.view`
 
 ### Workflow Capabilities (11)
 
-`workflow.get`, `workflow.list`, `workflow.dispatch.run`, `workflow.run.view`, `workflow.runs.list`, `workflow.run.cancel`, `workflow.run.rerun_all`, `workflow.run.rerun_failed`, `workflow.run.artifacts.list`, `workflow.job.logs.get`, `workflow.job.logs.raw`
+`workflow.dispatch`, `workflow.job.logs.raw`, `workflow.job.logs.view`, `workflow.list`, `workflow.run.artifacts.list`, `workflow.run.cancel`, `workflow.run.rerun.all`, `workflow.run.rerun.failed`, `workflow.run.view`, `workflow.runs.list`, `workflow.view`
+
+### Release Capabilities (5)
+
+`release.create`, `release.list`, `release.publish`, `release.update`, `release.view`
 
 ### Repository Capabilities (3)
 
-`repo.view`, `repo.issue_types.list`, `repo.labels.list`
+`repo.issue_types.list`, `repo.labels.list`, `repo.view`
 
-### Project Capabilities (6)
+### Projects v2 Capabilities (7)
 
-`project_v2.user.get`, `project_v2.org.get`, `project_v2.fields.list`, `project_v2.items.list`, `project_v2.item.add_issue`, `project_v2.item.field.update`
-
-### Check Run Capabilities (1)
-
-`check_run.annotations.list`
+`project_v2.fields.list`, `project_v2.items.field.update`, `project_v2.items.issue.add`, `project_v2.items.issue.remove`, `project_v2.items.list`, `project_v2.org.view`, `project_v2.user.view`
 
 ## Card-Defined Resolution
 
@@ -252,10 +247,10 @@ input_schema:
     owner:
       type: string
       description: "Repository owner"
-    repo:
+    name:
       type: string
       description: "Repository name"
-  required: [owner, repo]
+  required: [owner, name]
 
 output_schema:
   type: object

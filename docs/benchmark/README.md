@@ -74,11 +74,12 @@ graph TD
 ### Run a Quick PR Verification
 
 ```bash
-# From repo root
-pnpm run benchmark:verify:pr
+# From repo root — run ci-verify-pr set (2 scenarios, 4 reps per mode) then gate
+pnpm --filter @ghx-dev/benchmark run benchmark -- ghx 4 --scenario-set ci-verify-pr
+pnpm --filter @ghx-dev/benchmark run report:gate
 ```
 
-This runs the lightweight `ci-verify-pr` scenario set (2 scenarios, 4 reps per mode) and reports gate status.
+This runs the lightweight `ci-verify-pr` scenario set and reports gate status.
 
 ### Run Full Benchmarks
 

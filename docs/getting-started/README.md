@@ -152,11 +152,9 @@ npx ghx capabilities explain issue.create
 Shows that `issue.create` needs:
 
 - `owner` (string)
-- `repo` (string)
+- `name` (string)
 - `title` (string)
 - `body` (optional string)
-- `labels` (optional array)
-- `assignees` (optional array)
 
 ## Next Steps
 

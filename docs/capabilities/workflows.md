@@ -40,7 +40,7 @@ npx ghx run workflow.list --input '{
 
 ---
 
-#### `workflow.get`
+#### `workflow.view`
 
 **Description:** Get one repository workflow.
 
@@ -67,7 +67,7 @@ npx ghx run workflow.list --input '{
 **Example:**
 
 ```bash
-npx ghx run workflow.get --input '{
+npx ghx run workflow.view --input '{
   "owner": "octocat",
   "name": "hello-world",
   "workflowId": "ci.yml"
@@ -78,7 +78,7 @@ npx ghx run workflow.get --input '{
 
 ### Dispatch
 
-#### `workflow_dispatch.run`
+#### `workflow.dispatch`
 
 **Description:** Trigger a workflow dispatch event.
 
@@ -105,7 +105,7 @@ npx ghx run workflow.get --input '{
 **Example:**
 
 ```bash
-npx ghx run workflow_dispatch.run --input '{
+npx ghx run workflow.dispatch --input '{
   "owner": "octocat",
   "name": "hello-world",
   "workflowId": "deploy.yml",
@@ -121,7 +121,7 @@ npx ghx run workflow_dispatch.run --input '{
 
 ### Runs
 
-#### `workflow_runs.list`
+#### `workflow.runs.list`
 
 **Description:** List workflow runs for a repository.
 
@@ -148,7 +148,7 @@ npx ghx run workflow_dispatch.run --input '{
 **Example:**
 
 ```bash
-npx ghx run workflow_runs.list --input '{
+npx ghx run workflow.runs.list --input '{
   "owner": "octocat",
   "name": "hello-world",
   "first": 20,
@@ -159,7 +159,7 @@ npx ghx run workflow_runs.list --input '{
 
 ---
 
-#### `workflow_run.view`
+#### `workflow.run.view`
 
 **Description:** View a workflow run with its jobs.
 
@@ -193,7 +193,7 @@ npx ghx run workflow_runs.list --input '{
 **Example:**
 
 ```bash
-npx ghx run workflow_run.view --input '{
+npx ghx run workflow.run.view --input '{
   "owner": "octocat",
   "name": "hello-world",
   "runId": 123456789
@@ -204,7 +204,7 @@ npx ghx run workflow_run.view --input '{
 
 ### Run Control
 
-#### `workflow_run.cancel`
+#### `workflow.run.cancel`
 
 **Description:** Cancel a workflow run.
 
@@ -228,7 +228,7 @@ npx ghx run workflow_run.view --input '{
 **Example:**
 
 ```bash
-npx ghx run workflow_run.cancel --input '{
+npx ghx run workflow.run.cancel --input '{
   "owner": "octocat",
   "name": "hello-world",
   "runId": 123456789
@@ -237,7 +237,7 @@ npx ghx run workflow_run.cancel --input '{
 
 ---
 
-#### `workflow_run.rerun_all`
+#### `workflow.run.rerun.all`
 
 **Description:** Rerun all jobs in a workflow run.
 
@@ -261,7 +261,7 @@ npx ghx run workflow_run.cancel --input '{
 **Example:**
 
 ```bash
-npx ghx run workflow_run.rerun_all --input '{
+npx ghx run workflow.run.rerun.all --input '{
   "owner": "octocat",
   "name": "hello-world",
   "runId": 123456789
@@ -270,7 +270,7 @@ npx ghx run workflow_run.rerun_all --input '{
 
 ---
 
-#### `workflow_run.rerun_failed`
+#### `workflow.run.rerun.failed`
 
 **Description:** Rerun failed jobs for a workflow run.
 
@@ -294,7 +294,7 @@ npx ghx run workflow_run.rerun_all --input '{
 **Example:**
 
 ```bash
-npx ghx run workflow_run.rerun_failed --input '{
+npx ghx run workflow.run.rerun.failed --input '{
   "owner": "octocat",
   "name": "hello-world",
   "runId": 123456789
@@ -305,7 +305,7 @@ npx ghx run workflow_run.rerun_failed --input '{
 
 ### Artifacts
 
-#### `workflow_run.artifacts.list`
+#### `workflow.run.artifacts.list`
 
 **Description:** List artifacts for a workflow run.
 
@@ -329,7 +329,7 @@ npx ghx run workflow_run.rerun_failed --input '{
 **Example:**
 
 ```bash
-npx ghx run workflow_run.artifacts.list --input '{
+npx ghx run workflow.run.artifacts.list --input '{
   "owner": "octocat",
   "name": "hello-world",
   "runId": 123456789
@@ -340,9 +340,9 @@ npx ghx run workflow_run.artifacts.list --input '{
 
 ### Job Logs
 
-#### `workflow_job.logs.get`
+#### `workflow.job.logs.raw`
 
-**Description:** Fetch logs for a workflow job.
+**Description:** Fetch raw (unprocessed) logs for a workflow job.
 
 **Input:**
 
@@ -365,7 +365,7 @@ npx ghx run workflow_run.artifacts.list --input '{
 **Example:**
 
 ```bash
-npx ghx run workflow_job.logs.get --input '{
+npx ghx run workflow.job.logs.raw --input '{
   "owner": "octocat",
   "name": "hello-world",
   "jobId": 987654321
@@ -374,7 +374,7 @@ npx ghx run workflow_job.logs.get --input '{
 
 ---
 
-#### `workflow_job.logs.analyze`
+#### `workflow.job.logs.view`
 
 **Description:** Fetch and analyze workflow job logs to identify errors and warnings.
 
@@ -399,7 +399,7 @@ npx ghx run workflow_job.logs.get --input '{
 **Example:**
 
 ```bash
-npx ghx run workflow_job.logs.analyze --input '{
+npx ghx run workflow.job.logs.view --input '{
   "owner": "octocat",
   "name": "hello-world",
   "jobId": 987654321

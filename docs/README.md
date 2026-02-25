@@ -122,16 +122,16 @@ Every capability returns:
 
 ```bash
 # List all capabilities
-npx ghx capabilities list
+npx @ghx-dev/core capabilities list
 
 # Explain a capability's input/output contract
-npx ghx capabilities explain repo.view
+npx @ghx-dev/core capabilities explain repo.view
 
 # Run a capability from the CLI
-npx ghx run repo.view --input '{"owner":"aryeko","name":"ghx"}'
+npx @ghx-dev/core run repo.view --input '{"owner":"aryeko","name":"ghx"}'
 
 # Install ghx skill for coding agents
-npx ghx setup --scope project --yes
+npx @ghx-dev/core setup --scope project --yes
 
 # Use in your Node.js code
 import { executeTask, createGithubClientFromToken } from "@ghx-dev/core"

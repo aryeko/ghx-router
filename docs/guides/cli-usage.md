@@ -128,7 +128,7 @@ ghx run pr.list --input '{
   "owner": "aryeko",
   "name": "ghx",
   "state": "open",
-  "limit": 10
+  "first": 10
 }'
 ```
 

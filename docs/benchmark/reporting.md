@@ -22,7 +22,7 @@
 
 - `docs/benchmark/efficiency-criteria.md`
 - `pnpm --filter @ghx-dev/benchmark run report:gate`
-- `pnpm run benchmark:verify:release`
+- `pnpm --filter @ghx-dev/benchmark run benchmark -- ghx 4 --scenario-set ci-verify-release` + `pnpm --filter @ghx-dev/benchmark run report -- --gate --gate-profile verify_release`
 
 Main-branch release automation runs `verify_release` before publish in CI (`.github/workflows/ci-main.yml`).
 

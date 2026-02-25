@@ -29,8 +29,8 @@ const githubClient = createGithubClientFromToken(token)
 
 const chain = await executeTasks(
   [
-    { task: "issue.labels.set",   input: { issueId: "I_kwDOOx...", labels: ["bug"] } },
-    { task: "issue.assignees.set", input: { issueId: "I_kwDOOx...", assignees: ["octocat"] } },
+    { task: "issue.labels.set",   input: { owner: "acme", name: "repo", issueNumber: 42, labels: ["bug"] } },
+    { task: "issue.assignees.set", input: { owner: "acme", name: "repo", issueNumber: 42, assignees: ["octocat"] } },
   ],
   { githubClient, githubToken: token },
 )
@@ -86,8 +86,8 @@ interface ChainResultEnvelope {
 
 ```bash
 ghx chain --steps '[
-  {"task":"issue.labels.set","input":{"issueId":"I_kwDOOx...","labels":["bug"]}},
-  {"task":"issue.assignees.set","input":{"issueId":"I_kwDOOx...","assignees":["octocat"]}}
+  {"task":"issue.labels.set","input":{"owner":"acme","name":"repo","issueNumber":42,"labels":["bug"]}},
+  {"task":"issue.assignees.set","input":{"owner":"acme","name":"repo","issueNumber":42,"assignees":["octocat"]}}
 ]'
 ```
 
@@ -95,8 +95,8 @@ ghx chain --steps '[
 
 ```bash
 echo '[
-  {"task":"issue.labels.set","input":{"issueId":"I_kwDOOx...","labels":["bug"]}},
-  {"task":"issue.assignees.set","input":{"issueId":"I_kwDOOx...","assignees":["octocat"]}}
+  {"task":"issue.labels.set","input":{"owner":"acme","name":"repo","issueNumber":42,"labels":["bug"]}},
+  {"task":"issue.assignees.set","input":{"owner":"acme","name":"repo","issueNumber":42,"assignees":["octocat"]}}
 ]' | ghx chain --steps -
 ```
 
@@ -127,7 +127,7 @@ no HTTP calls are made:
       "ok": false,
       "error": {
         "code": "VALIDATION",
-        "message": "Input validation failed: issueId: must be string",
+        "message": "Input validation failed: owner: must be string",
         "retryable": false
       }
     }
@@ -189,8 +189,8 @@ Any capability with a `graphql` route can be chained. Capabilities that also dec
 | `issue.milestone.set` | No | Yes |
 | `issue.milestone.clear` | Yes — resolves issue node ID | Yes |
 | `issue.close` | No | Yes |
-| `pr.thread.resolve` | No | Yes |
-| `pr.thread.reply` | No | Yes |
+| `pr.threads.resolve` | No | Yes |
+| `pr.threads.reply` | No | Yes |
 
 To check whether a specific capability supports chaining, look for `graphql:` in its
 operation card (`packages/core/src/core/registry/cards/<capability_id>.yaml`). If `graphql:`
@@ -236,14 +236,18 @@ const chain = await executeTasks(
     {
       task: "issue.labels.set",
       input: {
-        issueId: "I_kwDOOx...",   // GitHub node ID of the issue
+        owner: "acme",
+        name: "repo",
+        issueNumber: 42,
         labels: ["bug", "priority:high"],
       },
     },
     {
       task: "issue.assignees.set",
       input: {
-        issueId: "I_kwDOOx...",
+        owner: "acme",
+        name: "repo",
+        issueNumber: 42,
         assignees: ["octocat", "monalisa"],
       },
     },
