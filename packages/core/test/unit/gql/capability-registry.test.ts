@@ -1,7 +1,7 @@
+import type { GraphqlHandler } from "@core/gql/capability-registry.js"
+import { getGraphqlHandler, listGraphqlCapabilities } from "@core/gql/capability-registry.js"
+import type { GithubClient } from "@core/gql/github-client.js"
 import { describe, expect, it, vi } from "vitest"
-import type { GraphqlHandler } from "../../../src/gql/capability-registry.js"
-import { getGraphqlHandler, listGraphqlCapabilities } from "../../../src/gql/capability-registry.js"
-import type { GithubClient } from "../../../src/gql/github-client.js"
 
 function requireHandler(capabilityId: string): GraphqlHandler {
   const handler = getGraphqlHandler(capabilityId)

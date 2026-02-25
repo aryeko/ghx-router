@@ -1,4 +1,3 @@
-import { describe, expect, it } from "vitest"
 import {
   asRecord,
   assertIssueAssigneesAddInput,
@@ -42,8 +41,9 @@ import {
   assertRepoInput,
   assertReviewThreadInput,
   assertStringArray,
-} from "../../../src/gql/assertions.js"
-import type { DraftComment } from "../../../src/gql/types.js"
+} from "@core/gql/assertions.js"
+import type { DraftComment } from "@core/gql/types.js"
+import { describe, expect, it } from "vitest"
 
 // --- assertNonEmptyString ---
 

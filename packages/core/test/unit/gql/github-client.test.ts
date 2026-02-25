@@ -1,5 +1,5 @@
+import { createGithubClientFromToken } from "@core/gql/github-client.js"
 import { describe, expect, it } from "vitest"
-import { createGithubClientFromToken } from "../../../src/gql/github-client.js"
 
 describe("createGithubClientFromToken", () => {
   it("throws when token is empty", () => {
