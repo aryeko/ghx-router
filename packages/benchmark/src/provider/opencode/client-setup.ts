@@ -5,11 +5,7 @@ import { delimiter, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import type { BenchmarkMode } from "@bench/domain/types.js"
 import { createOpencode } from "@opencode-ai/sdk"
-import {
-  AGENT_DIRECT_INSTRUCTION,
-  MCP_INSTRUCTION,
-  modeInstructions,
-} from "../../runner/mode-instructions.js"
+import { modeInstructions } from "../../runner/mode-instructions.js"
 import { unwrapData } from "./unwrap.js"
 
 const MODULE_DIR = fileURLToPath(new URL(".", import.meta.url))
@@ -149,7 +145,7 @@ export async function openBenchmarkClient(
       port: Number.isInteger(OPENCODE_PORT) && OPENCODE_PORT > 0 ? OPENCODE_PORT : 3000,
       config: {
         model: `${providerId}/${modelId}`,
-        instructions,
+        instructions: [],
         plugin: [],
         mcp: {},
         agent: {},
@@ -175,33 +171,12 @@ export async function openBenchmarkClient(
     if (configApi?.get) {
       const configResponse = await configApi.get({ url: "/config" })
       const resolvedConfig = unwrapData<Record<string, unknown>>(configResponse, "config.get")
-      const configuredInstructions = Array.isArray(resolvedConfig.instructions)
-        ? resolvedConfig.instructions
-        : []
       const configuredPlugins = Array.isArray(resolvedConfig.plugin) ? resolvedConfig.plugin : []
 
-      if (mode === "ghx") {
-        const hasGhxInstructions = configuredInstructions.some(
-          (instruction) => typeof instruction === "string" && instruction.trim().length > 0,
+      if (configuredPlugins.length > 0) {
+        throw new Error(
+          `benchmark_config_invalid: expected no plugins, got plugins=${configuredPlugins.length}`,
         )
-
-        if (!hasGhxInstructions || configuredPlugins.length > 0) {
-          throw new Error(
-            `benchmark_config_invalid: expected non-empty ghx instructions and no plugins, got instructions=${configuredInstructions.length}, plugins=${configuredPlugins.length}`,
-          )
-        }
-      } else {
-        const expectedInstruction =
-          mode === "agent_direct" ? AGENT_DIRECT_INSTRUCTION : MCP_INSTRUCTION
-        const hasExpectedInstruction = configuredInstructions.some(
-          (instruction) => instruction === expectedInstruction,
-        )
-
-        if (!hasExpectedInstruction || configuredPlugins.length > 0) {
-          throw new Error(
-            `benchmark_config_invalid: expected ${mode} instruction and no plugins, got instructions=${configuredInstructions.length}, plugins=${configuredPlugins.length}`,
-          )
-        }
       }
     }
 
