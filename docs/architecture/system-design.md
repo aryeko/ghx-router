@@ -81,15 +81,14 @@ Every capability returns:
 
 ## Current Scope
 
-70 capabilities across 7 domains:
+70 capabilities across 6 domains:
 
-- **Issues** (19): view, list, create, update, close, reopen, delete, comment, label, assign, milestone, link, parent, block, relation
+- **Issues** (23): view, list, create, update, close, reopen, delete, comment, label, assign, milestone, link, parent, block, relation
 - **Pull Requests** (21): view, list, create, update, thread operations, review operations, diff, checks, merge, branch update
 - **Workflows** (11): view, list, dispatch, run lifecycle, logs, cancel, rerun, artifacts
 - **Releases** (5): get, list, create draft, publish draft, update
 - **Repositories** (3): view, labels list, issue types list
-- **Projects v2** (6): get, fields list, items list, add issue, update field
-- **Check Runs** (1): annotations list
+- **Projects v2** (7): get, fields list, items list, add issue, update field
 
 Route preferences are capability-specific and defined in cards (`preferred` + `fallbacks`), with REST still outside active routing for current capabilities. For multi-capability mutations, use `executeTasks()` — it batches all resolution lookups into one Phase 1 query and all mutations into one Phase 2 mutation (≤2 HTTP round-trips for any chain length).
 

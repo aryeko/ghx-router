@@ -92,6 +92,29 @@ docs: update README
 - **Lint** – ESLint on staged files
 - **Typecheck** – full type check
 
+## FAQ
+
+**How do I add a new capability?**
+
+Follow the step-by-step guide in [Adding a Capability](./adding-a-capability.md). It covers creating the operation card, implementing the adapter logic, writing tests, and updating the capability registry.
+
+**How do I run a single test?**
+
+```bash
+# By file
+pnpm --filter @ghx-dev/core exec vitest run test/unit/engine.test.ts
+
+# By test name
+pnpm --filter @ghx-dev/core exec vitest run -t "executeTask"
+
+# File + test name
+pnpm --filter @ghx-dev/core exec vitest run test/unit/run-command.test.ts -t "parses"
+```
+
+**What coverage target should I aim for?**
+
+90% for touched files, with a stretch goal of 95%. The project minimum is 80%, but PR reviews expect higher coverage for new and modified code.
+
 ## Questions
 
 Open a [Discussion](https://github.com/aryeko/ghx/discussions) or an [Issue](https://github.com/aryeko/ghx/issues) if you have questions.

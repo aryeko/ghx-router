@@ -7,7 +7,7 @@ A practical guide for executing benchmarks locally, interpreting results, and ga
 1. **opencode CLI** — benchmark harness uses opencode to run isolated assistant sessions:
    ```bash
    # Install opencode (check current version from project docs)
-   npm install -g @braneproject/opencode
+   curl -fsSL https://opencode.ai/install | bash
    ```
 
 2. **GitHub Token** — read/write access for fixture operations and API calls:
@@ -423,7 +423,7 @@ Both must exit with code 0 for CI to proceed.
 Install opencode CLI:
 
 ```bash
-npm install -g @braneproject/opencode
+curl -fsSL https://opencode.ai/install | bash
 ```
 
 ### "GITHUB_TOKEN not set"

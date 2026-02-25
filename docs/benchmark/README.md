@@ -2,6 +2,10 @@
 
 The `ghx` benchmark harness measures the correctness, efficiency, and reliability of the routing engine compared to baseline execution modes. This hub guides you through benchmark concepts, execution, and scenario authoring.
 
+## Published Reports
+
+- [Codex 5.3 Benchmark: agent_direct vs ghx](../../reports/codex-5.3-benchmark/README.md) -- 40 runs, 4 scenarios, 100% success rate
+
 ## What the Benchmark Measures
 
 The benchmark compares three execution modes:

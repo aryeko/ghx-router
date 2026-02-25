@@ -115,7 +115,7 @@ Response:
 ```bash
 ghx run issue.create --input '{
   "owner": "aryeko",
-  "repo": "ghx",
+  "name": "ghx",
   "title": "Add more tests",
   "body": "We need comprehensive test coverage"
 }'
@@ -126,7 +126,7 @@ ghx run issue.create --input '{
 ```bash
 ghx run pr.list --input '{
   "owner": "aryeko",
-  "repo": "ghx",
+  "name": "ghx",
   "state": "open",
   "limit": 10
 }'
@@ -185,8 +185,8 @@ round-trips regardless of chain length.
 
 ```bash
 ghx chain --steps '[
-  {"task":"issue.labels.set","input":{"issueId":"I_kwDOOx...","labels":["bug"]}},
-  {"task":"issue.assignees.set","input":{"issueId":"I_kwDOOx...","assignees":["octocat"]}}
+  {"task":"issue.labels.set","input":{"owner":"aryeko","name":"ghx","issueNumber":42,"labels":["bug"]}},
+  {"task":"issue.assignees.set","input":{"owner":"aryeko","name":"ghx","issueNumber":42,"assignees":["octocat"]}}
 ]'
 ```
 
@@ -194,8 +194,8 @@ ghx chain --steps '[
 
 ```bash
 echo '[
-  {"task":"issue.labels.set","input":{"issueId":"I_kwDOOx...","labels":["bug"]}},
-  {"task":"issue.assignees.set","input":{"issueId":"I_kwDOOx...","assignees":["octocat"]}}
+  {"task":"issue.labels.set","input":{"owner":"aryeko","name":"ghx","issueNumber":42,"labels":["bug"]}},
+  {"task":"issue.assignees.set","input":{"owner":"aryeko","name":"ghx","issueNumber":42,"assignees":["octocat"]}}
 ]' | ghx chain --steps -
 ```
 

@@ -4,6 +4,10 @@ Internal benchmark harness for `ghx` maintainers.
 
 This package is intentionally **private** and is not published to npm. It compares baseline `agent_direct` runs against `ghx` runs for correctness, latency, token usage, and tool-call counts.
 
+## Latest Published Report
+
+[Codex 5.3 Benchmark: agent_direct vs ghx](../../reports/codex-5.3-benchmark/README.md) -- 40 runs across 4 scenarios comparing raw `gh` CLI against ghx routing.
+
 ## What It Covers
 
 - Scenario schemas and validation

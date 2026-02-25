@@ -18,7 +18,7 @@ Fixes # (if applicable)
 
 - [ ] `pnpm run ci` passes
 - [ ] `pnpm run test:coverage` run for changed package(s)
-- [ ] `pnpm run ghx:gql:check` run if GraphQL operations changed
+- [ ] `pnpm run ghx:gql:verify` run if GraphQL operations changed
 - [ ] Added/updated tests as needed
 
 ## Release Notes
