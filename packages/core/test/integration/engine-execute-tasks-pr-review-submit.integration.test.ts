@@ -9,7 +9,7 @@
  * Note: executeTasks with a single request delegates to executeTask (typed client
  * methods, no batch resolution). Tests use ≥2 requests to exercise the batch path.
  */
-import { executeTasks } from "@core/core/routing/engine.js"
+import { executeTasks } from "@core/core/routing/engine/index.js"
 import type { GithubClient } from "@core/gql/github-client.js"
 import { describe, expect, it, vi } from "vitest"
 

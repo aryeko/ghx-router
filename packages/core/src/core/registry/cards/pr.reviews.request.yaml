@@ -28,6 +28,7 @@ routing:
   fallbacks: [cli]
 graphql:
   operationName: PrReviewsRequest
+  operationType: mutation
   documentPath: src/gql/operations/pr-reviews-request.graphql
 cli:
   command: pr edit

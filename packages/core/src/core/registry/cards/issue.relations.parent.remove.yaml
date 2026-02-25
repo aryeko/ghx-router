@@ -19,6 +19,7 @@ routing:
   fallbacks: []
 graphql:
   operationName: IssueParentRemove
+  operationType: mutation
   documentPath: src/gql/operations/issue-parent-remove.graphql
   resolution:
     lookup:

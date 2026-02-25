@@ -24,6 +24,7 @@ routing:
   fallbacks: [cli]
 graphql:
   operationName: ProjectV2UserView
+  operationType: query
   documentPath: src/gql/operations/project-v2-user-view.graphql
 cli:
   command: project view

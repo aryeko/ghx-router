@@ -51,4 +51,5 @@ routing:
   fallbacks: []
 graphql:
   operationName: IssueRelationsGet
+  operationType: query
   documentPath: src/gql/operations/issue-relations-get.graphql

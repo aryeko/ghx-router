@@ -118,6 +118,7 @@ export interface OperationCard<Input = Record<string, unknown>> {
   }
   graphql?: {
     operationName: string
+    operationType: "query" | "mutation"
     documentPath: string
     variables?: Record<string, string>
     limits?: { maxPageSize?: number }

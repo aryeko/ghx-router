@@ -22,6 +22,7 @@ routing:
   fallbacks: []
 graphql:
   operationName: IssueDelete
+  operationType: mutation
   documentPath: src/gql/operations/issue-delete.graphql
   resolution:
     lookup:

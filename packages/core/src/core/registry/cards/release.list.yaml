@@ -43,6 +43,7 @@ routing:
   fallbacks: [cli]
 graphql:
   operationName: ReleaseList
+  operationType: query
   documentPath: src/gql/operations/release-list.graphql
 cli:
   command: api

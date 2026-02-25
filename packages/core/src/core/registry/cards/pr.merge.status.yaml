@@ -24,6 +24,7 @@ routing:
   fallbacks: [cli]
 graphql:
   operationName: PrMergeStatus
+  operationType: query
   documentPath: src/gql/operations/pr-merge-status.graphql
 cli:
   command: pr view

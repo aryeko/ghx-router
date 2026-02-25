@@ -27,6 +27,7 @@ routing:
   fallbacks: [cli]
 graphql:
   operationName: IssueLabelsRemove
+  operationType: mutation
   documentPath: src/gql/operations/issue-labels-remove.graphql
   resolution:
     lookup:

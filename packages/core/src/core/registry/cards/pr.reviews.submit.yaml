@@ -52,6 +52,7 @@ routing:
   fallbacks: []
 graphql:
   operationName: PrReviewSubmit
+  operationType: mutation
   documentPath: src/gql/operations/pr-review-submit.graphql
   resolution:
     lookup:

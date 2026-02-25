@@ -1,5 +1,5 @@
 import type { InjectSpec } from "@core/core/registry/types.js"
-import { applyInject, buildMutationVars } from "@core/gql/resolve.js"
+import { applyInject, buildOperationVars } from "@core/gql/resolve.js"
 import { describe, expect, it } from "vitest"
 
 describe("pr.reviews.submit resolution inject-path validation", () => {
@@ -33,7 +33,7 @@ describe("pr.reviews.submit resolution inject-path validation", () => {
     expect(() => applyInject(prNodeIdInjectSpec, lookupResult, {})).toThrow(/no value at path/)
   })
 
-  it("buildMutationVars produces correct variables for PrReviewSubmit", () => {
+  it("buildOperationVars produces correct variables for PrReviewSubmit", () => {
     const mutDoc = [
       "mutation PrReviewSubmit(",
       "  $pullRequestId: ID!",
@@ -61,7 +61,7 @@ describe("pr.reviews.submit resolution inject-path validation", () => {
     }
     const resolved = { pullRequestId: "PR_kwDOTest1234" }
 
-    const vars = buildMutationVars(mutDoc, input, resolved)
+    const vars = buildOperationVars(mutDoc, input, resolved)
 
     // Must include mutation vars
     expect(vars).toHaveProperty("pullRequestId", "PR_kwDOTest1234")

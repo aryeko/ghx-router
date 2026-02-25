@@ -27,6 +27,7 @@ routing:
   fallbacks: [cli]
 graphql:
   operationName: IssueAssigneesAdd
+  operationType: mutation
   documentPath: src/gql/operations/issue-assignees-add.graphql
   resolution:
     lookup:

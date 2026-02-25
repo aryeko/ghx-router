@@ -42,6 +42,7 @@ routing:
   fallbacks: []
 graphql:
   operationName: PrReviewsList
+  operationType: query
   documentPath: src/gql/operations/pr-reviews-list.graphql
 cli:
   command: pr view

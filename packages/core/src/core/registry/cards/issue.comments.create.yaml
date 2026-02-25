@@ -23,6 +23,7 @@ routing:
   fallbacks: []
 graphql:
   operationName: IssueCommentCreate
+  operationType: mutation
   documentPath: src/gql/operations/issue-comment-create.graphql
   resolution:
     lookup:

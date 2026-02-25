@@ -23,6 +23,7 @@ routing:
   fallbacks: []
 graphql:
   operationName: IssueClose
+  operationType: mutation
   documentPath: src/gql/operations/issue-close.graphql
   resolution:
     lookup:

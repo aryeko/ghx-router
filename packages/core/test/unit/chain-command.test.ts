@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest"
 
 const executeTasksMock = vi.fn()
 
-vi.mock("@core/core/routing/engine.js", () => ({
+vi.mock("@core/core/routing/engine/index.js", () => ({
   executeTasks: (...args: unknown[]) => executeTasksMock(...args),
 }))
 
@@ -356,7 +356,7 @@ describe("chainCommand — executeRawGraphqlRequest path", () => {
     vi.resetModules()
 
     let capturedTransport: { executeRaw?: (q: string) => Promise<unknown> } | undefined
-    vi.doMock("@core/core/routing/engine.js", () => ({
+    vi.doMock("@core/core/routing/engine/index.js", () => ({
       executeTasks: vi
         .fn()
         .mockImplementation(
@@ -402,7 +402,7 @@ describe("chainCommand — executeRawGraphqlRequest path", () => {
   it("handles GH_TOKEN fallback", async () => {
     vi.resetModules()
 
-    vi.doMock("@core/core/routing/engine.js", () => ({
+    vi.doMock("@core/core/routing/engine/index.js", () => ({
       executeTasks: vi.fn().mockResolvedValue({
         status: "success",
         results: [],
@@ -427,7 +427,7 @@ describe("chainCommand — executeRawGraphqlRequest path", () => {
   it("handles HTTP error from fetchGqlPayload when response has JSON message", async () => {
     vi.resetModules()
 
-    vi.doMock("@core/core/routing/engine.js", () => ({
+    vi.doMock("@core/core/routing/engine/index.js", () => ({
       executeTasks: vi
         .fn()
         .mockImplementation(
@@ -473,7 +473,7 @@ describe("chainCommand — executeRawGraphqlRequest path", () => {
   it("handles GraphQL errors in execute path", async () => {
     vi.resetModules()
 
-    vi.doMock("@core/core/routing/engine.js", () => ({
+    vi.doMock("@core/core/routing/engine/index.js", () => ({
       executeTasks: vi
         .fn()
         .mockImplementation(
@@ -519,7 +519,7 @@ describe("chainCommand — executeRawGraphqlRequest path", () => {
   it("handles missing data in execute path", async () => {
     vi.resetModules()
 
-    vi.doMock("@core/core/routing/engine.js", () => ({
+    vi.doMock("@core/core/routing/engine/index.js", () => ({
       executeTasks: vi
         .fn()
         .mockImplementation(
@@ -567,7 +567,7 @@ describe("chainCommand — executeGraphqlRequest fetch behaviour", () => {
   it("passes AbortSignal to fetch", async () => {
     vi.resetModules()
 
-    vi.doMock("@core/core/routing/engine.js", () => ({
+    vi.doMock("@core/core/routing/engine/index.js", () => ({
       executeTasks: vi
         .fn()
         .mockImplementation(
@@ -609,7 +609,7 @@ describe("chainCommand — executeGraphqlRequest fetch behaviour", () => {
   it("returns exit code 1 with message when response.json() throws (non-JSON body)", async () => {
     vi.resetModules()
 
-    vi.doMock("@core/core/routing/engine.js", () => ({
+    vi.doMock("@core/core/routing/engine/index.js", () => ({
       executeTasks: vi
         .fn()
         .mockImplementation(

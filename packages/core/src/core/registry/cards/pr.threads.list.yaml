@@ -93,6 +93,7 @@ routing:
     - Prefer GraphQL for review-thread semantics and unresolved filtering.
 graphql:
   operationName: PrCommentsList
+  operationType: query
   documentPath: src/gql/operations/pr-comments-list.graphql
 cli:
   command: api graphql

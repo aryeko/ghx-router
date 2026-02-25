@@ -8,7 +8,7 @@ vi.mock("@core/gql/github-client.js", () => ({
   createGithubClient: (...args: unknown[]) => createGithubClientMock(...args),
 }))
 
-vi.mock("@core/core/routing/engine.js", () => ({
+vi.mock("@core/core/routing/engine/index.js", () => ({
   executeTask: (...args: unknown[]) => executeTaskMock(...args),
 }))
 
