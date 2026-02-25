@@ -429,7 +429,7 @@ pnpm run benchmark -- agent_direct 5 \
   --scenario-set all \
   --fixture-manifest fixtures/latest.json \
   --skip-warmup \
-  --output-jsonl "$(pwd)/reports/codex-5.3-benchmark/raw-data/agent_direct-suite.jsonl"
+  --output-jsonl "$(pwd)/reports/codex-5.3-benchmark/raw-data/2026-02-25-agent_direct-suite.jsonl"
 ```
 
 ### Run ghx mode
@@ -439,7 +439,7 @@ pnpm run benchmark -- ghx 5 \
   --scenario-set all \
   --fixture-manifest fixtures/latest.json \
   --skip-warmup \
-  --output-jsonl "$(pwd)/reports/codex-5.3-benchmark/raw-data/ghx-suite.jsonl"
+  --output-jsonl "$(pwd)/reports/codex-5.3-benchmark/raw-data/2026-02-25-ghx-suite.jsonl"
 ```
 
 **Note:** The `--output-jsonl` path must be absolute. pnpm shifts the working directory, so relative paths cause ENOENT errors.
@@ -470,16 +470,16 @@ All raw data lives in `raw-data/`:
 
 | File | Description |
 |------|-------------|
-| `agent_direct-suite.jsonl` | 20 rows (4 scenarios x 5 iterations). One JSON object per line with: timestamp, mode, scenario_id, iteration, success, tokens breakdown (input/output/reasoning/cache_read), tool_calls, latency, timing_breakdown. |
-| `ghx-suite.jsonl` | Same structure as above, 20 rows for ghx mode. |
+| `2026-02-25-agent_direct-suite.jsonl` | 20 rows (4 scenarios x 5 iterations). One JSON object per line with: timestamp, mode, scenario_id, iteration, success, tokens breakdown (input/output/reasoning/cache_read), tool_calls, latency, timing_breakdown. |
+| `2026-02-25-ghx-suite.jsonl` | Same structure as above, 20 rows for ghx mode. |
 | `comparison.md` | Pre-computed iteration-by-iteration comparison with per-iteration metrics tables, exact bash commands used by agent_direct, and exact ghx capabilities invoked. |
-| `latest-summary.md` | Aggregate summary with mode-level metrics, profiling snapshot, and gate results. |
+| `profiling-snapshot.md` | Time-allocation breakdown by phase (reasoning, tool execution, post-tool). Extracted from the benchmark summary report with gate/threshold data removed (see note inside the file for why). |
 
 **Reading JSONL:** Each line is a self-contained JSON object. Parse with `jq`:
 
 ```bash
 # All PR review iterations for ghx
-cat raw-data/ghx-suite.jsonl | jq 'select(.scenario_id == "pr-review-comment-wf-001")'
+cat raw-data/2026-02-25-ghx-suite.jsonl | jq 'select(.scenario_id == "pr-review-comment-wf-001")'
 
 # Average tool calls per mode
 cat raw-data/*.jsonl | jq -s 'group_by(.mode) | map({mode: .[0].mode, avg_tc: (map(.tool_calls) | add / length)})'
