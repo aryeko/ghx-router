@@ -402,6 +402,11 @@ describe("executeTask — preflight branches", () => {
     )
 
     expect(executeMock).toHaveBeenCalledTimes(1)
+    expect(executeMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        routingContext: expect.objectContaining({ githubTokenPresent: true }),
+      }),
+    )
   })
 
   it("preflight for non-CLI route skips CLI detection entirely", async () => {
