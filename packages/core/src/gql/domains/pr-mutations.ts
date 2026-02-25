@@ -417,6 +417,13 @@ export async function runPrUpdate(
   input: PrUpdateInput,
 ): Promise<PrUpdateData> {
   assertPrUpdateInput(input)
+
+  if (input.draft !== undefined && input.title === undefined && input.body === undefined) {
+    throw new Error(
+      "The 'draft' field is not supported by the GraphQL route. Provide 'title' or 'body' to use GQL, or configure a CLI fallback.",
+    )
+  }
+
   const client = createGraphqlRequestClient(transport)
   const pullRequestId = await fetchPrNodeId(client, input.owner, input.name, input.prNumber)
 
@@ -445,6 +452,13 @@ export async function runPrMerge(
   input: PrMergeInput,
 ): Promise<PrMergeData> {
   assertPrMergeInput(input)
+
+  if (input.deleteBranch === true) {
+    throw new Error(
+      "The 'deleteBranch' option is not supported by the GraphQL mergePullRequest mutation. Use the CLI route to delete the branch after merging.",
+    )
+  }
+
   const client = createGraphqlRequestClient(transport)
   const pullRequestId = await fetchPrNodeId(client, input.owner, input.name, input.prNumber)
 
@@ -462,6 +476,8 @@ export async function runPrMerge(
 
   return {
     prNumber: input.prNumber,
+    // method echoes the input mergeMethod rather than reading from the GQL response,
+    // since GitHub's mergePullRequest mutation does not return the merge method used.
     method: input.mergeMethod?.toLowerCase() ?? "merge",
     // Note: GitHub GraphQL API does not expose merge queue state; queued is always false
     queued: false,

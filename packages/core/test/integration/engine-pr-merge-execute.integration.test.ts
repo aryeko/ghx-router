@@ -1,15 +1,18 @@
 import type { TaskRequest } from "@core/core/contracts/task.js"
 import { executeTask } from "@core/core/routing/engine.js"
-import { createGithubClient } from "@core/gql/github-client.js"
+import type { GithubClient } from "@core/gql/github-client.js"
 import { describe, expect, it } from "vitest"
 
 describe("executeTask pr.merge", () => {
-  it("returns cli envelope for pr.merge", async () => {
-    const githubClient = createGithubClient({
-      async execute<TData>(): Promise<TData> {
-        return {} as TData
-      },
-    })
+  it("returns graphql envelope for pr.merge", async () => {
+    const githubClient = {
+      mergePr: async () => ({
+        prNumber: 232,
+        method: "merge",
+        queued: false,
+        deleteBranch: false,
+      }),
+    } as unknown as GithubClient
 
     const request: TaskRequest = {
       task: "pr.merge",
@@ -22,31 +25,28 @@ describe("executeTask pr.merge", () => {
 
     const result = await executeTask(request, {
       githubClient,
-      ghCliAvailable: true,
-      ghAuthenticated: true,
-      cliRunner: {
-        run: async () => ({
-          stdout: JSON.stringify({
-            number: 232,
-            merged: true,
-            mergedBy: "user1",
-          }),
-          stderr: "",
-          exitCode: 0,
-        }),
-      },
+      githubToken: "test-token",
     })
 
     expect(result.ok).toBe(true)
-    expect(result.meta.route_used).toBe("cli")
+    expect(result.meta.route_used).toBe("graphql")
+    expect(result.data).toMatchObject({
+      prNumber: 232,
+      method: "merge",
+      queued: false,
+      deleteBranch: false,
+    })
   })
 
   it("returns validation error envelope for invalid prNumber", async () => {
-    const githubClient = createGithubClient({
-      async execute<TData>(): Promise<TData> {
-        return {} as TData
-      },
-    })
+    const githubClient = {
+      mergePr: async () => ({
+        prNumber: 0,
+        method: "merge",
+        queued: false,
+        deleteBranch: false,
+      }),
+    } as unknown as GithubClient
 
     const request: TaskRequest = {
       task: "pr.merge",

@@ -1,15 +1,29 @@
 import type { TaskRequest } from "@core/core/contracts/task.js"
 import { executeTask } from "@core/core/routing/engine.js"
-import { createGithubClient } from "@core/gql/github-client.js"
+import type { GithubClient } from "@core/gql/github-client.js"
 import { describe, expect, it } from "vitest"
 
 describe("executeTask repo.issue_types.list", () => {
-  it("returns cli envelope for repo.issue_types.list", async () => {
-    const githubClient = createGithubClient({
-      async execute<TData>(): Promise<TData> {
-        return {} as TData
-      },
-    })
+  it("returns graphql envelope for repo.issue_types.list", async () => {
+    const githubClient = {
+      fetchRepoIssueTypesList: async () => ({
+        items: [
+          {
+            id: "ISSUE",
+            name: "Bug Report",
+            color: null,
+            isEnabled: true,
+          },
+          {
+            id: "DISCUSSION",
+            name: "Discussion",
+            color: null,
+            isEnabled: true,
+          },
+        ],
+        pageInfo: { hasNextPage: false, endCursor: null },
+      }),
+    } as unknown as GithubClient
 
     const request: TaskRequest = {
       task: "repo.issue_types.list",
@@ -21,28 +35,11 @@ describe("executeTask repo.issue_types.list", () => {
 
     const result = await executeTask(request, {
       githubClient,
-      ghCliAvailable: true,
-      ghAuthenticated: true,
-      cliRunner: {
-        run: async () => ({
-          stdout: JSON.stringify([
-            {
-              id: "ISSUE",
-              name: "Bug Report",
-            },
-            {
-              id: "DISCUSSION",
-              name: "Discussion",
-            },
-          ]),
-          stderr: "",
-          exitCode: 0,
-        }),
-      },
+      githubToken: "test-token",
     })
 
     expect(result.ok).toBe(true)
-    expect(result.meta.route_used).toBe("cli")
+    expect(result.meta.route_used).toBe("graphql")
     expect(result.data).toEqual(
       expect.objectContaining({
         items: expect.any(Array),
@@ -51,11 +48,12 @@ describe("executeTask repo.issue_types.list", () => {
   })
 
   it("returns validation error envelope for missing name", async () => {
-    const githubClient = createGithubClient({
-      async execute<TData>(): Promise<TData> {
-        return {} as TData
-      },
-    })
+    const githubClient = {
+      fetchRepoIssueTypesList: async () => ({
+        items: [],
+        pageInfo: { hasNextPage: false, endCursor: null },
+      }),
+    } as unknown as GithubClient
 
     const request: TaskRequest = {
       task: "repo.issue_types.list",

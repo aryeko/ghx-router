@@ -97,10 +97,15 @@ export function assertOptionalString(value: unknown, fieldName: string): string 
 }
 
 export function assertStringArray(value: unknown, fieldName: string): string[] {
-  if (
-    !Array.isArray(value) ||
-    value.some((entry) => typeof entry !== "string" || entry.trim().length === 0)
-  ) {
+  if (!Array.isArray(value)) {
+    throw new Error(`${fieldName} must be an array of non-empty strings`)
+  }
+
+  if (value.length === 0) {
+    throw new Error(`${fieldName} must not be empty`)
+  }
+
+  if (value.some((entry) => typeof entry !== "string" || entry.trim().length === 0)) {
     throw new Error(`${fieldName} must be an array of non-empty strings`)
   }
 

@@ -601,28 +601,6 @@ export type PrReviewsRequestData = {
   updated: boolean
 }
 
-// PR checks
-export type PrChecksListInput = {
-  owner: string
-  name: string
-  prNumber: number
-  first: number
-  after?: string | null
-}
-
-export type PrCheckRunData = {
-  id: string
-  name: string
-  status: string | null
-  conclusion: string | null
-  url: string | null
-}
-
-export type PrChecksListData = {
-  items: PrCheckRunData[]
-  pageInfo: { hasNextPage: boolean; endCursor: string | null }
-}
-
 // Project V2 mutations
 export type ProjectV2ItemAddInput = {
   owner: string

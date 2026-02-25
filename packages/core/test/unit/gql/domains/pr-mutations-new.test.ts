@@ -154,6 +154,18 @@ describe("runPrUpdate", () => {
     expect(result.state).toBe("OPEN")
     expect(result.draft).toBe(false)
   })
+
+  it("throws when draft is provided without title or body", async () => {
+    const execute = vi.fn()
+    const transport: GraphqlTransport = { execute }
+
+    await expect(
+      runPrUpdate(transport, { ...baseInput, prNumber: 42, draft: true }),
+    ).rejects.toThrow(
+      "The 'draft' field is not supported by the GraphQL route. Provide 'title' or 'body' to use GQL, or configure a CLI fallback.",
+    )
+    expect(execute).not.toHaveBeenCalled()
+  })
 })
 
 // --- runPrMerge ---
@@ -208,7 +220,7 @@ describe("runPrMerge", () => {
     expect(result.deleteBranch).toBe(false)
   })
 
-  it("reflects mergeMethod and deleteBranch from input", async () => {
+  it("reflects mergeMethod from input", async () => {
     const execute = vi
       .fn()
       .mockResolvedValueOnce({ repository: { pullRequest: { id: "PR_kwDOA123" } } })
@@ -228,11 +240,20 @@ describe("runPrMerge", () => {
     const result = await runPrMerge(transport, {
       ...mergeInput,
       mergeMethod: "SQUASH",
-      deleteBranch: true,
     })
 
     expect(result.method).toBe("squash")
-    expect(result.deleteBranch).toBe(true)
+    expect(result.deleteBranch).toBe(false)
+  })
+
+  it("throws when deleteBranch is true", async () => {
+    const execute = vi.fn()
+    const transport: GraphqlTransport = { execute }
+
+    await expect(runPrMerge(transport, { ...mergeInput, deleteBranch: true })).rejects.toThrow(
+      "The 'deleteBranch' option is not supported by the GraphQL mergePullRequest mutation. Use the CLI route to delete the branch after merging.",
+    )
+    expect(execute).not.toHaveBeenCalled()
   })
 })
 
