@@ -1,5 +1,5 @@
 ---
-"@ghx-dev/core": minor
+"@ghx-dev/core": patch
 ---
 
 Add GraphQL routes to 18 previously CLI-only capabilities across PR mutations, project_v2, release, and repo domains.
