@@ -252,6 +252,7 @@ describe("run-command flag parsing", () => {
 
   it("passes benchLogsDir from BENCH_LOGS_DIR env var to runSuite", async () => {
     loadScenariosMock.mockResolvedValue([mockScenario("s1")])
+    const originalBenchLogsDir = process.env.BENCH_LOGS_DIR
     process.env.BENCH_LOGS_DIR = "/custom/bench/logs"
 
     try {
@@ -263,21 +264,32 @@ describe("run-command flag parsing", () => {
         }),
       )
     } finally {
-      delete process.env.BENCH_LOGS_DIR
+      if (originalBenchLogsDir === undefined) {
+        delete process.env.BENCH_LOGS_DIR
+      } else {
+        process.env.BENCH_LOGS_DIR = originalBenchLogsDir
+      }
     }
   })
 
   it("passes benchLogsDir=null when BENCH_LOGS_DIR is not set", async () => {
     loadScenariosMock.mockResolvedValue([mockScenario("s1")])
+    const originalBenchLogsDir = process.env.BENCH_LOGS_DIR
     delete process.env.BENCH_LOGS_DIR
 
-    await main(["ghx", "1"])
+    try {
+      await main(["ghx", "1"])
 
-    expect(runSuiteMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        benchLogsDir: null,
-      }),
-    )
+      expect(runSuiteMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          benchLogsDir: null,
+        }),
+      )
+    } finally {
+      if (originalBenchLogsDir !== undefined) {
+        process.env.BENCH_LOGS_DIR = originalBenchLogsDir
+      }
+    }
   })
 
   it("passes benchRunTs as a sanitized ISO string to runSuite", async () => {

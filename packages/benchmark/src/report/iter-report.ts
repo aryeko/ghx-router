@@ -281,8 +281,8 @@ export function formatIterReport(report: IterReport): string {
     const adOk = fmtPct(s.adSuccessRate)
     const ghxValid = fmtPct(s.ghxOutputValidRate)
     const adValid = fmtPct(s.adOutputValidRate)
-    const ghxCost = fmtAvg(s.avgGhxCost)
-    const adCost = fmtAvg(s.avgAdCost)
+    const ghxCost = fmtCost(s.avgGhxCost)
+    const adCost = fmtCost(s.avgAdCost)
     lines.push(
       `| ${s.scenarioId} | ${s.iterCount} | ${ghxTC} | ${adTC} | ${deltaTC} | ${ghxTok} | ${adTok} | ${deltaTok} | ${ghxOk} | ${adOk} | ${ghxValid} | ${adValid} | ${ghxCost} | ${adCost} |`,
     )

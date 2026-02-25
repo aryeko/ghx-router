@@ -6,6 +6,7 @@ vi.mock("node:child_process", () => ({
 }))
 
 vi.mock("node:fs/promises", () => ({
+  mkdir: vi.fn().mockResolvedValue(undefined),
   writeFile: vi.fn().mockResolvedValue(undefined),
 }))
 
@@ -105,5 +106,26 @@ describe("exportSession", () => {
       encoding: "utf8",
       timeout: 30_000,
     })
+  })
+
+  it("returns ok=false when writeFile fails with a filesystem error", async () => {
+    const { spawnSync } = await import("node:child_process")
+    const { writeFile } = await import("node:fs/promises")
+
+    vi.mocked(spawnSync).mockReturnValue({
+      status: 0,
+      stdout: '{"type":"text","content":"hello"}',
+      stderr: "",
+      pid: 123,
+      output: [],
+      signal: null,
+    } as unknown as ReturnType<typeof spawnSync>)
+
+    const eacces = Object.assign(new Error("EACCES: permission denied"), { code: "EACCES" })
+    vi.mocked(writeFile).mockRejectedValueOnce(eacces)
+
+    const result = await exportSession({ sessionId: "ses_abc", destDir: "/read-only/dir" })
+
+    expect(result).toEqual({ ok: false, reason: expect.stringContaining("write") })
   })
 })

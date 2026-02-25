@@ -143,12 +143,18 @@ export async function openBenchmarkClient(
   }
 
   const sessionWorkdir = process.env.BENCH_SESSION_WORKDIR
-  const didChdir = !!sessionWorkdir
+  let teardown = restoreEnv(previousEnv, isolatedXdgConfigHome, false)
   if (sessionWorkdir) {
-    process.chdir(sessionWorkdir)
+    try {
+      process.chdir(sessionWorkdir)
+      teardown = restoreEnv(previousEnv, isolatedXdgConfigHome, true)
+    } catch (error) {
+      await teardown()
+      throw new Error(`benchmark_session_workdir_invalid: unable to chdir to "${sessionWorkdir}"`, {
+        cause: error,
+      })
+    }
   }
-
-  const teardown = restoreEnv(previousEnv, isolatedXdgConfigHome, didChdir)
 
   let server: { close: () => void } | null = null
 

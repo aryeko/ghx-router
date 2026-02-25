@@ -338,7 +338,7 @@ ls reports/my-comparison/iter-logs/$(date +%Y-%m-%d)/*/
 GHX_RUN=reports/my-comparison/iter-logs/2026-02-24/2026-02-24T10-00-00-000Z
 AD_RUN=reports/my-comparison/iter-logs/2026-02-24/2026-02-24T10-05-00-000Z
 
-pnpm run benchmark -- report:iter \
+pnpm --filter @ghx-dev/benchmark run report:iter -- \
   "$(pwd)/$GHX_RUN" \
   "$(pwd)/$AD_RUN" \
   --output "$(pwd)/reports/my-comparison/comparison.md"

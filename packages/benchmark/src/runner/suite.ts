@@ -163,13 +163,15 @@ export async function runSuite(config: {
         process.env.GHX_LOG_LEVEL = process.env.BENCH_GHX_LOG_LEVEL ?? "info"
       }
 
-      const provider = await createSessionProvider({
-        type: "opencode",
-        providerId: providerConfig.providerId,
-        modelId: providerConfig.modelId,
-      })
+      let provider: Awaited<ReturnType<typeof createSessionProvider>> | null = null
 
       try {
+        provider = await createSessionProvider({
+          type: "opencode",
+          providerId: providerConfig.providerId,
+          modelId: providerConfig.modelId,
+        })
+
         for (const scenario of scenarios) {
           for (let iteration = 1; iteration <= repetitions; iteration += 1) {
             onProgress({
@@ -224,8 +226,10 @@ export async function runSuite(config: {
               for (const file of newFiles) {
                 try {
                   await rename(join(ghxStagingDir, file), join(iterLogContext.iterDir, file))
-                } catch {
-                  // best-effort: leave file in staging if rename fails
+                } catch (moveError) {
+                  console.warn(
+                    `[suite] Failed to move ghx log file "${file}" to iter dir: ${moveError instanceof Error ? moveError.message : String(moveError)}`,
+                  )
                 }
               }
             }
@@ -248,7 +252,7 @@ export async function runSuite(config: {
           }
         }
       } finally {
-        await provider.cleanup()
+        await provider?.cleanup()
         if (ghxStagingDir !== null) {
           if (prevGhxLogDir === undefined) {
             delete process.env.GHX_LOG_DIR

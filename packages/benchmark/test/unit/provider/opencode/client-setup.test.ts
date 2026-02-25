@@ -2,7 +2,7 @@ import {
   openBenchmarkClient,
   withIsolatedBenchmarkClient,
 } from "@bench/provider/opencode/client-setup.js"
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 const mocks = vi.hoisted(() => {
   return {
@@ -112,6 +112,10 @@ describe("client-setup", () => {
         },
       }),
     )
+  })
+
+  afterEach(() => {
+    chdirSpy.mockRestore()
   })
 
   describe("withIsolatedBenchmarkClient", () => {

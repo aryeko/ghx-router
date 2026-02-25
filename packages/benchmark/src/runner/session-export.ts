@@ -32,7 +32,12 @@ export async function exportSession(config: SessionExportConfig): Promise<Sessio
   }
 
   const destPath = join(destDir, "session.jsonl")
-  await writeFile(destPath, `${output}\n`, "utf8")
+  try {
+    await writeFile(destPath, `${output}\n`, "utf8")
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error)
+    return { ok: false, reason: `failed to write session export: ${reason}` }
+  }
 
   return { ok: true }
 }

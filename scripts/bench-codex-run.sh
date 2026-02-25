@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO=/Users/aryekogan/repos/ghx
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO="$(dirname "$SCRIPT_DIR")"
 REPORT_DIR=$REPO/reports/codex-comparison
 ITER_LOGS=$REPORT_DIR/iter-logs
 LOG=$REPORT_DIR/run.log
@@ -42,6 +43,7 @@ while IFS= read -r dir; do
   fi
 done <<< "$AFTER_AD"
 echo "→ agent_direct run dir: $AD_RUN_DIR"
+[[ -n "$AD_RUN_DIR" ]] || { echo "ERROR: could not identify agent_direct run directory" >&2; exit 1; }
 
 # ── ghx run ──────────────────────────────────────────────────────────────────
 echo ""
@@ -61,6 +63,7 @@ while IFS= read -r dir; do
   fi
 done <<< "$AFTER_GHX"
 echo "→ ghx run dir: $GHX_RUN_DIR"
+[[ -n "$GHX_RUN_DIR" ]] || { echo "ERROR: could not identify ghx run directory" >&2; exit 1; }
 
 # ── report:iter ───────────────────────────────────────────────────────────────
 echo ""
