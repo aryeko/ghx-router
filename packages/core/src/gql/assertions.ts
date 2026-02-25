@@ -1,4 +1,5 @@
 import type {
+  DraftComment,
   IssueAssigneesAddInput,
   IssueAssigneesRemoveInput,
   IssueAssigneesUpdateInput,
@@ -354,6 +355,10 @@ export function assertPrCreateInput(input: PrCreateInput): void {
   assertNonEmptyString(input.title, "PR title")
   assertNonEmptyString(input.headRefName, "Head branch name")
   assertNonEmptyString(input.baseRefName, "Base branch name")
+  assertOptionalString(input.body, "PR body")
+  if (input.draft !== undefined && typeof input.draft !== "boolean") {
+    throw new Error("draft must be a boolean")
+  }
 }
 
 export function assertPrUpdateInput(input: PrUpdateInput): void {
@@ -404,6 +409,18 @@ export function assertPrReviewsRequestInput(input: PrReviewsRequestInput): void 
 
 const VALID_REVIEW_EVENTS = new Set(["APPROVE", "COMMENT", "REQUEST_CHANGES"])
 
+function assertDraftComment(comment: unknown, index: number): void {
+  if (typeof comment !== "object" || comment === null) {
+    throw new Error(`comments[${index}] must be an object`)
+  }
+  const c = comment as DraftComment
+  assertNonEmptyString(c.path, `comments[${index}].path`)
+  assertNonEmptyString(c.body, `comments[${index}].body`)
+  if (!Number.isInteger(c.line) || c.line <= 0) {
+    throw new Error(`comments[${index}].line must be a positive integer`)
+  }
+}
+
 export function assertPrReviewSubmitInput(input: PrReviewSubmitInput): void {
   assertNonEmptyString(input.owner, "Repository owner")
   assertNonEmptyString(input.name, "Repository name")
@@ -417,5 +434,12 @@ export function assertPrReviewSubmitInput(input: PrReviewSubmitInput): void {
     throw new Error(
       `event "${input.event}" is invalid. Expected one of: APPROVE, COMMENT, REQUEST_CHANGES`,
     )
+  }
+  assertOptionalString(input.body, "Review body")
+  if (input.comments !== undefined) {
+    if (!Array.isArray(input.comments)) {
+      throw new Error("comments must be an array")
+    }
+    input.comments.forEach((c, i) => assertDraftComment(c, i))
   }
 }
