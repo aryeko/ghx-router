@@ -583,13 +583,15 @@ export async function runPrAssigneesRemove(
     throw new Error("Failed to remove assignees from pull request")
   }
 
-  const confirmedLogins = (prAssignable.assignees.nodes ?? [])
+  const remainingLogins = (prAssignable.assignees.nodes ?? [])
     .filter((node): node is { login: string } => node !== null)
     .map((node) => node.login)
 
+  const removed = input.assignees.filter((login) => !remainingLogins.includes(login))
+
   return {
     prNumber: input.prNumber,
-    removed: confirmedLogins,
+    removed,
   }
 }
 
@@ -619,6 +621,9 @@ export async function runPrReviewsRequest(
     const reviewer = node.requestedReviewer
     if (reviewer?.__typename === "User" && "login" in reviewer) {
       return [reviewer.login]
+    }
+    if (reviewer?.__typename === "Team" && "slug" in reviewer) {
+      return [reviewer.slug as string]
     }
     return []
   })

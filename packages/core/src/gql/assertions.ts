@@ -380,6 +380,9 @@ export function assertPrMergeInput(input: PrMergeInput): void {
       `mergeMethod "${input.mergeMethod}" is invalid. Expected one of: MERGE, SQUASH, REBASE`,
     )
   }
+  if (input.deleteBranch !== undefined && typeof input.deleteBranch !== "boolean") {
+    throw new Error("deleteBranch must be a boolean")
+  }
 }
 
 export function assertPrBranchUpdateInput(input: PrBranchUpdateInput): void {

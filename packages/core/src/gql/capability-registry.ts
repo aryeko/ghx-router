@@ -301,13 +301,18 @@ const handlers = new Map<string, GraphqlHandler>([
   ],
   [
     "project_v2.items.list",
-    (c, p) => c.fetchProjectV2ItemsList(withDefaultFirst(p) as ProjectV2ItemsListInput),
+    (c, p) => {
+      const params = p as Record<string, unknown>
+      const paramsWithFirst = params.first === undefined ? { ...params, first: 100 } : params
+      return c.fetchProjectV2ItemsList(paramsWithFirst as ProjectV2ItemsListInput)
+    },
   ],
 
   // PR mutations (Phase 2)
   [
     "pr.create",
     (c, p) => {
+      if (!c.createPr) throw new Error("createPr operation not available")
       const raw = p as {
         owner: string
         name: string
@@ -328,10 +333,17 @@ const handlers = new Map<string, GraphqlHandler>([
       })
     },
   ],
-  ["pr.update", (c, p) => c.updatePr(p as PrUpdateInput)],
+  [
+    "pr.update",
+    (c, p) => {
+      if (!c.updatePr) throw new Error("updatePr operation not available")
+      return c.updatePr(p as PrUpdateInput)
+    },
+  ],
   [
     "pr.merge",
     (c, p) => {
+      if (!c.mergePr) throw new Error("mergePr operation not available")
       const raw = p as {
         owner: string
         name: string
@@ -359,32 +371,57 @@ const handlers = new Map<string, GraphqlHandler>([
       })
     },
   ],
-  ["pr.branch.update", (c, p) => c.updatePrBranch(p as PrBranchUpdateInput)],
+  [
+    "pr.branch.update",
+    (c, p) => {
+      if (!c.updatePrBranch) throw new Error("updatePrBranch operation not available")
+      return c.updatePrBranch(p as PrBranchUpdateInput)
+    },
+  ],
   [
     "pr.assignees.add",
     (c, p) => {
+      if (!c.addPrAssignees) throw new Error("addPrAssignees operation not available")
       return c.addPrAssignees(p as PrAssigneesAddInput)
     },
   ],
   [
     "pr.assignees.remove",
     (c, p) => {
+      if (!c.removePrAssignees) throw new Error("removePrAssignees operation not available")
       return c.removePrAssignees(p as PrAssigneesRemoveInput)
     },
   ],
   [
     "pr.reviews.request",
     (c, p) => {
+      if (!c.requestPrReviews) throw new Error("requestPrReviews operation not available")
       return c.requestPrReviews(p as PrReviewsRequestInput)
     },
   ],
 
   // Project V2 mutations (Phase 2)
-  ["project_v2.items.issue.add", (c, p) => c.addProjectV2Item(p as ProjectV2ItemAddInput)],
-  ["project_v2.items.issue.remove", (c, p) => c.removeProjectV2Item(p as ProjectV2ItemRemoveInput)],
+  [
+    "project_v2.items.issue.add",
+    (c, p) => {
+      if (!c.addProjectV2Item) throw new Error("addProjectV2Item operation not available")
+      return c.addProjectV2Item(p as ProjectV2ItemAddInput)
+    },
+  ],
+  [
+    "project_v2.items.issue.remove",
+    (c, p) => {
+      if (!c.removeProjectV2Item) throw new Error("removeProjectV2Item operation not available")
+      return c.removeProjectV2Item(p as ProjectV2ItemRemoveInput)
+    },
+  ],
   [
     "project_v2.items.field.update",
-    (c, p) => c.updateProjectV2ItemField(p as ProjectV2ItemFieldUpdateInput),
+    (c, p) => {
+      if (!c.updateProjectV2ItemField)
+        throw new Error("updateProjectV2ItemField operation not available")
+      return c.updateProjectV2ItemField(p as ProjectV2ItemFieldUpdateInput)
+    },
   ],
 ])
 

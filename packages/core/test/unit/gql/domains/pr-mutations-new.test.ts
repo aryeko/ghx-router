@@ -499,7 +499,7 @@ describe("runPrAssigneesRemove", () => {
     const result = await runPrAssigneesRemove(transport, assigneesInput)
 
     expect(result.prNumber).toBe(42)
-    expect(result.removed).toEqual(["bob"])
+    expect(result.removed).toEqual(["alice"])
   })
 })
 
@@ -574,7 +574,7 @@ describe("runPrReviewsRequest", () => {
     expect(result.updated).toBe(true)
   })
 
-  it("filters non-User reviewers from results", async () => {
+  it("includes Team reviewers alongside User reviewers in results", async () => {
     const execute = vi
       .fn()
       .mockResolvedValueOnce({ repository: { pullRequest: { id: "PR_kwDOA123" } } })
@@ -597,7 +597,7 @@ describe("runPrReviewsRequest", () => {
 
     const result = await runPrReviewsRequest(transport, reviewsRequestInput)
 
-    expect(result.reviewers).toEqual(["charlie"])
+    expect(result.reviewers).toEqual(["eng-team", "charlie"])
   })
 })
 
