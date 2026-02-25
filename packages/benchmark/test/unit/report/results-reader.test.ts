@@ -98,6 +98,48 @@ describe("findResultsJsonl", () => {
 
     expect(result).toEqual([])
   })
+
+  it("returns empty array when no exact match and benchRunTs is not a parseable timestamp", async () => {
+    statMock.mockResolvedValueOnce({ isDirectory: () => true })
+    readdirMock.mockResolvedValueOnce(["other-file-suite.jsonl"])
+
+    // benchRunTs "bad-ts" is 6 chars, not 24 → parseBenchRunTs returns null → returns []
+    const result = await findResultsJsonl("/repo/runs/bad-ts")
+
+    expect(result).toEqual([])
+  })
+
+  it("falls back to fuzzy match and returns files within 30 seconds of benchRunTs", async () => {
+    // repo root found at first level
+    statMock.mockResolvedValueOnce({ isDirectory: () => true })
+    // files: no exact match prefix, but one file is within 30s of the run time
+    readdirMock.mockResolvedValueOnce([
+      // Same time + 10 seconds (within 30s window)
+      "2026-02-23T22-54-55-263Z-ghx-suite.jsonl",
+      // Same time + 60 seconds (outside 30s window)
+      "2026-02-23T22-55-45-263Z-agent_direct-suite.jsonl",
+      // Not a suite jsonl at all
+      "2026-02-23T22-54-45-263Z-results.json",
+    ])
+
+    // benchRunTs: 2026-02-23T22-54-45-263Z (no exact match since file names have different ts)
+    const result = await findResultsJsonl("/repo/runs/2026-02-23T22-54-45-263Z")
+
+    expect(result).toHaveLength(1)
+    expect(result[0]).toContain("2026-02-23T22-54-55-263Z-ghx-suite.jsonl")
+  })
+
+  it("fuzzy match skips files whose timestamp prefix cannot be parsed", async () => {
+    statMock.mockResolvedValueOnce({ isDirectory: () => true })
+    readdirMock.mockResolvedValueOnce([
+      // File with unparseable timestamp prefix (length matches but not valid date)
+      "XXXXXXXXXXXXXXXXXXXXXXXXX-ghx-suite.jsonl",
+    ])
+
+    const result = await findResultsJsonl("/repo/runs/2026-02-23T22-54-45-263Z")
+
+    expect(result).toEqual([])
+  })
 })
 
 describe("loadResultsMap", () => {

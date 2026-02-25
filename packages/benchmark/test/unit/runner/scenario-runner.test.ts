@@ -351,6 +351,40 @@ describe("runScenarioIteration", () => {
     warnSpy.mockRestore()
   })
 
+  it("warns but does not throw when exportSession itself throws", async () => {
+    const { evaluateCheckpoints } = await import("@bench/runner/checkpoint.js")
+    const { modeInstructions } = await import("@bench/runner/mode-instructions.js")
+    const { exportSession } = await import("@bench/runner/session-export.js")
+
+    vi.mocked(evaluateCheckpoints).mockResolvedValue({
+      allPassed: true,
+      results: [{ name: "cp1", passed: true, data: null }],
+    })
+    vi.mocked(modeInstructions).mockResolvedValue(["mock instruction"])
+    vi.mocked(exportSession).mockRejectedValueOnce(new Error("export crashed"))
+
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
+
+    const provider = createMockSessionProvider()
+    const scenario = makeWorkflowScenario()
+
+    const result = await runScenarioIteration({
+      provider,
+      scenario,
+      mode: "ghx",
+      iteration: 1,
+      scenarioSet: null,
+      manifest: null,
+      runId: "run-123",
+      githubToken: "token-abc",
+      iterLogContext: { iterDir: "/logs/iter-1" },
+    })
+
+    expect(result.success).toBe(true)
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("export crashed"))
+    warnSpy.mockRestore()
+  })
+
   it("skips mkdir and exportSession when iterLogContext is null", async () => {
     const { evaluateCheckpoints } = await import("@bench/runner/checkpoint.js")
     const { modeInstructions } = await import("@bench/runner/mode-instructions.js")

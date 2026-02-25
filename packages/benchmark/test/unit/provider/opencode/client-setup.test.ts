@@ -360,6 +360,23 @@ describe("client-setup", () => {
 
       process.env.BENCH_SESSION_WORKDIR = original
     })
+
+    it("throws benchmark_session_workdir_invalid and calls teardown when process.chdir fails", async () => {
+      const original = process.env.BENCH_SESSION_WORKDIR
+      process.env.BENCH_SESSION_WORKDIR = "/nonexistent/path"
+      chdirSpy.mockImplementationOnce(() => {
+        throw new Error("ENOENT: no such file or directory")
+      })
+
+      await expect(
+        withIsolatedBenchmarkClient("agent_direct", "openai", "gpt-4", async (ctx) => ctx),
+      ).rejects.toThrow("benchmark_session_workdir_invalid")
+
+      // teardown ran: temp dir should be cleaned up
+      expect(mocks.rmMock).toHaveBeenCalled()
+
+      process.env.BENCH_SESSION_WORKDIR = original
+    })
   })
 
   describe("openBenchmarkClient", () => {

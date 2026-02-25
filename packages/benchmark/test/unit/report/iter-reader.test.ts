@@ -241,6 +241,22 @@ describe("analyzeGhxLogs", () => {
     expect(result?.errorCount).toBe(2)
     expect(result?.capabilities[0]?.ok).toBe(false)
   })
+
+  it("skips ghx log files that throw on read and continues to next", async () => {
+    readdirMock.mockResolvedValueOnce(["ghx-run1.jsonl", "ghx-run2.jsonl"])
+    // First file throws
+    readJsonlFileMock.mockRejectedValueOnce(new Error("ENOENT"))
+    // Second file has valid entries
+    readJsonlFileMock.mockResolvedValueOnce([
+      { msg: "execute.complete", capability_id: "pr.list", ok: true },
+    ])
+
+    const result = await analyzeGhxLogs("/run/iter-1")
+
+    expect(result).not.toBeNull()
+    expect(result?.capabilities).toHaveLength(1)
+    expect(result?.capabilities[0]?.capability_id).toBe("pr.list")
+  })
 })
 
 describe("readRunDir", () => {
@@ -286,5 +302,61 @@ describe("readRunDir", () => {
       scenarioId: "pr-fix-001",
       iteration: 2,
     })
+  })
+
+  it("skips modes where readdir(modeDir) throws", async () => {
+    // readdir for runDir (modes)
+    readdirMock.mockResolvedValueOnce(["ghx", "agent_direct"])
+    // readdir for ghx modeDir — throws
+    readdirMock.mockRejectedValueOnce(new Error("ENOENT"))
+    // readdir for agent_direct modeDir — returns scenarios
+    readdirMock.mockResolvedValueOnce(["sc-001"])
+    // readdir for scenarioDir
+    readdirMock.mockResolvedValueOnce(["iter-1"])
+    // analyzeSession: readFile for iter-1
+    readFileMock.mockRejectedValueOnce(new Error("ENOENT"))
+    // analyzeGhxLogs readdir for iter-1
+    readdirMock.mockResolvedValueOnce([])
+
+    const result = await readRunDir("/runs/my-run")
+
+    expect(result).toHaveLength(1)
+    expect(result[0]).toMatchObject({ mode: "agent_direct", scenarioId: "sc-001", iteration: 1 })
+  })
+
+  it("skips scenarios where readdir(scenarioDir) throws", async () => {
+    // readdir for runDir (modes)
+    readdirMock.mockResolvedValueOnce(["ghx"])
+    // readdir for modeDir (scenarios)
+    readdirMock.mockResolvedValueOnce(["sc-fail", "sc-ok"])
+    // readdir for sc-fail scenarioDir — throws
+    readdirMock.mockRejectedValueOnce(new Error("ENOENT"))
+    // readdir for sc-ok scenarioDir
+    readdirMock.mockResolvedValueOnce(["iter-1"])
+    // analyzeSession: readFile for iter-1
+    readFileMock.mockRejectedValueOnce(new Error("ENOENT"))
+    // analyzeGhxLogs readdir for iter-1
+    readdirMock.mockResolvedValueOnce([])
+
+    const result = await readRunDir("/runs/my-run")
+
+    expect(result).toHaveLength(1)
+    expect(result[0]).toMatchObject({ scenarioId: "sc-ok", iteration: 1 })
+  })
+
+  it("skips iter entries that do not match iter-N pattern", async () => {
+    readdirMock.mockResolvedValueOnce(["ghx"])
+    readdirMock.mockResolvedValueOnce(["sc-001"])
+    readdirMock.mockResolvedValueOnce(["iter-1", "not-an-iter", "_ghx"])
+    // analyzeSession for iter-1
+    readFileMock.mockRejectedValueOnce(new Error("ENOENT"))
+    // analyzeGhxLogs for iter-1
+    readdirMock.mockResolvedValueOnce([])
+
+    const result = await readRunDir("/runs/my-run")
+
+    // Only iter-1 should be included, not "not-an-iter" or "_ghx"
+    expect(result).toHaveLength(1)
+    expect(result[0]).toMatchObject({ iteration: 1 })
   })
 })

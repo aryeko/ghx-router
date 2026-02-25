@@ -16,6 +16,8 @@ vi.mock("node:fs/promises", async (importOriginal) => {
     ...actual,
     mkdir: vi.fn().mockResolvedValue(undefined),
     appendFile: vi.fn().mockResolvedValue(undefined),
+    readdir: vi.fn().mockResolvedValue([]),
+    rename: vi.fn().mockResolvedValue(undefined),
   }
 })
 
@@ -524,5 +526,71 @@ describe("runSuite", () => {
     })
 
     expect(vi.mocked(resetScenarioFixtures)).toHaveBeenCalledWith(scenario, manifest, null)
+  })
+
+  it("creates ghx staging dir and sets GHX_LOG_DIR env var when benchLogsDir and benchRunTs are provided", async () => {
+    const { mkdir, readdir } = await import("node:fs/promises")
+    const scenario = makeWorkflowScenario({ id: "sc1" })
+    const originalGhxLogDir = process.env.GHX_LOG_DIR
+    const originalGhxLogLevel = process.env.GHX_LOG_LEVEL
+
+    try {
+      await runSuite({
+        modes: ["ghx"],
+        scenarios: [scenario],
+        repetitions: 1,
+        manifest: null,
+        outputJsonlPath: "/tmp/test.jsonl",
+        onProgress: () => {},
+        providerConfig: { type: "opencode", providerId: "test", modelId: "test" },
+        skipWarmup: true,
+        benchLogsDir: "/bench-logs",
+        benchRunTs: "2026-01-01T00-00-00-000Z",
+      })
+    } finally {
+      process.env.GHX_LOG_DIR = originalGhxLogDir
+      process.env.GHX_LOG_LEVEL = originalGhxLogLevel
+    }
+
+    expect(vi.mocked(mkdir)).toHaveBeenCalledWith(expect.stringContaining("_ghx"), {
+      recursive: true,
+    })
+    expect(vi.mocked(readdir)).toHaveBeenCalled()
+  })
+
+  it("moves new ghx log files from staging dir to iter dir after each iteration", async () => {
+    const { readdir, rename } = await import("node:fs/promises")
+    const scenario = makeWorkflowScenario({ id: "sc1" })
+    const originalGhxLogDir = process.env.GHX_LOG_DIR
+    const originalGhxLogLevel = process.env.GHX_LOG_LEVEL
+
+    // First readdir (before iteration): no files yet
+    vi.mocked(readdir).mockResolvedValueOnce([])
+    // Second readdir (after iteration): one new file appeared
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(readdir).mockResolvedValueOnce(["ghx-2026-01-01.jsonl"] as any)
+
+    try {
+      await runSuite({
+        modes: ["ghx"],
+        scenarios: [scenario],
+        repetitions: 1,
+        manifest: null,
+        outputJsonlPath: "/tmp/test.jsonl",
+        onProgress: () => {},
+        providerConfig: { type: "opencode", providerId: "test", modelId: "test" },
+        skipWarmup: true,
+        benchLogsDir: "/bench-logs",
+        benchRunTs: "2026-01-01T00-00-00-000Z",
+      })
+    } finally {
+      process.env.GHX_LOG_DIR = originalGhxLogDir
+      process.env.GHX_LOG_LEVEL = originalGhxLogLevel
+    }
+
+    expect(vi.mocked(rename)).toHaveBeenCalledWith(
+      expect.stringContaining("ghx-2026-01-01.jsonl"),
+      expect.stringContaining("ghx-2026-01-01.jsonl"),
+    )
   })
 })

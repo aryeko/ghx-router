@@ -71,6 +71,42 @@ describe("exportSession", () => {
     expect((result as { ok: false; reason: string }).reason).toContain("session not found")
   })
 
+  it("returns ok=false with 'null' status string when process is killed by signal", async () => {
+    const { spawnSync } = await import("node:child_process")
+
+    vi.mocked(spawnSync).mockReturnValue({
+      status: null,
+      stdout: "",
+      stderr: "Killed",
+      pid: 123,
+      output: [],
+      signal: "SIGKILL",
+    } as unknown as ReturnType<typeof spawnSync>)
+
+    const result = await exportSession({ sessionId: "ses_killed", destDir: "/tmp/iter-1" })
+
+    expect(result.ok).toBe(false)
+    expect((result as { ok: false; reason: string }).reason).toContain("null")
+  })
+
+  it("returns ok=false with empty stderr message when stderr is not a string", async () => {
+    const { spawnSync } = await import("node:child_process")
+
+    vi.mocked(spawnSync).mockReturnValue({
+      status: 2,
+      stdout: "",
+      stderr: null,
+      pid: 123,
+      output: [],
+      signal: null,
+    } as unknown as ReturnType<typeof spawnSync>)
+
+    const result = await exportSession({ sessionId: "ses_nonstr", destDir: "/tmp/iter-1" })
+
+    expect(result.ok).toBe(false)
+    expect((result as { ok: false; reason: string }).reason).toContain("exited 2")
+  })
+
   it("returns ok=false when stdout is empty", async () => {
     const { spawnSync } = await import("node:child_process")
 
