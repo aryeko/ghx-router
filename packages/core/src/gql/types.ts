@@ -201,6 +201,18 @@ export type IssueLabelsAddData = {
   labels: string[]
 }
 
+export type IssueLabelsRemoveInput = {
+  owner: string
+  name: string
+  issueNumber: number
+  labels: string[]
+}
+
+export type IssueLabelsRemoveData = {
+  issueNumber: number
+  removed: string[]
+}
+
 export type IssueAssigneesUpdateData = {
   id: string
   assignees: string[]
@@ -219,6 +231,17 @@ export type IssueAssigneesRemoveData = {
 export type IssueMilestoneSetData = {
   id: string
   milestoneNumber: number | null
+}
+
+export type IssueMilestoneClearInput = {
+  owner: string
+  name: string
+  issueNumber: number
+}
+
+export type IssueMilestoneClearData = {
+  issueNumber: number
+  cleared: boolean
 }
 
 export type IssueCommentCreateData = {
