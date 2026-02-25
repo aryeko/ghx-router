@@ -25,6 +25,7 @@ routing:
   fallbacks: []
 graphql:
   operationName: IssueCreate
+  operationType: mutation
   documentPath: src/gql/operations/issue-create.graphql
   resolution:
     lookup:

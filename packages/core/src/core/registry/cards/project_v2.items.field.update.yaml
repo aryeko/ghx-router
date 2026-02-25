@@ -26,6 +26,7 @@ routing:
   fallbacks: [cli]
 graphql:
   operationName: UpdateProjectV2ItemField
+  operationType: mutation
   documentPath: src/gql/operations/project-v2-item-field-update.graphql
 cli:
   command: project item-edit

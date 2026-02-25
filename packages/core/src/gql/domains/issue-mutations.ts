@@ -7,6 +7,7 @@ import {
   assertIssueCommentCreateInput,
   assertIssueCreateInput,
   assertIssueLabelsAddInput,
+  assertIssueLabelsRemoveInput,
   assertIssueLabelsUpdateInput,
   assertIssueLinkedPrsListInput,
   assertIssueMilestoneSetInput,
@@ -30,6 +31,7 @@ import { getSdk as getIssueCreateRepositoryIdSdk } from "../operations/issue-cre
 import { getSdk as getIssueDeleteSdk } from "../operations/issue-delete.generated.js"
 import { getSdk as getIssueLabelsAddSdk } from "../operations/issue-labels-add.generated.js"
 import { getSdk as getIssueLabelsLookupByNumberSdk } from "../operations/issue-labels-lookup-by-number.generated.js"
+import { getSdk as getIssueLabelsRemoveSdk } from "../operations/issue-labels-remove.generated.js"
 import { getSdk as getIssueLabelsUpdateSdk } from "../operations/issue-labels-update.generated.js"
 import { getSdk as getIssueLinkedPrsListSdk } from "../operations/issue-linked-prs-list.generated.js"
 import { getSdk as getIssueMilestoneLookupByNumberSdk } from "../operations/issue-milestone-lookup-by-number.generated.js"
@@ -57,10 +59,14 @@ import type {
   IssueCreateInput,
   IssueLabelsAddData,
   IssueLabelsAddInput,
+  IssueLabelsRemoveData,
+  IssueLabelsRemoveInput,
   IssueLabelsUpdateData,
   IssueLabelsUpdateInput,
   IssueLinkedPrsListData,
   IssueLinkedPrsListInput,
+  IssueMilestoneClearData,
+  IssueMilestoneClearInput,
   IssueMilestoneSetData,
   IssueMilestoneSetInput,
   IssueMutationData,
@@ -356,6 +362,56 @@ export async function runIssueLabelsAdd(
   }
 }
 
+export async function runIssueLabelsRemove(
+  transport: GraphqlTransport,
+  input: IssueLabelsRemoveInput,
+): Promise<IssueLabelsRemoveData> {
+  assertIssueLabelsRemoveInput(input)
+
+  const client = createGraphqlRequestClient(transport)
+  const lookupResult = await getIssueLabelsLookupByNumberSdk(client).IssueLabelsLookupByNumber({
+    owner: input.owner,
+    name: input.name,
+    issueNumber: input.issueNumber,
+  })
+
+  const repo = asRecord(asRecord(lookupResult)?.repository)
+  const labelableId = asRecord(repo?.issue)?.id
+  if (typeof labelableId !== "string" || labelableId.length === 0) {
+    throw new Error("Issue not found")
+  }
+
+  const availableLabels = Array.isArray(asRecord(repo?.labels)?.nodes)
+    ? (asRecord(repo?.labels)?.nodes as unknown[])
+    : []
+
+  const labelIdsByName = new Map<string, string>()
+  for (const label of availableLabels) {
+    const labelRecord = asRecord(label)
+    if (typeof labelRecord?.name === "string" && typeof labelRecord?.id === "string") {
+      labelIdsByName.set(labelRecord.name.toLowerCase(), labelRecord.id)
+    }
+  }
+
+  const labelIds = input.labels.map((labelName) => {
+    const id = labelIdsByName.get(labelName.toLowerCase())
+    if (!id) {
+      throw new Error(`Label not found: ${labelName}`)
+    }
+    return id
+  })
+
+  await getIssueLabelsRemoveSdk(client).IssueLabelsRemove({
+    labelableId,
+    labelIds,
+  })
+
+  return {
+    issueNumber: input.issueNumber,
+    removed: input.labels,
+  }
+}
+
 export async function runIssueAssigneesUpdate(
   transport: GraphqlTransport,
   input: IssueAssigneesUpdateInput,
@@ -529,6 +585,34 @@ export async function runIssueMilestoneSet(
   return {
     id: assertNonEmptyString(issue?.["id"], "Issue id"),
     milestoneNumber: typeof milestone?.["number"] === "number" ? milestone["number"] : null,
+  }
+}
+
+export async function runIssueMilestoneClear(
+  transport: GraphqlTransport,
+  input: IssueMilestoneClearInput,
+): Promise<IssueMilestoneClearData> {
+  assertIssueMutationInput(input)
+  const client = createGraphqlRequestClient(transport)
+  const lookupResult = await getIssueNodeIdLookupSdk(client).IssueNodeIdLookup({
+    owner: input.owner,
+    name: input.name,
+    issueNumber: input.issueNumber,
+  })
+
+  const issueId = asRecord(asRecord(asRecord(lookupResult)?.repository)?.issue)?.id
+  if (typeof issueId !== "string" || issueId.length === 0) {
+    throw new Error("Issue not found")
+  }
+
+  await getIssueMilestoneSetSdk(client).IssueMilestoneSet({
+    issueId,
+    milestoneId: null,
+  })
+
+  return {
+    issueNumber: input.issueNumber,
+    cleared: true,
   }
 }
 

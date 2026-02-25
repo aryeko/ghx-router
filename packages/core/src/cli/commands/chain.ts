@@ -1,4 +1,5 @@
-import { executeTasks } from "@core/core/routing/engine.js"
+import { compactChainResult } from "@core/cli/formatters/compact.js"
+import { executeTasks } from "@core/core/routing/engine/index.js"
 import { createResolutionCache } from "@core/core/routing/resolution-cache.js"
 import { createGithubClient } from "@core/gql/github-client.js"
 import type { GraphqlError, GraphqlRawResult } from "@core/gql/transport.js"
@@ -10,16 +11,18 @@ const GITHUB_GRAPHQL_ENDPOINT = resolveGraphqlUrl()
 interface ParsedChainFlags {
   stepsSource: "stdin" | { raw: string }
   skipGhPreflight: boolean
+  verbose: boolean
 }
 
 export function parseChainFlags(argv: string[]): ParsedChainFlags {
   const stepsIndex = argv.findIndex((arg) => arg === "--steps")
   const inlineSteps = argv.find((arg) => arg.startsWith("--steps="))
   const stepsCandidate = stepsIndex >= 0 ? argv[stepsIndex + 1] : undefined
+  const verbose = argv.includes("--verbose")
 
   if (stepsCandidate === "-") {
     const skipGhPreflight = !argv.includes("--check-gh-preflight")
-    return { stepsSource: "stdin", skipGhPreflight }
+    return { stepsSource: "stdin", skipGhPreflight, verbose }
   }
 
   const stepsRaw =
@@ -34,7 +37,7 @@ export function parseChainFlags(argv: string[]): ParsedChainFlags {
   }
 
   const skipGhPreflight = !argv.includes("--check-gh-preflight")
-  return { stepsSource: { raw: stepsRaw }, skipGhPreflight }
+  return { stepsSource: { raw: stepsRaw }, skipGhPreflight, verbose }
 }
 
 function parseJsonSteps(raw: string): Array<{ task: string; input: Record<string, unknown> }> {
@@ -146,13 +149,13 @@ async function executeRawGraphqlRequest<TData>(
 export async function chainCommand(argv: string[] = []): Promise<number> {
   if (argv.length === 0) {
     process.stdout.write(
-      "Usage: ghx chain --steps '<json-array>' | --steps - [--check-gh-preflight]\n",
+      "Usage: ghx chain --steps '<json-array>' | --steps - [--check-gh-preflight] [--verbose]\n",
     )
     return 1
   }
 
   try {
-    const { stepsSource, skipGhPreflight } = parseChainFlags(argv)
+    const { stepsSource, skipGhPreflight, verbose } = parseChainFlags(argv)
     const steps =
       stepsSource === "stdin" ? parseJsonSteps(await readStdin()) : parseJsonSteps(stepsSource.raw)
     const githubToken = resolveGithubToken()
@@ -177,7 +180,8 @@ export async function chainCommand(argv: string[] = []): Promise<number> {
       resolutionCache,
     })
 
-    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`)
+    const output = verbose ? result : compactChainResult(result)
+    process.stdout.write(`${JSON.stringify(output, null, verbose ? 2 : undefined)}\n`)
     return result.status === "success" || result.status === "partial" ? 0 : 1
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)

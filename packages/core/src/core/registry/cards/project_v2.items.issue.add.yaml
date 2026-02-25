@@ -21,6 +21,7 @@ routing:
   fallbacks: [cli]
 graphql:
   operationName: AddProjectV2Item
+  operationType: mutation
   documentPath: src/gql/operations/project-v2-item-add.graphql
 cli:
   command: project item-add

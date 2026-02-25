@@ -8,7 +8,7 @@
  * Uses issue.relations.blocked_by.add and issue.relations.blocked_by.remove which
  * accept raw node IDs and have no resolution block, exercising pure Phase 2 batching.
  */
-import { executeTasks } from "@core/core/routing/engine.js"
+import { executeTasks } from "@core/core/routing/engine/index.js"
 import type { GithubClient } from "@core/gql/github-client.js"
 import { describe, expect, it, vi } from "vitest"
 

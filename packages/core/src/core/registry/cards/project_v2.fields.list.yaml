@@ -47,6 +47,7 @@ routing:
 graphql:
   # GQL limitation: user fallback handled in domain handler
   operationName: ProjectV2FieldsListOrg
+  operationType: query
   documentPath: src/gql/operations/project-v2-fields-list-org.graphql
 cli:
   command: project field-list

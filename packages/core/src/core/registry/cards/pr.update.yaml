@@ -28,6 +28,7 @@ routing:
 graphql:
   # GQL limitation: draft-only updates fall back to CLI
   operationName: PrUpdate
+  operationType: mutation
   documentPath: src/gql/operations/pr-update.graphql
 cli:
   command: pr edit

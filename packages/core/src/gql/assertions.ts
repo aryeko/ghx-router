@@ -8,6 +8,7 @@ import type {
   IssueCommentsListInput,
   IssueCreateInput,
   IssueLabelsAddInput,
+  IssueLabelsRemoveInput,
   IssueLabelsUpdateInput,
   IssueLinkedPrsListInput,
   IssueListInput,
@@ -121,7 +122,11 @@ export function assertIssueCreateInput(input: IssueCreateInput): void {
 }
 
 export function assertIssueUpdateInput(input: IssueUpdateInput): void {
-  assertIssueInput({ owner: input.owner, name: input.name, issueNumber: input.issueNumber })
+  assertIssueInput({
+    owner: input.owner,
+    name: input.name,
+    issueNumber: input.issueNumber,
+  })
   if (input.title === undefined && input.body === undefined) {
     throw new Error("Issue update requires at least one field")
   }
@@ -134,43 +139,84 @@ export function assertIssueUpdateInput(input: IssueUpdateInput): void {
 }
 
 export function assertIssueMutationInput(input: IssueMutationInput): void {
-  assertIssueInput({ owner: input.owner, name: input.name, issueNumber: input.issueNumber })
+  assertIssueInput({
+    owner: input.owner,
+    name: input.name,
+    issueNumber: input.issueNumber,
+  })
 }
 
 export function assertIssueLabelsUpdateInput(input: IssueLabelsUpdateInput): void {
-  assertIssueInput({ owner: input.owner, name: input.name, issueNumber: input.issueNumber })
+  assertIssueInput({
+    owner: input.owner,
+    name: input.name,
+    issueNumber: input.issueNumber,
+  })
   assertStringArray(input.labels, "Labels")
 }
 
 export function assertIssueLabelsAddInput(input: IssueLabelsAddInput): void {
-  assertIssueInput({ owner: input.owner, name: input.name, issueNumber: input.issueNumber })
+  assertIssueInput({
+    owner: input.owner,
+    name: input.name,
+    issueNumber: input.issueNumber,
+  })
+  assertStringArray(input.labels, "Labels")
+}
+
+export function assertIssueLabelsRemoveInput(input: IssueLabelsRemoveInput): void {
+  assertIssueInput({
+    owner: input.owner,
+    name: input.name,
+    issueNumber: input.issueNumber,
+  })
   assertStringArray(input.labels, "Labels")
 }
 
 export function assertIssueAssigneesUpdateInput(input: IssueAssigneesUpdateInput): void {
-  assertIssueInput({ owner: input.owner, name: input.name, issueNumber: input.issueNumber })
+  assertIssueInput({
+    owner: input.owner,
+    name: input.name,
+    issueNumber: input.issueNumber,
+  })
   assertStringArray(input.assignees, "Assignees")
 }
 
 export function assertIssueAssigneesAddInput(input: IssueAssigneesAddInput): void {
-  assertIssueInput({ owner: input.owner, name: input.name, issueNumber: input.issueNumber })
+  assertIssueInput({
+    owner: input.owner,
+    name: input.name,
+    issueNumber: input.issueNumber,
+  })
   assertStringArray(input.assignees, "Assignees")
 }
 
 export function assertIssueAssigneesRemoveInput(input: IssueAssigneesRemoveInput): void {
-  assertIssueInput({ owner: input.owner, name: input.name, issueNumber: input.issueNumber })
+  assertIssueInput({
+    owner: input.owner,
+    name: input.name,
+    issueNumber: input.issueNumber,
+  })
   assertStringArray(input.assignees, "Assignees")
 }
 
 export function assertIssueMilestoneSetInput(input: IssueMilestoneSetInput): void {
-  assertIssueInput({ owner: input.owner, name: input.name, issueNumber: input.issueNumber })
+  assertIssueInput({
+    owner: input.owner,
+    name: input.name,
+    issueNumber: input.issueNumber,
+  })
   if (!Number.isInteger(input.milestoneNumber) || input.milestoneNumber <= 0) {
     throw new Error("Milestone number must be a positive integer")
   }
 }
 
 export function assertIssueCommentCreateInput(input: IssueCommentCreateInput): void {
-  assertIssueInput({ owner: input.owner, name: input.name, issueNumber: input.issueNumber })
+  assertIssueInput({
+    owner: input.owner,
+    name: input.name,
+    issueNumber: input.issueNumber,
+  })
   assertNonEmptyString(input.body, "Issue comment body")
 }
 
@@ -362,7 +408,11 @@ export function assertPrCreateInput(input: PrCreateInput): void {
 }
 
 export function assertPrUpdateInput(input: PrUpdateInput): void {
-  assertPrInput({ owner: input.owner, name: input.name, prNumber: input.prNumber })
+  assertPrInput({
+    owner: input.owner,
+    name: input.name,
+    prNumber: input.prNumber,
+  })
   if (input.title === undefined && input.body === undefined && input.draft === undefined) {
     throw new Error("At least one of title, body, or draft must be provided")
   }
@@ -377,7 +427,11 @@ const VALID_MERGE_METHODS = new Set(["MERGE", "SQUASH", "REBASE"])
 const VALID_BRANCH_UPDATE_METHODS = new Set(["MERGE", "REBASE"])
 
 export function assertPrMergeInput(input: PrMergeInput): void {
-  assertPrInput({ owner: input.owner, name: input.name, prNumber: input.prNumber })
+  assertPrInput({
+    owner: input.owner,
+    name: input.name,
+    prNumber: input.prNumber,
+  })
   if (input.mergeMethod !== undefined && !VALID_MERGE_METHODS.has(input.mergeMethod)) {
     throw new Error(
       `mergeMethod "${input.mergeMethod}" is invalid. Expected one of: MERGE, SQUASH, REBASE`,
@@ -389,7 +443,11 @@ export function assertPrMergeInput(input: PrMergeInput): void {
 }
 
 export function assertPrBranchUpdateInput(input: PrBranchUpdateInput): void {
-  assertPrInput({ owner: input.owner, name: input.name, prNumber: input.prNumber })
+  assertPrInput({
+    owner: input.owner,
+    name: input.name,
+    prNumber: input.prNumber,
+  })
   if (input.updateMethod !== undefined && !VALID_BRANCH_UPDATE_METHODS.has(input.updateMethod)) {
     throw new Error(
       `updateMethod "${input.updateMethod}" is invalid. Expected one of: MERGE, REBASE`,
@@ -398,12 +456,20 @@ export function assertPrBranchUpdateInput(input: PrBranchUpdateInput): void {
 }
 
 export function assertPrAssigneesInput(input: PrAssigneesAddInput | PrAssigneesRemoveInput): void {
-  assertPrInput({ owner: input.owner, name: input.name, prNumber: input.prNumber })
+  assertPrInput({
+    owner: input.owner,
+    name: input.name,
+    prNumber: input.prNumber,
+  })
   assertStringArray(input.assignees, "Assignees")
 }
 
 export function assertPrReviewsRequestInput(input: PrReviewsRequestInput): void {
-  assertPrInput({ owner: input.owner, name: input.name, prNumber: input.prNumber })
+  assertPrInput({
+    owner: input.owner,
+    name: input.name,
+    prNumber: input.prNumber,
+  })
   assertStringArray(input.reviewers, "Reviewers")
 }
 

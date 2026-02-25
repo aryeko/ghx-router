@@ -58,7 +58,7 @@ describe("executeTask logging", () => {
   it("logs execute.start (debug) and execute.complete (info) on success", async () => {
     executeMock.mockResolvedValue(makeOkEnvelope({ id: 1 }))
 
-    const { executeTask } = await import("@core/core/routing/engine.js")
+    const { executeTask } = await import("@core/core/routing/engine/index.js")
 
     await executeTask(
       { task: "repo.view", input: { owner: "acme", name: "modkit" } },
@@ -83,7 +83,7 @@ describe("executeTask logging", () => {
   it("logs execute.complete with ok: false on failure", async () => {
     executeMock.mockResolvedValue(makeErrorEnvelope())
 
-    const { executeTask } = await import("@core/core/routing/engine.js")
+    const { executeTask } = await import("@core/core/routing/engine/index.js")
 
     await executeTask(
       { task: "repo.view", input: { owner: "acme", name: "modkit" } },
@@ -99,7 +99,7 @@ describe("executeTask logging", () => {
   it("logs execute.unsupported_task (error) when card not found", async () => {
     getOperationCardMock.mockReturnValue(null)
 
-    const { executeTask } = await import("@core/core/routing/engine.js")
+    const { executeTask } = await import("@core/core/routing/engine/index.js")
 
     await executeTask({ task: "unknown.task", input: {} }, { githubClient: createGithubClient() })
 
@@ -124,7 +124,7 @@ describe("executeTasks logging", () => {
   it("logs execute_batch.start (debug) and execute_batch.complete (info)", async () => {
     executeMock.mockResolvedValue(makeOkEnvelope({ id: 1 }))
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       [{ task: "repo.view", input: { owner: "acme", name: "modkit" } }],

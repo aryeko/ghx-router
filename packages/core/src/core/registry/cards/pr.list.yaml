@@ -42,6 +42,7 @@ routing:
     - Prefer CLI for low-latency structured fetches when gh authentication is available.
 graphql:
   operationName: PrList
+  operationType: query
   documentPath: src/gql/operations/pr-list.graphql
 cli:
   command: pr list

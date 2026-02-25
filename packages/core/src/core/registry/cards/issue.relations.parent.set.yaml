@@ -21,4 +21,5 @@ routing:
   fallbacks: []
 graphql:
   operationName: IssueParentSet
+  operationType: mutation
   documentPath: src/gql/operations/issue-parent-set.graphql

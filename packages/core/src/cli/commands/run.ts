@@ -1,5 +1,6 @@
+import { compactRunResult } from "@core/cli/formatters/compact.js"
 import type { TaskRequest } from "../../core/contracts/task.js"
-import { executeTask } from "../../core/routing/engine.js"
+import { executeTask } from "../../core/routing/engine/index.js"
 import { createGithubClient } from "../../gql/github-client.js"
 
 const GITHUB_GRAPHQL_ENDPOINT = "https://api.github.com/graphql"
@@ -8,21 +9,26 @@ interface ParsedRunFlags {
   task: string
   inputSource: "stdin" | { raw: string }
   skipGhPreflight: boolean
+  verbose: boolean
 }
 
 export function parseRunFlags(argv: string[]): ParsedRunFlags {
   const [task, ...rest] = argv
   if (!task || task.trim().length === 0) {
-    throw new Error("Usage: ghx run <task> --input '<json>' | --input - [--check-gh-preflight]")
+    throw new Error(
+      "Usage: ghx run <task> --input '<json>' | --input - [--check-gh-preflight] [--verbose]",
+    )
   }
 
   const inputIndex = rest.findIndex((arg) => arg === "--input")
   const inlineInput = rest.find((arg) => arg.startsWith("--input="))
   const inputCandidate = inputIndex >= 0 ? rest[inputIndex + 1] : undefined
 
+  const verbose = rest.includes("--verbose")
+
   if (inputCandidate === "-") {
     const skipGhPreflight = !rest.includes("--check-gh-preflight")
-    return { task, inputSource: "stdin", skipGhPreflight }
+    return { task, inputSource: "stdin", skipGhPreflight, verbose }
   }
 
   const inputRaw =
@@ -37,7 +43,7 @@ export function parseRunFlags(argv: string[]): ParsedRunFlags {
   }
 
   const skipGhPreflight = !rest.includes("--check-gh-preflight")
-  return { task, inputSource: { raw: inputRaw }, skipGhPreflight }
+  return { task, inputSource: { raw: inputRaw }, skipGhPreflight, verbose }
 }
 
 function parseJsonInput(raw: string): Record<string, unknown> {
@@ -133,7 +139,7 @@ export async function runCommand(argv: string[] = []): Promise<number> {
     return 1
   }
 
-  const { task, inputSource, skipGhPreflight } = parseRunFlags(argv)
+  const { task, inputSource, skipGhPreflight, verbose } = parseRunFlags(argv)
   const input =
     inputSource === "stdin" ? parseJsonInput(await readStdin()) : parseJsonInput(inputSource.raw)
   const githubToken = resolveGithubToken()
@@ -155,6 +161,7 @@ export async function runCommand(argv: string[] = []): Promise<number> {
     skipGhPreflight,
   })
 
-  process.stdout.write(`${JSON.stringify(result)}\n`)
+  const output = verbose ? result : compactRunResult(result)
+  process.stdout.write(`${JSON.stringify(output, null, verbose ? 2 : undefined)}\n`)
   return 0
 }

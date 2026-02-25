@@ -1,4 +1,4 @@
-import { executeTask } from "@core/core/routing/engine.js"
+import { executeTask } from "@core/core/routing/engine/index.js"
 import type { GithubClient } from "@core/gql/github-client.js"
 import { describe, expect, it, vi } from "vitest"
 

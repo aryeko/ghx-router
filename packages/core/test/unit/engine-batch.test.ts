@@ -30,6 +30,14 @@ function setupMixedChainMocks(cliCard: unknown, gqlCard: unknown): void {
     .mockReturnValue(cliCard as OperationCard)
 }
 
+function mockDocumentRegistry(doc: string): void {
+  const fn = vi.fn().mockReturnValue(doc)
+  vi.doMock("@core/gql/document-registry.js", () => ({
+    getMutationDocument: fn,
+    getDocument: fn,
+  }))
+}
+
 // ===========================================================================
 // Pure batch mutation chain
 // ===========================================================================
@@ -63,13 +71,14 @@ describe("executeTasks chaining — batch mutations", () => {
     vi.doMock("@core/gql/document-registry.js", () => ({
       getLookupDocument: vi.fn(),
       getMutationDocument: getMutationDocumentMock,
+      getDocument: getMutationDocumentMock,
     }))
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchMutation: buildBatchMutationMock,
       buildBatchQuery: vi.fn(),
     }))
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       [
@@ -113,14 +122,9 @@ describe("executeTasks chaining — batch mutations", () => {
     }
     getOperationCardMock.mockReturnValue(cardWithGql)
 
-    vi.doMock("@core/gql/document-registry.js", () => ({
-      getLookupDocument: vi.fn(),
-      getMutationDocument: vi
-        .fn()
-        .mockReturnValue(
-          `mutation IssueCreate($repositoryId: ID!, $title: String!) { createIssue(input: {repositoryId: $repositoryId, title: $title}) { issue { id } } }`,
-        ),
-    }))
+    mockDocumentRegistry(
+      `mutation IssueCreate($repositoryId: ID!, $title: String!) { createIssue(input: {repositoryId: $repositoryId, title: $title}) { issue { id } } }`,
+    )
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchMutation: vi.fn().mockReturnValue({
         document: `mutation BatchComposite { step0: createIssue { issue { id } } }`,
@@ -129,7 +133,7 @@ describe("executeTasks chaining — batch mutations", () => {
       buildBatchQuery: vi.fn(),
     }))
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       [
@@ -219,6 +223,13 @@ describe("executeTasks — mixed resolution chain", () => {
             ? `mutation IssueClose($issueId: ID!) { closeIssue(input: {issueId: $issueId}) { issue { id } } }`
             : `mutation IssueLabelsSet($issueId: ID!, $labelIds: [ID!]!) { updateIssue(input: {id: $issueId, labelIds: $labelIds}) { issue { id } } }`,
         ),
+      getDocument: vi
+        .fn()
+        .mockImplementation((op: string) =>
+          op === "IssueClose"
+            ? `mutation IssueClose($issueId: ID!) { closeIssue(input: {issueId: $issueId}) { issue { id } } }`
+            : `mutation IssueLabelsSet($issueId: ID!, $labelIds: [ID!]!) { updateIssue(input: {id: $issueId, labelIds: $labelIds}) { issue { id } } }`,
+        ),
     }))
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchQuery: buildBatchQueryMock,
@@ -229,7 +240,7 @@ describe("executeTasks — mixed resolution chain", () => {
     }))
     vi.doMock("@core/gql/resolve.js", () => ({
       applyInject: vi.fn().mockReturnValue({ labelIds: ["L1"] }),
-      buildMutationVars: vi
+      buildOperationVars: vi
         .fn()
         .mockImplementation(
           (_doc: string, input: Record<string, unknown>, resolved: Record<string, unknown>) => ({
@@ -239,7 +250,7 @@ describe("executeTasks — mixed resolution chain", () => {
         ),
     }))
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     // Phase 1 uses query (lookup), Phase 2 uses queryRaw (mutation).
     const queryMock = vi.fn().mockResolvedValueOnce({
@@ -336,6 +347,11 @@ describe("executeTasks — resolution cache", () => {
         .mockReturnValue(
           `mutation IssueLabelsSet($issueId: ID!, $labelIds: [ID!]!) { updateIssue(input: {id: $issueId, labelIds: $labelIds}) { issue { id } } }`,
         ),
+      getDocument: vi
+        .fn()
+        .mockReturnValue(
+          `mutation IssueLabelsSet($issueId: ID!, $labelIds: [ID!]!) { updateIssue(input: {id: $issueId, labelIds: $labelIds}) { issue { id } } }`,
+        ),
     }))
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchQuery: buildBatchQueryMock,
@@ -343,7 +359,7 @@ describe("executeTasks — resolution cache", () => {
     }))
     vi.doMock("@core/gql/resolve.js", () => ({
       applyInject: vi.fn().mockReturnValue({ labelIds: ["L1"] }),
-      buildMutationVars: vi
+      buildOperationVars: vi
         .fn()
         .mockImplementation(
           (_doc: string, input: Record<string, unknown>, resolved: Record<string, unknown>) => ({
@@ -353,7 +369,7 @@ describe("executeTasks — resolution cache", () => {
         ),
     }))
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
     const { buildCacheKey, createResolutionCache } = await import(
       "@core/core/routing/resolution-cache.js"
     )
@@ -408,14 +424,9 @@ describe("executeTasks — partial error handling", () => {
     }
     getOperationCardMock.mockReturnValue(cardWithGql)
 
-    vi.doMock("@core/gql/document-registry.js", () => ({
-      getLookupDocument: vi.fn(),
-      getMutationDocument: vi
-        .fn()
-        .mockReturnValue(
-          `mutation IssueCreate($repositoryId: ID!, $title: String!) { createIssue(input: {repositoryId: $repositoryId, title: $title}) { issue { id } } }`,
-        ),
-    }))
+    mockDocumentRegistry(
+      `mutation IssueCreate($repositoryId: ID!, $title: String!) { createIssue(input: {repositoryId: $repositoryId, title: $title}) { issue { id } } }`,
+    )
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchMutation: vi.fn().mockReturnValue({
         document: `mutation Batch { step0: createIssue { issue { id } } step1: createIssue { issue { id } } }`,
@@ -424,7 +435,7 @@ describe("executeTasks — partial error handling", () => {
       buildBatchQuery: vi.fn(),
     }))
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       [
@@ -474,14 +485,9 @@ describe("executeTasks — partial error handling", () => {
     }
     getOperationCardMock.mockReturnValue(cardWithGql)
 
-    vi.doMock("@core/gql/document-registry.js", () => ({
-      getLookupDocument: vi.fn(),
-      getMutationDocument: vi
-        .fn()
-        .mockReturnValue(
-          `mutation IssueCreate($repositoryId: ID!, $title: String!) { createIssue(input: {repositoryId: $repositoryId, title: $title}) { issue { id } } }`,
-        ),
-    }))
+    mockDocumentRegistry(
+      `mutation IssueCreate($repositoryId: ID!, $title: String!) { createIssue(input: {repositoryId: $repositoryId, title: $title}) { issue { id } } }`,
+    )
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchMutation: vi.fn().mockReturnValue({
         document: `mutation Batch { step0: createIssue { issue { id } } step1: createIssue { issue { id } } }`,
@@ -490,7 +496,7 @@ describe("executeTasks — partial error handling", () => {
       buildBatchQuery: vi.fn(),
     }))
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       [
@@ -530,14 +536,9 @@ describe("executeTasks — partial error handling", () => {
     }
     getOperationCardMock.mockReturnValue(cardWithGql)
 
-    vi.doMock("@core/gql/document-registry.js", () => ({
-      getLookupDocument: vi.fn(),
-      getMutationDocument: vi
-        .fn()
-        .mockReturnValue(
-          `mutation IssueCreate($repositoryId: ID!, $title: String!) { createIssue(input: {repositoryId: $repositoryId, title: $title}) { issue { id } } }`,
-        ),
-    }))
+    mockDocumentRegistry(
+      `mutation IssueCreate($repositoryId: ID!, $title: String!) { createIssue(input: {repositoryId: $repositoryId, title: $title}) { issue { id } } }`,
+    )
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchMutation: vi.fn().mockReturnValue({
         document: `mutation Batch { step0: createIssue { issue { id } } step1: createIssue { issue { id } } }`,
@@ -546,7 +547,7 @@ describe("executeTasks — partial error handling", () => {
       buildBatchQuery: vi.fn(),
     }))
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       [
@@ -587,10 +588,7 @@ describe("executeTasks — partial error handling", () => {
     }
     getOperationCardMock.mockReturnValue(card)
 
-    vi.doMock("@core/gql/document-registry.js", () => ({
-      getLookupDocument: vi.fn(),
-      getMutationDocument: vi.fn().mockReturnValue("mutation IssueClose { closeIssue { id } }"),
-    }))
+    mockDocumentRegistry("mutation IssueClose { closeIssue { id } }")
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchMutation: vi.fn().mockReturnValue({
         document: "mutation { step0: closeIssue { id } step1: closeIssue { id } }",
@@ -599,7 +597,7 @@ describe("executeTasks — partial error handling", () => {
       buildBatchQuery: vi.fn(),
     }))
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       [
@@ -636,10 +634,7 @@ describe("executeTasks — partial error handling", () => {
     }
     getOperationCardMock.mockReturnValue(card)
 
-    vi.doMock("@core/gql/document-registry.js", () => ({
-      getLookupDocument: vi.fn(),
-      getMutationDocument: vi.fn().mockReturnValue("mutation IssueClose { closeIssue { id } }"),
-    }))
+    mockDocumentRegistry("mutation IssueClose { closeIssue { id } }")
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchMutation: vi.fn().mockReturnValue({
         document: "mutation { step0: closeIssue { id } step1: closeIssue { id } }",
@@ -648,7 +643,7 @@ describe("executeTasks — partial error handling", () => {
       buildBatchQuery: vi.fn(),
     }))
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       [
@@ -683,14 +678,9 @@ describe("executeTasks — partial error handling", () => {
     }
     getOperationCardMock.mockReturnValue(cardWithGql)
 
-    vi.doMock("@core/gql/document-registry.js", () => ({
-      getLookupDocument: vi.fn(),
-      getMutationDocument: vi
-        .fn()
-        .mockReturnValue(
-          `mutation IssueClose($issueId: ID!) { closeIssue(input: {issueId: $issueId}) { issue { id } } }`,
-        ),
-    }))
+    mockDocumentRegistry(
+      `mutation IssueClose($issueId: ID!) { closeIssue(input: {issueId: $issueId}) { issue { id } } }`,
+    )
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchMutation: vi.fn().mockReturnValue({
         document: `mutation Batch { step0: closeIssue { issue { id } } step1: closeIssue { issue { id } } }`,
@@ -699,7 +689,7 @@ describe("executeTasks — partial error handling", () => {
       buildBatchQuery: vi.fn(),
     }))
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       [
@@ -777,6 +767,13 @@ describe("executeTasks — Phase 1 alias un-wrap regression", () => {
             ? `mutation IssueClose($issueId: ID!) { closeIssue(input: {issueId: $issueId}) { issue { id } } }`
             : `mutation IssueLabelAdd($labelableId: ID!) { addLabelsToLabelable(input: {labelableId: $labelableId}) { labelable { id } } }`,
         ),
+      getDocument: vi
+        .fn()
+        .mockImplementation((op: string) =>
+          op === "IssueClose"
+            ? `mutation IssueClose($issueId: ID!) { closeIssue(input: {issueId: $issueId}) { issue { id } } }`
+            : `mutation IssueLabelAdd($labelableId: ID!) { addLabelsToLabelable(input: {labelableId: $labelableId}) { labelable { id } } }`,
+        ),
     }))
 
     // Restore real batch and resolve implementations
@@ -787,7 +784,7 @@ describe("executeTasks — Phase 1 alias un-wrap regression", () => {
       return await vi.importActual("@core/gql/resolve.js")
     })
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     // Real GitHub response: root field value is returned directly under the alias key.
     // Engine must re-wrap it before applyInject runs.
@@ -849,7 +846,7 @@ describe("executeTasks — CLI chain support", () => {
     getOperationCardMock.mockReturnValue(cliCard)
     executeMock.mockResolvedValue({ ok: true, data: { id: "cli-result" } })
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       [
@@ -879,7 +876,7 @@ describe("executeTasks — CLI chain support", () => {
       error: { code: "UNKNOWN", message: "cli failed", retryable: false },
     })
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       [
@@ -913,14 +910,9 @@ describe("executeTasks — CLI chain support", () => {
 
     executeMock.mockResolvedValue({ ok: true, data: { id: "cli-result" } })
 
-    vi.doMock("@core/gql/document-registry.js", () => ({
-      getLookupDocument: vi.fn(),
-      getMutationDocument: vi
-        .fn()
-        .mockReturnValue(
-          `mutation IssueClose($issueId: ID!) { closeIssue(input: {issueId: $issueId}) { issue { id } } }`,
-        ),
-    }))
+    mockDocumentRegistry(
+      `mutation IssueClose($issueId: ID!) { closeIssue(input: {issueId: $issueId}) { issue { id } } }`,
+    )
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchMutation: vi.fn().mockReturnValue({
         document: `mutation Batch { step1: closeIssue { issue { id } } }`,
@@ -929,7 +921,7 @@ describe("executeTasks — CLI chain support", () => {
       buildBatchQuery: vi.fn(),
     }))
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       [
@@ -976,14 +968,9 @@ describe("executeTasks — CLI chain support", () => {
       error: { code: "UNKNOWN", message: "cli failed", retryable: false },
     })
 
-    vi.doMock("@core/gql/document-registry.js", () => ({
-      getLookupDocument: vi.fn(),
-      getMutationDocument: vi
-        .fn()
-        .mockReturnValue(
-          `mutation IssueClose($issueId: ID!) { closeIssue(input: {issueId: $issueId}) { issue { id } } }`,
-        ),
-    }))
+    mockDocumentRegistry(
+      `mutation IssueClose($issueId: ID!) { closeIssue(input: {issueId: $issueId}) { issue { id } } }`,
+    )
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchMutation: vi.fn().mockReturnValue({
         document: `mutation Batch { step1: closeIssue { issue { id } } }`,
@@ -992,7 +979,7 @@ describe("executeTasks — CLI chain support", () => {
       buildBatchQuery: vi.fn(),
     }))
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       [
@@ -1031,7 +1018,7 @@ describe("executeTasks — CLI chain support", () => {
       meta: { route_used: "cli" as const },
     })
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       [{ task: "issue.list", input: { owner: "acme", name: "modkit" } }],
@@ -1076,6 +1063,7 @@ describe("executeTasks — CLI chain support", () => {
     vi.doMock("@core/gql/document-registry.js", () => ({
       getLookupDocument: vi.fn().mockReturnValue("query RepoLookup { repository { id } }"),
       getMutationDocument: vi.fn(),
+      getDocument: vi.fn(),
     }))
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchQuery: vi
@@ -1084,7 +1072,7 @@ describe("executeTasks — CLI chain support", () => {
       buildBatchMutation: vi.fn(),
     }))
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       [
@@ -1139,6 +1127,7 @@ describe("executeTasks — CLI chain support", () => {
     vi.doMock("@core/gql/document-registry.js", () => ({
       getLookupDocument: vi.fn().mockReturnValue("query RepoLookup { repository { id } }"),
       getMutationDocument: vi.fn(),
+      getDocument: vi.fn(),
     }))
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchQuery: vi
@@ -1147,7 +1136,7 @@ describe("executeTasks — CLI chain support", () => {
       buildBatchMutation: vi.fn(),
     }))
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       [
@@ -1199,6 +1188,7 @@ describe("executeTasks — CLI chain support", () => {
     vi.doMock("@core/gql/document-registry.js", () => ({
       getLookupDocument: vi.fn().mockReturnValue("query RepoLookup { repository { id } }"),
       getMutationDocument: vi.fn(),
+      getDocument: vi.fn(),
     }))
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchQuery: vi
@@ -1208,7 +1198,7 @@ describe("executeTasks — CLI chain support", () => {
       extractRootFieldName: vi.fn().mockReturnValue(null),
     }))
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       [
@@ -1267,6 +1257,7 @@ describe("executeTasks — CLI chain support", () => {
     vi.doMock("@core/gql/document-registry.js", () => ({
       getLookupDocument: vi.fn().mockReturnValue("query RepoLookup { repository { id } }"),
       getMutationDocument: vi.fn(),
+      getDocument: vi.fn(),
     }))
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchQuery: vi
@@ -1276,7 +1267,7 @@ describe("executeTasks — CLI chain support", () => {
       extractRootFieldName: vi.fn().mockReturnValue(null),
     }))
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       [
@@ -1307,7 +1298,7 @@ describe("executeTasks — CLI chain support", () => {
     getOperationCardMock.mockReturnValue(cliCard)
     executeMock.mockRejectedValue(new Error("unexpected internal failure"))
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       [
@@ -1347,14 +1338,9 @@ describe("executeTasks — CLI chain support", () => {
       meta: { capability_id: "issue.list", route_used: "cli" },
     })
 
-    vi.doMock("@core/gql/document-registry.js", () => ({
-      getLookupDocument: vi.fn(),
-      getMutationDocument: vi
-        .fn()
-        .mockReturnValue(
-          `mutation IssueClose($issueId: ID!) { closeIssue(input: {issueId: $issueId}) { issue { id } } }`,
-        ),
-    }))
+    mockDocumentRegistry(
+      `mutation IssueClose($issueId: ID!) { closeIssue(input: {issueId: $issueId}) { issue { id } } }`,
+    )
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchMutation: vi.fn().mockReturnValue({
         document: "mutation Batch { step1: closeIssue { issue { id } } }",
@@ -1363,7 +1349,7 @@ describe("executeTasks — CLI chain support", () => {
       buildBatchQuery: vi.fn(),
     }))
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       [
@@ -1411,7 +1397,7 @@ describe("executeTasks — input validation preflight", () => {
       getOperationCard: vi.fn().mockReturnValue(cardWithSchema),
     }))
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       [
@@ -1454,6 +1440,7 @@ describe("executeTasks — Phase 1 resolution failure", () => {
     vi.doMock("@core/gql/document-registry.js", () => ({
       getLookupDocument: vi.fn().mockReturnValue("query IssueLabelsLookup { node { id } }"),
       getMutationDocument: vi.fn(),
+      getDocument: vi.fn(),
     }))
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchQuery: vi
@@ -1462,7 +1449,7 @@ describe("executeTasks — Phase 1 resolution failure", () => {
       buildBatchMutation: vi.fn(),
     }))
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       [
@@ -1521,6 +1508,7 @@ describe("executeTasks — Phase 2 inject error", () => {
       getMutationDocument: vi
         .fn()
         .mockReturnValue("mutation IssueLabelsSet { updateIssue { id } }"),
+      getDocument: vi.fn().mockReturnValue("mutation IssueLabelsSet { updateIssue { id } }"),
     }))
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchQuery: vi
@@ -1535,10 +1523,10 @@ describe("executeTasks — Phase 2 inject error", () => {
       applyInject: vi.fn().mockImplementation(() => {
         throw new Error("inject path resolution failed")
       }),
-      buildMutationVars: vi.fn(),
+      buildOperationVars: vi.fn(),
     }))
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const queryMock = vi.fn().mockResolvedValueOnce({
       step0: { labels: { nodes: [] } },
@@ -1577,10 +1565,7 @@ describe("executeTasks — Phase 2 null/missing data response", () => {
     }
     getOperationCardMock.mockReturnValue(card)
 
-    vi.doMock("@core/gql/document-registry.js", () => ({
-      getLookupDocument: vi.fn(),
-      getMutationDocument: vi.fn().mockReturnValue("mutation IssueClose { closeIssue { id } }"),
-    }))
+    mockDocumentRegistry("mutation IssueClose { closeIssue { id } }")
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchMutation: vi.fn().mockReturnValue({
         document: "mutation { step0: closeIssue { id } step1: closeIssue { id } }",
@@ -1589,7 +1574,7 @@ describe("executeTasks — Phase 2 null/missing data response", () => {
       buildBatchQuery: vi.fn(),
     }))
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       [
@@ -1651,6 +1636,7 @@ describe("executeTasks — resolution cache population", () => {
       getMutationDocument: vi
         .fn()
         .mockReturnValue("mutation IssueLabelsSet { updateIssue { id } }"),
+      getDocument: vi.fn().mockReturnValue("mutation IssueLabelsSet { updateIssue { id } }"),
     }))
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchQuery: vi.fn().mockReturnValue({
@@ -1665,7 +1651,7 @@ describe("executeTasks — resolution cache population", () => {
     }))
     vi.doMock("@core/gql/resolve.js", () => ({
       applyInject: vi.fn().mockReturnValue({ labelIds: ["L1"] }),
-      buildMutationVars: vi
+      buildOperationVars: vi
         .fn()
         .mockImplementation(
           (_doc: string, input: Record<string, unknown>, resolved: Record<string, unknown>) => ({
@@ -1675,7 +1661,7 @@ describe("executeTasks — resolution cache population", () => {
         ),
     }))
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
     const { createResolutionCache } = await import("@core/core/routing/resolution-cache.js")
 
     const cache = createResolutionCache()
@@ -1708,11 +1694,11 @@ describe("executeTasks — resolution cache population", () => {
 })
 
 // ===========================================================================
-// Phase 2 pre-result error path (buildMutationVars throws for one step)
+// Phase 2 pre-result error path (buildOperationVars throws for one step)
 // ===========================================================================
 
-describe("executeTasks — Phase 2 buildMutationVars error", () => {
-  it("records pre-result error for step where buildMutationVars throws, other step succeeds", async () => {
+describe("executeTasks — Phase 2 buildOperationVars error", () => {
+  it("records pre-result error for step where buildOperationVars throws, other step succeeds", async () => {
     const card = {
       ...baseCard,
       graphql: {
@@ -1722,10 +1708,7 @@ describe("executeTasks — Phase 2 buildMutationVars error", () => {
     }
     getOperationCardMock.mockReturnValue(card)
 
-    vi.doMock("@core/gql/document-registry.js", () => ({
-      getLookupDocument: vi.fn(),
-      getMutationDocument: vi.fn().mockReturnValue("mutation IssueClose { closeIssue { id } }"),
-    }))
+    mockDocumentRegistry("mutation IssueClose { closeIssue { id } }")
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchMutation: vi.fn().mockReturnValue({
         document: "mutation { step1: closeIssue { id } }",
@@ -1735,8 +1718,8 @@ describe("executeTasks — Phase 2 buildMutationVars error", () => {
     }))
     vi.doMock("@core/gql/resolve.js", () => ({
       applyInject: vi.fn(),
-      // buildMutationVars throws for step 0, succeeds for step 1
-      buildMutationVars: vi
+      // buildOperationVars throws for step 0, succeeds for step 1
+      buildOperationVars: vi
         .fn()
         .mockImplementationOnce(() => {
           throw new Error("vars build failed")
@@ -1744,7 +1727,7 @@ describe("executeTasks — Phase 2 buildMutationVars error", () => {
         .mockReturnValueOnce({ issueId: "I2" }),
     }))
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       [
@@ -1761,7 +1744,7 @@ describe("executeTasks — Phase 2 buildMutationVars error", () => {
       },
     )
 
-    // step 0: pre-result error (buildMutationVars threw)
+    // step 0: pre-result error (buildOperationVars threw)
     expect(result.results[0]?.ok).toBe(false)
     expect(result.results[0]?.error?.message).toContain("vars build failed")
     // step 1: mutation alias "step1" found → success
@@ -1769,7 +1752,7 @@ describe("executeTasks — Phase 2 buildMutationVars error", () => {
     expect(result.status).toBe("partial")
   })
 
-  it("records pre-result error from non-Error thrown in buildMutationVars (String path)", async () => {
+  it("records pre-result error from non-Error thrown in buildOperationVars (String path)", async () => {
     // Exercises the `err instanceof Error ? ... : String(err)` false branch at line 617.
     const card = {
       ...baseCard,
@@ -1777,10 +1760,7 @@ describe("executeTasks — Phase 2 buildMutationVars error", () => {
     }
     getOperationCardMock.mockReturnValue(card)
 
-    vi.doMock("@core/gql/document-registry.js", () => ({
-      getLookupDocument: vi.fn(),
-      getMutationDocument: vi.fn().mockReturnValue("mutation IssueClose { closeIssue { id } }"),
-    }))
+    mockDocumentRegistry("mutation IssueClose { closeIssue { id } }")
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchMutation: vi.fn().mockReturnValue({
         document: "mutation { step1: closeIssue { id } }",
@@ -1790,7 +1770,7 @@ describe("executeTasks — Phase 2 buildMutationVars error", () => {
     }))
     vi.doMock("@core/gql/resolve.js", () => ({
       applyInject: vi.fn(),
-      buildMutationVars: vi
+      buildOperationVars: vi
         .fn()
         .mockImplementationOnce(() => {
           throw "non-Error string reason"
@@ -1798,7 +1778,7 @@ describe("executeTasks — Phase 2 buildMutationVars error", () => {
         .mockReturnValueOnce({ issueId: "I2" }),
     }))
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       [
@@ -1839,7 +1819,7 @@ describe("executeTasks — non-Error thrown paths", () => {
         throw "non-Error from getOperationCard"
       }) // step 1: throws non-Error
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       [
@@ -1861,7 +1841,7 @@ describe("executeTasks — non-Error thrown paths", () => {
       .mockReturnValueOnce(cliOnlyCard) // step 0: CLI-only, passes pre-flight
       .mockReturnValueOnce(null) // step 1: no card → pre-flight fails
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       [
@@ -1907,6 +1887,7 @@ describe("executeTasks — non-Error thrown paths", () => {
     vi.doMock("@core/gql/document-registry.js", () => ({
       getLookupDocument: vi.fn().mockReturnValue("query RepoLookup { repository { id } }"),
       getMutationDocument: vi.fn(),
+      getDocument: vi.fn(),
     }))
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchQuery: vi
@@ -1915,7 +1896,7 @@ describe("executeTasks — non-Error thrown paths", () => {
       buildBatchMutation: vi.fn(),
     }))
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       [
@@ -1957,6 +1938,7 @@ describe("executeTasks — non-Error thrown paths", () => {
     vi.doMock("@core/gql/document-registry.js", () => ({
       getLookupDocument: vi.fn().mockReturnValue("query IssueLabelsLookup { node { id } }"),
       getMutationDocument: vi.fn(),
+      getDocument: vi.fn(),
     }))
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchQuery: vi
@@ -1965,7 +1947,7 @@ describe("executeTasks — non-Error thrown paths", () => {
       buildBatchMutation: vi.fn(),
     }))
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     // githubClient.query rejects with a non-Error string → String(err) path + UNKNOWN code
     const result = await executeTasks(
@@ -1995,10 +1977,7 @@ describe("executeTasks — non-Error thrown paths", () => {
     }
     getOperationCardMock.mockReturnValue(card)
 
-    vi.doMock("@core/gql/document-registry.js", () => ({
-      getLookupDocument: vi.fn(),
-      getMutationDocument: vi.fn().mockReturnValue("mutation IssueClose { closeIssue { id } }"),
-    }))
+    mockDocumentRegistry("mutation IssueClose { closeIssue { id } }")
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchMutation: vi.fn().mockReturnValue({
         document: "mutation { step0: closeIssue { id } step1: closeIssue { id } }",
@@ -2007,7 +1986,7 @@ describe("executeTasks — non-Error thrown paths", () => {
       buildBatchQuery: vi.fn(),
     }))
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       [
@@ -2035,10 +2014,7 @@ describe("executeTasks — non-Error thrown paths", () => {
     }
     getOperationCardMock.mockReturnValue(card)
 
-    vi.doMock("@core/gql/document-registry.js", () => ({
-      getLookupDocument: vi.fn(),
-      getMutationDocument: vi.fn().mockReturnValue("mutation IssueClose { closeIssue { id } }"),
-    }))
+    mockDocumentRegistry("mutation IssueClose { closeIssue { id } }")
     vi.doMock("@core/gql/batch.js", () => ({
       buildBatchMutation: vi.fn().mockReturnValue({
         document: "mutation { step0: closeIssue { id } step1: closeIssue { id } }",
@@ -2047,7 +2023,7 @@ describe("executeTasks — non-Error thrown paths", () => {
       buildBatchQuery: vi.fn(),
     }))
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       [
@@ -2085,7 +2061,7 @@ describe("executeTasks — non-Error thrown paths", () => {
     // CLI step rejects with a non-Error string
     executeMock.mockRejectedValue("non-Error Phase 2 rejection")
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     const result = await executeTasks(
       [
@@ -2114,7 +2090,7 @@ describe("executeTasks — invariant guard with undefined request element", () =
     // getOperationCard is called for requests[1] only (requests[0] is undefined → skipped)
     getOperationCardMock.mockReturnValue(cliOnlyCard)
 
-    const { executeTasks } = await import("@core/core/routing/engine.js")
+    const { executeTasks } = await import("@core/core/routing/engine/index.js")
 
     await expect(
       executeTasks(

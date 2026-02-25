@@ -38,6 +38,7 @@ routing:
   fallbacks: []
 graphql:
   operationName: PrDiffListFiles
+  operationType: query
   documentPath: src/gql/operations/pr-diff-list-files.graphql
 cli:
   command: pr view

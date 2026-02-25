@@ -27,6 +27,7 @@ routing:
   fallbacks: [cli]
 graphql:
   operationName: PrAssigneesAdd
+  operationType: mutation
   documentPath: src/gql/operations/pr-assignees-add.graphql
 cli:
   command: pr edit

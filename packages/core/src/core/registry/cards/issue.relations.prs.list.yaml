@@ -31,4 +31,5 @@ routing:
   fallbacks: []
 graphql:
   operationName: IssueLinkedPrsList
+  operationType: query
   documentPath: src/gql/operations/issue-linked-prs-list.graphql

@@ -22,4 +22,5 @@ routing:
   fallbacks: []
 graphql:
   operationName: PrCommentReply
+  operationType: mutation
   documentPath: src/gql/operations/pr-comment-reply.graphql

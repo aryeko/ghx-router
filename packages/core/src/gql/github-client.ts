@@ -16,12 +16,16 @@ import type {
   IssueCreateInput,
   IssueLabelsAddData,
   IssueLabelsAddInput,
+  IssueLabelsRemoveData,
+  IssueLabelsRemoveInput,
   IssueLabelsUpdateData,
   IssueLabelsUpdateInput,
   IssueLinkedPrsListData,
   IssueLinkedPrsListInput,
   IssueListData,
   IssueListInput,
+  IssueMilestoneClearData,
+  IssueMilestoneClearInput,
   IssueMilestoneSetData,
   IssueMilestoneSetInput,
   IssueMutationData,
@@ -102,10 +106,12 @@ export interface GithubClient extends GraphqlClient {
   deleteIssue(input: IssueMutationInput): Promise<IssueMutationData>
   updateIssueLabels(input: IssueLabelsUpdateInput): Promise<IssueLabelsUpdateData>
   addIssueLabels(input: IssueLabelsAddInput): Promise<IssueLabelsAddData>
+  removeIssueLabels(input: IssueLabelsRemoveInput): Promise<IssueLabelsRemoveData>
   updateIssueAssignees(input: IssueAssigneesUpdateInput): Promise<IssueAssigneesUpdateData>
   addIssueAssignees(input: IssueAssigneesAddInput): Promise<IssueAssigneesAddData>
   removeIssueAssignees(input: IssueAssigneesRemoveInput): Promise<IssueAssigneesRemoveData>
   setIssueMilestone(input: IssueMilestoneSetInput): Promise<IssueMilestoneSetData>
+  clearIssueMilestone(input: IssueMilestoneClearInput): Promise<IssueMilestoneClearData>
   createIssueComment(input: IssueCommentCreateInput): Promise<IssueCommentCreateData>
   fetchIssueLinkedPrs(input: IssueLinkedPrsListInput): Promise<IssueLinkedPrsListData>
   fetchIssueRelations(input: IssueRelationsGetInput): Promise<IssueRelationsGetData>
@@ -197,6 +203,8 @@ export function createGithubClient(transport: GraphqlTransport): GithubClient {
       (await loadIssueMutations()).runIssueLabelsUpdate(transport, input),
     addIssueLabels: async (input) =>
       (await loadIssueMutations()).runIssueLabelsAdd(transport, input),
+    removeIssueLabels: async (input) =>
+      (await loadIssueMutations()).runIssueLabelsRemove(transport, input),
     updateIssueAssignees: async (input) =>
       (await loadIssueMutations()).runIssueAssigneesUpdate(transport, input),
     addIssueAssignees: async (input) =>
@@ -205,6 +213,8 @@ export function createGithubClient(transport: GraphqlTransport): GithubClient {
       (await loadIssueMutations()).runIssueAssigneesRemove(transport, input),
     setIssueMilestone: async (input) =>
       (await loadIssueMutations()).runIssueMilestoneSet(transport, input),
+    clearIssueMilestone: async (input) =>
+      (await loadIssueMutations()).runIssueMilestoneClear(transport, input),
     createIssueComment: async (input) =>
       (await loadIssueMutations()).runIssueCommentCreate(transport, input),
     fetchIssueLinkedPrs: async (input) =>

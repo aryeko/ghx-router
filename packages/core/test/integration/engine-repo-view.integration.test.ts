@@ -1,6 +1,6 @@
 import type { TaskRequest } from "@core/core/contracts/task.js"
 import { capabilityRegistry } from "@core/core/routing/capability-registry.js"
-import { executeTask } from "@core/core/routing/engine.js"
+import { executeTask } from "@core/core/routing/engine/index.js"
 import { createGithubClient } from "@core/gql/github-client.js"
 import { describe, expect, it } from "vitest"
 

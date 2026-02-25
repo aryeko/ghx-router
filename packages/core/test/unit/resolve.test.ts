@@ -1,5 +1,5 @@
 import type { InjectSpec } from "@core/core/registry/types.js"
-import { applyInject, buildMutationVars } from "@core/gql/resolve.js"
+import { applyInject, buildOperationVars } from "@core/gql/resolve.js"
 import { describe, expect, it } from "vitest"
 
 describe("applyInject", () => {
@@ -137,12 +137,12 @@ describe("applyInject", () => {
   })
 })
 
-describe("buildMutationVars", () => {
+describe("buildOperationVars", () => {
   it("passes through vars matching mutation variable names", () => {
     const mutDoc = `mutation IssueClose($issueId: ID!) { closeIssue(input: {issueId: $issueId}) { issue { id } } }`
     const input = { issueId: "I_123", extraField: "ignored" }
     const resolved: Record<string, unknown> = {}
-    const vars = buildMutationVars(mutDoc, input, resolved)
+    const vars = buildOperationVars(mutDoc, input, resolved)
     expect(vars).toEqual({ issueId: "I_123" })
   })
 
@@ -150,7 +150,7 @@ describe("buildMutationVars", () => {
     const mutDoc = `mutation IssueLabelsUpdate($issueId: ID!, $labelIds: [ID!]!) { updateIssue(input: {id: $issueId, labelIds: $labelIds}) { issue { id } } }`
     const input = { issueId: "I_123", labels: ["bug"] }
     const resolved = { labelIds: ["L_1"] }
-    const vars = buildMutationVars(mutDoc, input, resolved)
+    const vars = buildOperationVars(mutDoc, input, resolved)
     expect(vars).toEqual({ issueId: "I_123", labelIds: ["L_1"] })
   })
 })

@@ -8,9 +8,11 @@ import type {
   IssueCommentsListInput,
   IssueCreateInput,
   IssueLabelsAddInput,
+  IssueLabelsRemoveInput,
   IssueLabelsUpdateInput,
   IssueLinkedPrsListInput,
   IssueListInput,
+  IssueMilestoneClearInput,
   IssueMilestoneSetInput,
   IssueMutationInput,
   IssueParentRemoveInput,
@@ -144,6 +146,15 @@ const handlers = new Map<string, GraphqlHandler>([
     },
   ],
   [
+    "issue.labels.remove",
+    (c, p) => {
+      if (!c.removeIssueLabels) {
+        throw new Error("removeIssueLabels operation not available")
+      }
+      return c.removeIssueLabels(p as IssueLabelsRemoveInput)
+    },
+  ],
+  [
     "issue.assignees.set",
     (c, p) => {
       if (!c.updateIssueAssignees) {
@@ -177,6 +188,15 @@ const handlers = new Map<string, GraphqlHandler>([
         throw new Error("setIssueMilestone operation not available")
       }
       return c.setIssueMilestone(p as IssueMilestoneSetInput)
+    },
+  ],
+  [
+    "issue.milestone.clear",
+    (c, p) => {
+      if (!c.clearIssueMilestone) {
+        throw new Error("clearIssueMilestone operation not available")
+      }
+      return c.clearIssueMilestone(p as IssueMilestoneClearInput)
     },
   ],
   [

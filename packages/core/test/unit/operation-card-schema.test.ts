@@ -16,6 +16,7 @@ describe("operationCardSchema resolution", () => {
       routing: { preferred: "graphql", fallbacks: [] },
       graphql: {
         operationName: "IssueMilestoneSet",
+        operationType: "mutation",
         documentPath: "src/gql/operations/issue-milestone-set.graphql",
         resolution: {
           lookup: {
@@ -42,6 +43,7 @@ describe("operationCardSchema resolution", () => {
       routing: { preferred: "graphql", fallbacks: [] },
       graphql: {
         operationName: "IssueLabelsUpdate",
+        operationType: "mutation",
         documentPath: "src/gql/operations/issue-labels-update.graphql",
         resolution: {
           lookup: {

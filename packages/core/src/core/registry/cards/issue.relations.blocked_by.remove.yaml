@@ -21,4 +21,5 @@ routing:
   fallbacks: []
 graphql:
   operationName: IssueBlockedByRemove
+  operationType: mutation
   documentPath: src/gql/operations/issue-blocked-by-remove.graphql

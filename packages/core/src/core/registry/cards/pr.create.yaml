@@ -28,6 +28,7 @@ routing:
   fallbacks: [cli]
 graphql:
   operationName: PrCreate
+  operationType: mutation
   documentPath: src/gql/operations/pr-create.graphql
 cli:
   command: pr create

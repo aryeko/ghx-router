@@ -21,6 +21,7 @@ routing:
   fallbacks: [cli]
 graphql:
   operationName: PrBranchUpdate
+  operationType: mutation
   documentPath: src/gql/operations/pr-branch-update.graphql
 cli:
   command: pr update-branch

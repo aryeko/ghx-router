@@ -26,6 +26,7 @@ routing:
   fallbacks: []
 graphql:
   operationName: IssueLabelsUpdate
+  operationType: mutation
   documentPath: src/gql/operations/issue-labels-update.graphql
   resolution:
     lookup:

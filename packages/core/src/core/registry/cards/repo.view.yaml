@@ -26,6 +26,7 @@ routing:
   fallbacks: [cli]
 graphql:
   operationName: RepoView
+  operationType: query
   documentPath: src/gql/operations/repo-view.graphql
 cli:
   command: repo view
