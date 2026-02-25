@@ -332,7 +332,13 @@ const handlers = new Map<string, GraphqlHandler>([
   [
     "pr.merge",
     (c, p) => {
-      const raw = p as { owner: string; name: string; prNumber: number; method?: string }
+      const raw = p as {
+        owner: string
+        name: string
+        prNumber: number
+        method?: string
+        deleteBranch?: boolean
+      }
       const methodMap: Record<string, string> = {
         merge: "MERGE",
         squash: "SQUASH",
@@ -345,7 +351,13 @@ const handlers = new Map<string, GraphqlHandler>([
           `Unsupported merge method "${raw.method}" for pr.merge. Expected one of: merge, squash, rebase.`,
         )
       }
-      return c.mergePr({ owner: raw.owner, name: raw.name, prNumber: raw.prNumber, mergeMethod })
+      return c.mergePr({
+        owner: raw.owner,
+        name: raw.name,
+        prNumber: raw.prNumber,
+        mergeMethod,
+        ...(raw.deleteBranch !== undefined ? { deleteBranch: raw.deleteBranch } : {}),
+      })
     },
   ],
   ["pr.branch.update", (c, p) => c.updatePrBranch(p as PrBranchUpdateInput)],

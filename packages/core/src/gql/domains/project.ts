@@ -188,10 +188,12 @@ export async function runProjectV2ItemsList(
   // Tries org lookup first; falls back to user lookup if the owner is not an org.
   // This costs an extra network round-trip when the owner is a user account.
 
+  const first = input.first ?? 100
+
   const orgResult = await getProjectV2ItemsListOrgSdk(client).ProjectV2ItemsListOrg({
     owner: input.owner,
     projectNumber: input.projectNumber,
-    first: input.first,
+    first,
     ...(input.after !== undefined ? { after: input.after } : {}),
   })
 
@@ -201,7 +203,7 @@ export async function runProjectV2ItemsList(
     const userResult = await getProjectV2ItemsListUserSdk(client).ProjectV2ItemsListUser({
       owner: input.owner,
       projectNumber: input.projectNumber,
-      first: input.first,
+      first,
       ...(input.after !== undefined ? { after: input.after } : {}),
     })
     conn = userResult.user?.projectV2?.items

@@ -432,7 +432,7 @@ describe("runProjectV2OrgView — null field mapping", () => {
     expect(result.title).toBeNull()
   })
 
-  it("converts url via String() when url is not a string", async () => {
+  it("passes url through as a string when url is a string", async () => {
     const execute = vi.fn().mockResolvedValue({
       organization: {
         projectV2: {
@@ -441,7 +441,7 @@ describe("runProjectV2OrgView — null field mapping", () => {
           shortDescription: null,
           public: true,
           closed: false,
-          url: { href: "https://example.com" },
+          url: "https://example.com",
         },
       },
     })
@@ -449,7 +449,7 @@ describe("runProjectV2OrgView — null field mapping", () => {
 
     const result = await runProjectV2OrgView(transport, orgViewInput)
 
-    expect(typeof result.url).toBe("string")
+    expect(result.url).toBe("https://example.com")
   })
 })
 

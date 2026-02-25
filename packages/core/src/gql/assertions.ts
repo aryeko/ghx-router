@@ -362,14 +362,32 @@ export function assertPrUpdateInput(input: PrUpdateInput): void {
   if (input.title === undefined && input.body === undefined && input.draft === undefined) {
     throw new Error("At least one of title, body, or draft must be provided")
   }
+  assertOptionalString(input.title, "PR title")
+  assertOptionalString(input.body, "PR body")
+  if (input.draft !== undefined && typeof input.draft !== "boolean") {
+    throw new Error("draft must be a boolean")
+  }
 }
+
+const VALID_MERGE_METHODS = new Set(["MERGE", "SQUASH", "REBASE"])
+const VALID_BRANCH_UPDATE_METHODS = new Set(["MERGE", "REBASE"])
 
 export function assertPrMergeInput(input: PrMergeInput): void {
   assertPrInput({ owner: input.owner, name: input.name, prNumber: input.prNumber })
+  if (input.mergeMethod !== undefined && !VALID_MERGE_METHODS.has(input.mergeMethod)) {
+    throw new Error(
+      `mergeMethod "${input.mergeMethod}" is invalid. Expected one of: MERGE, SQUASH, REBASE`,
+    )
+  }
 }
 
 export function assertPrBranchUpdateInput(input: PrBranchUpdateInput): void {
   assertPrInput({ owner: input.owner, name: input.name, prNumber: input.prNumber })
+  if (input.updateMethod !== undefined && !VALID_BRANCH_UPDATE_METHODS.has(input.updateMethod)) {
+    throw new Error(
+      `updateMethod "${input.updateMethod}" is invalid. Expected one of: MERGE, REBASE`,
+    )
+  }
 }
 
 export function assertPrAssigneesInput(input: PrAssigneesAddInput | PrAssigneesRemoveInput): void {

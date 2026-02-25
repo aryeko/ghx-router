@@ -6,8 +6,11 @@ import {
   assertIssueUpdateInput,
   assertNonEmptyString,
   assertOptionalString,
+  assertPrBranchUpdateInput,
   assertPrCommentsListInput,
+  assertPrMergeInput,
   assertProjectInput,
+  assertPrUpdateInput,
   assertReleaseViewInput,
   assertReplyToReviewThreadInput,
   assertReviewThreadInput,
@@ -372,5 +375,107 @@ describe("assertPrCommentsListInput", () => {
     expect(() =>
       assertPrCommentsListInput({ ...base, after: null as unknown as string }),
     ).not.toThrow()
+  })
+})
+
+// --- assertPrUpdateInput ---
+
+describe("assertPrUpdateInput", () => {
+  const base = { owner: "org", name: "repo", prNumber: 1 }
+
+  it("throws when no fields are provided", () => {
+    expect(() => assertPrUpdateInput(base)).toThrow(
+      "At least one of title, body, or draft must be provided",
+    )
+  })
+
+  it("throws when title is a non-string", () => {
+    expect(() => assertPrUpdateInput({ ...base, title: 42 as unknown as string })).toThrow(
+      "PR title must be a string",
+    )
+  })
+
+  it("throws when body is a non-string", () => {
+    expect(() => assertPrUpdateInput({ ...base, body: true as unknown as string })).toThrow(
+      "PR body must be a string",
+    )
+  })
+
+  it("throws when draft is a non-boolean", () => {
+    expect(() => assertPrUpdateInput({ ...base, draft: "yes" as unknown as boolean })).toThrow(
+      "draft must be a boolean",
+    )
+  })
+
+  it("does not throw with valid title string", () => {
+    expect(() => assertPrUpdateInput({ ...base, title: "New title" })).not.toThrow()
+  })
+
+  it("does not throw with valid draft boolean", () => {
+    expect(() => assertPrUpdateInput({ ...base, draft: false })).not.toThrow()
+  })
+})
+
+// --- assertPrMergeInput ---
+
+describe("assertPrMergeInput", () => {
+  const base = { owner: "org", name: "repo", prNumber: 1 }
+
+  it("does not throw when mergeMethod is omitted", () => {
+    expect(() => assertPrMergeInput(base)).not.toThrow()
+  })
+
+  it("does not throw when mergeMethod is MERGE", () => {
+    expect(() => assertPrMergeInput({ ...base, mergeMethod: "MERGE" })).not.toThrow()
+  })
+
+  it("does not throw when mergeMethod is SQUASH", () => {
+    expect(() => assertPrMergeInput({ ...base, mergeMethod: "SQUASH" })).not.toThrow()
+  })
+
+  it("does not throw when mergeMethod is REBASE", () => {
+    expect(() => assertPrMergeInput({ ...base, mergeMethod: "REBASE" })).not.toThrow()
+  })
+
+  it("throws when mergeMethod is an unsupported value", () => {
+    expect(() => assertPrMergeInput({ ...base, mergeMethod: "fast-forward" })).toThrow(
+      'mergeMethod "fast-forward" is invalid. Expected one of: MERGE, SQUASH, REBASE',
+    )
+  })
+
+  it("throws when mergeMethod is lowercase", () => {
+    expect(() => assertPrMergeInput({ ...base, mergeMethod: "merge" })).toThrow(
+      'mergeMethod "merge" is invalid',
+    )
+  })
+})
+
+// --- assertPrBranchUpdateInput ---
+
+describe("assertPrBranchUpdateInput", () => {
+  const base = { owner: "org", name: "repo", prNumber: 1 }
+
+  it("does not throw when updateMethod is omitted", () => {
+    expect(() => assertPrBranchUpdateInput(base)).not.toThrow()
+  })
+
+  it("does not throw when updateMethod is MERGE", () => {
+    expect(() => assertPrBranchUpdateInput({ ...base, updateMethod: "MERGE" })).not.toThrow()
+  })
+
+  it("does not throw when updateMethod is REBASE", () => {
+    expect(() => assertPrBranchUpdateInput({ ...base, updateMethod: "REBASE" })).not.toThrow()
+  })
+
+  it("throws when updateMethod is SQUASH (not supported for branch update)", () => {
+    expect(() => assertPrBranchUpdateInput({ ...base, updateMethod: "SQUASH" })).toThrow(
+      'updateMethod "SQUASH" is invalid. Expected one of: MERGE, REBASE',
+    )
+  })
+
+  it("throws when updateMethod is an unsupported value", () => {
+    expect(() => assertPrBranchUpdateInput({ ...base, updateMethod: "cherry-pick" })).toThrow(
+      'updateMethod "cherry-pick" is invalid',
+    )
   })
 })
