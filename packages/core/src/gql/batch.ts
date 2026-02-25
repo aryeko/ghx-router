@@ -181,9 +181,15 @@ export function buildBatchQuery(operations: BatchQueryInput[]): BatchQueryResult
   const allVarDeclarations: string[] = []
   const allSelections: string[] = []
   const mergedVariables: GraphqlVariables = {}
+  const allFragments = new Map<string, string>()
 
   for (const op of operations) {
     const parsed = parseOperation(op.query)
+
+    // Collect unique fragment definitions
+    for (const [name, text] of parsed.fragments) {
+      if (!allFragments.has(name)) allFragments.set(name, text)
+    }
 
     for (const varDecl of parsed.variableDeclarations) {
       allVarDeclarations.push(`$${op.alias}_${varDecl.name}: ${varDecl.type}`)
@@ -209,7 +215,8 @@ export function buildBatchQuery(operations: BatchQueryInput[]): BatchQueryResult
   }
 
   const varList = allVarDeclarations.length > 0 ? `(${allVarDeclarations.join(", ")})` : ""
-  const document = `query BatchChain${varList} {\n${allSelections.join("\n")}\n}`
+  const fragmentBlock = allFragments.size > 0 ? "\n" + [...allFragments.values()].join("\n") : ""
+  const document = `query BatchChain${varList} {\n${allSelections.join("\n")}\n}${fragmentBlock}`
 
   return { document, variables: mergedVariables }
 }
