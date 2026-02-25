@@ -147,6 +147,71 @@ describe("capabilities CLI commands", () => {
     )
   })
 
+  describe("--compact flag", () => {
+    it("outputs id(inputs) without description", async () => {
+      const writes: string[] = []
+      vi.spyOn(process.stdout, "write").mockImplementation((s) => {
+        writes.push(String(s))
+        return true
+      })
+      await capabilitiesListCommand(["--compact", "--domain", "issue"])
+      const out = writes.join("")
+      expect(out).toContain("issue.view(owner,name,issueNumber)")
+      expect(out).not.toContain("Fetch one issue")
+    })
+
+    it("appends [replaces all] to .set capabilities that have an .add sibling", async () => {
+      const writes: string[] = []
+      vi.spyOn(process.stdout, "write").mockImplementation((s) => {
+        writes.push(String(s))
+        return true
+      })
+      await capabilitiesListCommand(["--compact", "--domain", "issue"])
+      const out = writes.join("")
+      expect(out).toContain("issue.labels.set(owner,name,issueNumber,labels) [replaces all]")
+      expect(out).toContain("issue.labels.add(owner,name,issueNumber,labels)")
+      expect(out).not.toContain("issue.labels.add(owner,name,issueNumber,labels) [replaces all]")
+    })
+
+    it("does not append [replaces all] to .set capabilities without an .add sibling", async () => {
+      const writes: string[] = []
+      vi.spyOn(process.stdout, "write").mockImplementation((s) => {
+        writes.push(String(s))
+        return true
+      })
+      await capabilitiesListCommand(["--compact", "--domain", "issue"])
+      const out = writes.join("")
+      expect(out).toContain("issue.milestone.set(")
+      expect(out).not.toContain(
+        "issue.milestone.set(owner,name,issueNumber,milestoneNumber) [replaces all]",
+      )
+    })
+
+    it("works with --domain filter", async () => {
+      const writes: string[] = []
+      vi.spyOn(process.stdout, "write").mockImplementation((s) => {
+        writes.push(String(s))
+        return true
+      })
+      await capabilitiesListCommand(["--compact", "--domain", "repo"])
+      const out = writes.join("")
+      expect(out).not.toContain("issue.")
+      expect(out).toContain("repo.")
+    })
+
+    it("works without --domain (all capabilities)", async () => {
+      const writes: string[] = []
+      vi.spyOn(process.stdout, "write").mockImplementation((s) => {
+        writes.push(String(s))
+        return true
+      })
+      await capabilitiesListCommand(["--compact"])
+      const out = writes.join("")
+      expect(out).toContain("issue.")
+      expect(out).toContain("pr.")
+    })
+  })
+
   it("returns error for unknown domain", async () => {
     const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true)
 
