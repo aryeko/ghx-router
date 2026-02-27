@@ -132,6 +132,12 @@ pnpm --filter @ghx-dev/eval run eval run \
 
 ### `eval analyze`
 
+Runs the analyzer pipeline on exported session traces without generating
+reports. Use case: run heavy analyzers (strategy classification, LLM-judge
+scoring) post-hoc after a suite completes. This is useful when analysis is
+too expensive to run inline during the evaluation loop, or when you want to
+re-analyze existing traces with updated analyzer configurations.
+
 ```
 eval analyze [options]
 
@@ -142,6 +148,12 @@ Options:
 ```
 
 ### `eval report`
+
+Generates the full evaluation report from results data. If exported session
+traces are available in the run directory, `eval report` can optionally
+include analysis results (from a prior `eval analyze` run or by running
+analyzers inline). Without traces, the report covers metrics and scoring
+only.
 
 ```
 eval report [options]

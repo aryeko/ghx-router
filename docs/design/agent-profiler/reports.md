@@ -164,6 +164,20 @@ Extensions are included as additional columns with their namespaced keys.
 Aggregate statistics and comparison results. Machine-readable version of
 the summary and comparison pages.
 
+The top-level object includes a `version` field:
+
+```json
+{
+  "version": 1,
+  "runId": "run-20260227-120000",
+  "...": "..."
+}
+```
+
+`"version": 1` is the initial schema version. Bumps to this field indicate
+breaking changes to the summary.json structure. Consumers should check this
+field before parsing to ensure compatibility.
+
 ---
 
 ## Report Generation Flow

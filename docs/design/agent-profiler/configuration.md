@@ -171,3 +171,35 @@ sequentially within a mode to avoid resource conflicts.
 The profiler does not know about "models" -- that is a consumer concept. If
 the consumer wants multi-model support, they invoke `runProfileSuite()`
 multiple times with different provider configurations.
+
+---
+
+## Warmup
+
+Before the real iteration loop begins, the runner executes the first scenario
+once in a throwaway iteration. This serves two purposes:
+
+1. **Prime caches** -- provider connections, model warm-up, and any lazy
+   initialization complete before timing starts.
+2. **Verify connectivity** -- if the provider or agent is misconfigured, the
+   warmup fails fast with a clear error before committing to the full matrix.
+
+The warmup row is discarded from results and does not appear in reports.
+
+**Configuration:**
+
+```yaml
+execution:
+  warmup: true   # default
+```
+
+**CLI override:**
+
+```
+--skip-warmup    # skip warmup canary (useful for rapid iteration)
+```
+
+When `warmup: false` or `--skip-warmup` is set, the runner proceeds directly
+to the first real iteration. This is useful during development but not
+recommended for final benchmarking runs, as the first iteration may show
+inflated latency due to cold-start effects.

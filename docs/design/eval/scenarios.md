@@ -69,6 +69,36 @@ type CheckpointCondition =
 
 ---
 
+## Boundary Crossing
+
+`EvalScenario` is the consumer-side type defined in `@ghx-dev/eval`. It extends
+`BaseScenario` structurally (TypeScript assignability) -- an `EvalScenario`
+value is assignable to `BaseScenario` because it has all required base fields
+plus additional ones. The profiler receives scenarios typed as `BaseScenario`
+and passes them through its pipeline unchanged.
+
+Consumer-side components (scorer, collector, hooks) access ghx-specific fields
+via type narrowing:
+
+```typescript
+// In the eval scorer
+const scenario = ctx.scenario as EvalScenario
+const checkpoints = scenario.assertions.checkpoints
+```
+
+The `extensions` field on `BaseScenario` exists for ad-hoc pass-through data
+but is not the primary mechanism for carrying domain fields. `EvalScenario`
+declares its fields (`fixture`, `assertions`, `category`, `difficulty`) as
+first-class properties. These survive the `BaseScenario` typing because
+TypeScript's structural type system preserves extra properties at runtime --
+the profiler simply does not access them, and the consumer narrows back to
+`EvalScenario` when it needs them.
+
+See also: [agent-profiler/scenarios.md](../agent-profiler/scenarios.md) for the
+`BaseScenario` definition and the consumer extension pattern.
+
+---
+
 ## Example Scenarios
 
 ### Scenario 1: Fix PR with Mixed Review Threads
@@ -138,7 +168,7 @@ type CheckpointCondition =
 
 ```json
 {
-  "id": "pr-review-comment-wf-001",
+  "id": "pr-review-comment-001",
   "name": "Review and Comment on PR",
   "description": "Agent must review a PR diff, identify issues, and leave a constructive review comment.",
   "category": "pr",
@@ -206,9 +236,9 @@ Named groups for common evaluation runs:
 
 ```json
 {
-  "default": ["pr-fix-mixed-threads-wf-001", "pr-review-comment-wf-001"],
-  "pr-only": ["pr-fix-mixed-threads-wf-001", "pr-review-comment-wf-001"],
-  "full": ["pr-fix-mixed-threads-wf-001", "pr-review-comment-wf-001"]
+  "default": ["pr-fix-mixed-threads-wf-001", "pr-review-comment-001"],
+  "pr-only": ["pr-fix-mixed-threads-wf-001", "pr-review-comment-001"],
+  "full": ["pr-fix-mixed-threads-wf-001", "pr-review-comment-001"]
 }
 ```
 
@@ -219,7 +249,7 @@ Named groups for common evaluation runs:
 Scenarios are validated at load time:
 
 1. **Schema validation** -- all required fields present, correct types (Zod)
-2. **ID format** -- must match `^[a-z0-9]+(?:-[a-z0-9]+)*-wf-\d{3}$`
+2. **ID format** -- must match `^[a-z0-9]+(?:-[a-z0-9]+)*-\d{3}$`
 3. **Checkpoint task validity** -- each checkpoint's `task` must be a valid
    ghx capability ID (validated against `listCapabilities()`)
 4. **Template completeness** -- all `{{variables}}` in the prompt have
@@ -248,6 +278,9 @@ async function loadEvalScenarios(
 }
 ```
 
-The loader stores ghx-specific fields (fixture, assertions) in the
-`extensions` field of `BaseScenario` so they pass through the profiler and
-are accessible to the scorer, collector, and hooks via type narrowing.
+The loader returns `EvalScenario[]` which the profiler accepts as
+`BaseScenario[]` (structural subtyping). The ghx-specific fields (`fixture`,
+`assertions`, `category`, `difficulty`) are first-class properties on the
+object -- they pass through the profiler unchanged and are accessible to the
+scorer, collector, and hooks via type narrowing (`as EvalScenario`). See the
+"Boundary Crossing" section above for details.

@@ -147,9 +147,25 @@ to its original state before each iteration:
 beforeScenario hook (if reseedPerIteration)
     |
     +-- Force-push original branch state (revert agent's commits)
+    |     +-- Retry up to 3 attempts, 1s apart on transient failure
+    |     +-- Poll ref endpoint to verify force-push took effect
     +-- Delete any extra comments/reviews the agent added
+    |     +-- Batch GraphQL mutations for comment cleanup (stay within rate limits)
     +-- Verify fixture is back to original state
 ```
+
+**Retry and verification details:**
+
+- **Force-push retry:** The reset performs up to 3 attempts with 1-second
+  delays between retries. Transient network errors and GitHub 5xx responses
+  trigger a retry; 4xx errors (other than 409 conflict) fail immediately.
+- **Verification polling:** After a successful force-push, the reset polls
+  the Git ref API (up to 5 polls, 500ms apart) to confirm the branch HEAD
+  matches the expected original SHA. This guards against eventual-consistency
+  delays in GitHub's ref cache.
+- **Comment cleanup batching:** Extra comments and reviews are deleted via
+  batched GraphQL mutations (up to 10 deletions per request) to stay within
+  GitHub's rate limits and minimize reset latency.
 
 ### Cleanup
 
@@ -223,3 +239,31 @@ Options:
   --seed-id <id>           Seed identifier for labeling (default: "default")
   --all                    (cleanup) Discover and remove all bench-fixture resources
 ```
+
+---
+
+## Performance Considerations
+
+Fixture resets are the primary overhead in multi-iteration evaluation runs.
+Each reset involves a force-push, verification polling, and comment cleanup,
+taking approximately 3 seconds per reset.
+
+**Overhead calculation:**
+
+For a typical run with 5 repetitions across 3 modes (`ghx`, `mcp`,
+`baseline`), each scenario with `reseedPerIteration: true` requires 15 resets
+(5 reps x 3 modes). At ~3s per reset, that is ~45 seconds of fixture overhead
+per scenario, independent of agent execution time.
+
+```
+Scenario with reseedPerIteration: true
+  3 modes x 5 reps = 15 resets
+  15 resets x ~3s = ~45s overhead per scenario
+```
+
+**Timing telemetry:**
+
+Reset duration is logged in `ProfileRow.extensions` as
+`eval.fixture_reset_ms`. This allows post-hoc analysis of fixture overhead
+versus agent execution time. The value is recorded per iteration and included
+in JSONL output for reporting.

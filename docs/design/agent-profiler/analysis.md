@@ -28,10 +28,11 @@ SessionTrace (from provider.exportSession)
        v       v        v        v         v
   Reasoning  Tool     Error   Efficiency  Strategy
   Analyzer   Pattern  Analyzer Analyzer   Analyzer
+  (Tier 1)   (Tier 1) (Tier 1) (Tier 1)  (Tier 2)
        |       |        |        |         |
        v       v        v        v         v
   +--------------------------------------------------+
-  |            AnalysisResult (per analyzer)          |
+  |      await AnalysisResult (per analyzer)         |
   +--------------------------------------------------+
        |
        v
@@ -252,6 +253,36 @@ Output:
 ```
 
 This comparison table is the centerpiece of the analysis report page.
+
+---
+
+## Analyzer Tiers
+
+Analyzers are organized into two tiers based on cost and execution context:
+
+### Tier 1 -- Inline (Deterministic)
+
+Tier 1 analyzers run during the profile suite, immediately after each session
+trace is exported. They are deterministic -- no LLM calls, pure trace
+inspection. Results are included in the report automatically.
+
+**Built-in Tier 1 analyzers:** reasoning, tool-pattern, error, efficiency.
+
+### Tier 2 -- Post-hoc (Heavy)
+
+Tier 2 analyzers run separately via the `eval analyze` CLI on exported session
+traces. They may involve LLM calls (e.g., strategy comparison, LLM-as-judge)
+and are therefore slower and non-deterministic.
+
+**Built-in Tier 2 analyzers:** strategy.
+
+Running Tier 2 analyzers is optional. The main suite completes without them,
+keeping profiling fast and reproducible. Consumers run `eval analyze` as a
+follow-up step when deeper qualitative analysis is needed.
+
+All analyzers implement the same `Analyzer` interface with an async
+`analyze()` method (see [contracts.md](./contracts.md)). The tier distinction
+is a runner concern, not a contract difference.
 
 ---
 

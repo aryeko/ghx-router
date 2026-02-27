@@ -117,6 +117,12 @@ interface ProfileRow {
   readonly runId: string
   readonly scenarioId: string
   readonly mode: string
+  /**
+   * Opaque label for grouping and reporting. The profiler does not iterate
+   * over models or select providers based on this value -- it is passed
+   * through from the consumer's provider configuration and stored here so
+   * that reports can group and compare results by model.
+   */
   readonly model: string
   readonly iteration: number
 

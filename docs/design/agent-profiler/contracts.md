@@ -28,7 +28,12 @@ interface SessionProvider {
   /** Create a new isolated session for one profiling iteration */
   createSession(params: CreateSessionParams): Promise<SessionHandle>
 
-  /** Send a prompt and wait for the agent to complete its turn */
+  /**
+   * Send a prompt and wait for the agent to complete its turn.
+   * Note: v1 assumes single-turn (one prompt per session). The contract
+   * supports calling prompt() multiple times on the same handle for future
+   * multi-turn scenarios, but the runner does not orchestrate this today.
+   */
   prompt(
     handle: SessionHandle,
     text: string,
@@ -226,11 +231,15 @@ interface Collector {
   /** Unique identifier for this collector */
   readonly id: string
 
-  /** Extract custom metrics from a prompt result */
+  /**
+   * Extract custom metrics from a prompt result.
+   * `trace` is available when `sessionExport: true` in config, null otherwise.
+   */
   collect(
     result: PromptResult,
     scenario: BaseScenario,
     mode: string,
+    trace: SessionTrace | null,
   ): Promise<readonly CustomMetric[]>
 }
 
@@ -259,12 +268,12 @@ interface Analyzer {
   /** Unique identifier (e.g., "reasoning", "tool-patterns") */
   readonly name: string
 
-  /** Analyze a single session trace */
+  /** Analyze a single session trace (async to support Tier 2 LLM-based analyzers) */
   analyze(
     trace: SessionTrace,
     scenario: BaseScenario,
     mode: string,
-  ): AnalysisResult
+  ): Promise<AnalysisResult>
 }
 
 interface AnalysisResult {
@@ -303,7 +312,11 @@ interface ModeConfig {
   readonly environment: Readonly<Record<string, string>>
   /** System instructions specific to this mode */
   readonly systemInstructions: string
-  /** Additional provider config overrides */
+  /**
+   * Opaque config passed to SessionProvider. The provider and resolver
+   * must agree on the shape -- the profiler passes it through without
+   * inspection or validation.
+   */
   readonly providerOverrides: Readonly<Record<string, unknown>>
 }
 ```

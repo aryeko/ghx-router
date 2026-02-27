@@ -278,3 +278,60 @@ For each (mode, model) group:
     |
     +-- provider.shutdown() (or keep alive for next model with same mode)
 ```
+
+---
+
+## Testing Strategy
+
+The trace builder is the highest-priority testing target in the OpenCode
+provider. It converts provider-specific message formats into the profiler's
+generic `TraceEvent[]` stream, and incorrect conversion silently corrupts all
+downstream analysis.
+
+### Trace Builder Testing
+
+**Fixture-based approach:**
+
+Capture 5-10 real OpenCode sessions as JSON fixtures covering representative
+scenarios:
+
+1. **Simple single-turn** -- one prompt, one response, no tool calls
+2. **Multi-tool session** -- multiple tool calls in sequence
+3. **Split reasoning blocks** -- reasoning that spans multiple message parts
+   (OpenCode sometimes splits long reasoning into consecutive `reasoning`
+   parts)
+4. **Tool errors mid-stream** -- a tool call that returns an error, followed
+   by agent recovery
+5. **Reasoning vs text_output boundaries** -- consecutive `reasoning` and
+   `text` parts where the boundary must be preserved (not merged)
+6. **Empty/minimal responses** -- edge case where the agent produces no text
+   output
+7. **Session with timeout** -- agent hits the timeout before completion
+8. **Multi-turn conversation** -- multiple prompt/response cycles in one
+   session
+
+**Test structure:**
+
+```typescript
+// test/unit/trace-builder.test.ts
+describe("TraceBuilder", () => {
+  for (const fixture of loadFixtures("opencode-sessions")) {
+    it(`normalizes ${fixture.name}`, () => {
+      const events = builder.normalize(fixture.rawTrace)
+      expect(events).toMatchSnapshot()
+      // Also verify structural invariants:
+      // - Every tool_call has a matching tool_result
+      // - Turn boundaries are correctly placed
+      // - Token counts are non-negative
+    })
+  }
+
+  it("handles split reasoning blocks", () => { /* ... */ })
+  it("handles tool errors mid-stream", () => { /* ... */ })
+  it("preserves reasoning vs text_output boundaries", () => { /* ... */ })
+})
+```
+
+Fixtures are stored as JSON files in `test/fixtures/opencode-sessions/` and
+committed to the repository. When the OpenCode message format changes, update
+the fixtures and re-validate snapshots.

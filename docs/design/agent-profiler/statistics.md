@@ -115,6 +115,13 @@ function bootstrapReductionCI(
 **Pairing is critical.** Each iteration index is paired across modes for the
 same scenario, reducing variance from fixture/timing noise.
 
+**Justification:** Each resample draws n paired indices with replacement and
+computes the median within that resample. This is the standard bootstrap
+distribution of the median ratio -- valid for non-normal data. Unlike
+parametric confidence intervals (which assume normality), the bootstrap makes
+no distributional assumptions, making it appropriate for the skewed, heavy-
+tailed latency and token distributions typical in agent profiling.
+
 ---
 
 ## Effect Size (Cohen's d)
@@ -150,6 +157,17 @@ pooled_stddev = sqrt(((n_A - 1) * var(A) + (n_B - 1) * var(B)) / (n_A + n_B - 2)
 | 0.2 - 0.5 | small | Noticeable but minor |
 | 0.5 - 0.8 | medium | Meaningful difference |
 | > 0.8 | large | Substantial difference |
+
+### Limitations
+
+Cohen's d is mean-based and assumes roughly symmetric distributions. For
+skewed data (common in latency measurements), d may overstate or understate
+the practical difference because the mean is pulled by outliers. When the
+reporter detects high skew (CV > 0.5), it annotates d values with a warning.
+
+A future improvement is to add Cliff's delta as a non-parametric alternative.
+Cliff's delta operates on ranks rather than means, making it robust to
+skewness and outliers. It ranges from -1 to +1 and does not assume normality.
 
 ---
 

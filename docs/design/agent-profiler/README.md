@@ -87,7 +87,9 @@ different gap:
 ### Goals
 
 1. **Generic agent profiling** -- profile any AI agent session, not tied to a
-   specific provider, model, or use case.
+   specific provider or use case. The profiler does not iterate over models or
+   select providers based on model -- it stores the model label on ProfileRow
+   for grouping and reporting but never interprets it.
 2. **Plugin architecture** -- every integration point (provider, scorer,
    collector, analyzer) is a pluggable interface.
 3. **Statistical rigor** -- p50/p90/p95, IQR, CV, bootstrap confidence
@@ -205,6 +207,29 @@ packages/agent-profiler/
 6. Report folder written to disk
 ```
 
+### Single-Turn Assumption
+
+Each iteration sends one prompt and waits for completion. Multi-turn scenarios
+(multiple user messages in one session) are not supported in v1. If needed
+later, `prompt()` can be called multiple times on the same session handle --
+the contract already supports this, but the runner does not orchestrate it.
+
+### Error Handling
+
+If `prompt()` throws, the runner records a failed ProfileRow with
+`success: false` and the `error` field populated. The runner retries up to
+`allowedRetries` (configurable, default 0). If all retries fail, the failed
+row is persisted to the result store -- it is never silently skipped. Failed
+rows are included in statistics (as data points) and flagged in reports.
+
+### Warmup
+
+Before the real iteration loop begins, the runner executes the first scenario
+once in a throwaway iteration to prime caches (provider connection, model
+warm-up) and verify connectivity. The warmup row is discarded from results.
+The `--skip-warmup` flag (or `execution.warmup: false` in config) skips this
+step. Warmup is recommended for consistent timing in the first real iteration.
+
 ---
 
 ## Plugin Architecture
@@ -292,12 +317,26 @@ use a `segments: Array<{ label, start_ms, end_ms }>` model.
 ### 4. Built-in Analyzers, Extensible Pipeline
 
 **Decision:** Ship five built-in analyzers (reasoning, tool patterns, errors,
-efficiency, strategy) but allow consumers to add more.
+efficiency, strategy) but allow consumers to add more. Analyzers are organized
+into two tiers based on cost and latency.
+
+**Analyzer Tiers:**
+
+| Tier | Name | Analyzers | When They Run |
+|------|------|-----------|---------------|
+| Tier 1 | Inline (deterministic) | reasoning, tool-pattern, error, efficiency | During suite execution -- no LLM calls, pure trace inspection |
+| Tier 2 | Post-hoc (heavy) | strategy, LLM-judge (future) | After suite via `eval analyze` CLI on exported traces -- may involve LLM calls |
+
+Tier 1 analyzers run automatically during the suite and their results are
+included in the report. Tier 2 analyzers are optional and run separately on
+exported session traces, keeping the main suite fast and deterministic.
 
 **Rationale:**
 - The five built-in analyzers cover universal agent behaviors.
 - Consumers may want domain-specific analysis (e.g., "did the agent use the
   optimal ghx capability?") -- the analyzer interface supports this.
+- Tiering keeps the main suite fast while allowing heavy analysis as a
+  separate step.
 
 ### 5. Statistical Rigor by Default
 

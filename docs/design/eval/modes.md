@@ -194,3 +194,9 @@ For model M:
 Modes run sequentially to reuse the provider server. The server is
 reconfigured between modes (environment, instructions, MCP config) but not
 restarted unless reconfiguration requires it.
+
+> **Note:** `mcp` mode requires that `mcpServers` is present in
+> `providerOverrides` returned by the `ModeResolver`. The `OpenCodeProvider`
+> reads `providerOverrides.mcpServers` and passes it to the OpenCode server
+> configuration. If `mcpServers` is missing or empty for `mcp` mode, the
+> provider will throw a configuration error at init time.

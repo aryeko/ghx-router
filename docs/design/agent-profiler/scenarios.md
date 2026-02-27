@@ -144,3 +144,18 @@ This allows consumers to:
 
 The runner calls the loader once at startup, then iterates over the returned
 scenarios.
+
+---
+
+## Cross-Package Note: Eval Scenarios
+
+The `@ghx-dev/eval` package defines `EvalScenario`, which extends
+`BaseScenario` structurally (TypeScript assignability). `EvalScenario` adds
+ghx-specific fields (`fixture`, `assertions`, `category`, `difficulty`) as
+first-class properties. These fields pass through the profiler unchanged at
+runtime because TypeScript's structural typing preserves extra properties --
+the profiler does not access them, and consumer components narrow back to
+`EvalScenario` when needed.
+
+For full details on how `EvalScenario` relates to `BaseScenario`, see the
+"Boundary Crossing" section in [eval/scenarios.md](../eval/scenarios.md).
