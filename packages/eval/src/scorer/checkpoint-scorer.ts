@@ -6,6 +6,7 @@ import type {
   ScorerContext,
   ScorerResult,
 } from "@ghx-dev/agent-profiler"
+import type { GithubClient } from "@ghx-dev/core"
 import { createGithubClientFromToken, executeTask } from "@ghx-dev/core"
 
 /**
@@ -38,9 +39,10 @@ export class CheckpointScorer implements Scorer {
     const evalScenario = scenario as unknown as EvalScenario
     const checkpoints = evalScenario.assertions.checkpoints
     const details: ScorerCheckResult[] = []
+    const githubClient = createGithubClientFromToken(this.githubToken)
 
     for (const cp of checkpoints) {
-      const checkResult = await this.evaluateCheckpoint(cp)
+      const checkResult = await this.evaluateCheckpoint(cp, githubClient)
       details.push(checkResult)
     }
 
@@ -55,9 +57,11 @@ export class CheckpointScorer implements Scorer {
     }
   }
 
-  private async evaluateCheckpoint(cp: Checkpoint): Promise<ScorerCheckResult> {
+  private async evaluateCheckpoint(
+    cp: Checkpoint,
+    githubClient: GithubClient,
+  ): Promise<ScorerCheckResult> {
     try {
-      const githubClient = createGithubClientFromToken(this.githubToken)
       const result = await executeTask(
         {
           task: cp.task,

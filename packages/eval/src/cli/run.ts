@@ -26,7 +26,7 @@ function applyFlagOverrides(config: EvalConfig, argv: readonly string[]): EvalCo
 
   const modes = parseFlagAll(argv, "--mode")
   if (modes.length > 0) {
-    result = { ...result, modes: [...modes] }
+    result = { ...result, modes: modes as EvalConfig["modes"] }
   }
 
   const scenarioIds = parseFlagAll(argv, "--scenario")
@@ -103,7 +103,7 @@ async function resolveScenarioIds(
 export async function run(argv: readonly string[]): Promise<void> {
   const configPath = parseFlag(argv, "--config") ?? "eval.config.yaml"
   const yamlContent = await readFile(configPath, "utf-8")
-  const rawConfig = loadEvalConfig(yamlContent as string)
+  const rawConfig = loadEvalConfig(yamlContent)
   const config = applyFlagOverrides(rawConfig, argv)
 
   const scenariosDir = join(process.cwd(), "scenarios")

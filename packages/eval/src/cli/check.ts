@@ -8,7 +8,7 @@ import { parseFlag } from "./parse-flags.js"
 async function checkConfig(configPath: string): Promise<boolean> {
   try {
     const content = await readFile(configPath, "utf-8")
-    const raw = parseYaml(content as string) as unknown
+    const raw = parseYaml(content) as unknown
     EvalConfigSchema.parse(raw)
     console.log(`  ✓ ${configPath}`)
     return true
@@ -35,7 +35,7 @@ async function checkScenarios(scenariosDir: string): Promise<boolean> {
     const filePath = join(scenariosDir, file)
     try {
       const content = await readFile(filePath, "utf-8")
-      const raw = JSON.parse(content as string) as unknown
+      const raw = JSON.parse(content) as unknown
       EvalScenarioSchema.parse(raw)
       console.log(`  ✓ ${file}`)
     } catch (error) {
@@ -62,7 +62,7 @@ export async function check(argv: readonly string[]): Promise<void> {
 
   if (hasConfig || hasAll) {
     const configPathValue = parseFlag(argv, "--config")
-    const configPath = configPathValue !== null ? configPathValue : "config/eval.config.yaml"
+    const configPath = configPathValue !== null ? configPathValue : "eval.config.yaml"
     console.log("Checking config:")
     const valid = await checkConfig(configPath)
     if (!valid) allValid = false

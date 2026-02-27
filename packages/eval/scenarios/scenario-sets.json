@@ -1,5 +1,5 @@
 {
-  "default": ["pr-fix-mixed-threads-wf-001", "pr-review-comment-001"],
+  "default": ["pr-fix-mixed-threads-wf-001"],
   "pr-only": ["pr-fix-mixed-threads-wf-001", "pr-review-comment-001"],
   "full": ["pr-fix-mixed-threads-wf-001", "pr-review-comment-001"]
 }

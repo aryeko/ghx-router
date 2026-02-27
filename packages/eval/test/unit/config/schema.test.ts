@@ -47,6 +47,17 @@ describe("EvalConfigSchema", () => {
     expect(() => EvalConfigSchema.parse({ modes: [], models: [{ id: "x", label: "x" }] })).toThrow()
   })
 
+  it("accepts valid mode values", () => {
+    const result = EvalConfigSchema.parse({ modes: ["ghx"], models: [{ id: "x", label: "x" }] })
+    expect(result.modes).toEqual(["ghx"])
+  })
+
+  it("rejects unknown mode values", () => {
+    expect(() =>
+      EvalConfigSchema.parse({ modes: ["unknown-mode"], models: [{ id: "x", label: "x" }] }),
+    ).toThrow()
+  })
+
   it("rejects config with no models", () => {
     expect(() => EvalConfigSchema.parse({ modes: ["ghx"], models: [] })).toThrow()
   })

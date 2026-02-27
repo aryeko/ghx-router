@@ -47,7 +47,8 @@ export class EvalModeResolver implements ModeResolver {
                 command: "npx",
                 args: ["-y", "@modelcontextprotocol/server-github"],
                 env: {
-                  GITHUB_PERSONAL_ACCESS_TOKEN: process.env["GH_TOKEN"] ?? "",
+                  GITHUB_PERSONAL_ACCESS_TOKEN:
+                    process.env["GH_TOKEN"] ?? process.env["GITHUB_TOKEN"] ?? "",
                 },
               },
             ],

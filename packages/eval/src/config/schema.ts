@@ -76,7 +76,7 @@ const FixturesSchema = FixturesBaseSchema.default(FixturesBaseSchema.parse({}))
  */
 export const EvalConfigSchema = z.object({
   /** Ordered list of evaluation modes to run, e.g. `["ghx", "mcp", "baseline"]`. */
-  modes: z.array(z.string()).min(1),
+  modes: z.array(z.enum(["ghx", "mcp", "baseline"])).min(1),
   /** Scenario selection: run a named set or a specific list of IDs. */
   scenarios: ScenariosSchema,
   /** Execution parameters: repetitions, warm-up, and per-prompt timeout. */
