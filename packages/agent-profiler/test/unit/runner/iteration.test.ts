@@ -199,6 +199,19 @@ describe("runIteration", () => {
     expect(provider.calls.exportSession?.length ?? 0).toBe(1)
   })
 
+  it("enforces timeout when provider.prompt hangs", async () => {
+    const provider = createMockProvider()
+    provider.prompt = () => new Promise<never>(() => {}) // never resolves
+    const scenario = makeScenario({ timeoutMs: 50 })
+    const params = makeParams({ provider, scenario, allowedRetries: 0 })
+
+    const { row } = await runIteration(params)
+
+    expect(row.success).toBe(false)
+    expect(row.error).toContain("timed out")
+    expect(provider.calls.destroySession?.length ?? 0).toBeGreaterThanOrEqual(1)
+  })
+
   it("returns empty analysisResults on error", async () => {
     const provider = createMockProvider()
     provider.prompt = async () => {

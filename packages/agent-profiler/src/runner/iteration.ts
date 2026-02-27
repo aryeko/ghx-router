@@ -3,6 +3,7 @@ import type { Collector } from "../contracts/collector.js"
 import type { RunHooks } from "../contracts/hooks.js"
 import type { PromptResult, SessionProvider } from "../contracts/provider.js"
 import type { Scorer, ScorerResult } from "../contracts/scorer.js"
+import { DEFAULT_TIMEOUT_MS } from "../shared/constants.js"
 import type { Logger } from "../shared/logger.js"
 import type { CustomMetric, ToolCallRecord } from "../types/metrics.js"
 import type { CheckpointResult, ProfileRow } from "../types/profile-row.js"
@@ -154,7 +155,19 @@ export async function runIteration(params: IterationParams): Promise<{
           scenarioId: scenario.id,
           iteration,
         })
-        promptResult = await provider.prompt(handle, scenario.prompt, scenario.timeoutMs)
+        const timeoutMs = scenario.timeoutMs ?? DEFAULT_TIMEOUT_MS
+        let timer: ReturnType<typeof setTimeout> | undefined
+        promptResult = await Promise.race([
+          provider.prompt(handle, scenario.prompt, timeoutMs),
+          new Promise<never>((_, reject) => {
+            timer = setTimeout(
+              () => reject(new Error(`Prompt timed out after ${timeoutMs}ms`)),
+              timeoutMs,
+            )
+          }),
+        ]).finally(() => {
+          if (timer) clearTimeout(timer)
+        })
         break
       } catch (err) {
         lastError = err instanceof Error ? err.message : String(err)

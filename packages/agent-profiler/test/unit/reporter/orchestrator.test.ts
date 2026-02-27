@@ -5,7 +5,16 @@ vi.mock("node:fs/promises", () => ({
   writeFile: vi.fn().mockResolvedValue(undefined),
 }))
 
+vi.mock("@profiler/reporter/metrics-page.js", async (importOriginal) => {
+  const original = await importOriginal<typeof import("@profiler/reporter/metrics-page.js")>()
+  return {
+    ...original,
+    generateMetricsPage: vi.fn(original.generateMetricsPage),
+  }
+})
+
 import { mkdir, writeFile } from "node:fs/promises"
+import { generateMetricsPage } from "@profiler/reporter/metrics-page.js"
 import { generateReport } from "@profiler/reporter/orchestrator.js"
 import { makeProfileRow } from "./_make-profile-row.js"
 
@@ -73,6 +82,36 @@ describe("generateReport", () => {
     const writeFileMock = vi.mocked(writeFile)
     // 4 pages + 0 scenario pages + 3 data files = 7
     expect(writeFileMock.mock.calls.length).toBe(7)
+  })
+
+  it("continues generating other pages when one page generator throws", async () => {
+    vi.mocked(generateMetricsPage).mockImplementation(() => {
+      throw new Error("metrics kaboom")
+    })
+
+    const logger = { warn: vi.fn() }
+    const rows = [makeProfileRow()]
+    const result = await generateReport({
+      runId: "run_1",
+      rows,
+      reportsDir: "/tmp/reports",
+      logger,
+    })
+
+    expect(result).toBeDefined()
+
+    // logger.warn should have been called with the error
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("metrics kaboom"))
+
+    // Other pages should still be written (all except metrics.md)
+    const writeFileMock = vi.mocked(writeFile)
+    const writtenPaths = writeFileMock.mock.calls.map((c) => String(c[0]))
+
+    expect(writtenPaths.some((p) => p.endsWith("index.md"))).toBe(true)
+    expect(writtenPaths.some((p) => p.endsWith("comparison.md"))).toBe(true)
+    expect(writtenPaths.some((p) => p.endsWith("results.csv"))).toBe(true)
+    // metrics.md should NOT have been written since the generator threw
+    expect(writtenPaths.some((p) => p.endsWith("metrics.md"))).toBe(false)
   })
 
   it("passes analysis results to analysis page", async () => {
