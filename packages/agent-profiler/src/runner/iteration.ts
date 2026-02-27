@@ -1,0 +1,196 @@
+import type { Collector } from "../contracts/collector.js"
+import type { RunHooks } from "../contracts/hooks.js"
+import type { PromptResult, SessionProvider } from "../contracts/provider.js"
+import type { Scorer, ScorerResult } from "../contracts/scorer.js"
+import type { Logger } from "../shared/logger.js"
+import type { CustomMetric, ToolCallRecord } from "../types/metrics.js"
+import type { CheckpointResult, ProfileRow } from "../types/profile-row.js"
+import type { BaseScenario } from "../types/scenario.js"
+import type { SessionTrace } from "../types/trace.js"
+
+export interface IterationParams {
+  readonly provider: SessionProvider
+  readonly scorer: Scorer
+  readonly collectors: readonly Collector[]
+  readonly hooks: RunHooks
+  readonly scenario: BaseScenario
+  readonly mode: string
+  readonly model: string
+  readonly iteration: number
+  readonly runId: string
+  readonly systemInstructions: string
+  readonly sessionExport: boolean
+  readonly logger: Logger
+}
+
+function buildToolCallStats(records: readonly ToolCallRecord[]): ProfileRow["toolCalls"] {
+  const total = records.length
+  const failed = records.filter((r) => !r.success).length
+  const byCategory: Record<string, number> = {}
+  for (const record of records) {
+    byCategory[record.category] = (byCategory[record.category] ?? 0) + 1
+  }
+  return {
+    total,
+    byCategory,
+    failed,
+    retried: 0,
+    errorRate: total > 0 ? failed / total : 0,
+    records,
+  }
+}
+
+function mapCheckpoints(details: ScorerResult["details"]): readonly CheckpointResult[] {
+  return details.map((d) => ({
+    id: d.id,
+    description: d.description,
+    passed: d.passed,
+    ...(d.actual !== undefined ? { actual: d.actual } : {}),
+    ...(d.expected !== undefined ? { expected: d.expected } : {}),
+  }))
+}
+
+function buildExtensions(metrics: readonly CustomMetric[]): Readonly<Record<string, unknown>> {
+  const extensions: Record<string, unknown> = {}
+  for (const m of metrics) {
+    extensions[m.name] = m.value
+  }
+  return extensions
+}
+
+function makeFailedRow(params: IterationParams, startedAt: string, error: string): ProfileRow {
+  return {
+    runId: params.runId,
+    scenarioId: params.scenario.id,
+    mode: params.mode,
+    model: params.model,
+    iteration: params.iteration,
+    startedAt,
+    completedAt: new Date().toISOString(),
+    tokens: { input: 0, output: 0, reasoning: 0, cacheRead: 0, cacheWrite: 0, total: 0, active: 0 },
+    timing: { wallMs: 0, segments: [] },
+    toolCalls: { total: 0, byCategory: {}, failed: 0, retried: 0, errorRate: 0, records: [] },
+    cost: { totalUsd: 0, inputUsd: 0, outputUsd: 0, reasoningUsd: 0 },
+    success: false,
+    checkpointsPassed: 0,
+    checkpointsTotal: 0,
+    checkpointDetails: [],
+    outputValid: false,
+    provider: params.provider.id,
+    sessionId: "",
+    agentTurns: 0,
+    completionReason: "error",
+    extensions: {},
+    error,
+  }
+}
+
+export async function runIteration(params: IterationParams): Promise<{
+  readonly row: ProfileRow
+  readonly trace: SessionTrace | null
+}> {
+  const {
+    provider,
+    scorer,
+    collectors,
+    hooks,
+    scenario,
+    mode,
+    model,
+    iteration,
+    runId,
+    systemInstructions,
+    sessionExport,
+    logger,
+  } = params
+
+  const startedAt = new Date().toISOString()
+
+  if (hooks.beforeScenario) {
+    await hooks.beforeScenario({ scenario, mode, model, iteration })
+  }
+
+  let handle = null as Awaited<ReturnType<SessionProvider["createSession"]>> | null
+  try {
+    handle = await provider.createSession({
+      systemInstructions,
+      scenarioId: scenario.id,
+      iteration,
+    })
+
+    const result: PromptResult = await provider.prompt(handle, scenario.prompt, scenario.timeoutMs)
+
+    let trace: SessionTrace | null = null
+    if (sessionExport) {
+      trace = await provider.exportSession(handle)
+    }
+
+    const allMetrics: CustomMetric[] = []
+    for (const collector of collectors) {
+      const metrics = await collector.collect(result, scenario, mode, trace)
+      allMetrics.push(...metrics)
+    }
+
+    const scorerResult: ScorerResult = await scorer.evaluate(scenario, {
+      agentOutput: result.text,
+      trace,
+      mode,
+      model,
+      iteration,
+      metadata: {},
+    })
+
+    const agentTurns = trace ? trace.summary.totalTurns : 1
+
+    const row: ProfileRow = {
+      runId,
+      scenarioId: scenario.id,
+      mode,
+      model,
+      iteration,
+      startedAt,
+      completedAt: new Date().toISOString(),
+      tokens: result.metrics.tokens,
+      timing: result.metrics.timing,
+      toolCalls: buildToolCallStats(result.metrics.toolCalls),
+      cost: result.metrics.cost,
+      success: scorerResult.success,
+      checkpointsPassed: scorerResult.passed,
+      checkpointsTotal: scorerResult.total,
+      checkpointDetails: mapCheckpoints(scorerResult.details),
+      outputValid: scorerResult.outputValid,
+      provider: provider.id,
+      sessionId: handle.sessionId,
+      agentTurns,
+      completionReason: result.completionReason,
+      extensions: buildExtensions(allMetrics),
+    }
+
+    if (hooks.afterScenario) {
+      await hooks.afterScenario({ scenario, mode, model, iteration, result: row, trace })
+    }
+
+    return { row, trace }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    logger.error(`Iteration ${iteration} failed: ${message}`)
+    const failedRow = makeFailedRow(params, startedAt, message)
+
+    if (hooks.afterScenario) {
+      await hooks.afterScenario({
+        scenario,
+        mode,
+        model,
+        iteration,
+        result: failedRow,
+        trace: null,
+      })
+    }
+
+    return { row: failedRow, trace: null }
+  } finally {
+    if (handle) {
+      await provider.destroySession(handle)
+    }
+  }
+}
