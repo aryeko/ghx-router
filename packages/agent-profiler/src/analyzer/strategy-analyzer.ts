@@ -81,6 +81,14 @@ function describePhases(events: readonly TraceEvent[]): readonly string[] {
   return phases
 }
 
+/**
+ * Analyzer that classifies the agent's high-level problem-solving strategy.
+ *
+ * Derives a strategy label ("direct", "iterative", or "exploratory") based on
+ * tool diversity and reasoning density, then describes the sequence of reasoning
+ * and tool-execution phases and notes potential optimality concerns such as high
+ * error rate, redundant calls, or strong reasoning usage.
+ */
 export const strategyAnalyzer: Analyzer = {
   name: "strategy",
 

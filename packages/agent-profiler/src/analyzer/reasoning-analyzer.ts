@@ -24,6 +24,13 @@ function determinePlanningQuality(events: readonly TraceEvent[]): string {
   return "mixed"
 }
 
+/**
+ * Analyzer that measures the agent's use of extended reasoning.
+ *
+ * Computes reasoning density (reasoning tokens / total tokens), reasoning tokens
+ * per tool call, planning quality classification, key decision snippets, and
+ * confusion signal detection based on keyword matching in reasoning blocks.
+ */
 export const reasoningAnalyzer: Analyzer = {
   name: "reasoning",
 

@@ -10,6 +10,13 @@ import {
   DEFAULT_WARMUP,
 } from "../shared/constants.js"
 
+/**
+ * Zod schema for validating and parsing the profiler configuration file.
+ *
+ * Supports snake_case keys from YAML (pre-processed to camelCase before parsing).
+ * All execution and output fields have defaults so only `modes` and `scenarios`
+ * are strictly required.
+ */
 export const ProfilerConfigSchema = z.object({
   modes: z.array(z.string()).min(1),
   scenarios: z.object({
@@ -35,4 +42,5 @@ export const ProfilerConfigSchema = z.object({
   extensions: z.record(z.unknown()).default({}),
 })
 
+/** TypeScript type inferred from ProfilerConfigSchema. */
 export type ProfilerConfig = z.infer<typeof ProfilerConfigSchema>

@@ -12,31 +12,62 @@ import type { SessionAnalysisBundle } from "../types/trace.js"
 import { runIteration } from "./iteration.js"
 import { runWarmup } from "./warmup.js"
 
+/** Options for configuring and executing a full profiling suite. */
 export interface ProfileSuiteOptions {
+  /** Ordered list of execution mode names to profile. */
   readonly modes: readonly string[]
+  /** Scenarios to execute in each mode. */
   readonly scenarios: readonly BaseScenario[]
+  /** Number of times each scenario is repeated per mode. */
   readonly repetitions: number
+  /** Maximum number of retry attempts allowed per iteration on failure. */
   readonly allowedRetries: number
+  /** Provider implementation that manages agent sessions. */
   readonly provider: SessionProvider
+  /** Scorer implementation that evaluates agent output. */
   readonly scorer: Scorer
+  /** Resolver that maps mode names to their full configurations. */
   readonly modeResolver: ModeResolver
+  /** Collectors that extract additional metrics from each completed iteration. */
   readonly collectors: readonly Collector[]
+  /** Analyzers that produce structured findings from session traces. */
   readonly analyzers: readonly Analyzer[]
+  /** Lifecycle hooks invoked at suite, mode, and iteration boundaries. */
   readonly hooks: RunHooks
+  /** When true, a warmup canary iteration is executed before the main suite. */
   readonly warmup: boolean
+  /** When true, the full session trace is exported after each iteration. */
   readonly sessionExport: boolean
+  /** Absolute path to the JSONL file where profile rows are appended. */
   readonly outputJsonlPath: string
+  /** Minimum severity level for log output during the suite run. */
   readonly logLevel: "debug" | "info" | "warn" | "error"
 }
 
+/** Summary result returned after a complete profiling suite has finished. */
 export interface ProfileSuiteResult {
+  /** Unique identifier assigned to this profiling run. */
   readonly runId: string
+  /** All profile rows collected across every mode, scenario, and repetition. */
   readonly rows: readonly ProfileRow[]
+  /** Total elapsed wall-clock time for the suite in milliseconds. */
   readonly durationMs: number
+  /** Absolute path to the JSONL file where rows were written. */
   readonly outputJsonlPath: string
+  /** Analysis bundles produced for sessions where analyzers were configured. */
   readonly analysisResults: readonly SessionAnalysisBundle[]
 }
 
+/**
+ * Execute a full profiling suite across all configured modes and scenarios.
+ *
+ * Runs each scenario for every mode the specified number of repetitions, collecting
+ * metrics, running analyzers, and writing results to the output JSONL path. A warmup
+ * canary iteration is performed first when `options.warmup` is true.
+ *
+ * @param options - Suite configuration including scenarios, modes, provider, and output paths.
+ * @returns A result object containing all profile rows and aggregated analysis bundles.
+ */
 export async function runProfileSuite(options: ProfileSuiteOptions): Promise<ProfileSuiteResult> {
   const {
     modes,

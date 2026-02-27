@@ -4,9 +4,24 @@ import type { CustomMetric } from "../types/metrics.js"
 import type { BaseScenario } from "../types/scenario.js"
 import type { SessionTrace } from "../types/trace.js"
 
+/**
+ * Collector that extracts tool call statistics from a prompt result.
+ *
+ * Emits total count, failed count, error rate, unique tool count, and
+ * per-category counts (alphabetically sorted, named `tool_calls_category_<name>`).
+ */
 export class ToolCallCollector implements Collector {
+  /** Unique identifier for this collector. */
   readonly id = "tool_calls"
 
+  /**
+   * Extract tool call metrics from a completed prompt result.
+   * @param result - The prompt result containing tool call records.
+   * @param _scenario - Unused; present to satisfy the Collector interface.
+   * @param _mode - Unused; present to satisfy the Collector interface.
+   * @param _trace - Unused; present to satisfy the Collector interface.
+   * @returns An array of CustomMetric entries for tool call aggregates and per-category counts.
+   */
   async collect(
     result: PromptResult,
     _scenario: BaseScenario,

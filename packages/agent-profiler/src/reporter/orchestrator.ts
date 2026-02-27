@@ -10,13 +10,34 @@ import { generateMetricsPage } from "./metrics-page.js"
 import { generateScenarioPage } from "./scenario-page.js"
 import { generateSummaryPage } from "./summary-page.js"
 
+/** Options for generating a full profiler report from completed run data. */
 export interface ReportOptions {
+  /** Unique identifier of the profiling run being reported. */
   readonly runId: string
+  /** All profile rows collected during the run. */
   readonly rows: readonly ProfileRow[]
+  /** Absolute path to the directory where report files will be written. */
   readonly reportsDir: string
+  /** Optional analysis bundles to include in the analysis page. */
   readonly analysisResults?: readonly SessionAnalysisBundle[]
 }
 
+/**
+ * Generate a complete multi-page Markdown report and data exports for a profiling run.
+ *
+ * Creates a timestamped subdirectory under `options.reportsDir` containing:
+ * - `index.md` — summary page
+ * - `metrics.md` — per-metric statistics
+ * - `analysis.md` — analyzer findings
+ * - `comparison.md` — cross-mode comparison tables
+ * - `scenarios/<id>.md` — per-scenario detail pages
+ * - `data/results.csv` — raw CSV export
+ * - `data/results.json` — raw JSON export
+ * - `data/summary.json` — aggregated summary JSON
+ *
+ * @param options - Report configuration including run ID, rows, and output paths.
+ * @returns The absolute path to the generated report directory.
+ */
 export async function generateReport(options: ReportOptions): Promise<string> {
   const { runId, rows, reportsDir, analysisResults } = options
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-")

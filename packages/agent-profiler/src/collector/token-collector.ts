@@ -4,9 +4,24 @@ import type { CustomMetric } from "../types/metrics.js"
 import type { BaseScenario } from "../types/scenario.js"
 import type { SessionTrace } from "../types/trace.js"
 
+/**
+ * Collector that extracts per-category token counts from a prompt result.
+ *
+ * Emits metrics for input, output, reasoning, cache-read, cache-write, total,
+ * and active tokens, all with the unit "tokens".
+ */
 export class TokenCollector implements Collector {
+  /** Unique identifier for this collector. */
   readonly id = "token"
 
+  /**
+   * Extract token usage metrics from a completed prompt result.
+   * @param result - The prompt result containing token breakdown data.
+   * @param _scenario - Unused; present to satisfy the Collector interface.
+   * @param _mode - Unused; present to satisfy the Collector interface.
+   * @param _trace - Unused; present to satisfy the Collector interface.
+   * @returns An array of CustomMetric entries for each token category.
+   */
   async collect(
     result: PromptResult,
     _scenario: BaseScenario,

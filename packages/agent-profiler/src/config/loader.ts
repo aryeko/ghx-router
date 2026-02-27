@@ -20,6 +20,16 @@ function preprocessKeys(obj: unknown): unknown {
   return obj
 }
 
+/**
+ * Load and validate a profiler configuration from a YAML file.
+ *
+ * Snake_case keys in the YAML are automatically converted to camelCase before
+ * schema validation. Throws a Zod validation error if the file content does not
+ * conform to ProfilerConfigSchema.
+ *
+ * @param yamlPath - Absolute path to the YAML configuration file.
+ * @returns The validated and fully defaulted ProfilerConfig.
+ */
 export async function loadConfig(yamlPath: string): Promise<ProfilerConfig> {
   const content = await readFile(yamlPath, "utf-8")
   const raw = yaml.load(content)
@@ -27,6 +37,10 @@ export async function loadConfig(yamlPath: string): Promise<ProfilerConfig> {
   return ProfilerConfigSchema.parse(preprocessed) as ProfilerConfig
 }
 
+/**
+ * Map of supported CLI flag names to their human-readable descriptions.
+ * Used to generate help text in the CLI entry point.
+ */
 export const PROFILER_FLAGS = {
   "--mode": "Override modes (repeatable)",
   "--scenario": "Override scenarios (repeatable)",
@@ -38,6 +52,16 @@ export const PROFILER_FLAGS = {
   "--dry-run": "Show what would be executed without running",
 } as const
 
+/**
+ * Apply CLI flag overrides on top of a base ProfilerConfig.
+ *
+ * Parses the `argv` array for recognized flags and merges any provided values
+ * into the corresponding fields of `base`. Unrecognized flags are silently ignored.
+ *
+ * @param argv - Raw CLI argument array (typically `process.argv.slice(2)`).
+ * @param base - The base configuration to apply overrides to.
+ * @returns A new ProfilerConfig with CLI overrides applied immutably.
+ */
 export function parseProfilerFlags(argv: readonly string[], base: ProfilerConfig): ProfilerConfig {
   const modes: string[] = []
   const scenarioIds: string[] = []

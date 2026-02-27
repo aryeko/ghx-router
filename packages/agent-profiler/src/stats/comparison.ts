@@ -24,6 +24,17 @@ function variance(values: readonly number[], m: number): number {
   return values.reduce((acc, v) => acc + (v - m) ** 2, 0) / (values.length - 1)
 }
 
+/**
+ * Compute Cohen's d effect size between two independent groups.
+ *
+ * Uses the pooled standard deviation (Welch-style denominator). Returns a
+ * negligible effect size when either group is empty or the pooled standard
+ * deviation is zero.
+ *
+ * @param groupA - Numeric samples for the first group (candidate).
+ * @param groupB - Numeric samples for the second group (baseline).
+ * @returns Cohen's d value with a qualitative magnitude label.
+ */
 export function cohensD(groupA: readonly number[], groupB: readonly number[]): EffectSize {
   const nA = groupA.length
   const nB = groupB.length
@@ -50,12 +61,28 @@ export function cohensD(groupA: readonly number[], groupB: readonly number[]): E
   return { d, magnitude }
 }
 
+/** Options for configuring a permutation test. */
 export interface PermutationTestOptions {
+  /** Number of permutations to generate for the null distribution (defaults to DEFAULT_PERMUTATION_COUNT). */
   readonly permutations?: number
+  /** Directionality of the test hypothesis (defaults to "two-sided"). */
   readonly alternative?: "two-sided" | "less" | "greater"
+  /** Random seed for reproducible shuffling (defaults to 42). */
   readonly seed?: number
 }
 
+/**
+ * Perform a permutation test for the difference in means between two groups.
+ *
+ * Builds a null distribution by repeatedly shuffling the pooled samples and
+ * computing the mean difference. The p-value is the fraction of permutations
+ * that are at least as extreme as the observed difference.
+ *
+ * @param groupA - Numeric samples for the first group.
+ * @param groupB - Numeric samples for the second group.
+ * @param options - Optional configuration for permutation count, alternative, and seed.
+ * @returns The p-value, observed mean difference, and number of permutations used.
+ */
 export function permutationTest(
   groupA: readonly number[],
   groupB: readonly number[],
@@ -104,11 +131,28 @@ export function permutationTest(
   return { pValue, observedDifference, permutations }
 }
 
+/** Options for configuring a full group comparison. */
 export interface CompareGroupsOptions {
+  /** Options forwarded to the bootstrap CI computation. */
   readonly bootstrapOptions?: BootstrapCIOptions
+  /** Options forwarded to the permutation test computation. */
   readonly permutationOptions?: PermutationTestOptions
 }
 
+/**
+ * Compare two groups of numeric samples for a single metric and produce a full statistical summary.
+ *
+ * Combines a bootstrap reduction confidence interval, Cohen's d effect size, and a
+ * permutation test p-value into a single ComparisonResult.
+ *
+ * @param modeA - Identifier of the first (candidate) mode.
+ * @param modeAValues - Numeric samples for modeA.
+ * @param modeB - Identifier of the second (baseline) mode.
+ * @param modeBValues - Numeric samples for modeB.
+ * @param metric - Name of the metric being compared.
+ * @param options - Optional configuration for bootstrap and permutation computations.
+ * @returns A ComparisonResult with reduction percentage, CI, effect size, and p-value.
+ */
 export function compareGroups(
   modeA: string,
   modeAValues: readonly number[],

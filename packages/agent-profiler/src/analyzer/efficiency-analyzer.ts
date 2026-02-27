@@ -55,6 +55,13 @@ function countBacktrackingEvents(events: readonly TraceEvent[]): number {
   return backtracking
 }
 
+/**
+ * Analyzer that measures session efficiency in terms of turn productivity and information redundancy.
+ *
+ * Classifies each turn as productive (contains a successful tool call or text output) or wasted,
+ * computes the fraction of redundant (duplicate) tool calls, and counts backtracking events
+ * where the same tool is called with a different input after a previous invocation.
+ */
 export const efficiencyAnalyzer: Analyzer = {
   name: "efficiency",
 

@@ -9,20 +9,35 @@ import type { CheckpointResult, ProfileRow } from "../types/profile-row.js"
 import type { BaseScenario } from "../types/scenario.js"
 import type { AnalysisResult, SessionTrace } from "../types/trace.js"
 
+/** Parameters required to execute a single scenario iteration. */
 export interface IterationParams {
+  /** Provider implementation that manages the agent session. */
   readonly provider: SessionProvider
+  /** Scorer that evaluates the agent output against scenario criteria. */
   readonly scorer: Scorer
+  /** Collectors that extract additional metrics after the prompt completes. */
   readonly collectors: readonly Collector[]
+  /** Analyzers that produce structured findings from the session trace. */
   readonly analyzers: readonly Analyzer[]
+  /** Lifecycle hooks called before and after this iteration. */
   readonly hooks: RunHooks
+  /** The scenario to execute. */
   readonly scenario: BaseScenario
+  /** Execution mode name for this iteration. */
   readonly mode: string
+  /** Model identifier for this iteration. */
   readonly model: string
+  /** Zero-based repetition index. */
   readonly iteration: number
+  /** Identifier of the parent profiling run. */
   readonly runId: string
+  /** System instructions injected at session creation. */
   readonly systemInstructions: string
+  /** When true, the full session trace is exported after the prompt. */
   readonly sessionExport: boolean
+  /** Maximum number of retry attempts on prompt failure. */
   readonly allowedRetries: number
+  /** Logger instance for this iteration. */
   readonly logger: Logger
 }
 
@@ -88,6 +103,17 @@ function makeFailedRow(params: IterationParams, startedAt: string, error: string
   }
 }
 
+/**
+ * Execute a single scenario iteration, including session creation, prompting,
+ * metric collection, trace analysis, and scoring.
+ *
+ * Retries the prompt up to `params.allowedRetries` times on failure before
+ * returning a failed ProfileRow. Lifecycle hooks are called regardless of
+ * success or failure.
+ *
+ * @param params - All configuration needed to run this iteration.
+ * @returns The profile row, session trace (or null), and any analysis results.
+ */
 export async function runIteration(params: IterationParams): Promise<{
   readonly row: ProfileRow
   readonly trace: SessionTrace | null

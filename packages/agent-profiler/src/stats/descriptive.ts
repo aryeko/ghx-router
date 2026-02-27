@@ -14,6 +14,15 @@ function percentile(sorted: readonly number[], p: number): number {
   return lowerVal * (1 - fraction) + upperVal * fraction
 }
 
+/**
+ * Compute descriptive statistics for a set of numeric values.
+ *
+ * Calculates count, mean, median, p90, p95, min, max, IQR, coefficient of
+ * variation, and sample standard deviation. Returns all zeros for an empty input.
+ *
+ * @param values - The numeric samples to summarize.
+ * @returns A DescriptiveStats object with all computed statistics.
+ */
 export function computeDescriptive(values: readonly number[]): DescriptiveStats {
   const count = values.length
 

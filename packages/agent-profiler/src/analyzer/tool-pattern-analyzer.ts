@@ -65,6 +65,13 @@ function computeFailedThenRetried(
   return counts
 }
 
+/**
+ * Analyzer that identifies sequential tool usage patterns within a session.
+ *
+ * Computes bigram frequencies of consecutive tool calls, detects redundant
+ * invocations (same tool with identical input), and identifies failed-then-retried
+ * patterns where the agent immediately retries a failing tool call.
+ */
 export const toolPatternAnalyzer: Analyzer = {
   name: "tool-pattern",
 

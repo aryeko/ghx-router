@@ -85,6 +85,13 @@ function countWastedTurns(trace: SessionTrace): number {
   return count
 }
 
+/**
+ * Analyzer that categorizes and quantifies errors encountered during a session.
+ *
+ * Classifies errors by type (auth, not_found, timeout, parse_error, unknown),
+ * identifies recovery patterns (retry, alternative, give_up), counts cascading
+ * error sequences, and counts turns where every event was an error or failure.
+ */
 export const errorAnalyzer: Analyzer = {
   name: "error",
 

@@ -28,13 +28,29 @@ function defaultStatistic(values: readonly number[]): number {
   return lowerVal * (1 - fraction) + upperVal * fraction
 }
 
+/** Options for configuring a bootstrap confidence interval computation. */
 export interface BootstrapCIOptions {
+  /** Number of bootstrap resamples to draw (defaults to DEFAULT_BOOTSTRAP_RESAMPLES). */
   readonly resamples?: number
+  /** Confidence level for the interval, e.g. 0.95 for a 95% CI (defaults to DEFAULT_CONFIDENCE_LEVEL). */
   readonly confidenceLevel?: number
+  /** Statistic function applied to each resample (defaults to median). */
   readonly statistic?: (values: readonly number[]) => number
+  /** Random seed for reproducible resampling (defaults to 42). */
   readonly seed?: number
 }
 
+/**
+ * Compute a bootstrap confidence interval for a statistic over a single sample.
+ *
+ * Uses the percentile method with a seeded deterministic PRNG for reproducibility.
+ * Returns a degenerate interval (lower === upper === pointEstimate) when the input
+ * has one or fewer values.
+ *
+ * @param values - The numeric sample to bootstrap.
+ * @param options - Optional configuration for resamples, confidence level, statistic, and seed.
+ * @returns A ConfidenceInterval describing the uncertainty around the point estimate.
+ */
 export function bootstrapCI(
   values: readonly number[],
   options?: BootstrapCIOptions,
@@ -81,6 +97,18 @@ export function bootstrapCI(
   return { lower, upper, confidenceLevel, resamples, pointEstimate }
 }
 
+/**
+ * Compute a bootstrap confidence interval for the percentage reduction of modeA relative to modeB.
+ *
+ * The point estimate is `(1 - median(modeA) / median(modeB)) * 100`. Positive values indicate
+ * modeA is lower than modeB (a reduction). Uses the percentile bootstrap method with a seeded
+ * PRNG for reproducibility.
+ *
+ * @param modeA - Numeric samples for the candidate mode (lower values are better).
+ * @param modeB - Numeric samples for the baseline mode.
+ * @param options - Optional configuration for resamples, confidence level, statistic, and seed.
+ * @returns A ConfidenceInterval whose point estimate and bounds are reduction percentages.
+ */
 export function bootstrapReductionCI(
   modeA: readonly number[],
   modeB: readonly number[],
