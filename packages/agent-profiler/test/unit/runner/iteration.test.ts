@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest"
+import type { Analyzer } from "../../../src/contracts/analyzer.js"
 import type { Collector } from "../../../src/contracts/collector.js"
 import type { RunHooks } from "../../../src/contracts/hooks.js"
 import type { IterationParams } from "../../../src/runner/iteration.js"
@@ -21,6 +22,7 @@ function makeParams(overrides?: Partial<IterationParams>): IterationParams {
     provider: createMockProvider(),
     scorer: createMockScorer(),
     collectors: [],
+    analyzers: [],
     hooks: {},
     scenario: makeScenario(),
     mode: "agent_direct",
@@ -39,7 +41,8 @@ describe("runIteration", () => {
     const provider = createMockProvider()
     const params = makeParams({ provider })
 
-    const { row, trace } = await runIteration(params)
+    const { row, trace, analysisResults } = await runIteration(params)
+    expect(analysisResults).toHaveLength(0)
 
     expect(row.runId).toBe("run_test")
     expect(row.scenarioId).toBe("test-scenario-001")
@@ -156,5 +159,60 @@ describe("runIteration", () => {
 
     expect(row.agentTurns).toBe(1)
     expect(trace).toBeNull()
+  })
+
+  it("runs analyzers and returns analysis results when trace is available", async () => {
+    const mockAnalyzer: Analyzer = {
+      name: "test-analyzer",
+      async analyze(_trace, _scenario, _mode) {
+        return {
+          analyzer: "test-analyzer",
+          findings: { score: { type: "number", value: 42, unit: "pts" } },
+          summary: "all good",
+        }
+      },
+    }
+    const params = makeParams({ analyzers: [mockAnalyzer], sessionExport: true })
+
+    const { analysisResults } = await runIteration(params)
+
+    expect(analysisResults).toHaveLength(1)
+    expect(analysisResults[0]?.analyzer).toBe("test-analyzer")
+    expect(analysisResults[0]?.summary).toBe("all good")
+  })
+
+  it("exports session for analyzers even when sessionExport is false", async () => {
+    const mockAnalyzer: Analyzer = {
+      name: "needs-trace-analyzer",
+      async analyze(_trace, _scenario, _mode) {
+        return { analyzer: "needs-trace-analyzer", findings: {}, summary: "ok" }
+      },
+    }
+    const provider = createMockProvider()
+    const params = makeParams({ analyzers: [mockAnalyzer], sessionExport: false, provider })
+
+    const { analysisResults } = await runIteration(params)
+
+    expect(analysisResults).toHaveLength(1)
+    // exportSession should have been called despite sessionExport: false
+    expect(provider.calls.exportSession?.length ?? 0).toBe(1)
+  })
+
+  it("returns empty analysisResults on error", async () => {
+    const provider = createMockProvider()
+    provider.prompt = async () => {
+      throw new Error("prompt failed")
+    }
+    const mockAnalyzer: Analyzer = {
+      name: "test-analyzer",
+      async analyze(_trace, _scenario, _mode) {
+        return { analyzer: "test-analyzer", findings: {}, summary: "ok" }
+      },
+    }
+    const params = makeParams({ provider, analyzers: [mockAnalyzer] })
+
+    const { analysisResults } = await runIteration(params)
+
+    expect(analysisResults).toHaveLength(0)
   })
 })

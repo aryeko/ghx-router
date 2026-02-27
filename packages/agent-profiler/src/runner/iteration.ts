@@ -1,3 +1,4 @@
+import type { Analyzer } from "../contracts/analyzer.js"
 import type { Collector } from "../contracts/collector.js"
 import type { RunHooks } from "../contracts/hooks.js"
 import type { PromptResult, SessionProvider } from "../contracts/provider.js"
@@ -6,12 +7,13 @@ import type { Logger } from "../shared/logger.js"
 import type { CustomMetric, ToolCallRecord } from "../types/metrics.js"
 import type { CheckpointResult, ProfileRow } from "../types/profile-row.js"
 import type { BaseScenario } from "../types/scenario.js"
-import type { SessionTrace } from "../types/trace.js"
+import type { AnalysisResult, SessionTrace } from "../types/trace.js"
 
 export interface IterationParams {
   readonly provider: SessionProvider
   readonly scorer: Scorer
   readonly collectors: readonly Collector[]
+  readonly analyzers: readonly Analyzer[]
   readonly hooks: RunHooks
   readonly scenario: BaseScenario
   readonly mode: string
@@ -88,11 +90,13 @@ function makeFailedRow(params: IterationParams, startedAt: string, error: string
 export async function runIteration(params: IterationParams): Promise<{
   readonly row: ProfileRow
   readonly trace: SessionTrace | null
+  readonly analysisResults: readonly AnalysisResult[]
 }> {
   const {
     provider,
     scorer,
     collectors,
+    analyzers,
     hooks,
     scenario,
     mode,
@@ -120,8 +124,9 @@ export async function runIteration(params: IterationParams): Promise<{
 
     const result: PromptResult = await provider.prompt(handle, scenario.prompt, scenario.timeoutMs)
 
+    const needsTrace = sessionExport || analyzers.length > 0
     let trace: SessionTrace | null = null
-    if (sessionExport) {
+    if (needsTrace) {
       trace = await provider.exportSession(handle)
     }
 
@@ -129,6 +134,14 @@ export async function runIteration(params: IterationParams): Promise<{
     for (const collector of collectors) {
       const metrics = await collector.collect(result, scenario, mode, trace)
       allMetrics.push(...metrics)
+    }
+
+    const iterationAnalysisResults: AnalysisResult[] = []
+    if (trace) {
+      for (const analyzer of analyzers) {
+        const analysisResult = await analyzer.analyze(trace, scenario, mode)
+        iterationAnalysisResults.push(analysisResult)
+      }
     }
 
     const scorerResult: ScorerResult = await scorer.evaluate(scenario, {
@@ -170,7 +183,7 @@ export async function runIteration(params: IterationParams): Promise<{
       await hooks.afterScenario({ scenario, mode, model, iteration, result: row, trace })
     }
 
-    return { row, trace }
+    return { row, trace, analysisResults: iterationAnalysisResults }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     logger.error(`Iteration ${iteration} failed: ${message}`)
@@ -187,7 +200,7 @@ export async function runIteration(params: IterationParams): Promise<{
       })
     }
 
-    return { row: failedRow, trace: null }
+    return { row: failedRow, trace: null, analysisResults: [] }
   } finally {
     if (handle) {
       await provider.destroySession(handle)

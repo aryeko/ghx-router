@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest"
+import type { Analyzer } from "../../src/contracts/analyzer.js"
 import type { ProfileSuiteOptions } from "../../src/runner/profile-runner.js"
 import { runProfileSuite } from "../../src/runner/profile-runner.js"
 import { makeScenario } from "../helpers/factories.js"
@@ -42,6 +43,8 @@ describe("profile-runner integration", () => {
     expect(result.runId).toMatch(/^run_\d+$/)
     expect(result.durationMs).toBeGreaterThanOrEqual(0)
     expect(result.outputJsonlPath).toBe("/tmp/integration-test.jsonl")
+    expect(result.analysisResults).toBeDefined()
+    expect(result.analysisResults).toHaveLength(0) // no analyzers in default makeOptions
   })
 
   it("populates every row with correct structure", async () => {
@@ -165,6 +168,31 @@ describe("profile-runner integration", () => {
     await runProfileSuite(options)
 
     expect(provider.calls.shutdown?.length ?? 0).toBe(1)
+  })
+
+  it("calls analyzers and returns analysis bundles", async () => {
+    const mockAnalyzer: Analyzer = {
+      name: "test-analyzer",
+      async analyze(_trace, _scenario, _mode) {
+        return {
+          analyzer: "test-analyzer",
+          findings: { score: { type: "number", value: 1, unit: "pts" } },
+          summary: "all good",
+        }
+      },
+    }
+    const options = makeOptions({
+      analyzers: [mockAnalyzer],
+      sessionExport: true,
+      modes: ["mode_a"],
+      scenarios: [makeScenario({ id: "s1" })],
+      repetitions: 1,
+      warmup: false,
+    })
+    const result = await runProfileSuite(options)
+    expect(result.analysisResults).toHaveLength(1)
+    expect(result.analysisResults[0]?.mode).toBe("mode_a")
+    expect(result.analysisResults[0]?.results["test-analyzer"]).toBeDefined()
   })
 
   it("handles provider errors gracefully (failed rows persisted, not skipped)", async () => {

@@ -8,6 +8,7 @@ import { createLogger } from "../shared/logger.js"
 import { appendJsonlLine } from "../store/jsonl-store.js"
 import type { ProfileRow } from "../types/profile-row.js"
 import type { BaseScenario } from "../types/scenario.js"
+import type { SessionAnalysisBundle } from "../types/trace.js"
 import { runIteration } from "./iteration.js"
 import { runWarmup } from "./warmup.js"
 
@@ -32,6 +33,7 @@ export interface ProfileSuiteResult {
   readonly rows: readonly ProfileRow[]
   readonly durationMs: number
   readonly outputJsonlPath: string
+  readonly analysisResults: readonly SessionAnalysisBundle[]
 }
 
 export async function runProfileSuite(options: ProfileSuiteOptions): Promise<ProfileSuiteResult> {
@@ -43,7 +45,7 @@ export async function runProfileSuite(options: ProfileSuiteOptions): Promise<Pro
     scorer,
     modeResolver,
     collectors,
-    analyzers: _analyzers,
+    analyzers,
     hooks,
     warmup,
     sessionExport,
@@ -55,6 +57,7 @@ export async function runProfileSuite(options: ProfileSuiteOptions): Promise<Pro
   const logger = createLogger(logLevel)
   const suiteStart = Date.now()
   const rows: ProfileRow[] = []
+  const allAnalysisBundles: SessionAnalysisBundle[] = []
 
   if (hooks.beforeRun) {
     await hooks.beforeRun({ runId, modes, scenarios, repetitions })
@@ -89,10 +92,11 @@ export async function runProfileSuite(options: ProfileSuiteOptions): Promise<Pro
       for (let rep = 0; rep < repetitions; rep++) {
         logger.info(`[${mode}] ${scenario.id} iteration ${rep + 1}/${repetitions}`)
 
-        const { row } = await runIteration({
+        const { row, analysisResults } = await runIteration({
           provider,
           scorer,
           collectors,
+          analyzers,
           hooks,
           scenario,
           mode,
@@ -103,6 +107,16 @@ export async function runProfileSuite(options: ProfileSuiteOptions): Promise<Pro
           sessionExport,
           logger,
         })
+
+        if (analysisResults.length > 0) {
+          allAnalysisBundles.push({
+            sessionId: row.sessionId,
+            scenarioId: scenario.id,
+            mode,
+            model: row.model,
+            results: Object.fromEntries(analysisResults.map((r) => [r.analyzer, r])),
+          })
+        }
 
         await appendJsonlLine(outputJsonlPath, row)
         rows.push(row)
@@ -121,5 +135,5 @@ export async function runProfileSuite(options: ProfileSuiteOptions): Promise<Pro
   await provider.shutdown()
 
   const durationMs = Date.now() - suiteStart
-  return { runId, rows, durationMs, outputJsonlPath }
+  return { runId, rows, durationMs, outputJsonlPath, analysisResults: allAnalysisBundles }
 }
