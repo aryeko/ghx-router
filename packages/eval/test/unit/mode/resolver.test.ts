@@ -22,6 +22,7 @@ describe("EvalModeResolver", () => {
   })
 
   it("resolves mcp mode with mcpServers config", async () => {
+    vi.stubEnv("GH_TOKEN", "test-token")
     const config = await resolver.resolve("mcp")
     const servers = config.providerOverrides["mcpServers"] as unknown[]
     expect(servers).toHaveLength(1)

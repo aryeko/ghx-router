@@ -58,6 +58,7 @@ function isGhCliCommand(input: unknown): boolean {
   const inp = input as Record<string, unknown>
   const command = inp["command"] ?? inp["cmd"] ?? inp["input"]
   if (typeof command !== "string") return false
-  // Starts with "gh " or has /gh as a path segment
-  return command.trimStart().startsWith("gh ") || /[/\\]gh /.test(command)
+  // Starts with "gh" (with or without args) or has /gh as a path segment
+  const trimmed = command.trimStart()
+  return /^gh(?:\s|$)/.test(trimmed) || /[/\\]gh(?:\s|$)/.test(trimmed)
 }

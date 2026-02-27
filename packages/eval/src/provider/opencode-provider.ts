@@ -407,8 +407,8 @@ export class OpenCodeProvider implements SessionProvider {
       reasoning,
       cacheRead,
       cacheWrite,
-      total: input + output,
-      active: input + output - cacheRead,
+      total: input + output + cacheRead + cacheWrite + reasoning,
+      active: input + output + reasoning,
     }
   }
 

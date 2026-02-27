@@ -47,8 +47,7 @@ export class EvalModeResolver implements ModeResolver {
                 command: "npx",
                 args: ["-y", "@modelcontextprotocol/server-github"],
                 env: {
-                  GITHUB_PERSONAL_ACCESS_TOKEN:
-                    process.env["GH_TOKEN"] ?? process.env["GITHUB_TOKEN"] ?? "",
+                  GITHUB_PERSONAL_ACCESS_TOKEN: this.requireGitHubToken(),
                 },
               },
             ],
@@ -65,6 +64,14 @@ export class EvalModeResolver implements ModeResolver {
       default:
         throw new Error(`Unknown mode: ${mode}`)
     }
+  }
+
+  private requireGitHubToken(): string {
+    const token = process.env["GH_TOKEN"] ?? process.env["GITHUB_TOKEN"]
+    if (!token) {
+      throw new Error("MCP mode requires GH_TOKEN or GITHUB_TOKEN environment variable")
+    }
+    return token
   }
 
   private ghxBinDir(): string {

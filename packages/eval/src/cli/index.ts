@@ -1,6 +1,11 @@
 export async function main(argv: readonly string[]): Promise<void> {
   const command = argv[0]
 
+  if (!command) {
+    console.error("Usage: eval <run|analyze|report|check|fixture> [options]")
+    process.exit(1)
+  }
+
   switch (command) {
     case "run":
       await import("./run.js").then((m) => m.run(argv.slice(1)))

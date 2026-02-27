@@ -90,6 +90,7 @@ describe("run command", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks()
+    vi.stubEnv("GH_TOKEN", "test-token")
 
     const { loadEvalConfig } = await import("@eval/config/loader.js")
     const { loadEvalScenarios } = await import("@eval/scenario/loader.js")
@@ -106,6 +107,7 @@ describe("run command", () => {
 
   afterEach(() => {
     vi.clearAllMocks()
+    vi.unstubAllEnvs()
   })
 
   it("reads config from default path eval.config.yaml when no --config flag", async () => {
@@ -177,8 +179,9 @@ describe("run command", () => {
 
     await runFn(["--skip-warmup"])
 
-    // runProfileSuite is called — key thing is no error
     expect(runProfileSuite).toHaveBeenCalledTimes(1)
+    const call = vi.mocked(runProfileSuite).mock.calls[0]
+    expect((call as unknown[][])[0]).toMatchObject({ warmup: false })
   })
 
   it("--repetitions overrides the repetitions in the config", async () => {

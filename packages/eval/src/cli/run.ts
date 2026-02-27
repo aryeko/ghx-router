@@ -127,6 +127,9 @@ export async function run(argv: readonly string[]): Promise<void> {
   })
 
   const githubToken = process.env["GH_TOKEN"] ?? process.env["GITHUB_TOKEN"] ?? ""
+  if (githubToken === "") {
+    throw new Error('Missing GitHub token: set GH_TOKEN or GITHUB_TOKEN to run "eval run"')
+  }
 
   const hooks = createEvalHooks({
     fixtureManager,

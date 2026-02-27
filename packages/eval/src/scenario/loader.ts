@@ -103,8 +103,9 @@ export async function loadScenarioSets(
   let content: string
   try {
     content = await readFile(filePath, "utf-8")
-  } catch {
-    return {}
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return {}
+    throw error
   }
   return ScenarioSetsSchema.parse(JSON.parse(content) as unknown)
 }

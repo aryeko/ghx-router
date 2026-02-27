@@ -18,7 +18,7 @@ describe("parseFlag", () => {
     expect(parseFlag(["--config", "--dry-run"], "--config")).toBeNull()
   })
 
-  it("returns empty array for empty argv", () => {
+  it("returns null for empty argv", () => {
     expect(parseFlag([], "--config")).toBeNull()
   })
 })
