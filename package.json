@@ -54,11 +54,8 @@
   "license": "MIT",
   "type": "module",
   "pnpm": {
-    "auditConfig": {
-      "//ignoreCves": "minimatch ReDoS (GHSA-3ppc-4f35-3m26) — devDeps only, remove once upstream bumps minimatch >=10.2.1 (#49)",
-      "ignoreCves": [
-        "CVE-2026-26996"
-      ]
+    "overrides": {
+      "minimatch@10.2.1": "10.2.3"
     }
   },
   "bugs": {
@@ -69,15 +66,16 @@
     "@biomejs/biome": "^2.4.4",
     "@changesets/cli": "^2.29.7",
     "@eslint/js": "^9.35.0",
-    "@nx/eslint": "22.5.2",
-    "@nx/js": "22.5.2",
+    "@nx/eslint": "22.5.3",
+    "@nx/js": "22.5.3",
     "@types/node": "catalog:",
     "@vitest/eslint-plugin": "^1.6.9",
+    "vite": "^6.4.1",
     "eslint": "^9.35.0",
     "globals": "^17.3.0",
     "lefthook": "^2.1.1",
-    "nx": "22.5.2",
+    "nx": "22.5.3",
     "typescript": "catalog:",
-    "typescript-eslint": "^8.43.0"
+    "typescript-eslint": "^8.56.1"
   }
 }
