@@ -79,6 +79,30 @@ describe("appendJsonlLine", () => {
   })
 })
 
+describe("round-trip", () => {
+  it("round-trips data through append and read", async () => {
+    const lines: string[] = []
+    mockAppendFile.mockImplementation(async (_path, data) => {
+      lines.push(data as string)
+    })
+    mockReadFile.mockImplementation(async () => lines.join(""))
+
+    const items = [
+      { id: 1, name: "first" },
+      { id: 2, name: "second" },
+      { id: 3, name: "third" },
+    ]
+
+    for (const item of items) {
+      await appendJsonlLine("/tmp/round-trip.jsonl", item)
+    }
+
+    const result = await readJsonlFile("/tmp/round-trip.jsonl", (line) => JSON.parse(line))
+
+    expect(result).toEqual(items)
+  })
+})
+
 describe("writeJsonlFile", () => {
   it("writes all items joined by newlines with trailing newline", async () => {
     await writeJsonlFile("/tmp/out/data.jsonl", [{ a: 1 }, { b: 2 }])

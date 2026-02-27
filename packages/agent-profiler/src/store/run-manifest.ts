@@ -13,7 +13,7 @@ const RunManifestSchema = z.object({
   totalRows: z.number(),
   outputJsonlPath: z.string(),
   reportsDir: z.string().optional(),
-  metadata: z.record(z.unknown()),
+  metadata: z.record(z.string(), z.unknown()),
 })
 
 /**
@@ -45,10 +45,12 @@ export async function readManifest(path: string): Promise<RunManifest> {
 }
 
 /**
- * Read, partially update, and re-write a RunManifest atomically.
+ * Read, partially update, and re-write a RunManifest.
  *
  * Merges `updates` into the existing manifest using an immutable spread, then
- * persists the result back to the same path.
+ * persists the result back to the same path via a non-atomic read-modify-write.
+ *
+ * @remarks Not concurrency-safe — assumes single-process usage.
  *
  * @param path - Absolute path to the manifest JSON file.
  * @param updates - Partial manifest fields to overwrite.

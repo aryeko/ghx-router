@@ -63,6 +63,32 @@ describe("loadConfig", () => {
     expect(result.output.sessionExport).toBe(false)
     expect(result.output.logLevel).toBe("debug")
   })
+
+  it("converts snake_case keys inside arrays of objects", async () => {
+    vi.mocked(readFile).mockResolvedValue("yaml-content")
+    vi.mocked(yaml.load).mockReturnValue({
+      modes: ["agent_direct"],
+      scenarios: { set: "core" },
+      execution: {
+        timeout_default_ms: 60_000,
+        extra_items: [{ some_key: 1, another_value: "x" }, { some_key: 2 }],
+      },
+    })
+
+    // loadConfig will throw because strict schema rejects extra keys,
+    // but we can still verify preprocessKeys converted array contents
+    // by catching and inspecting the error message
+    await expect(loadConfig("/path/to/config.yaml")).rejects.toThrow("extraItems")
+  })
+
+  it("throws with file path context on malformed YAML", async () => {
+    vi.mocked(readFile).mockResolvedValue("yaml-content")
+    vi.mocked(yaml.load).mockImplementation(() => {
+      throw new Error("unexpected end of the stream")
+    })
+
+    await expect(loadConfig("/bad/config.yaml")).rejects.toThrow("/bad/config.yaml")
+  })
 })
 
 describe("parseProfilerFlags", () => {

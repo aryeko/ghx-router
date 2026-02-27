@@ -33,7 +33,12 @@ export const ProfilerConfigSchema = z.object({
       allowedRetries: z.number().int().min(0).default(DEFAULT_ALLOWED_RETRIES),
     })
     .strict()
-    .default({}),
+    .default({
+      repetitions: DEFAULT_REPETITIONS,
+      warmup: DEFAULT_WARMUP,
+      timeoutDefaultMs: DEFAULT_TIMEOUT_MS,
+      allowedRetries: DEFAULT_ALLOWED_RETRIES,
+    }),
   output: z
     .object({
       resultsDir: z.string().default(DEFAULT_RESULTS_DIR),
@@ -42,8 +47,13 @@ export const ProfilerConfigSchema = z.object({
       logLevel: z.enum(["debug", "info", "warn", "error"]).default(DEFAULT_LOG_LEVEL),
     })
     .strict()
-    .default({}),
-  extensions: z.record(z.unknown()).default({}),
+    .default({
+      resultsDir: DEFAULT_RESULTS_DIR,
+      reportsDir: DEFAULT_REPORTS_DIR,
+      sessionExport: DEFAULT_SESSION_EXPORT,
+      logLevel: DEFAULT_LOG_LEVEL,
+    }),
+  extensions: z.record(z.string(), z.unknown()).default(() => ({})),
 })
 
 /** TypeScript type inferred from ProfilerConfigSchema. */

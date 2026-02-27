@@ -44,5 +44,5 @@ export function makeProfileRow(overrides: Partial<ProfileRow> = {}): ProfileRow 
     completionReason: "stop",
     extensions: {},
     ...overrides,
-  } as ProfileRow
+  } satisfies ProfileRow
 }
