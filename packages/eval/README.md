@@ -1,6 +1,6 @@
 # @ghx-dev/eval
 
-Evaluation harness for ghx -- proves that structured capability routing lets AI agents complete GitHub tasks with fewer tool calls, lower token cost, and higher reliability than raw `gh` CLI or GitHub MCP server tools.
+Evaluation harness for ghx -- measures how structured capability routing compares to raw `gh` CLI and GitHub MCP server tools across tool calls, token cost, and reliability through unbiased, controlled benchmarks.
 
 ## How It Works
 

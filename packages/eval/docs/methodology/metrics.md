@@ -38,7 +38,7 @@ This is the primary metric. `GhxCollector` classifies every tool call in a sessi
 
 The classifier inspects both the tool name and, for bash tools, the command string inside the input payload. A bash tool call containing `gh pr view ...` is classified as `gh_cli`, not `bash`. This distinction is important: it separates GitHub-specific CLI usage from general shell operations.
 
-**What it proves:** if ghx mode uses 1--2 ghx capability calls while baseline uses 5--8 gh CLI calls plus parsing for the same task, that is a measurable complexity reduction. The tool call classification makes this comparison precise -- you can see exactly where calls are spent.
+**What it shows:** if ghx mode uses 1--2 ghx capability calls while baseline uses 5--8 gh CLI calls plus parsing for the same task, that is a measurable complexity reduction. The tool call classification makes this comparison precise -- you can see exactly where calls are spent.
 
 The following pie charts illustrate a hypothetical comparison. **These are illustrative examples, not real data.** Actual distributions depend on scenario complexity and agent behavior.
 

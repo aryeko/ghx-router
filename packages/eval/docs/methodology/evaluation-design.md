@@ -34,7 +34,7 @@ The total number of iterations is the product of all dimensions. For example: 2 
 
 ## Why Repetitions Matter
 
-LLM outputs are stochastic. A single run proves nothing -- the agent might get lucky (finding the right command on the first try) or unlucky (hallucinating a nonexistent flag and spending tokens recovering). Multiple repetitions reveal the distribution: mean, variance, and confidence intervals.
+LLM outputs are stochastic. A single run tells you nothing -- the agent might get lucky (finding the right command on the first try) or unlucky (hallucinating a nonexistent flag and spending tokens recovering). Multiple repetitions reveal the distribution: mean, variance, and confidence intervals.
 
 Typically the eval uses 5 repetitions per combination. This is enough to compute bootstrap confidence intervals and detect medium-to-large effect sizes. High-variance scenarios may warrant more repetitions (10+) to narrow confidence intervals.
 

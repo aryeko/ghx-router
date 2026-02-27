@@ -1,6 +1,6 @@
 # Eval Documentation
 
-`@ghx-dev/eval` proves that ghx -- a structured capability router for GitHub -- lets AI agents complete GitHub tasks with fewer tool calls, lower token cost, and higher reliability than raw `gh` CLI or GitHub MCP server tools. It does this by running identical tasks across three execution modes and comparing the results with statistical rigor.
+`@ghx-dev/eval` measures how ghx -- a structured capability router for GitHub -- compares to raw `gh` CLI and GitHub MCP server tools across tool calls, token cost, and reliability. It runs identical tasks across three execution modes and compares the results with statistical rigor, producing unbiased evidence for or against each approach.
 
 ## Quick Navigation
 
@@ -36,7 +36,7 @@ mindmap
 
 ## By Use Case
 
-### I want to understand what eval proves
+### I want to understand what eval measures
 
 Start here: **[Methodology](methodology/README.md)**
 
