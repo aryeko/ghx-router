@@ -71,10 +71,16 @@ importers:
 
   packages/agent-profiler:
     dependencies:
+      js-yaml:
+        specifier: ^4.1.0
+        version: 4.1.1
       zod:
         specifier: ^4.3.6
         version: 4.3.6
     devDependencies:
+      '@types/js-yaml':
+        specifier: ^4.0.9
+        version: 4.0.9
       '@types/node':
         specifier: 'catalog:'
         version: 25.2.3
@@ -91,8 +97,8 @@ importers:
         specifier: 'catalog:'
         version: 5.9.3
       vite-tsconfig-paths:
-        specifier: ^4.3.2
-        version: 4.3.2(typescript@5.9.3)(vite@5.4.21(@types/node@25.2.3))
+        specifier: ^6.1.1
+        version: 6.1.1(typescript@5.9.3)(vite@5.4.21(@types/node@25.2.3))
       vitest:
         specifier: 'catalog:'
         version: 2.1.9(@types/node@25.2.3)
@@ -4223,14 +4229,6 @@ packages:
     resolution: {integrity: sha512-AM9aQ/IPrW/6ENLQg3AGY4K1N2TGZdR5e4gu/MmmR2xR3Ll1+dib+nook92g4TV3PXVyeyxdWwtaCAiUL0hMxA==}
     engines: {node: ^18.0.0 || >=20.0.0}
     hasBin: true
-
-  vite-tsconfig-paths@4.3.2:
-    resolution: {integrity: sha512-0Vd/a6po6Q+86rPlntHye7F31zA2URZMbH8M3saAZ/xR9QoGN/L21bxEGfXdWmFdNkqPpRdxFT7nmNe12e9/uA==}
-    peerDependencies:
-      vite: '*'
-    peerDependenciesMeta:
-      vite:
-        optional: true
 
   vite-tsconfig-paths@6.1.1:
     resolution: {integrity: sha512-2cihq7zliibCCZ8P9cKJrQBkfgdvcFkOOc3Y02o3GWUDLgqjWsZudaoiuOwO/gzTzy17cS5F7ZPo4bsnS4DGkg==}
@@ -8898,17 +8896,6 @@ snapshots:
       - sugarss
       - supports-color
       - terser
-
-  vite-tsconfig-paths@4.3.2(typescript@5.9.3)(vite@5.4.21(@types/node@25.2.3)):
-    dependencies:
-      debug: 4.4.3
-      globrex: 0.1.2
-      tsconfck: 3.1.6(typescript@5.9.3)
-    optionalDependencies:
-      vite: 5.4.21(@types/node@25.2.3)
-    transitivePeerDependencies:
-      - supports-color
-      - typescript
 
   vite-tsconfig-paths@6.1.1(typescript@5.9.3)(vite@5.4.21(@types/node@25.2.3)):
     dependencies:

@@ -6,12 +6,12 @@ export default defineConfig({
   format: ["esm"],
   outDir: "dist",
   clean: true,
-  dts: false,
+  dts: true,
   sourcemap: true,
   esbuildOptions(options) {
     options.alias = {
       ...options.alias,
-      "@agent-profiler": resolve(import.meta.dirname, "src"),
+      "@profiler": resolve(import.meta.dirname, "src"),
     }
   },
 })

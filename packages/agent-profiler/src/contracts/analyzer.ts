@@ -1,24 +1,16 @@
 import type { BaseScenario } from "../types/scenario.js"
-import type { SessionTrace } from "../types/trace.js"
+import type { AnalysisResult, SessionTrace } from "../types/trace.js"
 
-export type AnalysisFinding =
-  | { readonly type: "number"; readonly value: number; readonly unit: string }
-  | { readonly type: "string"; readonly value: string }
-  | { readonly type: "list"; readonly values: readonly string[] }
-  | {
-      readonly type: "table"
-      readonly headers: readonly string[]
-      readonly rows: readonly (readonly string[])[]
-    }
-  | { readonly type: "ratio"; readonly value: number; readonly label: string }
-
-export interface AnalysisResult {
-  readonly analyzer: string
-  readonly findings: Readonly<Record<string, AnalysisFinding>>
-  readonly summary: string
-}
-
+/** Perform structured analysis on a session trace to produce findings. */
 export interface Analyzer {
+  /** Unique name identifying this analyzer (used as key in analysis bundles). */
   readonly name: string
+  /**
+   * Analyze a session trace and return structured findings.
+   * @param trace - The full event trace for the session to analyze.
+   * @param scenario - The scenario that was executed.
+   * @param mode - The execution mode name for this session.
+   * @returns Structured analysis result with named findings and a summary string.
+   */
   analyze(trace: SessionTrace, scenario: BaseScenario, mode: string): Promise<AnalysisResult>
 }

@@ -3,9 +3,13 @@
   "compilerOptions": {
     "baseUrl": ".",
     "types": ["node", "vitest/globals"],
-    "paths": {
-      "@profiler/*": ["./src/*"]
-    }
+    "paths": { "@profiler/*": ["./src/*"] }
   },
-  "include": ["src/**/*.ts", "test/**/*.ts"]
+  "include": [
+    "src/**/*.ts",
+    "test/**/*.ts",
+    "vitest.config.ts",
+    "vitest.workspace.ts",
+    "tsup.config.ts"
+  ]
 }

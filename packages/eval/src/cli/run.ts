@@ -125,7 +125,12 @@ export async function run(argv: readonly string[]): Promise<void> {
       // EvalScenario extends BaseScenario structurally; cast required due to module boundary
       scenarios: scenarios as unknown as ReadonlyArray<BaseScenario>,
       repetitions: config.execution.repetitions,
-      outputPath: config.output.results_dir,
+      allowedRetries: 0,
+      outputJsonlPath: config.output.results_dir,
+      warmup: config.execution.warmup,
+      sessionExport: config.output.session_export,
+      logLevel: config.output.log_level,
+      analyzers: [],
       provider,
       scorer: new CheckpointScorer(githubToken),
       modeResolver: new EvalModeResolver(),
