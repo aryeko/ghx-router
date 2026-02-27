@@ -32,6 +32,7 @@ export const PROFILER_FLAGS = {
   "--scenario": "Override scenarios (repeatable)",
   "--scenario-set": "Override scenario set",
   "--repetitions": "Override repetition count",
+  "--retries": "Override allowed retries per iteration",
   "--skip-warmup": "Skip warmup canary",
   "--output-jsonl": "Write raw JSONL to specific file",
   "--dry-run": "Show what would be executed without running",
@@ -42,6 +43,7 @@ export function parseProfilerFlags(argv: readonly string[], base: ProfilerConfig
   const scenarioIds: string[] = []
   let scenarioSet: string | undefined
   let repetitions: number | undefined
+  let allowedRetries: number | undefined
   let skipWarmup = false
 
   for (let i = 0; i < argv.length; i++) {
@@ -72,6 +74,12 @@ export function parseProfilerFlags(argv: readonly string[], base: ProfilerConfig
           i++
         }
         break
+      case "--retries":
+        if (next) {
+          allowedRetries = Number.parseInt(next, 10)
+          i++
+        }
+        break
       case "--skip-warmup":
         skipWarmup = true
         break
@@ -89,6 +97,7 @@ export function parseProfilerFlags(argv: readonly string[], base: ProfilerConfig
     execution: {
       ...base.execution,
       ...(repetitions !== undefined ? { repetitions } : {}),
+      ...(allowedRetries !== undefined ? { allowedRetries } : {}),
       ...(skipWarmup ? { warmup: false } : {}),
     },
   }

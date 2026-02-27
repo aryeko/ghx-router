@@ -1,5 +1,6 @@
 import { z } from "zod"
 import {
+  DEFAULT_ALLOWED_RETRIES,
   DEFAULT_LOG_LEVEL,
   DEFAULT_REPETITIONS,
   DEFAULT_REPORTS_DIR,
@@ -20,6 +21,7 @@ export const ProfilerConfigSchema = z.object({
       repetitions: z.number().int().positive().default(DEFAULT_REPETITIONS),
       warmup: z.boolean().default(DEFAULT_WARMUP),
       timeoutDefaultMs: z.number().positive().default(DEFAULT_TIMEOUT_MS),
+      allowedRetries: z.number().int().min(0).default(DEFAULT_ALLOWED_RETRIES),
     })
     .default({}),
   output: z

@@ -16,6 +16,7 @@ export interface ProfileSuiteOptions {
   readonly modes: readonly string[]
   readonly scenarios: readonly BaseScenario[]
   readonly repetitions: number
+  readonly allowedRetries: number
   readonly provider: SessionProvider
   readonly scorer: Scorer
   readonly modeResolver: ModeResolver
@@ -41,6 +42,7 @@ export async function runProfileSuite(options: ProfileSuiteOptions): Promise<Pro
     modes,
     scenarios,
     repetitions,
+    allowedRetries,
     provider,
     scorer,
     modeResolver,
@@ -105,6 +107,7 @@ export async function runProfileSuite(options: ProfileSuiteOptions): Promise<Pro
           runId,
           systemInstructions: modeConfig.systemInstructions,
           sessionExport,
+          allowedRetries,
           logger,
         })
 

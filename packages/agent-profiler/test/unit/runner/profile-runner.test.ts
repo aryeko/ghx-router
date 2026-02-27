@@ -15,6 +15,7 @@ function makeOptions(overrides?: Partial<ProfileSuiteOptions>): ProfileSuiteOpti
     modes: ["mode_a"],
     scenarios: [makeScenario()],
     repetitions: 1,
+    allowedRetries: 0,
     provider: createMockProvider(),
     scorer: createMockScorer(),
     modeResolver: createMockModeResolver(),

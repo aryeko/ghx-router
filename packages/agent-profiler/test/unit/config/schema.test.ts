@@ -16,6 +16,7 @@ describe("ProfilerConfigSchema", () => {
       repetitions: 5,
       warmup: true,
       timeoutDefaultMs: 120_000,
+      allowedRetries: 0,
     })
     expect(result.output).toEqual({
       resultsDir: "results",
@@ -66,6 +67,29 @@ describe("ProfilerConfigSchema", () => {
     expect(result.execution.repetitions).toBe(5)
     expect(result.execution.warmup).toBe(true)
     expect(result.execution.timeoutDefaultMs).toBe(120_000)
+    expect(result.execution.allowedRetries).toBe(0)
+  })
+
+  it("defaults allowedRetries to 0", () => {
+    const result = ProfilerConfigSchema.parse(minimalInput)
+    expect(result.execution.allowedRetries).toBe(0)
+  })
+
+  it("accepts positive integer allowedRetries", () => {
+    const result = ProfilerConfigSchema.parse({
+      ...minimalInput,
+      execution: { allowedRetries: 3 },
+    })
+    expect(result.execution.allowedRetries).toBe(3)
+  })
+
+  it("rejects negative allowedRetries", () => {
+    expect(() =>
+      ProfilerConfigSchema.parse({
+        ...minimalInput,
+        execution: { allowedRetries: -1 },
+      }),
+    ).toThrow()
   })
 
   it("uses correct defaults for output fields", () => {

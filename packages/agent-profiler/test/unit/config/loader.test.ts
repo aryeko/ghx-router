@@ -16,7 +16,7 @@ const yaml = (await import("js-yaml")).default
 const baseConfig: ProfilerConfig = {
   modes: ["agent_direct"],
   scenarios: { set: "core" },
-  execution: { repetitions: 5, warmup: true, timeoutDefaultMs: 120_000 },
+  execution: { repetitions: 5, warmup: true, timeoutDefaultMs: 120_000, allowedRetries: 0 },
   output: {
     resultsDir: "results",
     reportsDir: "reports",

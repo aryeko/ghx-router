@@ -31,6 +31,7 @@ function makeParams(overrides?: Partial<IterationParams>): IterationParams {
     runId: "run_test",
     systemInstructions: "You are a test agent",
     sessionExport: true,
+    allowedRetries: 0,
     logger: makeLogger(),
     ...overrides,
   }
@@ -214,5 +215,54 @@ describe("runIteration", () => {
     const { analysisResults } = await runIteration(params)
 
     expect(analysisResults).toHaveLength(0)
+  })
+
+  it("succeeds on retry when first attempt throws", async () => {
+    const provider = createMockProvider()
+    let attempt = 0
+    const originalPrompt = provider.prompt.bind(provider)
+    provider.prompt = async (handle, text, timeoutMs) => {
+      attempt++
+      if (attempt === 1) throw new Error("first attempt failed")
+      return originalPrompt(handle, text, timeoutMs)
+    }
+    const logger = makeLogger()
+    const params = makeParams({ provider, allowedRetries: 1, logger })
+
+    const { row } = await runIteration(params)
+
+    expect(row.success).toBe(true)
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("retrying"))
+  })
+
+  it("returns failed row when all retries exhausted", async () => {
+    const provider = createMockProvider()
+    provider.prompt = async () => {
+      throw new Error("always fails")
+    }
+    const params = makeParams({ provider, allowedRetries: 2 })
+
+    const { row } = await runIteration(params)
+
+    expect(row.success).toBe(false)
+    expect(row.error).toBe("always fails")
+  })
+
+  it("destroys session after each failed attempt before retrying", async () => {
+    const provider = createMockProvider()
+    let promptCallCount = 0
+    const originalPrompt = provider.prompt.bind(provider)
+    provider.prompt = async (handle, text, timeoutMs) => {
+      promptCallCount++
+      if (promptCallCount < 3) throw new Error("temporary failure")
+      return originalPrompt(handle, text, timeoutMs)
+    }
+    const params = makeParams({ provider, allowedRetries: 2 })
+
+    const { row } = await runIteration(params)
+
+    expect(row.success).toBe(true)
+    // 2 failed attempts destroyed + 1 success destroyed in finally = 3 destroySession calls
+    expect(provider.calls.destroySession?.length ?? 0).toBe(3)
   })
 })

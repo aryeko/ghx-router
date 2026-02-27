@@ -22,6 +22,7 @@ export interface IterationParams {
   readonly runId: string
   readonly systemInstructions: string
   readonly sessionExport: boolean
+  readonly allowedRetries: number
   readonly logger: Logger
 }
 
@@ -105,6 +106,7 @@ export async function runIteration(params: IterationParams): Promise<{
     runId,
     systemInstructions,
     sessionExport,
+    allowedRetries,
     logger,
   } = params
 
@@ -116,18 +118,43 @@ export async function runIteration(params: IterationParams): Promise<{
 
   let handle = null as Awaited<ReturnType<SessionProvider["createSession"]>> | null
   try {
-    handle = await provider.createSession({
-      systemInstructions,
-      scenarioId: scenario.id,
-      iteration,
-    })
+    let promptResult: PromptResult | null = null
+    let lastError = ""
 
-    const result: PromptResult = await provider.prompt(handle, scenario.prompt, scenario.timeoutMs)
+    for (let attempt = 0; attempt <= allowedRetries; attempt++) {
+      try {
+        handle = await provider.createSession({
+          systemInstructions,
+          scenarioId: scenario.id,
+          iteration,
+        })
+        promptResult = await provider.prompt(handle, scenario.prompt, scenario.timeoutMs)
+        break
+      } catch (err) {
+        lastError = err instanceof Error ? err.message : String(err)
+        if (handle) {
+          await provider.destroySession(handle).catch(() => {})
+          handle = null
+        }
+        if (attempt < allowedRetries) {
+          logger.warn(
+            `Iteration ${iteration} attempt ${attempt + 1} failed, retrying: ${lastError}`,
+          )
+        }
+      }
+    }
+
+    if (!promptResult || !handle) {
+      throw new Error(lastError)
+    }
+
+    const result: PromptResult = promptResult
+    const activeHandle = handle
 
     const needsTrace = sessionExport || analyzers.length > 0
     let trace: SessionTrace | null = null
     if (needsTrace) {
-      trace = await provider.exportSession(handle)
+      trace = await provider.exportSession(activeHandle)
     }
 
     const allMetrics: CustomMetric[] = []
@@ -173,7 +200,7 @@ export async function runIteration(params: IterationParams): Promise<{
       checkpointDetails: mapCheckpoints(scorerResult.details),
       outputValid: scorerResult.outputValid,
       provider: provider.id,
-      sessionId: handle.sessionId,
+      sessionId: activeHandle.sessionId,
       agentTurns,
       completionReason: result.completionReason,
       extensions: buildExtensions(allMetrics),
