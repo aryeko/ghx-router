@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "types": ["node", "vitest/globals"],
+    "paths": { "@profiler/*": ["./src/*"] }
+  },
+  "include": [
+    "src/**/*.ts",
+    "test/**/*.ts",
+    "vitest.config.ts",
+    "vitest.workspace.ts",
+    "tsup.config.ts"
+  ]
+}

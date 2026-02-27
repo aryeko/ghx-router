@@ -1,0 +1,59 @@
+{
+  "name": "@ghx-dev/agent-profiler",
+  "version": "0.0.1",
+  "description": "Generic framework for profiling AI agent session performance",
+  "private": true,
+  "author": "Arye Kogan",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "format": "biome check --write .",
+    "format:check": "biome check .",
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --project unit",
+    "test:watch": "vitest watch --project unit",
+    "test:coverage": "vitest run --project unit --coverage",
+    "test:e2e:local": "vitest run --project e2e:local --passWithNoTests",
+    "test:e2e:sdk": "vitest run --project e2e:sdk --passWithNoTests"
+  },
+  "nx": {
+    "targets": {
+      "ci": {},
+      "ci:extra": {
+        "dependsOn": []
+      }
+    }
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "tsup": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "catalog:"
+  }
+}
