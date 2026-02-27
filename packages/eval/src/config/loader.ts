@@ -58,6 +58,27 @@ function applyEnvOverrides(raw: Record<string, unknown>): Record<string, unknown
   return result
 }
 
+/**
+ * Parses and validates an eval configuration from a YAML string.
+ *
+ * Environment variables override config file values:
+ * `PROFILER_REPETITIONS`, `PROFILER_WARMUP`, `PROFILER_LOG_LEVEL`,
+ * `PROFILER_MODES`, `EVAL_PROVIDER_PORT`, `EVAL_PROVIDER_ID`, `EVAL_MODEL`.
+ *
+ * @param yamlContent - Raw YAML string from e.g. `fs.readFile`
+ * @returns Validated {@link EvalConfig} with defaults applied
+ * @throws {ZodError} When required fields are missing or values are invalid
+ *
+ * @example
+ * ```typescript
+ * import { readFile } from "node:fs/promises"
+ * import { loadEvalConfig } from "@ghx-dev/eval"
+ *
+ * const config = loadEvalConfig(
+ *   await readFile("config/eval.config.yaml", "utf-8")
+ * )
+ * ```
+ */
 export function loadEvalConfig(yamlContent: string): EvalConfig {
   const raw = parseYaml(yamlContent) as Record<string, unknown>
   const withEnv = applyEnvOverrides(raw)

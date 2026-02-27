@@ -9,12 +9,46 @@ import type {
   SessionTrace,
 } from "@ghx-dev/agent-profiler"
 
+/**
+ * Options for {@link createEvalHooks}.
+ */
 export interface EvalHooksOptions {
+  /** Manages GitHub fixture state (status checks and branch resets). */
   readonly fixtureManager: FixtureManager
+  /** When `true`, write session trace JSON files to `reportsDir/sessions/` after each scenario. */
   readonly sessionExport: boolean
+  /** Directory for session trace exports. Defaults to `"reports"`. */
   readonly reportsDir?: string
 }
 
+/**
+ * Creates a `RunHooks` object that wires fixture management and session trace
+ * export into the profiler run lifecycle.
+ *
+ * - **`beforeRun`** — asserts all required fixtures exist in the manifest;
+ *   throws with a list of missing fixture names if any are absent.
+ * - **`beforeScenario`** — resets fixtures to their original state when the
+ *   scenario sets `fixture.reseedPerIteration = true`.
+ * - **`afterScenario`** — persists the session trace to the output directory
+ *   when `sessionExport` is enabled.
+ *
+ * @param options.fixtureManager - Manages GitHub fixture state
+ * @param options.sessionExport - When `true`, write session traces to disk
+ * @returns `RunHooks` object for use in `runProfileSuite`
+ *
+ * @example
+ * ```typescript
+ * import { createEvalHooks, FixtureManager } from "@ghx-dev/eval"
+ *
+ * const hooks = createEvalHooks({
+ *   fixtureManager: new FixtureManager({
+ *     repo: "owner/fixtures",
+ *     manifest: "fixtures/latest.json",
+ *   }),
+ *   sessionExport: true,
+ * })
+ * ```
+ */
 export function createEvalHooks(options: EvalHooksOptions): RunHooks {
   return {
     beforeRun: async (_ctx: RunContext) => {

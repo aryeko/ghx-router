@@ -8,6 +8,27 @@ import type {
 } from "@ghx-dev/agent-profiler"
 import { createGithubClientFromToken, executeTask } from "@ghx-dev/core"
 
+/**
+ * Scorer that evaluates agent output by executing ghx capability tasks against
+ * live GitHub state after a session completes.
+ *
+ * Each checkpoint in `scenario.assertions.checkpoints` maps a ghx capability
+ * task (e.g. `pr.commits.list`) and input to a condition that must hold.
+ * All checkpoints must pass for `ScorerResult.success` to be `true`.
+ *
+ * Implements `Scorer` from `@ghx-dev/agent-profiler`.
+ *
+ * @param githubToken - GitHub personal access token (or `GH_TOKEN` env var)
+ *
+ * @example
+ * ```typescript
+ * import { CheckpointScorer } from "@ghx-dev/eval"
+ *
+ * const scorer = new CheckpointScorer(process.env.GITHUB_TOKEN!)
+ * const result = await scorer.evaluate(scenario, context)
+ * console.log(result.success, result.passed, "/", result.total)
+ * ```
+ */
 export class CheckpointScorer implements Scorer {
   readonly id = "checkpoint"
 

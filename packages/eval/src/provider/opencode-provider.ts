@@ -14,7 +14,9 @@ import { TimeoutError } from "./event-listener.js"
 import { TraceBuilder } from "./trace-builder.js"
 
 export interface OpenCodeProviderOptions {
+  /** Default TCP port the OpenCode server listens on. Overridden by `ProviderConfig.port` when > 0. */
   readonly port: number
+  /** Model identifier passed to OpenCode on startup, e.g. `"openai/gpt-4o"`. */
   readonly model: string
 }
 
@@ -132,6 +134,30 @@ function getSessionApi(client: unknown): SessionApi {
   }
 }
 
+/**
+ * SessionProvider implementation that drives agent sessions via the
+ * OpenCode AI coding assistant SDK.
+ *
+ * Each session runs in an isolated temp directory (separate `XDG_CONFIG_HOME`)
+ * to prevent cross-session state contamination. The provider polls for session
+ * completion every 300 ms and exports a normalized {@link SessionTrace} using
+ * `TraceBuilder`.
+ *
+ * Implements `SessionProvider` from `@ghx-dev/agent-profiler`.
+ *
+ * @example
+ * ```typescript
+ * import { OpenCodeProvider } from "@ghx-dev/eval"
+ *
+ * const provider = new OpenCodeProvider({ port: 3001, model: "openai/gpt-4o" })
+ * await provider.init({ port: 0, environment: {}, systemInstructions: "", mcpServers: [] })
+ * const handle = await provider.createSession({ scenarioId: "pr-001", mode: "ghx" })
+ * const result = await provider.prompt(handle, "Fix the PR", 120_000)
+ * const trace = await provider.exportSession(handle)
+ * await provider.destroySession(handle)
+ * await provider.shutdown()
+ * ```
+ */
 export class OpenCodeProvider implements SessionProvider {
   readonly id = "opencode"
 

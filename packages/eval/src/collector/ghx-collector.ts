@@ -16,6 +16,29 @@ const CATEGORY_METRIC_NAMES: Readonly<Record<ToolCategory, string>> = {
   other: "ghx.other_tools",
 }
 
+/**
+ * Collector that classifies tool calls from an agent session into six
+ * categories and emits them as custom metrics on each ProfileRow.
+ *
+ * | Metric              | Counts                              |
+ * |---------------------|-------------------------------------|
+ * | `capabilities_used` | ghx capability invocations          |
+ * | `mcp_tools_invoked` | MCP server tool calls               |
+ * | `gh_cli_commands`   | `gh` CLI subprocess calls           |
+ * | `bash_commands`     | General bash/shell executions       |
+ * | `file_ops`          | File read / write / edit operations |
+ * | `other_tools`       | Uncategorized tool calls            |
+ *
+ * Implements `Collector` from `@ghx-dev/agent-profiler`.
+ *
+ * @example
+ * ```typescript
+ * import { GhxCollector } from "@ghx-dev/eval"
+ *
+ * const collector = new GhxCollector()
+ * // Pass to runProfileSuite: collectors: [collector]
+ * ```
+ */
 export class GhxCollector implements Collector {
   readonly id = "ghx"
 

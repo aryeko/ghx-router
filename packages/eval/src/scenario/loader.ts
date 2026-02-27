@@ -4,10 +4,24 @@ import { bindFixtureVariables, type FixtureBindings } from "./fixture-binder.js"
 import { type EvalScenario, EvalScenarioSchema } from "./schema.js"
 
 /**
- * Load and validate scenario JSON files.
- * @param scenariosDir Path to directory containing scenario JSON files
- * @param ids Optional list of scenario IDs to load (loads all if omitted)
- * @param manifest Optional fixture manifest for template variable resolution
+ * Loads and validates eval scenarios from a directory of JSON files.
+ *
+ * When `ids` is provided, only scenarios with matching IDs are returned.
+ * Throws on schema validation failures or duplicate IDs.
+ *
+ * @param scenariosDir - Directory containing `*.json` scenario files
+ * @param ids - Optional: only return scenarios matching these IDs
+ * @param manifest - Optional fixture manifest for `{{variable}}` substitution
+ * @returns Validated, deduplicated scenario array
+ * @throws {Error} On schema validation error or duplicate scenario IDs
+ *
+ * @example
+ * ```typescript
+ * import { loadEvalScenarios } from "@ghx-dev/eval"
+ *
+ * const scenarios = await loadEvalScenarios("scenarios/", ["pr-fix-001"])
+ * console.log(scenarios[0].prompt)
+ * ```
  */
 export async function loadEvalScenarios(
   scenariosDir: string,
@@ -64,7 +78,20 @@ export async function loadEvalScenarios(
 }
 
 /**
- * Load scenario sets from scenario-sets.json
+ * Loads the `scenario-sets.json` file mapping set names to scenario ID arrays.
+ *
+ * Returns an empty object when the file does not exist.
+ *
+ * @param scenariosDir - Directory containing `scenario-sets.json`
+ * @returns Map of set name → scenario IDs
+ *
+ * @example
+ * ```typescript
+ * import { loadScenarioSets } from "@ghx-dev/eval"
+ *
+ * const sets = await loadScenarioSets("scenarios/")
+ * console.log(sets["smoke"]) // ["pr-fix-001", "issue-close-001"]
+ * ```
  */
 export async function loadScenarioSets(
   scenariosDir: string,

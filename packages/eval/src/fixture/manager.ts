@@ -5,8 +5,11 @@ import { type FixtureManifest, type FixtureResource, loadFixtureManifest } from 
 const execFileAsync = promisify(execFile)
 
 export interface FixtureManagerOptions {
+  /** GitHub repo containing fixture resources in `"owner/repo"` format. */
   readonly repo: string
+  /** Path to the fixture manifest JSON file (absolute or relative to CWD). */
   readonly manifest: string
+  /** When `true`, auto-seed fixtures if the manifest file is not found. */
   readonly seedIfMissing?: boolean
 }
 
@@ -15,6 +18,26 @@ export interface FixtureStatus {
   readonly missing: readonly string[]
 }
 
+/**
+ * Manages the lifecycle of GitHub fixture resources used by eval scenarios.
+ *
+ * Fixtures are PRs and issues in a dedicated GitHub repo with a known initial
+ * state, tracked via a manifest file. The manager can check status, reset
+ * branches to their original SHAs between iterations, and clean up resources
+ * after a run.
+ *
+ * @example
+ * ```typescript
+ * import { FixtureManager } from "@ghx-dev/eval"
+ *
+ * const manager = new FixtureManager({
+ *   repo: "owner/ghx-bench-fixtures",
+ *   manifest: "fixtures/latest.json",
+ * })
+ * const { ok, missing } = await manager.status()
+ * if (missing.length > 0) throw new Error(`Missing: ${missing.join(", ")}`)
+ * ```
+ */
 export class FixtureManager {
   constructor(private readonly options: FixtureManagerOptions) {}
 

@@ -3,6 +3,27 @@ import { join } from "node:path"
 import type { ModeConfig, ModeResolver } from "@ghx-dev/agent-profiler"
 import { BASELINE_INSTRUCTIONS, GHX_SKILL_FALLBACK, MCP_INSTRUCTIONS } from "./definitions.js"
 
+/**
+ * Mode resolver for the three ghx evaluation modes.
+ *
+ * | Mode       | What the agent gets                                         |
+ * |------------|-------------------------------------------------------------|
+ * | `ghx`      | ghx binary in PATH + SKILL.md injected as system prompt     |
+ * | `mcp`      | GitHub MCP server configured via provider overrides         |
+ * | `baseline` | Plain `gh` CLI instructions only (control group)            |
+ *
+ * Implements `ModeResolver` from `@ghx-dev/agent-profiler`.
+ *
+ * @example
+ * ```typescript
+ * import { EvalModeResolver } from "@ghx-dev/eval"
+ *
+ * const resolver = new EvalModeResolver()
+ * const config = await resolver.resolve("ghx")
+ * // config.systemInstructions: full SKILL.md content
+ * // config.environment: { PATH: "<ghx-bin>:..." }
+ * ```
+ */
 export class EvalModeResolver implements ModeResolver {
   async resolve(mode: string): Promise<ModeConfig> {
     switch (mode) {
