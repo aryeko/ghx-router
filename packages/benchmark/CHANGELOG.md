@@ -1,5 +1,20 @@
 # @ghx-dev/benchmark
 
+## 0.2.3
+
+### Patch Changes
+
+- Updated dependencies [15e5150]
+- Updated dependencies [208c059]
+- Updated dependencies [b959054]
+- Updated dependencies [d1dae01]
+- Updated dependencies [d1abb28]
+- Updated dependencies [4324616]
+- Updated dependencies [dbf8cb3]
+- Updated dependencies [ac70361]
+- Updated dependencies [0fe06f0]
+  - @ghx-dev/core@0.2.1
+
 ## 0.2.2
 
 ### Patch Changes

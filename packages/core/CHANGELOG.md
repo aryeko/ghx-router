@@ -1,5 +1,77 @@
 # @ghx-dev/core
 
+## 0.2.1
+
+### Patch Changes
+
+- 15e5150: Add CLI-routed capability support in chain execution (`executeTasks`). Steps whose operation card has a `cli` config but no `graphql` config are now dispatched concurrently via the CLI adapter alongside the GraphQL batch phases, rather than being rejected at pre-flight. The returned `meta.route_used` reflects `"cli"` when every step used the CLI adapter, and `"graphql"` for mixed or pure-GraphQL chains.
+
+  When Phase 1 (GraphQL resolution) fails, concurrent CLI steps that already completed are preserved in the result rather than discarded — the chain returns `partial` status instead of unconditionally failing all steps. Invariant guard violations in the CLI dispatch and drain loops now throw rather than silently skipping steps.
+
+- 208c059: Add `--compact` flag to `capabilities list` for token-efficient agent discovery. Outputs capabilities as function signatures (e.g. `issue.view(owner,name,issueNumber)`) without descriptions, reducing output by ~3×. Destructive `.set` capabilities with a corresponding `.add` sibling are annotated with `[replaces all]`.
+- b959054: Compact output by default for `ghx run` and `ghx chain`. Strips `meta`, `error.retryable`, `error.details`, and per-step `data` from chain success steps. Add `--verbose` to restore full envelope output.
+- d1dae01: Fix bug where query-type capabilities (e.g. `issue.view`, `release.list`) would throw when used in a chain because `executeTasks` Phase 2 incorrectly called `getMutationDocument` for all GQL steps. Queries and mutations are now batched separately and executed in parallel.
+
+  Refactors the internal routing engine from a single 814-line file into a focused module tree (`engine/`) with clear phase separation: preflight, resolution, execute, and assemble. Adds explicit `operationType: query | mutation` to all operation cards.
+
+  Further cleans up the engine module architecture: unifies the `executeTask` / `executeTasks` entry points, extracts CLI step orchestration into `cli-dispatch.ts`, narrows `execute.ts` to GQL-only dispatch (`runGqlExecutePhase`), moves Phase 1 error recovery into `assembleResolutionFailure` in `assemble.ts`, and reduces `batch.ts` to a clean 86-line pipeline orchestrator.
+
+- d1abb28: Fix `buildBatchQuery` dropping fragment definitions in chained GQL queries.
+
+  When `ghx chain` batched multiple GQL query steps into a single `BatchChain` document,
+  fragment definitions (e.g. `PrCoreFields`, `PageInfoFields`) were stripped out while
+  `...FragmentName` spread references remained in the body. GitHub's API rejected the
+  request with "Fragment X was used, but not defined".
+
+  `buildBatchMutation` already handled fragments correctly; `buildBatchQuery` now mirrors
+  the same deduplicating fragment-collection logic.
+
+- 4324616: Add GQL handlers for issue.labels.remove and issue.milestone.clear.
+
+  Both capabilities had `routing.preferred: graphql` but no registered handler,
+  causing silent CLI fallback on every execution. This wires up the full chain:
+  domain function, GithubClient method, and capability-registry entry.
+
+- dbf8cb3: Simplify SKILL.md chain result description and clarify required inputs notation.
+- ac70361: Inline full capabilities list in SKILL.md and add per-iteration benchmark logging.
+
+  **SKILL.md: inline capabilities (eliminates discovery round-trip)**
+
+  Replaces the `## Discovery` section — which instructed agents to call `ghx capabilities list` to learn available operations — with an inline listing of all 70 capabilities directly in the skill prompt. Impact per benchmark session:
+
+  - Saves ~3.5s latency (one fewer LLM round-trip before any GitHub work starts)
+  - Saves ~3.8k tokens (capabilities list output no longer ingested as a tool result)
+  - Eliminates capability-name hallucinations (e.g. agents guessing `issue.get` instead of `issue.view`) observed in 40% of benchmark runs
+
+  `ghx capabilities explain <id>` is retained for full input/output schema lookups when needed.
+
+  **Benchmark: per-iteration structured logging and `report:iter`**
+
+  - Per-iteration session export: each benchmark run writes session logs, tool calls, and timing metadata to `iter-logs/<date>/<run>/<mode>/<scenario>/iter-N/session.jsonl`
+  - New `report:iter` CLI command generates a side-by-side per-iteration Markdown comparison report (tool calls, tokens, latency, capabilities invoked, bash commands, pass/fail) across execution modes
+  - GHX log staging and migration: ghx-side logs are moved into per-iteration directories after each run
+  - `BENCH_SESSION_WORKDIR` fix: restores the process working directory correctly after session teardown, preventing ENOENT on relative paths in subsequent runs
+
+- 0fe06f0: Add GraphQL routes to 18 previously CLI-only capabilities across PR mutations, project_v2, release, and repo domains.
+
+  Capabilities upgraded to GraphQL-preferred (with CLI fallback):
+
+  - PR: `pr.assignees.add`, `pr.assignees.remove`, `pr.branch.update`, `pr.create`, `pr.merge`, `pr.reviews.request`, `pr.update`
+  - project_v2: `project_v2.fields.list`, `project_v2.items.field.update`, `project_v2.items.issue.add`, `project_v2.items.issue.remove`, `project_v2.items.list`, `project_v2.org.view`, `project_v2.user.view`
+  - release: `release.list`, `release.view`
+  - repo: `repo.issue_types.list`, `repo.labels.list`
+
+  Breaking changes:
+
+  - `project_v2.items.issue.add`: output changed from `{itemId, added: boolean}` to `{itemId, itemType: string|null}`
+  - `project_v2.items.issue.remove`: output changed from `{itemId, removed: boolean}` to `{deletedItemId: string}`
+  - `project_v2.items.field.update`: output changed from `{itemId, updated: boolean}` to `{itemId}`
+  - `pr.create`: `base` field is now required (was previously optional)
+  - `pr.update`: passing `draft` in any `pr.update` input now throws an error — the GraphQL route does not support draft changes; the engine automatically falls back to CLI
+  - `pr.merge`: passing `deleteBranch: true` triggers CLI fallback — the GraphQL mergePullRequest mutation does not support branch deletion
+  - `pr.assignees.add`, `pr.assignees.remove`: passing an empty array for assignees now throws a validation error
+  - `pr.reviews.request`: the `reviewers` output array no longer has a `minItems: 1` constraint — GraphQL may return zero reviewers after filtering
+
 ## 0.2.0
 
 ### Minor Changes
