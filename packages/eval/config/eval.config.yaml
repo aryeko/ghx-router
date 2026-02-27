@@ -1,0 +1,47 @@
+# -- Profiler config (passed through to agent-profiler) --
+
+# Execution modes to compare
+modes:
+  - ghx
+  - baseline
+  - mcp
+
+# Scenario selection
+scenarios:
+  set: default
+  # ids:                    # Or explicit scenario IDs (overrides set)
+  #   - pr-fix-mixed-threads-wf-001
+
+# Execution parameters
+execution:
+  repetitions: 5
+  warmup: true
+  timeout_default_ms: 120000
+
+# Output configuration
+output:
+  results_dir: results
+  reports_dir: reports
+  session_export: true
+  log_level: info
+
+# -- Eval-specific config (extensions) --
+
+# Provider configuration
+provider:
+  id: opencode
+  port: 3001
+
+# Models to evaluate (eval iterates over these, calling profiler per model)
+models:
+  - id: openai/gpt-5.3-codex
+    label: Codex 5.3
+  # - id: anthropic/claude-sonnet-4-6
+  #   label: Claude Sonnet 4.6
+
+# Fixture configuration
+fixtures:
+  repo: aryeko/ghx-bench-fixtures
+  manifest: fixtures/latest.json
+  seed_if_missing: false
+  reseed_between_modes: false
