@@ -70,7 +70,7 @@ describe("check command", () => {
 
       await checkFn(["--config"])
 
-      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining("eval.config.yaml"))
+      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining("✓ eval.config.yaml"))
     })
 
     it("validates config file from specified --config path", async () => {
@@ -80,7 +80,7 @@ describe("check command", () => {
       await checkFn(["--config", "custom.yaml"])
 
       expect(readFile).toHaveBeenCalledWith("custom.yaml", "utf-8")
-      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining("custom.yaml"))
+      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining("✓ custom.yaml"))
     })
 
     it("prints error and exits 1 for invalid config", async () => {
@@ -89,7 +89,7 @@ describe("check command", () => {
 
       await expect(checkFn(["--config"])).rejects.toThrow("process.exit(1)")
 
-      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining("eval.config.yaml"))
+      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining("✗ eval.config.yaml"))
       expect(processExitSpy).toHaveBeenCalledWith(1)
     })
   })
@@ -102,7 +102,7 @@ describe("check command", () => {
 
       await checkFn(["--scenarios"])
 
-      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining("pr-fix-001.json"))
+      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining("✓ pr-fix-001.json"))
     })
 
     it("prints error and exits 1 for invalid scenario", async () => {
@@ -112,7 +112,7 @@ describe("check command", () => {
 
       await expect(checkFn(["--scenarios"])).rejects.toThrow("process.exit(1)")
 
-      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining("bad-scenario.json"))
+      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining("✗ bad-scenario.json"))
       expect(processExitSpy).toHaveBeenCalledWith(1)
     })
 

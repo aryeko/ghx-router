@@ -18,11 +18,11 @@ async function checkConfig(configPath: string): Promise<boolean> {
     const content = await readFile(configPath, "utf-8")
     const raw = parseYaml(content as string) as unknown
     EvalConfigSchema.parse(raw)
-    console.log(`  ${configPath}`)
+    console.log(`  ✓ ${configPath}`)
     return true
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
-    console.log(`  ${configPath}: ${message}`)
+    console.log(`  ✗ ${configPath}: ${message}`)
     return false
   }
 }
@@ -45,10 +45,10 @@ async function checkScenarios(scenariosDir: string): Promise<boolean> {
       const content = await readFile(filePath, "utf-8")
       const raw = JSON.parse(content as string) as unknown
       EvalScenarioSchema.parse(raw)
-      console.log(`  ${file}`)
+      console.log(`  ✓ ${file}`)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
-      console.log(`  ${file}: ${message}`)
+      console.log(`  ✗ ${file}: ${message}`)
       allValid = false
     }
   }

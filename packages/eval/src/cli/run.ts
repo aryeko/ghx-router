@@ -87,6 +87,14 @@ function applyFlagOverrides(config: EvalConfig, argv: readonly string[]): EvalCo
     }
   }
 
+  const outputJsonl = parseFlag(argv, "--output-jsonl")
+  if (outputJsonl !== null) {
+    result = {
+      ...result,
+      output: { ...result.output, results_dir: outputJsonl },
+    }
+  }
+
   return result
 }
 

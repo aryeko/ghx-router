@@ -200,4 +200,14 @@ describe("run command", () => {
     expect(call).toBeDefined()
     expect((call as unknown[][])[0]).toMatchObject({ repetitions: 3 })
   })
+
+  it("--output-jsonl overrides the output path passed to runProfileSuite", async () => {
+    const { runProfileSuite } = await import("@ghx-dev/agent-profiler")
+
+    await runFn(["--output-jsonl", "/tmp/custom-output.jsonl"])
+
+    const call = vi.mocked(runProfileSuite).mock.calls[0]
+    expect(call).toBeDefined()
+    expect((call as unknown[][])[0]).toMatchObject({ outputPath: "/tmp/custom-output.jsonl" })
+  })
 })
