@@ -111,4 +111,5 @@ See: **[Contributing](contributing/README.md)**
 
 ## Related Documentation
 
+- [Package README](../README.md) -- quick overview, exports, and setup
 - [Agent Profiler Documentation](../../agent-profiler/docs/README.md) -- generic profiling framework that eval implements
