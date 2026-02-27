@@ -6,7 +6,6 @@ export default defineConfig({
   test: {
     reporters: ["default", "junit"],
     outputFile: { junit: "test-report.junit.xml" },
-    retry: 1,
     coverage: {
       provider: "v8",
       reporter: ["text-summary", "lcov"],

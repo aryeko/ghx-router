@@ -24,7 +24,7 @@ const CATEGORY_METRIC_NAMES: Readonly<Record<ToolCategory, string>> = {
  * |---------------------|-------------------------------------|
  * | `capabilities_used` | ghx capability invocations          |
  * | `mcp_tools_invoked` | MCP server tool calls               |
- * | `gh_cli_commands`   | `gh` CLI subprocess calls           |
+ * | `gh_cli_commands`   | direct `gh` tool calls (bash-wrapped `gh` commands count as `bash_commands`) |
  * | `bash_commands`     | General bash/shell executions       |
  * | `file_ops`          | File read / write / edit operations |
  * | `other_tools`       | Uncategorized tool calls            |

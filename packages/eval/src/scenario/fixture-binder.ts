@@ -11,10 +11,9 @@ import type { EvalScenario } from "./schema.js"
  * Resolves `{{variable}}` placeholders in a scenario's prompt and checkpoint
  * inputs using values from a fixture manifest.
  *
- * Special variables derived automatically:
+ * Special variables derived automatically from any `repo` binding:
  * - `{{owner}}` — owner portion of the `repo` binding value
  * - `{{repo_name}}` — repo-name portion of the `repo` binding value
- * - `{{fixture_repo}}` — full `owner/repo-name` string
  *
  * Returns a new scenario object; the input is not mutated.
  *
