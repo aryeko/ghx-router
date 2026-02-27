@@ -80,27 +80,37 @@ export class FixtureManager {
     throw new Error("FixtureManager.seed(): not yet implemented — run eval fixture seed manually")
   }
 
-  async cleanup(_options?: { all?: boolean }): Promise<void> {
+  async cleanup(options?: { all?: boolean }): Promise<void> {
     const parts = this.options.repo.split("/")
     if (parts.length !== 2 || !parts[0] || !parts[1]) {
       throw new Error(`Invalid repo format: ${this.options.repo}`)
     }
 
-    const prs = await this.listLabeledResources("pr", "bench-fixture")
-    const issues = await this.listLabeledResources("issue", "bench-fixture")
+    if (options?.all) {
+      const prs = await this.listLabeledResources("pr", "bench-fixture")
+      const issues = await this.listLabeledResources("issue", "bench-fixture")
 
-    for (const pr of prs) {
-      await this.runGh(["pr", "close", String(pr), "--repo", this.options.repo])
-    }
-
-    for (const issue of issues) {
-      await this.runGh(["issue", "close", String(issue), "--repo", this.options.repo])
+      for (const pr of prs) {
+        await this.runGh(["pr", "close", String(pr), "--repo", this.options.repo])
+      }
+      for (const issue of issues) {
+        await this.runGh(["issue", "close", String(issue), "--repo", this.options.repo])
+      }
+    } else {
+      const manifest = await loadFixtureManifest(this.options.manifest)
+      for (const resource of Object.values(manifest.fixtures)) {
+        if (resource.type === "pr") {
+          await this.runGh(["pr", "close", String(resource.number), "--repo", resource.repo])
+        } else {
+          await this.runGh(["issue", "close", String(resource.number), "--repo", resource.repo])
+        }
+      }
     }
   }
 
   private async checkResourceExists(resource: FixtureResource): Promise<boolean> {
     try {
-      if (resource.type.includes("pr")) {
+      if (resource.type === "pr") {
         await this.runGh([
           "pr",
           "view",

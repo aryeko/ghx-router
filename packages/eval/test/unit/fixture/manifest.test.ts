@@ -155,4 +155,13 @@ describe("writeFixtureManifest", () => {
     const parsed = JSON.parse(raw)
     expect(parsed.seedId).toBe("default")
   })
+
+  it("creates parent directories if they do not exist", async () => {
+    const deepPath = join(tmpDir, "a", "b", "c", "manifest.json")
+    const manifest = FixtureManifestSchema.parse(validManifest)
+    await expect(writeFixtureManifest(deepPath, manifest)).resolves.toBeUndefined()
+    const { readFile: fsReadFile } = await import("node:fs/promises")
+    const content = await fsReadFile(deepPath, "utf-8")
+    expect(JSON.parse(content)).toMatchObject({ seedId: manifest.seedId })
+  })
 })

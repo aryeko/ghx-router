@@ -1,4 +1,5 @@
-import { readFile, writeFile } from "node:fs/promises"
+import { mkdir, readFile, writeFile } from "node:fs/promises"
+import { dirname } from "node:path"
 import { z } from "zod"
 
 export const FixtureResourceSchema = z.object({
@@ -71,5 +72,6 @@ export async function loadFixtureManifest(path: string): Promise<FixtureManifest
  * ```
  */
 export async function writeFixtureManifest(path: string, manifest: FixtureManifest): Promise<void> {
+  await mkdir(dirname(path), { recursive: true })
   await writeFile(path, JSON.stringify(manifest, null, 2), "utf-8")
 }

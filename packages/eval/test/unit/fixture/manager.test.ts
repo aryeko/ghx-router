@@ -56,7 +56,8 @@ describe("FixtureManager.status()", () => {
       repo: "aryeko/ghx-bench-fixtures",
       manifest: "fixtures/latest.json",
     })
-    // Spy on private runGh: first call (pr check) returns JSON, second (issue check) returns JSON
+    // Spy on private runGh: pr_with_mixed_threads has type "pr_with_mixed_threads" (not === "pr"),
+    // so both fixtures use the issue view command
     const runGhSpy = vi
       .spyOn(manager as unknown as { runGh: (args: string[]) => Promise<string> }, "runGh")
       .mockResolvedValue(JSON.stringify({ number: 42 }))
@@ -227,6 +228,26 @@ describe("FixtureManager.seed()", () => {
   })
 })
 
+const cleanupManifest: FixtureManifest = {
+  seedId: "cleanup-test",
+  createdAt: "2026-02-27T12:00:00Z",
+  repo: "aryeko/ghx-bench-fixtures",
+  fixtures: {
+    my_pr: {
+      type: "pr",
+      number: 42,
+      repo: "aryeko/ghx-bench-fixtures",
+      metadata: {},
+    },
+    my_issue: {
+      type: "issue",
+      number: 7,
+      repo: "aryeko/ghx-bench-fixtures",
+      metadata: {},
+    },
+  },
+}
+
 describe("FixtureManager.cleanup()", () => {
   it("throws for invalid repo format (no slash)", async () => {
     const manager = new FixtureManager({
@@ -252,7 +273,7 @@ describe("FixtureManager.cleanup()", () => {
       .mockResolvedValueOnce("") // pr close 10
       .mockResolvedValueOnce("") // issue close 5
 
-    await manager.cleanup()
+    await manager.cleanup({ all: true })
 
     // Should have called list for pr, list for issue, then close for each
     expect(runGhSpy).toHaveBeenCalledTimes(4)
@@ -272,7 +293,7 @@ describe("FixtureManager.cleanup()", () => {
     // Both lists return empty
     runGhSpy.mockResolvedValueOnce(JSON.stringify([])).mockResolvedValueOnce(JSON.stringify([]))
 
-    await expect(manager.cleanup()).resolves.toBeUndefined()
+    await expect(manager.cleanup({ all: true })).resolves.toBeUndefined()
     // Only the two list calls — no close calls
     expect(runGhSpy).toHaveBeenCalledTimes(2)
   })
@@ -288,6 +309,34 @@ describe("FixtureManager.cleanup()", () => {
     ).mockRejectedValue(new Error("gh auth error"))
 
     // listLabeledResources catches errors and returns [] — cleanup should succeed
-    await expect(manager.cleanup()).resolves.toBeUndefined()
+    await expect(manager.cleanup({ all: true })).resolves.toBeUndefined()
+  })
+
+  it("cleanup without --all closes resources from manifest", async () => {
+    mockLoadManifest.mockResolvedValue(cleanupManifest)
+    const manager = new FixtureManager({
+      repo: "aryeko/ghx-bench-fixtures",
+      manifest: "fixtures/latest.json",
+    })
+    const runGhSpy = vi
+      .spyOn(manager as unknown as { runGh: (args: string[]) => Promise<string> }, "runGh")
+      .mockResolvedValue("")
+
+    await manager.cleanup()
+
+    // Should close the PR (number 42) and issue (number 7) from the manifest
+    expect(runGhSpy).toHaveBeenCalledTimes(2)
+    expect(runGhSpy).toHaveBeenCalledWith(expect.arrayContaining(["pr", "close", "42"]))
+    expect(runGhSpy).toHaveBeenCalledWith(expect.arrayContaining(["issue", "close", "7"]))
+  })
+
+  it("cleanup without --all throws when manifest cannot be loaded", async () => {
+    mockLoadManifest.mockRejectedValue(new Error("ENOENT: no such file"))
+    const manager = new FixtureManager({
+      repo: "aryeko/ghx-bench-fixtures",
+      manifest: "fixtures/latest.json",
+    })
+
+    await expect(manager.cleanup()).rejects.toThrow()
   })
 })

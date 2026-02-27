@@ -257,11 +257,10 @@ export class OpenCodeProvider implements SessionProvider {
       },
     })
 
-    const wallClockStart = Date.now()
     const remaining = Math.max(1000, timeoutMs - (Date.now() - startTime))
     const messages = await this.pollForCompletion(sessionApi, handle.sessionId, remaining)
 
-    const wallMs = Date.now() - wallClockStart + (wallClockStart - startTime)
+    const wallMs = Date.now() - startTime
 
     const lastAssistant = this.findLastAssistantMessage(messages)
     const tokens = this.extractTokens(lastAssistant)
