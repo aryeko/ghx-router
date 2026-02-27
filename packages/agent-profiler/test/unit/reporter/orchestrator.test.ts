@@ -116,12 +116,7 @@ describe("generateReport", () => {
 
   it("logs warning and continues when writeFile rejects for a single page", async () => {
     const writeFileMock = vi.mocked(writeFile)
-    writeFileMock.mockImplementationOnce((path) => {
-      if (String(path).endsWith("index.md")) {
-        return Promise.reject(new Error("ENOSPC: no space left on device"))
-      }
-      return Promise.resolve()
-    })
+    writeFileMock.mockRejectedValueOnce(new Error("ENOSPC: no space left on device"))
 
     const logger = { warn: vi.fn() }
     const rows = [makeProfileRow()]

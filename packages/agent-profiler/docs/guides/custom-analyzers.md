@@ -127,11 +127,11 @@ const result = await runProfileSuite({
   analyzers: [
     toolDurationAnalyzer,   // your custom analyzer
   ],
-  sessionExport: true,       // required for analyzers to receive traces
+  sessionExport: false,      // optional: auto-enabled when analyzers are present
 })
 ```
 
-When analyzers are present, the runner automatically enables session export even if `sessionExport` is set to `false`, because analyzers require trace data.
+When analyzers are present, the runner automatically enables session export (even if `sessionExport` is `false`) because analyzers require trace data. You do not need to set `sessionExport: true` explicitly when using analyzers.
 
 ## Tier System and Report Integration
 

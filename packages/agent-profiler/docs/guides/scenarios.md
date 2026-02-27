@@ -246,7 +246,7 @@ export const BaseScenarioSchema = z.object({
 })
 ```
 
-The schema enforces the same constraints as the interface: `id`, `name`, and `prompt` must be non-empty strings; `timeoutMs` must be positive; `allowedRetries` must be a non-negative integer. The `extensions` field defaults to an empty object when omitted.
+The schema is stricter than the TypeScript interface, which only defines types. In addition to type checking, the schema enforces runtime constraints: `id`, `name`, and `prompt` must be non-empty strings; `timeoutMs` must be positive; `allowedRetries` must be a non-negative integer. The `extensions` field defaults to an empty object when omitted.
 
 ### Using the Schema in a Loader
 

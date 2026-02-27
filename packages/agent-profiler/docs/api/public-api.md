@@ -1,6 +1,5 @@
 # Public API
 
-<!-- TODO: Verify PROFILER_FLAGS type (actual: as-const literal, not Record<string,string>), parseProfilerFlags argv readonly qualifier -->
 
 Reference for all exported functions, classes, types, and constants from `@ghx-dev/agent-profiler`.
 
@@ -207,7 +206,7 @@ Load and validate a profiler configuration from a YAML file. Returns a fully val
 ### parseProfilerFlags
 
 ```typescript
-function parseProfilerFlags(argv: string[], base: ProfilerConfig): ProfilerConfig
+function parseProfilerFlags(argv: readonly string[], base: ProfilerConfig): ProfilerConfig
 ```
 
 Apply CLI flag overrides on top of a base configuration. Flags take precedence over YAML values.
@@ -215,10 +214,17 @@ Apply CLI flag overrides on top of a base configuration. Flags take precedence o
 ### PROFILER_FLAGS
 
 ```typescript
-const PROFILER_FLAGS: Record<string, string>
+const PROFILER_FLAGS: {
+  readonly "--mode": "Override modes (repeatable)"
+  readonly "--scenario": "Override scenarios (repeatable)"
+  readonly "--scenario-set": "Override scenario set"
+  readonly "--repetitions": "Override repetition count"
+  readonly "--retries": "Override allowed retries per iteration"
+  readonly "--skip-warmup": "Skip warmup canary"
+}
 ```
 
-Map of the 6 supported CLI flag names to their descriptions, used for help text generation. Flags: `--mode`, `--scenario`, `--scenario-set`, `--repetitions`, `--retries`, `--skip-warmup`.
+Narrow `as const` object mapping the 6 supported CLI flag names to their description strings, used for help text generation.
 
 ### ProfilerConfigSchema
 

@@ -23,7 +23,7 @@ sequenceDiagram
     Runner->>Provider: shutdown()
 ```
 
-The runner calls `init()` once per mode, then repeats `createSession` through `destroySession` for every iteration within that mode. After all iterations complete, the runner calls `shutdown()`.
+The runner calls `init()` once per suite before the mode loop begins, then repeats `createSession` through `destroySession` for every iteration within each mode. After all modes and iterations complete, the runner calls `shutdown()`.
 
 ## Step 1: Create a Class Implementing SessionProvider
 
