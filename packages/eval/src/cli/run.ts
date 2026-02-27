@@ -3,37 +3,19 @@ import { GhxCollector } from "@eval/collector/ghx-collector.js"
 import { loadEvalConfig } from "@eval/config/loader.js"
 import type { EvalConfig } from "@eval/config/schema.js"
 import { FixtureManager } from "@eval/fixture/manager.js"
-import { loadFixtureManifest } from "@eval/fixture/manifest.js"
 import { createEvalHooks } from "@eval/hooks/eval-hooks.js"
 import { EvalModeResolver } from "@eval/mode/resolver.js"
 import { OpenCodeProvider } from "@eval/provider/opencode-provider.js"
 import { loadEvalScenarios } from "@eval/scenario/loader.js"
 import { CheckpointScorer } from "@eval/scorer/checkpoint-scorer.js"
+import type { BaseScenario } from "@ghx-dev/agent-profiler"
 import { runProfileSuite } from "@ghx-dev/agent-profiler"
-
-function parseFlag(argv: readonly string[], flag: string): string | null {
-  const idx = argv.indexOf(flag)
-  if (idx === -1 || idx + 1 >= argv.length) return null
-  return argv[idx + 1] ?? null
-}
-
-function parseMultiFlag(argv: readonly string[], flag: string): string[] {
-  const values: string[] = []
-  for (let i = 0; i < argv.length; i++) {
-    if (argv[i] === flag && i + 1 < argv.length) {
-      const next = argv[i + 1]
-      if (next !== undefined) {
-        values.push(next)
-      }
-    }
-  }
-  return values
-}
+import { hasFlag, parseFlag, parseFlagAll } from "./parse-flags.js"
 
 function applyFlagOverrides(config: EvalConfig, argv: readonly string[]): EvalConfig {
   let result: EvalConfig = config
 
-  const models = parseMultiFlag(argv, "--model")
+  const models = parseFlagAll(argv, "--model")
   if (models.length > 0) {
     result = {
       ...result,
@@ -41,16 +23,16 @@ function applyFlagOverrides(config: EvalConfig, argv: readonly string[]): EvalCo
     }
   }
 
-  const modes = parseMultiFlag(argv, "--mode")
+  const modes = parseFlagAll(argv, "--mode")
   if (modes.length > 0) {
-    result = { ...result, modes }
+    result = { ...result, modes: [...modes] }
   }
 
-  const scenarios = parseMultiFlag(argv, "--scenario")
-  if (scenarios.length > 0) {
+  const scenarioIds = parseFlagAll(argv, "--scenario")
+  if (scenarioIds.length > 0) {
     result = {
       ...result,
-      scenarios: { ...result.scenarios, ids: scenarios },
+      scenarios: { ...result.scenarios, ids: [...scenarioIds] },
     }
   }
 
@@ -62,31 +44,32 @@ function applyFlagOverrides(config: EvalConfig, argv: readonly string[]): EvalCo
     }
   }
 
-  const repetitionsStr = parseFlag(argv, "--repetitions")
-  if (repetitionsStr !== null) {
-    const repetitions = Number(repetitionsStr)
+  const repStr = parseFlag(argv, "--repetitions")
+  if (repStr !== null) {
+    const repetitions = Number(repStr)
     if (!Number.isNaN(repetitions) && repetitions > 0) {
-      result = {
-        ...result,
-        execution: { ...result.execution, repetitions },
-      }
+      result = { ...result, execution: { ...result.execution, repetitions } }
+    } else {
+      console.warn(`Warning: invalid --repetitions value "${repStr}", using config default`)
     }
   }
 
-  if (argv.includes("--skip-warmup")) {
+  if (hasFlag(argv, "--skip-warmup")) {
     result = {
       ...result,
       execution: { ...result.execution, warmup: false },
     }
   }
 
-  if (argv.includes("--seed-if-missing")) {
+  if (hasFlag(argv, "--seed-if-missing")) {
     result = {
       ...result,
       fixtures: { ...result.fixtures, seed_if_missing: true },
     }
   }
 
+  // --output-jsonl sets the output path for runProfileSuite (overrides config.output.results_dir)
+  // The agent-profiler will write results to this path
   const outputJsonl = parseFlag(argv, "--output-jsonl")
   if (outputJsonl !== null) {
     result = {
@@ -104,20 +87,15 @@ export async function run(argv: readonly string[]): Promise<void> {
   const rawConfig = loadEvalConfig(yamlContent as string)
   const config = applyFlagOverrides(rawConfig, argv)
 
-  if (argv.includes("--dry-run")) {
+  if (hasFlag(argv, "--dry-run")) {
     console.log("eval run --dry-run: resolved config:")
     console.log(JSON.stringify(config, null, 2))
-    const scenarios = await loadEvalScenarios(
-      config.scenarios.ids ? process.cwd() : process.cwd(),
-      config.scenarios.ids,
-    )
+    const scenarios = await loadEvalScenarios(process.cwd(), config.scenarios.ids)
     console.log(`Scenarios: ${scenarios.length}`)
     return
   }
 
   const scenarios = await loadEvalScenarios(process.cwd(), config.scenarios.ids)
-
-  const fixtureManifest = await loadFixtureManifest(config.fixtures.manifest).catch(() => null)
 
   const fixtureManager = new FixtureManager({
     repo: config.fixtures.repo,
@@ -140,7 +118,8 @@ export async function run(argv: readonly string[]): Promise<void> {
 
     await runProfileSuite({
       modes: config.modes,
-      scenarios: scenarios as never,
+      // EvalScenario extends BaseScenario structurally; cast required due to module boundary
+      scenarios: scenarios as unknown as ReadonlyArray<BaseScenario>,
       repetitions: config.execution.repetitions,
       outputPath: config.output.results_dir,
       provider,
@@ -150,6 +129,4 @@ export async function run(argv: readonly string[]): Promise<void> {
       hooks,
     })
   }
-
-  void fixtureManifest
 }

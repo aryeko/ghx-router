@@ -13,10 +13,6 @@ vi.mock("@eval/scenario/loader.js", () => ({
   loadEvalScenarios: vi.fn(),
 }))
 
-vi.mock("@eval/fixture/manifest.js", () => ({
-  loadFixtureManifest: vi.fn(),
-}))
-
 vi.mock("@eval/fixture/manager.js", () => ({
   FixtureManager: vi.fn().mockImplementation(() => ({
     status: vi.fn().mockResolvedValue({ ok: [], missing: [] }),
@@ -96,18 +92,11 @@ describe("run command", () => {
 
     const { loadEvalConfig } = await import("@eval/config/loader.js")
     const { loadEvalScenarios } = await import("@eval/scenario/loader.js")
-    const { loadFixtureManifest } = await import("@eval/fixture/manifest.js")
     const { readFile: rf } = await import("node:fs/promises")
 
     vi.mocked(rf).mockResolvedValue("modes:\n  - ghx\nmodels:\n  - id: gpt-4o\n    label: GPT-4o")
     vi.mocked(loadEvalConfig).mockReturnValue(MINIMAL_CONFIG)
     vi.mocked(loadEvalScenarios).mockResolvedValue([])
-    vi.mocked(loadFixtureManifest).mockResolvedValue({
-      seedId: "default",
-      createdAt: "2026-01-01T00:00:00Z",
-      repo: "owner/fixtures",
-      fixtures: {},
-    })
 
     // Re-import fresh to pick up mocks
     const mod = await import("@eval/cli/run.js")

@@ -1,12 +1,5 @@
 import { FixtureManager } from "@eval/fixture/manager.js"
-
-function parseFlag(argv: readonly string[], flag: string): string | null {
-  const idx = argv.indexOf(flag)
-  if (idx === -1 || idx + 1 >= argv.length) return null
-  const next = argv[idx + 1]
-  if (next === undefined || next.startsWith("--")) return null
-  return next
-}
+import { parseFlag } from "./parse-flags.js"
 
 export async function fixture(argv: readonly string[]): Promise<void> {
   const subcommand = argv[0]

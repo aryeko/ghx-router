@@ -3,15 +3,7 @@ import { join } from "node:path"
 import { EvalConfigSchema } from "@eval/config/schema.js"
 import { EvalScenarioSchema } from "@eval/scenario/schema.js"
 import { parse as parseYaml } from "yaml"
-
-function parseFlag(argv: readonly string[], flag: string): string | null {
-  const idx = argv.indexOf(flag)
-  if (idx === -1) return null
-  const next = argv[idx + 1]
-  // If next is another flag or doesn't exist, treat flag as boolean with no value
-  if (next === undefined || next.startsWith("--")) return ""
-  return next
-}
+import { parseFlag } from "./parse-flags.js"
 
 async function checkConfig(configPath: string): Promise<boolean> {
   try {
@@ -70,8 +62,7 @@ export async function check(argv: readonly string[]): Promise<void> {
 
   if (hasConfig || hasAll) {
     const configPathValue = parseFlag(argv, "--config")
-    const configPath =
-      configPathValue !== null && configPathValue !== "" ? configPathValue : "eval.config.yaml"
+    const configPath = configPathValue !== null ? configPathValue : "eval.config.yaml"
     console.log("Checking config:")
     const valid = await checkConfig(configPath)
     if (!valid) allValid = false
