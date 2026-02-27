@@ -29,5 +29,10 @@
     "typescript": "catalog:",
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "catalog:"
+  },
+  "nx": {
+    "targets": {
+      "ci": {}
+    }
   }
 }

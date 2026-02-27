@@ -1,7 +1,6 @@
-// NOTE: FixtureManifest is defined in src/fixture/manifest.ts which doesn't
-// exist yet. Define a minimal local type here for the binder, and it will
-// be replaced by the real type when the fixture module is implemented.
-
+// FixtureBindings is the structural interface the binder requires from a fixture manifest.
+// FixtureManifest from src/fixture/manifest.ts satisfies this interface — callers may
+// pass a FixtureManifest directly.
 export interface FixtureBindings {
   readonly fixtures: Readonly<Record<string, Readonly<Record<string, unknown>>>>
 }

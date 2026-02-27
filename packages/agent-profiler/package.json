@@ -14,9 +14,11 @@
     "build": "tsup",
     "typecheck": "tsc -p tsconfig.build.json",
     "lint": "eslint .",
-    "test": "vitest run",
+    "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage --passWithNoTests",
+    "format": "biome format --write src/ test/",
+    "format:check": "biome format src/ test/"
   },
   "devDependencies": {
     "@types/node": "catalog:",
@@ -29,5 +31,10 @@
   },
   "dependencies": {
     "zod": "^4.3.6"
+  },
+  "nx": {
+    "targets": {
+      "ci": {}
+    }
   }
 }
