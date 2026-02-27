@@ -1,0 +1,49 @@
+{
+  "id": "pr-fix-mixed-threads-wf-001",
+  "name": "Fix PR with Mixed Review Threads",
+  "description": "Agent must read a PR with both resolved and unresolved review threads, understand the unresolved feedback, and push a fix commit that addresses the outstanding comments.",
+  "category": "pr",
+  "difficulty": "intermediate",
+  "prompt": "Review PR #{{pr_number}} in {{repo}}. There are unresolved review threads with requested changes. Read the unresolved comments, understand what changes are needed, make the fixes, and push a commit to the PR branch. Do not resolve the threads -- the reviewer will do that.",
+  "timeoutMs": 180000,
+  "allowedRetries": 1,
+  "tags": ["pr", "review", "code-fix", "multi-step"],
+  "fixture": {
+    "repo": "{{fixture_repo}}",
+    "requires": ["pr_with_mixed_threads"],
+    "bindings": {
+      "pr_number": "pr_with_mixed_threads.number",
+      "repo": "pr_with_mixed_threads.repo"
+    },
+    "reseedPerIteration": true
+  },
+  "assertions": {
+    "checkpoints": [
+      {
+        "id": "new-commit-pushed",
+        "description": "A new commit was pushed to the PR branch after the review",
+        "task": "pr.commits.list",
+        "input": {
+          "owner": "{{owner}}",
+          "repo": "{{repo_name}}",
+          "pr_number": "{{pr_number}}"
+        },
+        "condition": { "type": "count_gte", "value": 2 }
+      },
+      {
+        "id": "threads-not-resolved",
+        "description": "Unresolved threads remain unresolved (agent did not self-resolve)",
+        "task": "pr.review_threads.list",
+        "input": {
+          "owner": "{{owner}}",
+          "repo": "{{repo_name}}",
+          "pr_number": "{{pr_number}}",
+          "filter": "unresolved"
+        },
+        "condition": { "type": "non_empty" }
+      }
+    ],
+    "expectedToolSequence": ["pr.view", "pr.review_threads.list", "bash:git*", "bash:git push*"],
+    "expectedCapabilities": ["pr.view", "pr.review_threads.list", "pr.commits.list"]
+  }
+}

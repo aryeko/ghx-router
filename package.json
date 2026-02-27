@@ -29,6 +29,7 @@
     "changeset:publish": "changeset publish",
     "changeset:status": "changeset status",
     "changeset:version": "changeset version && pnpm --filter @ghx-dev/core run plugin:sync",
+    "eval": "pnpm --filter @ghx-dev/eval run eval",
     "benchmark": "nx run-many -t bench",
     "ghx:gql:verify": "nx run-many -t gql:verify",
     "dep-graph": "nx graph",

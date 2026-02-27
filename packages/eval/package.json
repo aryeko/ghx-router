@@ -1,0 +1,38 @@
+{
+  "name": "@ghx-dev/eval",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc -p tsconfig.build.json",
+    "lint": "eslint .",
+    "test": "vitest run --project unit --passWithNoTests",
+    "test:watch": "vitest --project unit",
+    "test:coverage": "vitest run --coverage --project unit --passWithNoTests",
+    "eval": "tsx src/cli/index.ts",
+    "format": "biome format --write src/ test/",
+    "format:check": "biome format src/ test/"
+  },
+  "dependencies": {
+    "@ghx-dev/agent-profiler": "workspace:*",
+    "@ghx-dev/core": "workspace:*",
+    "@opencode-ai/sdk": "^1.2.10",
+    "yaml": "^2.7.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "tsup": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "catalog:"
+  },
+  "nx": {
+    "targets": {
+      "ci": {}
+    }
+  }
+}

@@ -1,0 +1,5 @@
+dist/
+fixtures/
+results/
+reports/
+test-report.junit.xml

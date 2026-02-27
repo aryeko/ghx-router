@@ -1,0 +1,36 @@
+{
+  "id": "pr-review-comment-001",
+  "name": "Review and Comment on PR",
+  "description": "Agent must review a PR diff, identify issues, and leave a constructive review comment.",
+  "category": "pr",
+  "difficulty": "basic",
+  "prompt": "Review the changes in PR #{{pr_number}} in {{repo}}. Examine the diff carefully and leave a review comment summarizing your findings -- mention any bugs, style issues, or improvements. Submit as a comment (not approval or request-changes).",
+  "timeoutMs": 120000,
+  "allowedRetries": 1,
+  "tags": ["pr", "review", "comment"],
+  "fixture": {
+    "repo": "{{fixture_repo}}",
+    "requires": ["pr_with_changes"],
+    "bindings": {
+      "pr_number": "pr_with_changes.number",
+      "repo": "pr_with_changes.repo"
+    },
+    "reseedPerIteration": false
+  },
+  "assertions": {
+    "checkpoints": [
+      {
+        "id": "review-comment-exists",
+        "description": "A review comment was posted on the PR",
+        "task": "pr.reviews.list",
+        "input": {
+          "owner": "{{owner}}",
+          "repo": "{{repo_name}}",
+          "pr_number": "{{pr_number}}"
+        },
+        "condition": { "type": "non_empty" }
+      }
+    ],
+    "expectedCapabilities": ["pr.view", "pr.diff", "pr.reviews.create"]
+  }
+}
