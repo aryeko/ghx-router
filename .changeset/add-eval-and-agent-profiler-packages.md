@@ -1,14 +1,8 @@
 ---
-"@ghx-dev/agent-profiler": minor
 "@ghx-dev/eval": minor
 ---
 
-Add `@ghx-dev/agent-profiler` and `@ghx-dev/eval` packages.
-
-**`@ghx-dev/agent-profiler`** — new stub package that defines all plugin contracts and shared types for building evaluators:
-- `SessionProvider`, `ModeResolver`, `Scorer`, `Collector`, `Analyzer` contracts
-- `RunHooks` lifecycle interface (`beforeRun`, `beforeScenario`, `afterScenario`)
-- Shared types: `SessionTrace`, `ProfileRow`, `PromptResult`, `CustomMetric`, `TokenBreakdown`, `TimingBreakdown`, `CostBreakdown`
+Add `@ghx-dev/eval` package.
 
 **`@ghx-dev/eval`** — new private eval harness that benchmarks the `ghx`, `mcp`, and `baseline` execution modes against live GitHub fixtures:
 - Config: YAML-driven `EvalConfig` with env-variable overrides (`PROFILER_REPETITIONS`, `PROFILER_MODES`, `EVAL_MODEL`, etc.)
