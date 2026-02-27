@@ -1,3 +1,5 @@
+import { createIssueSeeder } from "./issue-seeder.js"
+import { createPrSeeder } from "./pr-seeder.js"
 import type { FixtureSeeder } from "./types.js"
 
 const registry = new Map<string, FixtureSeeder>()
@@ -13,5 +15,9 @@ export function getSeeder(type: string): FixtureSeeder {
   }
   return seeder
 }
+
+// Auto-register built-in seeders
+registerSeeder(createPrSeeder())
+registerSeeder(createIssueSeeder())
 
 export type { FixtureSeeder, SeedOptions } from "./types.js"
