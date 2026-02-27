@@ -173,6 +173,11 @@ export class OpenCodeProvider implements SessionProvider {
   constructor(private readonly options: OpenCodeProviderOptions) {}
 
   async init(config: ProviderConfig): Promise<void> {
+    if (this.server !== null) {
+      throw new Error(
+        "OpenCodeProvider.init() called while already initialized; call shutdown() first",
+      )
+    }
     const { createOpencode } = await import("@opencode-ai/sdk")
     const { mkdtemp } = await import("node:fs/promises")
     const { join } = await import("node:path")
