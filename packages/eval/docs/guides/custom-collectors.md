@@ -107,6 +107,6 @@ Source: `packages/eval/src/collector/ghx-collector.ts`, `packages/eval/src/colle
 ## Related Documentation
 
 - [Guides Hub](./README.md) -- all available guides
-- [Metrics Framework](../methodology/metrics-framework.md) -- how collector metrics feed into analysis
+- [Metrics](../methodology/metrics.md) -- how collector metrics feed into analysis
 - [Plugin Implementations](../architecture/plugin-implementations.md) -- all six eval plugin implementations
 - [Agent Profiler Plugin Contracts](../../../agent-profiler/docs/architecture/plugin-contracts.md) -- full Collector interface

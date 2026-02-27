@@ -111,5 +111,4 @@ See: **[Contributing](contributing/README.md)**
 
 ## Related Documentation
 
-- [Package README](../README.md) -- npm-facing overview
 - [Agent Profiler Documentation](../../agent-profiler/docs/README.md) -- generic profiling framework that eval implements

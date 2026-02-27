@@ -15,7 +15,7 @@ Follow these steps when adding a scenario:
 
 ### 1. Create the Scenario File
 
-Add a JSON file in `src/scenarios/` following the ID convention (`<domain>-<action>-<variant>`). The file must conform to the scenario schema.
+Add a JSON file in `scenarios/` following the ID convention (`<domain>-<action>-<variant>`). The file must conform to the scenario schema.
 
 ### 2. Define Fixture Requirements
 
@@ -42,9 +42,9 @@ pnpm --filter @ghx-dev/eval run eval check
 Execute the scenario across all evaluation modes to verify it behaves correctly in each context:
 
 ```bash
+pnpm --filter @ghx-dev/eval run eval run --scenario <id> --mode ghx
+pnpm --filter @ghx-dev/eval run eval run --scenario <id> --mode mcp
 pnpm --filter @ghx-dev/eval run eval run --scenario <id> --mode baseline
-pnpm --filter @ghx-dev/eval run eval run --scenario <id> --mode assisted
-pnpm --filter @ghx-dev/eval run eval run --scenario <id> --mode autonomous
 ```
 
 ### 7. Verify Test Coverage

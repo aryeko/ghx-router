@@ -95,4 +95,4 @@ For detailed guidance on statistical interpretation (bootstrap confidence interv
 - [Guides Hub](./README.md) -- all available guides
 - [Running Evaluations](./running-evaluations.md) -- CLI commands that produce these outputs
 - [Interpreting Results](../methodology/interpreting-results.md) -- statistical methods for comparing modes
-- [Metrics Framework](../methodology/metrics-framework.md) -- metric definitions and collection pipeline
+- [Metrics](../methodology/metrics.md) -- metric definitions and collection pipeline
