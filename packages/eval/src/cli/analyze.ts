@@ -1,7 +1,15 @@
+import { join } from "node:path"
+import { runAnalyzers } from "@eval/analysis/run-analyzers.js"
 import { parseFlag } from "./parse-flags.js"
 
 export async function analyze(argv: readonly string[]): Promise<void> {
-  // TODO: Wire to agent-profiler analyze pipeline when available
   const runDir = parseFlag(argv, "--run-dir") ?? "results"
-  console.log(`eval analyze: run-dir=${runDir} (not yet implemented — agent-profiler pending)`)
+  const outputDir = parseFlag(argv, "--output") ?? join(runDir, "analysis")
+
+  console.log(`Analyzing session traces in ${runDir}/sessions/...`)
+
+  const bundles = await runAnalyzers({ runDir, outputDir })
+
+  console.log(`Analysis complete: ${bundles.length} session(s) analyzed`)
+  console.log(`Results written to ${outputDir}/`)
 }

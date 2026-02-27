@@ -1,5 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
+vi.mock("@eval/analysis/run-analyzers.js", () => ({
+  runAnalyzers: vi
+    .fn()
+    .mockResolvedValue([
+      { sessionId: "s1", scenarioId: "sc1", mode: "ghx", model: "", results: {} },
+    ]),
+}))
+
+import { runAnalyzers } from "@eval/analysis/run-analyzers.js"
+
 describe("analyze command", () => {
   let analyzeFn: (argv: readonly string[]) => Promise<void>
   let consoleLogSpy: ReturnType<typeof vi.spyOn>
@@ -16,24 +26,33 @@ describe("analyze command", () => {
     consoleLogSpy.mockRestore()
   })
 
-  it("logs output with default run-dir when no --run-dir flag", async () => {
+  it("calls runAnalyzers with default run-dir and output", async () => {
     await analyzeFn([])
 
-    const output = consoleLogSpy.mock.calls.flat().join(" ")
-    expect(output).toContain("results")
+    expect(runAnalyzers).toHaveBeenCalledWith({
+      runDir: "results",
+      outputDir: expect.stringContaining("analysis"),
+    })
   })
 
-  it("logs output with specified --run-dir", async () => {
+  it("passes --run-dir flag to runAnalyzers", async () => {
     await analyzeFn(["--run-dir", "custom/results"])
 
-    const output = consoleLogSpy.mock.calls.flat().join(" ")
-    expect(output).toContain("custom/results")
+    expect(runAnalyzers).toHaveBeenCalledWith(expect.objectContaining({ runDir: "custom/results" }))
   })
 
-  it("includes 'not yet implemented' notice in output", async () => {
+  it("passes --output flag to runAnalyzers", async () => {
+    await analyzeFn(["--output", "custom/analysis"])
+
+    expect(runAnalyzers).toHaveBeenCalledWith(
+      expect.objectContaining({ outputDir: "custom/analysis" }),
+    )
+  })
+
+  it("logs analysis results summary", async () => {
     await analyzeFn([])
 
     const output = consoleLogSpy.mock.calls.flat().join(" ")
-    expect(output).toContain("not yet implemented")
+    expect(output).toContain("1 session(s) analyzed")
   })
 })
