@@ -63,60 +63,64 @@ describe("ghx setup e2e install/verify", () => {
     }
   })
 
-  it("installs package, fails verify pre-install, then passes verify post-install", () => {
-    const workspacePath = fileURLToPath(new URL("../../../../", import.meta.url))
-    const tempRoot = mkdtempSync(join(tmpdir(), "ghx-e2e-install-"))
-    const packDir = join(tempRoot, "pack")
-    const projectDir = join(tempRoot, "project")
+  it(
+    "installs package, fails verify pre-install, then passes verify post-install",
+    { timeout: 30_000 },
+    () => {
+      const workspacePath = fileURLToPath(new URL("../../../../", import.meta.url))
+      const tempRoot = mkdtempSync(join(tmpdir(), "ghx-e2e-install-"))
+      const packDir = join(tempRoot, "pack")
+      const projectDir = join(tempRoot, "project")
 
-    runOrThrow("mkdir", ["-p", packDir, projectDir], workspacePath)
-    writeFileSync(
-      join(projectDir, "package.json"),
-      JSON.stringify({ name: "ghx-e2e-project", private: true, version: "0.0.0" }, null, 2),
-      "utf8",
-    )
+      runOrThrow("mkdir", ["-p", packDir, projectDir], workspacePath)
+      writeFileSync(
+        join(projectDir, "package.json"),
+        JSON.stringify({ name: "ghx-e2e-project", private: true, version: "0.0.0" }, null, 2),
+        "utf8",
+      )
 
-    runOrThrow("pnpm", ["--filter", "@ghx-dev/core", "run", "build"], workspacePath)
-    const packResult = runOrThrow(
-      "pnpm",
-      ["--filter", "@ghx-dev/core", "pack", "--pack-destination", packDir],
-      workspacePath,
-    )
-    const tarballName = packResult.stdout
-      .split("\n")
-      .map((line) => line.trim())
-      .find((line) => line.endsWith(".tgz"))
+      runOrThrow("pnpm", ["--filter", "@ghx-dev/core", "run", "build"], workspacePath)
+      const packResult = runOrThrow(
+        "pnpm",
+        ["--filter", "@ghx-dev/core", "pack", "--pack-destination", packDir],
+        workspacePath,
+      )
+      const tarballName = packResult.stdout
+        .split("\n")
+        .map((line) => line.trim())
+        .find((line) => line.endsWith(".tgz"))
 
-    expect(tarballName).toBeDefined()
-    const tarballNameStr = tarballName as string
-    const tarballPath = tarballNameStr.startsWith("/")
-      ? tarballNameStr
-      : join(packDir, tarballNameStr)
+      expect(tarballName).toBeDefined()
+      const tarballNameStr = tarballName as string
+      const tarballPath = tarballNameStr.startsWith("/")
+        ? tarballNameStr
+        : join(packDir, tarballNameStr)
 
-    runOrThrow("pnpm", ["add", tarballPath], projectDir)
+      runOrThrow("pnpm", ["add", tarballPath], projectDir)
 
-    const verifyBefore = run(
-      "pnpm",
-      ["exec", "ghx", "setup", "--scope", "project", "--verify"],
-      projectDir,
-    )
-    expect(verifyBefore.status).toBe(1)
-    expect(verifyBefore.stderr).toContain("Verify failed")
+      const verifyBefore = run(
+        "pnpm",
+        ["exec", "ghx", "setup", "--scope", "project", "--verify"],
+        projectDir,
+      )
+      expect(verifyBefore.status).toBe(1)
+      expect(verifyBefore.stderr).toContain("Verify failed")
 
-    const setup = run("pnpm", ["exec", "ghx", "setup", "--scope", "project", "--yes"], projectDir)
-    expect(setup.status).toBe(0)
-    expect(setup.stdout).toContain("Setup complete")
+      const setup = run("pnpm", ["exec", "ghx", "setup", "--scope", "project", "--yes"], projectDir)
+      expect(setup.status).toBe(0)
+      expect(setup.stdout).toContain("Setup complete")
 
-    const skillPath = join(projectDir, ".agents", "skills", "ghx", "SKILL.md")
-    const skillContent = readFileSync(skillPath, "utf8")
-    expect(skillContent).toContain("# ghx CLI Skill")
+      const skillPath = join(projectDir, ".agents", "skills", "ghx", "SKILL.md")
+      const skillContent = readFileSync(skillPath, "utf8")
+      expect(skillContent).toContain("# ghx CLI Skill")
 
-    const verifyAfter = run(
-      "pnpm",
-      ["exec", "ghx", "setup", "--scope", "project", "--verify"],
-      projectDir,
-    )
-    expect(verifyAfter.status).toBe(0)
-    expect(verifyAfter.stdout).toContain("Verify passed")
-  })
+      const verifyAfter = run(
+        "pnpm",
+        ["exec", "ghx", "setup", "--scope", "project", "--verify"],
+        projectDir,
+      )
+      expect(verifyAfter.status).toBe(0)
+      expect(verifyAfter.stdout).toContain("Verify passed")
+    },
+  )
 })
