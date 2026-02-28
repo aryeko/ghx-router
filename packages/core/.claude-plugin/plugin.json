@@ -1,7 +1,7 @@
 {
   "name": "ghx",
   "description": "GitHub execution router for AI agents — 70 capabilities with deterministic routing and normalized output",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "author": {
     "name": "Arye Kogan"
   },

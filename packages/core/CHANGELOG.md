@@ -1,5 +1,11 @@
 # @ghx-dev/core
 
+## 0.2.2
+
+### Patch Changes
+
+- ad2ef11: Resolve all high CVEs in devDependencies by bumping nx, typescript-eslint, vitest, and vite.
+
 ## 0.2.1
 
 ### Patch Changes
