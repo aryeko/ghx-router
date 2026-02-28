@@ -1,6 +1,6 @@
 {
   "name": "@ghx-dev/agent-profiler",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Generic framework for profiling AI agent session performance",
   "private": true,
   "author": "Arye Kogan",
