@@ -6,7 +6,7 @@ Output directory structure, session trace format, and key metrics to focus on.
 
 After an evaluation run, results and reports are organized under the configured output directories:
 
-```
+```text
 results/
   run-001.jsonl                          # ProfileRow records (one per iteration)
 
@@ -35,7 +35,7 @@ reports/
 
 Session traces are exported as JSON files following the naming convention:
 
-```
+```text
 <scenarioId>/<mode>-iter-<n>.json
 ```
 
