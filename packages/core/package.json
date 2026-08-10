@@ -92,7 +92,7 @@
   },
   "devDependencies": {
     "@graphql-typed-document-node/core": "^3.2.0",
-    "@opencode-ai/sdk": "^1.18.10",
+    "@opencode-ai/sdk": "^1.18.15",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "tsup": "catalog:",

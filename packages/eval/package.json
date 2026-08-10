@@ -20,7 +20,7 @@
   "dependencies": {
     "@ghx-dev/agent-profiler": "workspace:*",
     "@ghx-dev/core": "workspace:*",
-    "@opencode-ai/sdk": "^1.18.10",
+    "@opencode-ai/sdk": "^1.18.15",
     "commander": "^15.0.0",
     "yaml": "^2.9.0",
     "zod": "^4.4.3"
