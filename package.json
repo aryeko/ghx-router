@@ -62,7 +62,7 @@
     "@graphql-codegen/cli": "^7.2.0",
     "@graphql-codegen/near-operation-file-preset": "^5.2.1",
     "@graphql-codegen/schema-ast": "^6.1.0",
-    "@graphql-codegen/typescript-operations": "^6.1.2",
+    "@graphql-codegen/typescript-operations": "^6.1.5",
     "@graphql-codegen/typed-document-node": "^7.1.0",
     "@nx/js": "23.1.1",
     "@typescript/native": "catalog:",
