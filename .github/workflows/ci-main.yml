@@ -107,7 +107,7 @@ jobs:
       - run: pnpm run build
       - name: Create Release Pull Request or Publish
         id: changesets
-        uses: changesets/action@v1
+        uses: changesets/action@v2
         with:
           commitMode: github-api
           publish: pnpm run changeset:publish
